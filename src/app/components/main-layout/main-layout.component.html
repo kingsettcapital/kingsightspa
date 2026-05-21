@@ -1,0 +1,214 @@
+<div class="flex h-screen bg-white">
+  <!-- Sidebar -->
+  <aside
+    class="flex flex-col h-screen transition-all duration-300 flex-shrink-0"
+    [style.width]="isSidebarOpen() ? '8rem' : '5rem'"
+    style="background-color: #0C274A"
+  >
+    <!-- Sidebar Toggle -->
+    <div
+      class="flex items-center justify-center p-4"
+      style="border-bottom: 1px solid rgba(255,255,255,0.1)"
+    >
+      <button
+        (click)="toggleSidebar()"
+        class="p-2 rounded-lg transition-colors hover:bg-white/20"
+        style="background-color: rgba(255,255,255,0.1)"
+      >
+        @if (isSidebarOpen()) {
+          <lucide-icon [img]="xIcon" color="white" [size]="20"></lucide-icon>
+        } @else {
+          <lucide-icon [img]="menuIcon" color="white" [size]="20"></lucide-icon>
+        }
+      </button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 px-2 py-4 space-y-2">
+      <!-- Dashboard -->
+      <a
+        routerLink="/"
+        routerLinkActive="sidebar-link-active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="flex flex-col items-center gap-1 px-2 py-3 rounded-lg transition-all text-gray-300 hover:bg-white/10 no-underline"
+      >
+        <lucide-icon [img]="homeIcon" color="currentColor" [size]="24"></lucide-icon>
+        @if (isSidebarOpen()) {
+          <span class="text-xs font-medium text-center leading-tight text-white">
+            Dashboard
+          </span>
+        }
+      </a>
+
+      <!-- Mortgage dropdown -->
+      <div class="relative">
+        <button
+          (click)="toggleDropdown('Mortgage')"
+          class="flex flex-col items-center gap-1 px-2 py-3 rounded-lg transition-all text-white w-full hover:bg-white/15 cursor-pointer"
+          style="background-color: rgba(255,255,255,0.05)"
+        >
+          <lucide-icon [img]="dollarSignIcon" color="white" [size]="24"></lucide-icon>
+          @if (isSidebarOpen()) {
+            <span class="text-xs font-medium text-center leading-tight">Mortgage</span>
+          }
+        </button>
+
+        @if (openDropdown() === 'Mortgage') {
+          <div
+            class="fixed inset-0 z-10"
+            (click)="closeDropdown()"
+          ></div>
+          <div
+            class="absolute left-full top-0 ml-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-20"
+            style="min-width: 160px"
+          >
+            <a
+              routerLink="/mortgage/ranking"
+              routerLinkActive="dropdown-link-active"
+              (click)="closeDropdown()"
+              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-all no-underline"
+            >Ranking</a>
+            <a
+              routerLink="/mortgage/loans-ranking"
+              routerLinkActive="dropdown-link-active"
+              (click)="closeDropdown()"
+              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-all no-underline"
+            >Loans &amp; Ranking</a>
+            <a
+              routerLink="/mortgage/investor-alias"
+              routerLinkActive="dropdown-link-active"
+              (click)="closeDropdown()"
+              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-all no-underline"
+            >Investor Alias</a>
+            <a
+              routerLink="/mortgage/security-value"
+              routerLinkActive="dropdown-link-active"
+              (click)="closeDropdown()"
+              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-all no-underline"
+            >Security Value</a>
+          </div>
+        }
+      </div>
+
+      <!-- Capital Reporting dropdown -->
+      <div class="relative">
+        <button
+          (click)="toggleDropdown('Capital Reporting')"
+          class="flex flex-col items-center gap-1 px-2 py-3 rounded-lg transition-all text-white w-full hover:bg-white/15 cursor-pointer"
+          style="background-color: rgba(255,255,255,0.05)"
+        >
+          <lucide-icon [img]="chartBarIcon" color="white" [size]="24"></lucide-icon>
+          @if (isSidebarOpen()) {
+            <span class="text-xs font-medium text-center leading-tight">Capital Reporting</span>
+          }
+        </button>
+
+        @if (openDropdown() === 'Capital Reporting') {
+          <div
+            class="fixed inset-0 z-10"
+            (click)="closeDropdown()"
+          ></div>
+          <div
+            class="absolute left-full top-0 ml-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-20"
+            style="min-width: 160px"
+          >
+            <a
+              routerLink="/capital-reporting/fund"
+              routerLinkActive="dropdown-link-active"
+              (click)="closeDropdown()"
+              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-all no-underline"
+            >Fund</a>
+            <a
+              routerLink="/capital-reporting/asset"
+              routerLinkActive="dropdown-link-active"
+              (click)="closeDropdown()"
+              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-all no-underline"
+            >Asset</a>
+            <a
+              routerLink="/capital-reporting/investor"
+              routerLinkActive="dropdown-link-active"
+              (click)="closeDropdown()"
+              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-all no-underline"
+            >Investor</a>
+          </div>
+        }
+      </div>
+    </nav>
+
+    <!-- User Info & Logout -->
+    <div class="p-2 space-y-2" style="border-top: 1px solid rgba(255,255,255,0.1)">
+      <div class="flex flex-col items-center gap-1 px-2 py-3">
+        <div
+          class="flex items-center justify-center w-8 h-8 rounded-full"
+          style="background-color: rgba(255,255,255,0.2)"
+        >
+          <lucide-icon [img]="userIcon" color="white" [size]="16"></lucide-icon>
+        </div>
+        @if (isSidebarOpen()) {
+          <div class="text-center">
+            <p class="text-xs font-medium text-white leading-tight">{{ currentUser.name }}</p>
+            <p class="text-gray-300" style="font-size: 10px">{{ currentUser.role }}</p>
+          </div>
+        }
+      </div>
+
+      <button
+        (click)="handleLogout()"
+        class="flex flex-col items-center gap-1 px-2 py-3 rounded-lg text-gray-300 hover:text-red-400 transition-all w-full"
+        style="background-color: rgba(255,255,255,0.05)"
+      >
+        <lucide-icon [img]="logOutIcon" color="currentColor" [size]="24"></lucide-icon>
+        @if (isSidebarOpen()) {
+          <span class="text-xs font-medium">Logout</span>
+        }
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <div class="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
+    <!-- Header -->
+    <header
+      class="h-16 bg-white flex items-center justify-between px-6 z-10 flex-shrink-0"
+      style="border-bottom: 1px solid #f3f4f6; box-shadow: 0 1px 3px rgba(0,0,0,0.05)"
+    >
+      <div class="flex items-center gap-3">
+        <div
+          class="flex items-center justify-center w-10 h-10 rounded-lg"
+          style="background-color: #0C274A"
+        >
+          <lucide-icon [img]="building2Icon" color="white" [size]="24"></lucide-icon>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold text-gray-800 leading-tight">KingSight</h1>
+          <p class="text-xs text-gray-600">Data Insights</p>
+        </div>
+      </div>
+
+      <button
+        (click)="toggleAIChat()"
+        class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium"
+        [style.background-color]="isAIChatOpen() ? '#0C274A' : 'transparent'"
+        [style.color]="isAIChatOpen() ? 'white' : '#1F2937'"
+      >
+        <lucide-icon
+          [img]="messageSquareIcon"
+          [size]="20"
+          [color]="isAIChatOpen() ? 'white' : '#1F2937'"
+        ></lucide-icon>
+        <span>AI Assistant</span>
+      </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-auto bg-white">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+
+  <!-- AI Chat Sidebar -->
+  <app-ai-chat-sidebar
+    [isOpen]="isAIChatOpen()"
+    (closed)="isAIChatOpen.set(false)"
+  ></app-ai-chat-sidebar>
+</div>

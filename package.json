@@ -1,0 +1,40 @@
+{
+  "name": "kingsight",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "node node_modules/@angular/cli/bin/ng.js",
+    "start": "node node_modules/@angular/cli/bin/ng.js serve",
+    "build": "node node_modules/@angular/cli/bin/ng.js build",
+    "build:prod": "node node_modules/@angular/cli/bin/ng.js build --configuration production",
+    "watch": "node node_modules/@angular/cli/bin/ng.js build --watch --configuration development",
+    "test": "node node_modules/@angular/cli/bin/ng.js test"
+  },
+  "private": true,
+  "packageManager": "npm@8.19.4",
+  "dependencies": {
+    "@angular/common": "^21.2.0",
+    "@angular/compiler": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@angular/forms": "^21.2.0",
+    "@angular/platform-browser": "^21.2.0",
+    "@angular/router": "^21.2.0",
+    "esbuild": "^0.28.0",
+    "lucide-angular": "^1.0.0",
+    "node": "^24.15.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.2.8",
+    "@angular/cli": "^21.2.8",
+    "@angular/compiler-cli": "^21.2.0",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.12",
+    "prettier": "^3.8.1",
+    "tailwindcss": "^3.4.19",
+    "typescript": "~5.9.2"
+  },
+  "optionalDependencies": {
+    "@esbuild/win32-x64": "^0.28.0"
+  }
+}

@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 400;
+    color: #000000;
+    background-color: #ffffff;
+  }
+
+  /* KingSett Font Theme - mirrors the Figma `theme.css`
+     TITLE:    Open Sans Medium / Black
+     SUBTITLE: Open Sans Medium / KingSett Blue
+     H1:       SemiBold / Black / All Caps
+     H2:       SemiBold / KingSett Blue
+     H3:       SemiBold / Black
+     BODY:     Light or Regular / Black
+  */
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #000000;
+    text-transform: uppercase;
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #0C274A;
+    line-height: 1.5;
+  }
+
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #000000;
+    line-height: 1.5;
+  }
+
+  h4 {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  p {
+    font-weight: 400;
+    color: #000000;
+  }
+
+  label {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+}
+
+@layer utilities {
+  .title {
+    font-weight: 500;
+    color: #000000;
+  }
+
+  .subtitle {
+    font-weight: 500;
+    color: #0C274A;
+  }
+
+  .body-light {
+    font-weight: 300;
+    color: #000000;
+  }
+
+  /* Active nav link in dropdown menus */
+  .dropdown-link-active {
+    background-color: #0C274A !important;
+    color: white !important;
+  }
+
+  /* Sidebar active nav link */
+  .sidebar-link-active {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+  }
+}

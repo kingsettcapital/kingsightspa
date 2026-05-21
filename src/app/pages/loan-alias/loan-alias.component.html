@@ -1,0 +1,80 @@
+<section class="loan-alias-page">
+  <div class="loan-alias-header">
+    <h2>Loan Alias and Ranking</h2>
+    <p>Search and select a loan to manage alias and ranking information.</p>
+  </div>
+
+  <div class="loan-alias-grid">
+    <div class="loan-alias-card">
+      <div class="search-row">
+        <label for="loan-search">Loan Search</label>
+        <div class="search-control">
+          <input
+            id="loan-search"
+            type="text"
+            [value]="searchText()"
+            (input)="updateSearchText($any($event.target).value)"
+            (keydown)="onSearchKeyDown($event)"
+            placeholder="Enter loan description"
+          />
+          <button type="button" (click)="searchLoans()" [disabled]="isLoading()">
+            @if (isLoading()) {
+              Searching...
+            } @else {
+              Search
+            }
+          </button>
+          <button
+            type="button"
+            class="secondary"
+            (click)="clearSearch()"
+            [disabled]="isLoading()"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+
+      @if (errorMessage()) {
+        <p class="message error">{{ errorMessage() }}</p>
+      } @else {
+        <p class="message info">{{ infoMessage() }}</p>
+      }
+
+      @if (!errorMessage() && loans().length > 0) {
+        <div class="results">
+          <p class="results-title">Matching Loans</p>
+          <ul>
+            @for (loan of loans(); track loan.loanKey) {
+              <li>
+                <button
+                  type="button"
+                  (click)="selectLoan(loan)"
+                  [class.selected]="selectedLoanKey() === loan.loanKey"
+                >
+                  <span class="loan-desc">{{ loan.loanDesc }}</span>
+                  <span class="loan-key">Key: {{ loan.loanKey }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+
+    <div class="loan-alias-card selection-card">
+      <p class="selection-title">Selected Loan</p>
+      @if (selectedLoanKey()) {
+        <p class="selection-desc">{{ selectedLoanDesc() }}</p>
+        <p class="selection-key">LoanKey to pass: {{ selectedLoanKey() }}</p>
+      } @else {
+        <p class="selection-empty">
+          No loan selected. Choose one from the search results.
+        </p>
+      }
+      <div class="selection-note">
+        Keep `LoanKey` from the selected row for the next API flow.
+      </div>
+    </div>
+  </div>
+</section>
