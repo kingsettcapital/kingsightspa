@@ -1,0 +1,153 @@
+<section>
+  <h1 class="ks-page__title">Loan Alias, Ranking and Late Interest Applicable Capture</h1>
+  <p class="ks-page__subtitle">Select one or more Loans from the drop down list and or update the Default Status and enter the Loan Alias, Rankings and If Late Interest is Applicable</p>
+  <div class="ks-filter-toolbar">
+    <div class="ks-filter-toolbar__filters ks-filter-toolbar__filters--loans">
+      <div class="ks-filter-toolbar__item">
+        <label class="ks-label" for="loanSearch">Description</label>
+        <input
+          id="loanSearch"
+          type="text"
+          class="ks-input"
+          [value]="searchText()"
+          (input)="updateSearch($any($event.target).value)"
+          placeholder="Search loan ID or description..."
+        />
+      </div>
+
+      <div class="ks-filter-toolbar__item ks-filter-toolbar__item--narrow">
+        <label class="ks-label" for="loanStatus">Status</label>
+        <ng-select
+          id="loanStatus"
+          class="ks-ng-select"
+          [items]="statusSelectOptions"
+          bindLabel="label"
+          bindValue="value"
+          [multiple]="true"
+          [closeOnSelect]="false"
+          [clearable]="true"
+          placeholder="Select status..."
+          [ngModel]="statusFilters()"
+          (ngModelChange)="updateStatusFilters($event)"
+        ></ng-select>
+      </div>
+    </div>
+
+    <div class="ks-filter-toolbar__actions">
+      <button
+        type="button"
+        class="ks-btn ks-btn--outline"
+        (click)="saveChanges()"
+        [disabled]="isSaving()"
+      >
+        Save
+      </button>
+      <div class="ks-btn-group">
+        <div class="ks-tooltip">
+          <button
+            type="button"
+            class="ks-export-btn ks-export-btn--excel"
+            (click)="exportExcel()"
+            [disabled]="isExporting() || isLoading()"
+            aria-label="Export Excel"
+          >
+            <lucide-icon [img]="excelExportIcon" color="currentColor" [size]="18"></lucide-icon>
+          </button>
+          <span class="ks-tooltip__label" role="tooltip">Export Excel</span>
+        </div>
+        <div class="ks-tooltip">
+          <button
+            type="button"
+            class="ks-export-btn ks-export-btn--pdf"
+            (click)="exportPdf()"
+            [disabled]="isExporting() || isLoading()"
+            aria-label="Export PDF"
+          >
+            <lucide-icon [img]="pdfExportIcon" color="currentColor" [size]="18"></lucide-icon>
+          </button>
+          <span class="ks-tooltip__label" role="tooltip">Export PDF</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <app-data-table
+    title="Loan Syndicate Details"
+    tableClass="ks-table--ranking"
+    [columns]="tableColumns"
+    [data]="rows()"
+    [sorting]="sorting()"
+    [columnFilters]="columnFilters()"
+    [columnFilterConfig]="columnFilterConfig"
+    [booleanFilterOptions]="booleanFilterOptions"
+    [isLoading]="isLoading()"
+    [errorMessage]="errorMessage()"
+    loadingMessage="Loading loans..."
+    emptyMessage="No loans found."
+    [currentPage]="currentPage()"
+    [totalPages]="totalPages()"
+    [pageRangeLabel]="pageRangeLabel()"
+    [visiblePages]="visiblePages()"
+    (sortingChange)="onSortingChange($event)"
+    (columnFiltersChange)="onColumnFiltersChange($event)"
+    (pagePrevious)="goToPreviousPage()"
+    (pageNext)="goToNextPage()"
+    (pageSelect)="goToPage($event)"
+  >
+    <ng-template appDataTableCell="loanId" let-row="row">
+      <span class="ks-table__cell--mono ks-table__cell--strong">{{ row.loanId || '—' }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="loanDescription" let-row="row">
+      <span>{{ row.loanDescription }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="loanAlias" let-row="row">
+      <select
+        class="ks-select"
+        [value]="row.loanAlias || ''"
+        (change)="updateRowField(row.loanKey, 'loanAlias', $any($event.target).value)"
+      >
+        <option value="">—</option>
+        @for (option of row.loanAliasOptions; track option) {
+          <option [value]="option">{{ option }}</option>
+        }
+      </select>
+    </ng-template>
+
+    <ng-template appDataTableCell="investorName" let-row="row">
+      <span>{{ row.investorName }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="ranking" let-row="row">
+      <input
+        type="number"
+        class="ks-input ks-input--number"
+        min="1"
+        [value]="row.ranking"
+        (input)="updateRowField(row.loanKey, 'ranking', +$any($event.target).value)"
+      />
+    </ng-template>
+
+    <ng-template appDataTableCell="dummyLoanIdentifier" let-row="row">
+      <span class="ks-table__cell--mono">{{ formatBoolean(row.dummyLoanIdentifier) }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="lateInterestApplicable" let-row="row">
+      <span class="ks-table__cell--mono">{{ formatBoolean(row.lateInterestApplicable) }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="lateInterestOffNote" let-row="row">
+      <input
+        type="text"
+        class="ks-input"
+        [value]="row.lateInterestOffNote"
+        (input)="updateRowField(row.loanKey, 'lateInterestOffNote', $any($event.target).value)"
+      />
+    </ng-template>
+
+    <ng-template appDataTableCell="dateDwhUpdate" let-row="row">
+      <span class="ks-table__cell--mono">{{ formatDwhDate(row.dateDwhUpdate) }}</span>
+    </ng-template>
+  </app-data-table>
+</section>

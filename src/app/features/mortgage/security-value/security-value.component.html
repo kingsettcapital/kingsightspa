@@ -1,0 +1,158 @@
+<section>
+  <h1 class="ks-page__title">Security Value</h1>
+  <p class="ks-page__subtitle">
+    Select one or more Loans from the drop down list and or update the Default Status and enter
+    the Security Value
+  </p>
+
+  <div class="ks-filter-toolbar">
+    <div class="ks-filter-toolbar__filters ks-filter-toolbar__filters--security-value">
+      <div class="ks-filter-toolbar__item ks-filter-toolbar__item--wide">
+        <label class="ks-label" for="loanAliasSearch">Loan Alias</label>
+        <input
+          id="loanAliasSearch"
+          type="text"
+          class="ks-input"
+          [value]="loanAliasSearch()"
+          (input)="updateLoanAliasSearch($any($event.target).value)"
+          placeholder="Search and select loan aliases..."
+        />
+
+        @if (searchedLoanAliasOptions().length > 0) {
+          <ul class="ks-search-results">
+            @for (row of searchedLoanAliasOptions(); track row.loanKey) {
+              <li>
+                <button type="button" (click)="selectLoan(row)">
+                  {{ row.loanAlias }}
+                </button>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (selectedLoans().length > 0) {
+          <div class="ks-tag-list">
+            @for (selected of selectedLoans(); track selected.loanKey) {
+              <button
+                type="button"
+                class="ks-tag"
+                (click)="removeSelectedLoan(selected.loanKey)"
+              >
+                <span>{{ selected.loanAlias }}</span>
+                <span class="ks-tag__close" aria-hidden="true">×</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="ks-filter-toolbar__item ks-filter-toolbar__item--narrow">
+        <label class="ks-label" for="fundingStatus">Status</label>
+        <ng-select
+          id="fundingStatus"
+          class="ks-ng-select"
+          [items]="statusSelectOptions"
+          bindLabel="label"
+          bindValue="value"
+          [multiple]="true"
+          [closeOnSelect]="false"
+          [clearable]="true"
+          placeholder="Select status..."
+          [ngModel]="selectedFundingStatuses()"
+          (ngModelChange)="updateFundingStatuses($event)"
+        ></ng-select>
+      </div>
+    </div>
+
+    <div class="ks-filter-toolbar__actions">
+      <button
+        type="button"
+        class="ks-btn ks-btn--outline"
+        (click)="saveChanges()"
+        [disabled]="isSaving() || !hasPendingChanges()"
+      >
+        Save
+      </button>
+      <button
+        type="button"
+        class="ks-btn ks-btn--primary"
+        (click)="saveAndUpdate()"
+        [disabled]="isSaving() || !hasPendingChanges()"
+      >
+        Save &amp; Update
+      </button>
+      <div class="ks-btn-group">
+        <div class="ks-tooltip">
+          <button
+            type="button"
+            class="ks-export-btn ks-export-btn--excel"
+            (click)="exportExcel()"
+            [disabled]="isExporting() || isLoading()"
+            aria-label="Export Excel"
+          >
+            <lucide-icon [img]="excelExportIcon" color="currentColor" [size]="18"></lucide-icon>
+          </button>
+          <span class="ks-tooltip__label" role="tooltip">Export Excel</span>
+        </div>
+        <div class="ks-tooltip">
+          <button
+            type="button"
+            class="ks-export-btn ks-export-btn--pdf"
+            (click)="exportPdf()"
+            [disabled]="isExporting() || isLoading()"
+            aria-label="Export PDF"
+          >
+            <lucide-icon [img]="pdfExportIcon" color="currentColor" [size]="18"></lucide-icon>
+          </button>
+          <span class="ks-tooltip__label" role="tooltip">Export PDF</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <app-data-table
+    title="Security Value"
+    tableClass="ks-table--security-value"
+    [columns]="tableColumns"
+    [data]="tableRows()"
+    [sorting]="sorting()"
+    [columnFilters]="columnFilters()"
+    [columnFilterConfig]="columnFilterConfig"
+    [isLoading]="isLoading()"
+    [errorMessage]="errorMessage()"
+    loadingMessage="Loading security values..."
+    emptyMessage="No loans found."
+    [currentPage]="currentPage()"
+    [totalPages]="totalPages()"
+    [pageRangeLabel]="pageRangeLabel()"
+    [visiblePages]="visiblePages()"
+    [rowClassFn]="rowClassFn"
+    (sortingChange)="onSortingChange($event)"
+    (columnFiltersChange)="onColumnFiltersChange($event)"
+    (pagePrevious)="goToPreviousPage()"
+    (pageNext)="goToNextPage()"
+    (pageSelect)="goToPage($event)"
+  >
+    <ng-template appDataTableCell="loanAlias" let-row="row">
+      <span class="ks-table__cell--strong">{{ row.loanAlias }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="collateralPerYardi" let-row="row">
+      <span class="ks-table__cell--mono">{{ formatCurrency(row.collateralPerYardi) }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="securityValue" let-row="row">
+      <input
+        type="text"
+        class="ks-input ks-input--currency"
+        [value]="securityValueInputValue(row)"
+        (input)="updateSecurityValue(row.loanKey, $any($event.target).value)"
+        [attr.aria-label]="'Security value for ' + row.loanAlias"
+      />
+    </ng-template>
+
+    <ng-template appDataTableCell="dateDwhUpdate" let-row="row">
+      <span class="ks-table__cell--mono">{{ formatDwhDate(row.dateDwhUpdate) }}</span>
+    </ng-template>
+  </app-data-table>
+</section>

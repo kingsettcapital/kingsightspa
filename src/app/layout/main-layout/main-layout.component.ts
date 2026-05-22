@@ -1,0 +1,140 @@
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
+import { AuthService } from '../../core/services/auth.service';
+import {
+  LucideAngularModule,
+  LUCIDE_ICONS,
+  LucideIconProvider,
+  Home,
+  ChartBar,
+  LogOut,
+  Menu,
+  X,
+  MessageSquare,
+  User,
+  Building2,
+  ChevronDown,
+  Landmark,
+} from 'lucide-angular';
+import { AIChatSidebarComponent } from '../../shared/components/ai-chat-sidebar/ai-chat-sidebar.component';
+import { ToastContainerComponent } from '../../shared/components/toast/toast-container.component';
+
+@Component({
+  selector: 'app-main-layout',
+  standalone: true,
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    LucideAngularModule,
+    AIChatSidebarComponent,
+    ToastContainerComponent,
+  ],
+  providers: [
+    {
+      provide: LUCIDE_ICONS,
+      useValue: new LucideIconProvider({
+        Home,
+        ChartBar,
+        LogOut,
+        Menu,
+        X,
+        MessageSquare,
+        User,
+        Building2,
+        ChevronDown,
+        Landmark,
+      }),
+      multi: true,
+    },
+  ],
+  templateUrl: './main-layout.component.html',
+})
+export class MainLayoutComponent implements OnInit {
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+
+  isSidebarExpanded = signal(true);
+  isMobileNavOpen = signal(false);
+  isAIChatOpen = signal(false);
+  openDropdown = signal<string | null>(null);
+
+  ngOnInit(): void {
+    this.syncDropdownToRoute(this.router.url);
+
+    this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe((event) => {
+        const navigation = event as NavigationEnd;
+        this.syncDropdownToRoute(navigation.urlAfterRedirects);
+        this.closeMobileNav();
+      });
+  }
+
+  readonly currentUser = computed(() => {
+    const user = this.authService.currentUser();
+    return {
+      name: user?.name ?? 'John Doe',
+      email: user?.email ?? '',
+      role: 'Administrator',
+    };
+  });
+
+  homeIcon = Home;
+  chartBarIcon = ChartBar;
+  logOutIcon = LogOut;
+  menuIcon = Menu;
+  xIcon = X;
+  messageSquareIcon = MessageSquare;
+  userIcon = User;
+  building2Icon = Building2;
+  chevronDownIcon = ChevronDown;
+  landmarkIcon = Landmark;
+
+  toggleMobileNav(): void {
+    this.isMobileNavOpen.update((v) => !v);
+    if (this.isMobileNavOpen()) {
+      this.isSidebarExpanded.set(true);
+    }
+  }
+
+  closeMobileNav(): void {
+    this.isMobileNavOpen.set(false);
+  }
+
+  toggleSidebarExpanded(): void {
+    this.isSidebarExpanded.update((v) => !v);
+    if (!this.isSidebarExpanded()) {
+      this.openDropdown.set(null);
+    }
+  }
+
+  toggleAIChat(): void {
+    this.isAIChatOpen.update((v) => !v);
+  }
+
+  toggleDropdown(label: string): void {
+    if (!this.isSidebarExpanded()) {
+      this.isSidebarExpanded.set(true);
+      this.openDropdown.set(label);
+      return;
+    }
+    this.openDropdown.update((v) => (v === label ? null : label));
+  }
+
+  private syncDropdownToRoute(url: string): void {
+    if (url.startsWith('/mortgage')) {
+      this.openDropdown.set('Loans');
+      return;
+    }
+
+    if (url.startsWith('/capital-reporting')) {
+      this.openDropdown.set('Stats');
+    }
+  }
+
+  handleLogout(): void {
+    void this.authService.logout();
+  }
+}

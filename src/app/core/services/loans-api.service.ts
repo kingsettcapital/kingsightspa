@@ -1,34 +1,74 @@
-import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { delay, map, Observable, of } from 'rxjs';
 
-import { APP_API_CONFIG } from '../config/api.config';
+import { LOANS_RANKING_EXAMPLE_DATA } from '../constants/loans-ranking-example.data';
+import { LoansPagedApiResponse } from '../interfaces/loans-api.interfaces';
+import { LoanApiRecord } from '../interfaces/loan.interfaces';
+import { LoanTableQuery, LoanTableResult } from '../interfaces/loan-table.interfaces';
+import { ApiService } from './api.service';
+import {
+  applyClientTableTransforms,
+  buildLoansApiQueryParams,
+  mapLoansPagedResponse,
+  resolveServerFiltersFromQuery,
+} from './loans-api-query.util';
+import { queryLoansExampleData } from './loans-table-query.util';
 
-export type LoanApiRecord = Record<string, string | number | null | undefined>;
+/** Set to true to use local mock data instead of GET /api/Loans. */
+const USE_LOANS_EXAMPLE_DATA = false;
 
 @Injectable({
   providedIn: 'root',
 })
 export class LoansApiService {
-  private readonly http = inject(HttpClient);
-  private readonly apiConfig = inject(APP_API_CONFIG);
+  private readonly api = inject(ApiService);
 
-  private get loansUrl(): string {
-    return `${this.apiConfig.baseUrl}/api/loans`;
+  getLoansTable(query: LoanTableQuery): Observable<LoanTableResult> {
+    if (USE_LOANS_EXAMPLE_DATA) {
+      return of(queryLoansExampleData(query)).pipe(delay(400));
+    }
+
+    const resolvedQuery = resolveServerFiltersFromQuery(query);
+    const params = buildLoansApiQueryParams(resolvedQuery);
+
+    return this.api.get<LoansPagedApiResponse>('api/Loans', params).pipe(
+      map((response) => {
+        const mapped = mapLoansPagedResponse(response);
+        return {
+          ...mapped,
+          rows: applyClientTableTransforms(mapped.rows, query),
+        };
+      }),
+    );
   }
 
-  getLoans() {
-    return this.http.get<LoanApiRecord[]>(this.loansUrl);
+  getLoans(): Observable<LoanApiRecord[]> {
+    if (USE_LOANS_EXAMPLE_DATA) {
+      return of([...LOANS_RANKING_EXAMPLE_DATA]).pipe(delay(600));
+    }
+    return this.api
+      .get<LoansPagedApiResponse>('api/Loans', { page: 1, pageSize: 500 })
+      .pipe(map((response) => response.items ?? response.Items ?? []));
   }
 
-  createLoan(payload: LoanApiRecord) {
-    return this.http.post<LoanApiRecord>(this.loansUrl, payload);
+  createLoan(payload: LoanApiRecord): Observable<LoanApiRecord> {
+    if (USE_LOANS_EXAMPLE_DATA) {
+      return of({ ...payload }).pipe(delay(400));
+    }
+    return this.api.post<LoanApiRecord>('api/Loans', payload);
   }
 
-  updateLoan(loanKey: string | number, payload: LoanApiRecord) {
-    return this.http.put<LoanApiRecord>(`${this.loansUrl}/${encodeURIComponent(String(loanKey))}`, payload);
+  updateLoan(loanKey: string | number, payload: LoanApiRecord): Observable<LoanApiRecord> {
+    if (USE_LOANS_EXAMPLE_DATA) {
+      return of({ loanKey: String(loanKey), ...payload }).pipe(delay(400));
+    }
+    return this.api.put<LoanApiRecord>(
+      `api/Loans/${encodeURIComponent(String(loanKey))}`,
+      payload,
+    );
   }
 
   deleteLoan(loanId: string | number) {
-    return this.http.delete<void>(`${this.loansUrl}/${loanId}`);
+    return this.api.delete<void>(`api/Loans/${loanId}`);
   }
 }

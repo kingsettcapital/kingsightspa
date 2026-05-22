@@ -1,0 +1,76 @@
+:root {
+  /* Brand */
+  --ks-color-navy: #0c274a;
+  --ks-color-navy-dark: #081c35;
+  --ks-color-primary: #2563eb;
+  --ks-color-primary-hover: #1d4ed8;
+  --ks-color-accent: #f5b800;
+
+  /* Semantic */
+  --ks-color-success: #16a34a;
+  --ks-color-danger: #dc2626;
+  --ks-color-info: #2563eb;
+  --ks-color-warning: #d97706;
+
+  /* Surfaces */
+  --ks-color-bg: #f4f6f9;
+  --ks-color-surface: #ffffff;
+  --ks-color-border: #e5e7eb;
+  --ks-color-border-strong: #d1d5db;
+
+  /* Text */
+  --ks-color-text: #111827;
+  --ks-color-text-muted: #6b7280;
+  --ks-color-text-inverse: #ffffff;
+  --ks-color-text-subtitle: #0c274a;
+
+  /* Table */
+  --ks-color-table-title-bg: #0c274a;
+  --ks-color-table-head-bg: #d6e4ff;
+  --ks-color-table-head-text: #0c274a;
+  --ks-color-table-head-icon: #5a7a9e;
+  --ks-color-table-head-border: #a5beda;
+  --ks-color-table-head-border-top: #2563eb;
+  --ks-color-table-row-alt: #f8fafc;
+  --ks-color-table-border: #dbe3ef;
+  --ks-color-table-grid: #8fa8c4;
+
+  /* Status badges */
+  --ks-color-badge-active: #16a34a;
+  --ks-color-badge-settled: #2563eb;
+  --ks-color-badge-delinquent: #dc2626;
+
+  /* Layout */
+  --ks-sidebar-width-collapsed: 5rem;
+  --ks-sidebar-width-expanded: 13.5rem;
+  --ks-header-height: 4rem;
+  --ks-content-padding: 1.5rem;
+
+  /* Typography */
+  --ks-font-family: 'Open Sans', sans-serif;
+  --ks-font-size-xs: 0.625rem;
+  --ks-font-size-sm: 0.75rem;
+  --ks-font-size-base: 0.875rem;
+  --ks-font-size-md: 1rem;
+  --ks-font-size-lg: 1.25rem;
+  --ks-font-size-xl: 1.75rem;
+
+  /* Corners — sharp theme: no rounded inputs or buttons */
+  --ks-radius-none: 0;
+  --ks-radius-sm: 0;
+  --ks-radius-md: 0;
+  --ks-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --ks-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+  /* Breakpoints (for reference in media queries) */
+  --ks-bp-sm: 640px;
+  --ks-bp-md: 768px;
+  --ks-bp-lg: 1024px;
+  --ks-bp-xl: 1280px;
+}
+
+// SCSS tokens (mirror :root — use in @media, math, mixins)
+$ks-bp-sm: 640px;
+$ks-bp-md: 768px;
+$ks-bp-lg: 1024px;
+$ks-bp-xl: 1280px;

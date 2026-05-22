@@ -1,0 +1,195 @@
+<div class="ks-table-card">
+  @if (title()) {
+    <h2 class="ks-table-card__title">{{ title() }}</h2>
+  }
+
+  <div [class]="wrapClasses()">
+    <table [class]="tableClasses()" [style]="columnSizeVars()">
+      <thead>
+        @for (headerGroup of table.getHeaderGroups(); track headerGroup.id) {
+          <tr>
+            @for (header of headerGroup.headers; track header.id) {
+              <th
+                [style.width]="headerWidthStyle(header.id)"
+                [style.minWidth.px]="header.column.columnDef.minSize"
+              >
+                @if (isActionsHeader(header.column.id)) {
+                  <div class="ks-table__head-cell ks-table__head-cell--actions" aria-hidden="true"></div>
+                } @else {
+                  <div class="ks-table__head-cell">
+                    <div class="ks-table__head-toolbar">
+                      @if (canSortColumn(header)) {
+                        <button
+                          type="button"
+                          class="ks-table__head-icon-btn"
+                          (click)="toggleColumnSort($event, header.column.id)"
+                          [attr.aria-label]="'Sort ' + getHeaderLabel(header)"
+                        >
+                          @if (getSortDirection(header.column.id) === 'asc') {
+                            <lucide-icon [img]="sortIconAsc" color="currentColor" [size]="14"></lucide-icon>
+                          } @else if (getSortDirection(header.column.id) === 'desc') {
+                            <lucide-icon [img]="sortIconDesc" color="currentColor" [size]="14"></lucide-icon>
+                          } @else {
+                            <lucide-icon [img]="sortIconDefault" color="currentColor" [size]="14"></lucide-icon>
+                          }
+                        </button>
+                      } @else {
+                        <span class="ks-table__head-icon-spacer ks-table__head-icon-spacer--start" aria-hidden="true"></span>
+                      }
+
+                      <span class="ks-table__head-label">{{ getHeaderLabel(header) }}</span>
+
+                      @if (canFilterColumn(header)) {
+                        <div class="ks-table__head-filter-wrap">
+                          <button
+                            type="button"
+                            class="ks-table__head-icon-btn"
+                            [class.ks-table__head-icon-btn--active]="hasActiveColumnFilter(header.column.id)"
+                            (click)="toggleFilterMenu($event, header.column.id)"
+                            [attr.aria-label]="'Filter ' + getHeaderLabel(header)"
+                            [attr.aria-expanded]="isFilterMenuOpen(header.column.id)"
+                          >
+                            <lucide-icon [img]="filterIcon" color="currentColor" [size]="14"></lucide-icon>
+                          </button>
+                        </div>
+                      } @else {
+                        <span class="ks-table__head-icon-spacer ks-table__head-icon-spacer--end" aria-hidden="true"></span>
+                      }
+                    </div>
+                  </div>
+                  @if (canResizeColumn(header)) {
+                    <div
+                      class="ks-table__resizer"
+                      [class.ks-table__resizer--active]="header.column.getIsResizing()"
+                      (mousedown)="header.getResizeHandler()($event)"
+                      (touchstart)="header.getResizeHandler()($event)"
+                    ></div>
+                  }
+                }
+              </th>
+            }
+          </tr>
+        }
+      </thead>
+      <tbody>
+        @if (isLoading()) {
+          <tr>
+            <td [attr.colspan]="tableColumnCount()" class="ks-table__empty ks-table__empty--loading">
+              {{ loadingMessage() }}
+            </td>
+          </tr>
+        } @else if (errorMessage()) {
+          <tr>
+            <td [attr.colspan]="tableColumnCount()" class="ks-table__empty ks-table__empty--error">
+              {{ errorMessage() }}
+            </td>
+          </tr>
+        } @else {
+          @for (row of table.getRowModel().rows; track row.id) {
+            <tr [class]="getRowClasses(row)">
+              @for (cell of row.getVisibleCells(); track cell.id) {
+                <td
+                  [style.width]="columnWidthStyle(cell.column.id)"
+                  [style.minWidth.px]="cell.column.columnDef.minSize"
+                >
+                  @if (getCellTemplate(cell.column.id); as cellTemplate) {
+                    <ng-container
+                      [ngTemplateOutlet]="cellTemplate"
+                      [ngTemplateOutletContext]="getCellContext(row)"
+                    />
+                  }
+                </td>
+              }
+            </tr>
+          } @empty {
+            <tr>
+              <td [attr.colspan]="tableColumnCount()" class="ks-table__empty">
+                {{ emptyMessage() }}
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (showPagination()) {
+    <div class="ks-pagination">
+      <span class="ks-pagination__info">{{ pageRangeLabel() }}</span>
+      <div class="ks-pagination__controls">
+        <button
+          type="button"
+          class="ks-pagination__btn"
+          (click)="pagePrevious.emit()"
+          [disabled]="currentPage() <= 1"
+        >
+          Prev
+        </button>
+        @for (page of visiblePages(); track page) {
+          <button
+            type="button"
+            class="ks-pagination__btn"
+            [class.ks-pagination__btn--active]="page === currentPage()"
+            (click)="pageSelect.emit(page)"
+          >
+            {{ page }}
+          </button>
+        }
+        <button
+          type="button"
+          class="ks-pagination__btn"
+          (click)="pageNext.emit()"
+          [disabled]="currentPage() >= totalPages()"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
+</div>
+
+@if (openFilterColumnId(); as filterColumnId) {
+  @if (filterMenuPosition(); as menuPosition) {
+    <div
+      class="ks-table__filter-menu ks-table__filter-menu--floating"
+      role="dialog"
+      [style.top.px]="menuPosition.top"
+      [style.left.px]="menuPosition.left"
+      (click)="$event.stopPropagation()"
+    >
+      <p class="ks-table__filter-menu__title">Filter {{ getOpenFilterColumnLabel() }}</p>
+
+      @if (isBooleanFilterColumn(filterColumnId)) {
+        <div class="ks-table__filter-menu__options">
+          @for (option of booleanFilterOptions(); track option.value) {
+            <button
+              type="button"
+              class="ks-table__filter-menu__option"
+              [class.ks-table__filter-menu__option--active]="filterDraft() === option.value"
+              (click)="setFilterDraft(option.value)"
+            >
+              {{ option.label }}
+            </button>
+          }
+        </div>
+      } @else {
+        <input
+          type="text"
+          class="ks-input"
+          [value]="filterDraft()"
+          (input)="setFilterDraft($any($event.target).value)"
+          [placeholder]="getFilterPlaceholder(filterColumnId)"
+        />
+      }
+
+      <div class="ks-table__filter-menu__actions">
+        <button type="button" class="ks-btn ks-btn--ghost" (click)="clearColumnFilter(filterColumnId)">
+          Clear
+        </button>
+        <button type="button" class="ks-btn ks-btn--outline" (click)="applyColumnFilter(filterColumnId)">
+          Apply
+        </button>
+      </div>
+    </div>
+  }
+}

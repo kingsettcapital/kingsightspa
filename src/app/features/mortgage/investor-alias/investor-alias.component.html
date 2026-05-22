@@ -1,0 +1,132 @@
+<section>
+  <h1 class="ks-page__title">Investor Alias</h1>
+  <p class="ks-page__subtitle">
+    Select one or more Investors from the drop down list and enter the Investor Alias
+  </p>
+
+  <div class="ks-filter-toolbar">
+    <div class="ks-filter-toolbar__filters">
+      <div class="ks-filter-toolbar__item ks-filter-toolbar__item--wide">
+        <label class="ks-label" for="investorSearch">Investor Name</label>
+        <input
+          id="investorSearch"
+          type="text"
+          class="ks-input"
+          [value]="searchText()"
+          (input)="updateSearch($any($event.target).value)"
+          placeholder="Search and select investors..."
+        />
+
+        @if (searchedInvestorOptions().length > 0) {
+          <ul class="ks-search-results">
+            @for (row of searchedInvestorOptions(); track row.investor_key) {
+              <li>
+                <button type="button" (click)="selectInvestor(row)">
+                  <span class="ks-table__cell--mono ks-table__cell--strong">{{ row.investor_code }}</span>
+                  {{ row.investor_name }}
+                </button>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (selectedInvestors().length > 0) {
+          <div class="ks-tag-list">
+            @for (selected of selectedInvestors(); track selected.investor_key) {
+              <button
+                type="button"
+                class="ks-tag"
+                (click)="removeSelectedInvestor(selected.investor_key)"
+              >
+                <span>{{ selected.investor_code }} {{ selected.investor_name }}</span>
+                <span class="ks-tag__close" aria-hidden="true">×</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="ks-filter-toolbar__actions">
+      <button
+        type="button"
+        class="ks-btn ks-btn--outline"
+        (click)="saveChanges()"
+        [disabled]="isSaving() || !hasPendingAliasChanges()"
+      >
+        Save
+      </button>
+      <div class="ks-btn-group">
+        <div class="ks-tooltip">
+          <button
+            type="button"
+            class="ks-export-btn ks-export-btn--excel"
+            (click)="exportExcel()"
+            [disabled]="isExporting() || isLoading()"
+            aria-label="Export Excel"
+          >
+            <lucide-icon [img]="excelExportIcon" color="currentColor" [size]="18"></lucide-icon>
+          </button>
+          <span class="ks-tooltip__label" role="tooltip">Export Excel</span>
+        </div>
+        <div class="ks-tooltip">
+          <button
+            type="button"
+            class="ks-export-btn ks-export-btn--pdf"
+            (click)="exportPdf()"
+            [disabled]="isExporting() || isLoading()"
+            aria-label="Export PDF"
+          >
+            <lucide-icon [img]="pdfExportIcon" color="currentColor" [size]="18"></lucide-icon>
+          </button>
+          <span class="ks-tooltip__label" role="tooltip">Export PDF</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <app-data-table
+    title="Investor Alias Details"
+    [columns]="tableColumns"
+    [data]="tableRows()"
+    [sorting]="sorting()"
+    [columnFilters]="columnFilters()"
+    [columnFilterConfig]="columnFilterConfig"
+    [isLoading]="isLoading()"
+    [errorMessage]="errorMessage()"
+    loadingMessage="Loading investors..."
+    emptyMessage="No investors found."
+    [currentPage]="currentPage()"
+    [totalPages]="totalPages()"
+    [pageRangeLabel]="pageRangeLabel()"
+    [visiblePages]="visiblePages()"
+    [rowClassFn]="rowClassFn"
+    (sortingChange)="onSortingChange($event)"
+    (columnFiltersChange)="onColumnFiltersChange($event)"
+    (pagePrevious)="goToPreviousPage()"
+    (pageNext)="goToNextPage()"
+    (pageSelect)="goToPage($event)"
+  >
+    <ng-template appDataTableCell="investorCode" let-row="row">
+      <span class="ks-table__cell--mono ks-table__cell--strong">{{ row.investor_code }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="investor" let-row="row">
+      <span>{{ row.investor_name }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="investorAlias" let-row="row">
+      <input
+        type="text"
+        class="ks-input"
+        [value]="row.investor_alias_name"
+        (input)="updateInvestorAlias(row.investor_key, $any($event.target).value)"
+        aria-label="Investor alias for {{ row.investor_name }}"
+      />
+    </ng-template>
+
+    <ng-template appDataTableCell="dateDwhUpdate" let-row="row">
+      <span class="ks-table__cell--mono">{{ formatDwhDate(row.user_updated_date) }}</span>
+    </ng-template>
+  </app-data-table>
+</section>

@@ -1,50 +1,50 @@
-import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { delay, Observable, of } from 'rxjs';
 
-import { APP_API_CONFIG } from '../config/api.config';
+import { INVESTOR_ALIAS_EXAMPLE_DATA } from '../constants/investor-alias-example.data';
+import {
+  InvestorAliasBulkUpdateRequest,
+  InvestorAliasRow,
+} from '../interfaces/investor.interfaces';
+import { ApiService } from './api.service';
 
-export type InvestorAliasRow = {
-  investor_key: number;
-  investor_code: string;
-  investor_name: string;
-  investor_alias_name: string;
-  user_updated_by: string | null;
-  user_updated_date: string | null;
-};
-
-export type InvestorAliasUpdatePayload = {
-  investor_key: number;
-  investor_alias_name: string;
-  user_updated_date: string | null;
-  user_updated_by: string | null;
-};
-
-export type InvestorAliasBulkUpdateRequest = {
-  Investors: InvestorAliasUpdatePayload[];
-};
-
+/** Set to false when the live investor API is ready. */
+const USE_INVESTOR_EXAMPLE_DATA = true;
 
 @Injectable({
   providedIn: 'root',
 })
 export class InvestorApiService {
-  private readonly http = inject(HttpClient);
-  private readonly apiConfig = inject(APP_API_CONFIG);
+  private readonly api = inject(ApiService);
 
-  private get investorsUrl(): string {
-    return `${this.apiConfig.baseUrl}/api/Investor`;
-  }
-
-  getInvestors() {
-    return this.http.get<InvestorAliasRow[]>(this.investorsUrl);
+  getInvestors(): Observable<InvestorAliasRow[]> {
+    if (USE_INVESTOR_EXAMPLE_DATA) {
+      return of([...INVESTOR_ALIAS_EXAMPLE_DATA]).pipe(delay(400));
+    }
+    return this.api.get<InvestorAliasRow[]>('api/Investor');
   }
 
   /**
    * Updates all changed investor aliases in one request.
    * Body: array of per-row payloads (same shape as the former single-row PUT /api/Investor/{key}/alias).
    */
-  updateInvestorAliasesBulk(request: InvestorAliasBulkUpdateRequest) {
-    const url = `${this.investorsUrl}/aliases`;
-    return this.http.put<InvestorAliasBulkUpdateRequest>(url, request);
+  updateInvestorAliasesBulk(
+    request: InvestorAliasBulkUpdateRequest,
+  ): Observable<InvestorAliasBulkUpdateRequest> {
+    if (USE_INVESTOR_EXAMPLE_DATA) {
+      for (const update of request.Investors) {
+        const record = INVESTOR_ALIAS_EXAMPLE_DATA.find(
+          (item) => item.investor_key === update.investor_key,
+        );
+        if (!record) {
+          continue;
+        }
+        record.investor_alias_name = update.investor_alias_name;
+        record.user_updated_date = update.user_updated_date?.slice(0, 10) ?? null;
+        record.user_updated_by = update.user_updated_by;
+      }
+      return of({ Investors: request.Investors }).pipe(delay(500));
+    }
+    return this.api.put<InvestorAliasBulkUpdateRequest>('api/Investor/aliases', request);
   }
 }

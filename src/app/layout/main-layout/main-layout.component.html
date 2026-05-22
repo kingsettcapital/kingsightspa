@@ -1,0 +1,211 @@
+<div class="ks-app-shell">
+  @if (isMobileNavOpen()) {
+    <button
+      type="button"
+      class="ks-sidebar-backdrop"
+      (click)="closeMobileNav()"
+      aria-label="Close menu"
+    ></button>
+  }
+
+  <aside
+    class="ks-sidebar"
+    [class.ks-sidebar--collapsed]="!isSidebarExpanded()"
+    [class.ks-sidebar--expanded]="isSidebarExpanded()"
+    [class.ks-sidebar--mobile-open]="isMobileNavOpen()"
+  >
+    <div class="ks-sidebar__toggle">
+      <button
+        type="button"
+        class="ks-sidebar__toggle-btn"
+        (click)="toggleSidebarExpanded()"
+        [attr.aria-label]="isSidebarExpanded() ? 'Collapse sidebar' : 'Expand sidebar'"
+      >
+        @if (isSidebarExpanded()) {
+          <lucide-icon [img]="xIcon" color="white" [size]="20"></lucide-icon>
+        } @else {
+          <lucide-icon [img]="menuIcon" color="white" [size]="20"></lucide-icon>
+        }
+      </button>
+    </div>
+
+    <nav class="ks-sidebar__nav">
+      <a
+        routerLink="/"
+        routerLinkActive="ks-sidebar__link--active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="ks-sidebar__link"
+      >
+        <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
+        <span class="ks-sidebar__link-label">Dashboard</span>
+      </a>
+
+      <div
+        class="ks-sidebar__group"
+        [class.ks-sidebar__group--expanded]="openDropdown() === 'Loans'"
+      >
+        <button
+          type="button"
+          class="ks-sidebar__group-btn"
+          [class.ks-sidebar__group-btn--expanded]="openDropdown() === 'Loans'"
+          (click)="toggleDropdown('Loans')"
+        >
+          <lucide-icon [img]="landmarkIcon" color="currentColor" [size]="22"></lucide-icon>
+          <span class="ks-sidebar__link-label">Loans Alias</span>
+          @if (isSidebarExpanded()) {
+            <lucide-icon
+              class="ks-sidebar__chevron"
+              [class.ks-sidebar__chevron--open]="openDropdown() === 'Loans'"
+              [img]="chevronDownIcon"
+              color="currentColor"
+              [size]="16"
+            ></lucide-icon>
+          }
+        </button>
+
+        @if (isSidebarExpanded() && openDropdown() === 'Loans') {
+          <div class="ks-sidebar__subnav">
+            <a
+              routerLink="/mortgage/ranking"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Ranking</a>
+            <a
+              routerLink="/mortgage/loans-ranking"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Loans &amp; Ranking</a>
+            <a
+              routerLink="/mortgage/investor-alias"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Investor Alias</a>
+            <a
+              routerLink="/mortgage/security-value"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Security Value</a>
+            <a
+              routerLink="/mortgage/other-cost"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Other Cost</a>
+          </div>
+        }
+      </div>
+
+      <div
+        class="ks-sidebar__group"
+        [class.ks-sidebar__group--expanded]="openDropdown() === 'Stats'"
+      >
+        <button
+          type="button"
+          class="ks-sidebar__group-btn"
+          [class.ks-sidebar__group-btn--expanded]="openDropdown() === 'Stats'"
+          (click)="toggleDropdown('Stats')"
+        >
+          <lucide-icon [img]="chartBarIcon" color="currentColor" [size]="22"></lucide-icon>
+          <span class="ks-sidebar__link-label">Stats</span>
+          @if (isSidebarExpanded()) {
+            <lucide-icon
+              class="ks-sidebar__chevron"
+              [class.ks-sidebar__chevron--open]="openDropdown() === 'Stats'"
+              [img]="chevronDownIcon"
+              color="currentColor"
+              [size]="16"
+            ></lucide-icon>
+          }
+        </button>
+
+        @if (isSidebarExpanded() && openDropdown() === 'Stats') {
+          <div class="ks-sidebar__subnav">
+            <a
+              routerLink="/capital-reporting/fund"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Fund</a>
+            <a
+              routerLink="/capital-reporting/asset"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Asset</a>
+            <a
+              routerLink="/capital-reporting/investor"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Investor</a>
+          </div>
+        }
+      </div>
+    </nav>
+
+    <div class="ks-sidebar__footer">
+      <div class="ks-sidebar__user">
+        <div class="ks-sidebar__avatar">
+          <lucide-icon [img]="userIcon" color="white" [size]="16"></lucide-icon>
+        </div>
+        @if (isSidebarExpanded()) {
+          <div>
+            <p class="ks-sidebar__user-name">{{ currentUser().name }}</p>
+            <p class="ks-sidebar__user-role">{{ currentUser().role }}</p>
+          </div>
+        }
+      </div>
+
+      <button type="button" class="ks-sidebar__logout" (click)="handleLogout()">
+        <lucide-icon [img]="logOutIcon" color="currentColor" [size]="20"></lucide-icon>
+        @if (isSidebarExpanded()) {
+          <span>Sign Out</span>
+        }
+      </button>
+    </div>
+  </aside>
+
+  <div class="ks-app-main">
+    <header class="ks-header">
+      <div class="ks-header__brand">
+        <button
+          type="button"
+          class="ks-header__menu-btn"
+          (click)="toggleMobileNav()"
+          aria-label="Open menu"
+        >
+          <lucide-icon [img]="menuIcon" color="currentColor" [size]="22"></lucide-icon>
+        </button>
+        <div class="ks-header__logo">
+          <lucide-icon [img]="building2Icon" color="white" [size]="22"></lucide-icon>
+        </div>
+        <div>
+          <h1 class="ks-header__title">KingSight</h1>
+          <p class="ks-header__subtitle">Data Insights</p>
+        </div>
+      </div>
+
+      <div class="ks-header__actions">
+        <button
+          type="button"
+          [class]="isAIChatOpen() ? 'ks-btn ks-btn--primary' : 'ks-btn ks-btn--ghost'"
+          (click)="toggleAIChat()"
+        >
+          <lucide-icon
+            [img]="messageSquareIcon"
+            [size]="18"
+            [color]="isAIChatOpen() ? 'white' : 'currentColor'"
+          ></lucide-icon>
+          <span>AI Assistant</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="ks-page">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+
+  <app-ai-chat-sidebar
+    [isOpen]="isAIChatOpen()"
+    (closed)="isAIChatOpen.set(false)"
+  ></app-ai-chat-sidebar>
+
+  <app-toast-container />
+</div>

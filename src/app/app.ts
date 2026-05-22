@@ -1,10 +1,25 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AuthService } from './core/services/auth.service';
 
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet],
-  template: `<router-outlet></router-outlet>`,
-  styles: []
+  template: `
+    @if (
+      authService.requireLogin &&
+      (!authService.isMsalReady() || authService.isRedirectInProgress())
+    ) {
+      <div
+        class="flex h-screen items-center justify-center bg-white text-gray-700"
+      >
+        <p class="text-lg font-medium">Signing you in...</p>
+      </div>
+    } @else {
+      <router-outlet />
+    }
+  `,
 })
-export class App {}
+export class App {
+  readonly authService = inject(AuthService);
+}
