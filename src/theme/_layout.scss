@@ -333,10 +333,10 @@
 
 .ks-sidebar__logout:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #fca5a5;
+  color: var(--ks-color-gold);
 }
 
-/* Header */
+/* Header — KingSett navy bar with gold accent (brand guidelines) */
 .ks-header {
   display: flex;
   align-items: center;
@@ -344,8 +344,8 @@
   height: var(--ks-header-height);
   flex-shrink: 0;
   padding: 0 1rem;
-  background: var(--ks-color-surface);
-  border-bottom: 1px solid var(--ks-color-border);
+  background: var(--ks-color-navy);
+  border-bottom: 3px solid var(--ks-color-gold);
   box-shadow: var(--ks-shadow-sm);
 }
 
@@ -362,16 +362,16 @@
   width: 2.5rem;
   height: 2.5rem;
   padding: 0;
-  border: 1px solid var(--ks-color-border-strong);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: var(--ks-radius-none);
-  background: var(--ks-color-surface);
-  color: var(--ks-color-navy);
+  background: transparent;
+  color: var(--ks-color-text-inverse);
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .ks-header__menu-btn:hover {
-  background: #f3f4f6;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .ks-sidebar-backdrop {
@@ -383,35 +383,58 @@
   cursor: pointer;
 }
 
-.ks-header__logo {
-  display: flex;
+.ks-header__brand-link {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--ks-radius-none);
-  background: var(--ks-color-navy);
+  text-decoration: none;
+  line-height: 0;
 }
 
-.ks-header__title {
-  margin: 0;
-  color: var(--ks-color-text);
-  font-size: var(--ks-font-size-xl);
-  font-weight: 700;
-  line-height: 1.2;
+.ks-header__brand-link:focus-visible {
+  outline: 2px solid var(--ks-color-gold);
+  outline-offset: 3px;
 }
 
-.ks-header__subtitle {
+.ks-header__app-tagline {
   margin: 0;
-  color: var(--ks-color-text-muted);
+  padding-left: 0.85rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.28);
+  color: var(--ks-color-gold);
+  font-family: var(--ks-font-family);
   font-size: var(--ks-font-size-sm);
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .ks-header__actions {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.ks-header .ks-btn--ghost {
+  border-color: rgba(255, 255, 255, 0.45);
+  background: transparent;
+  color: var(--ks-color-text-inverse);
+}
+
+.ks-header .ks-btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.65);
+}
+
+.ks-header .ks-btn--primary {
+  border-color: var(--ks-color-gold);
+  background: var(--ks-color-gold);
+  color: var(--ks-color-navy);
+}
+
+.ks-header .ks-btn--primary:hover:not(:disabled) {
+  background: #f0c04a;
+  border-color: #f0c04a;
 }
 
 /* Main content */
@@ -425,22 +448,7 @@
   background: var(--ks-color-bg);
 }
 
-.ks-page__title {
-  margin: 0 0 1.25rem;
-  color: var(--ks-color-text);
-  font-size: var(--ks-font-size-xl);
-  font-weight: 700;
-  line-height: 1.2;
-  text-transform: none;
-  margin-bottom: 8px;
-}
-
-.ks-page__subtitle {
-  margin: 0.35rem 0 1.25rem;
-  color: var(--ks-color-text-muted);
-  font-size: var(--ks-font-size-md);
-  font-weight: 400;
-}
+/* Page title typography + vertical line: see _brand-elements.scss (.ks-page__heading) */
 
 @include bp-md-down {
   .ks-sidebar {
@@ -471,7 +479,7 @@
     display: inline-flex;
   }
 
-  .ks-header__subtitle {
+  .ks-header__app-tagline {
     display: none;
   }
 

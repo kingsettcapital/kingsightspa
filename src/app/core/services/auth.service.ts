@@ -15,7 +15,9 @@ import {
   LOGGED_OUT_SESSION_KEY,
   loginRequest,
 } from '../constants/auth.config';
+import { UserRole } from '../enums/user-role.enum';
 import { AuthUser } from '../interfaces/auth.interfaces';
+import { parseUserRole } from '../utils/user-role.util';
 import {
   authError,
   authLog,
@@ -412,10 +414,23 @@ export class AuthService {
         name: account.name ?? account.username,
         email: account.username,
         username: account.username,
+        role: this.resolveUserRole(account),
       });
     } else {
       this.currentUser.set(null);
     }
+  }
+
+  private resolveUserRole(account: AccountInfo): UserRole {
+    const claims = account.idTokenClaims as Record<string, unknown> | undefined;
+    const roles = claims?.['roles'];
+    if (Array.isArray(roles) && typeof roles[0] === 'string') {
+      return parseUserRole(roles[0]);
+    }
+    if (typeof claims?.['role'] === 'string') {
+      return parseUserRole(claims['role']);
+    }
+    return environment.mockUserRole ?? UserRole.User;
   }
 
   private clearAuthState(): void {

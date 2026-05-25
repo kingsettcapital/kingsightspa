@@ -1,0 +1,82 @@
+:host {
+  display: inline-flex;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.ks-kingsett-logo__svg {
+  display: block;
+  width: auto;
+  height: var(--ks-kingsett-logo-height, 2.25rem);
+}
+
+:host(.ks-kingsett-logo--sm) .ks-kingsett-logo__svg {
+  --ks-kingsett-logo-height: 1.75rem;
+}
+
+:host(.ks-kingsett-logo--md) .ks-kingsett-logo__svg {
+  --ks-kingsett-logo-height: 2.25rem;
+}
+
+:host(.ks-kingsett-logo--lg) .ks-kingsett-logo__svg {
+  --ks-kingsett-logo-height: 2.75rem;
+}
+
+:host(.ks-kingsett-logo--mark-only) .ks-kingsett-logo__svg {
+  --ks-kingsett-logo-height: 2rem;
+}
+
+/* Reversed — dark backgrounds (header, navy surfaces) */
+:host(.ks-kingsett-logo--reversed) {
+  --ks-logo-diamond: var(--ks-color-gold);
+  --ks-logo-king: var(--ks-color-white);
+  --ks-logo-wordmark: var(--ks-color-white);
+  --ks-logo-capital: var(--ks-color-gold);
+}
+
+/* Secondary — light backgrounds */
+:host(.ks-kingsett-logo--secondary) {
+  --ks-logo-diamond: var(--ks-color-gold);
+  --ks-logo-king: var(--ks-color-white);
+  --ks-logo-wordmark: var(--ks-color-navy);
+  --ks-logo-capital: var(--ks-color-blue);
+}
+
+/* Monochrome — limited colour reproduction */
+:host(.ks-kingsett-logo--black) {
+  --ks-logo-diamond: var(--ks-color-black);
+  --ks-logo-king: var(--ks-color-white);
+  --ks-logo-wordmark: var(--ks-color-black);
+  --ks-logo-capital: var(--ks-color-black);
+}
+
+:host(.ks-kingsett-logo--white) {
+  --ks-logo-diamond: var(--ks-color-white);
+  --ks-logo-king: var(--ks-color-black);
+  --ks-logo-wordmark: var(--ks-color-white);
+  --ks-logo-capital: var(--ks-color-white);
+}
+
+.ks-kingsett-logo__diamond {
+  fill: var(--ks-logo-diamond);
+}
+
+.ks-kingsett-logo__king :is(path, circle, rect) {
+  fill: var(--ks-logo-king);
+}
+
+.ks-kingsett-logo__wordmark {
+  fill: var(--ks-logo-wordmark);
+  font-family: var(--ks-logo-font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.ks-kingsett-logo__capital {
+  fill: var(--ks-logo-capital);
+  font-family: var(--ks-logo-font-sans);
+  font-size: 7.5px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+}

@@ -1,0 +1,125 @@
+/* KingSett brand elements — Vertical Line + Gold Bar, Diamond Pattern (Guidelines v1.4) */
+
+/* Page heading: thin vertical line (full title + subtitle) + gold bar (title height × 1.25 only) */
+.ks-page__heading {
+  position: relative;
+  margin-bottom: 1.25rem;
+  padding-left: var(--ks-page-text-inset);
+}
+
+.ks-page__heading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: calc(var(--ks-vline-gap) - (var(--ks-gold-bar-width) - var(--ks-vline-width)) / 2);
+  width: var(--ks-gold-bar-width);
+  height: var(--ks-gold-bar-height);
+  background: var(--ks-color-gold);
+  pointer-events: none;
+}
+
+.ks-page__heading--on-dark::before {
+  background: var(--ks-vline-color-dark-bg);
+}
+
+.ks-page__title {
+  margin: 0 0 0.5rem;
+  padding-left: 0;
+  border: none;
+  color: var(--ks-color-navy);
+  font-family: var(--ks-font-family);
+  font-size: var(--ks-font-size-xl);
+  font-weight: var(--ks-font-weight-medium);
+  line-height: 1.2;
+  text-transform: none;
+}
+
+.ks-page__subtitle {
+  margin: 0;
+  padding-left: 0;
+  color: var(--ks-color-blue);
+  font-family: var(--ks-font-family);
+  font-size: var(--ks-font-size-md);
+  font-weight: var(--ks-font-weight-medium);
+  line-height: 1.5;
+}
+
+/* Standalone emphasized title (no subtitle) — same gold bar height rule */
+.ks-page__title--accent {
+  position: relative;
+  margin: 0 0 1.25rem;
+  padding-left: var(--ks-page-text-inset);
+  border: none;
+  color: var(--ks-color-navy);
+  font-family: var(--ks-font-family);
+  font-size: var(--ks-font-size-xl);
+  font-weight: var(--ks-font-weight-medium);
+  line-height: 1.2;
+}
+
+.ks-page__title--accent::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--ks-vline-gap);
+  width: var(--ks-vline-width);
+  background: var(--ks-vline-color-light-bg);
+}
+
+.ks-page__title--accent::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: calc(var(--ks-vline-gap) - (var(--ks-gold-bar-width) - var(--ks-vline-width)) / 2);
+  width: var(--ks-gold-bar-width);
+  height: var(--ks-gold-bar-height);
+  background: var(--ks-color-gold);
+}
+
+/* Diamond pattern — Layout A (B = 1.5A, C = 1.5B, gap = 0.7A, A adjacent to B & C) */
+.ks-diamond-pattern {
+  position: relative;
+  flex-shrink: 0;
+  width: calc(
+    var(--ks-diamond-c) + var(--ks-diamond-gap) + var(--ks-diamond-b) + var(--ks-diamond-gap) +
+      var(--ks-diamond-a)
+  );
+  height: calc(var(--ks-diamond-c) + var(--ks-diamond-gap) + var(--ks-diamond-b));
+  pointer-events: none;
+}
+
+.ks-diamond-pattern__diamond {
+  position: absolute;
+  transform: rotate(45deg);
+  transform-origin: center;
+}
+
+.ks-diamond-pattern__diamond--a {
+  bottom: 0;
+  left: 0;
+  width: var(--ks-diamond-a);
+  height: var(--ks-diamond-a);
+  background: color-mix(in srgb, var(--ks-color-blue) 22%, transparent);
+}
+
+.ks-diamond-pattern__diamond--b {
+  bottom: 0;
+  left: calc(var(--ks-diamond-a) + var(--ks-diamond-gap));
+  width: var(--ks-diamond-b);
+  height: var(--ks-diamond-b);
+  background: color-mix(in srgb, var(--ks-color-blue) 14%, transparent);
+}
+
+.ks-diamond-pattern__diamond--c {
+  top: 0;
+  left: calc(var(--ks-diamond-a) + var(--ks-diamond-gap));
+  width: var(--ks-diamond-c);
+  height: var(--ks-diamond-c);
+  background: color-mix(in srgb, var(--ks-color-blue) 8%, transparent);
+}
+
+/* Layout B: C = A + B */
+.ks-diamond-pattern--layout-b {
+  --ks-diamond-c: calc(var(--ks-diamond-a) + var(--ks-diamond-b));
+}

@@ -1,6 +1,6 @@
 import { ColumnDef } from '@tanstack/angular-table';
 
-export type DataTableColumnFilterType = 'text' | 'boolean';
+export type DataTableColumnFilterType = 'text' | 'boolean' | 'date';
 
 export type DataTableColumnFilterConfig = {
   type: DataTableColumnFilterType;

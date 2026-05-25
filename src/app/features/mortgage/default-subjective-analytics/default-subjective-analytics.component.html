@@ -1,0 +1,184 @@
+<section>
+  <div class="ks-page__heading">
+    <h1 class="ks-page__title">Capture Default Subjective Analytics</h1>
+  <p class="ks-page__subtitle">
+    Select one or more Loans from the drop down list and or update the Default Status and enter
+    related strategies
+  </p>
+
+  </div>
+  <div class="ks-filter-toolbar">
+    <div class="ks-filter-toolbar__filters ks-filter-toolbar__filters--default-subjective-analytics">
+      <div class="ks-filter-toolbar__item ks-filter-toolbar__item--narrow">
+        <label class="ks-label" for="loanAlias">Loan Alias</label>
+        <ng-select
+          id="loanAlias"
+          class="ks-ng-select"
+          appendTo="body"
+          [items]="loanAliasSelectOptions()"
+          bindLabel="label"
+          bindValue="value"
+          [multiple]="true"
+          [closeOnSelect]="false"
+          [clearable]="true"
+          placeholder="Select loan alias..."
+          [ngModel]="selectedLoanAliases()"
+          (ngModelChange)="updateLoanAliases($event)"
+        ></ng-select>
+      </div>
+
+      <div class="ks-filter-toolbar__item ks-filter-toolbar__item--narrow">
+        <label class="ks-label" for="fundingStatus">Status</label>
+        <ng-select
+          id="fundingStatus"
+          class="ks-ng-select"
+          appendTo="body"
+          [items]="statusSelectOptions"
+          bindLabel="label"
+          bindValue="value"
+          [multiple]="true"
+          [closeOnSelect]="false"
+          [clearable]="true"
+          placeholder="Select status..."
+          [ngModel]="selectedFundingStatuses()"
+          (ngModelChange)="updateFundingStatuses($event)"
+        ></ng-select>
+      </div>
+    </div>
+
+    <div class="ks-filter-toolbar__actions">
+      <button
+        type="button"
+        class="ks-btn ks-btn--primary"
+        (click)="saveChanges()"
+        [disabled]="isSaving() || !hasPendingChanges()"
+      >
+        Save
+      </button>
+      <button
+        type="button"
+        class="ks-btn ks-btn--primary"
+        (click)="saveAndUpdate()"
+        [disabled]="isSaving() || !hasPendingChanges()"
+      >
+        Save &amp; Update
+      </button>
+      <div class="ks-btn-group">
+        <div class="ks-tooltip">
+          <button
+            type="button"
+            class="ks-export-btn ks-export-btn--excel"
+            (click)="exportExcel()"
+            [disabled]="isExporting() || isLoading()"
+            aria-label="Export Excel"
+          >
+            <lucide-icon [img]="excelExportIcon" color="currentColor" [size]="18"></lucide-icon>
+          </button>
+          <span class="ks-tooltip__label" role="tooltip">Export Excel</span>
+        </div>
+        <div class="ks-tooltip">
+          <button
+            type="button"
+            class="ks-export-btn ks-export-btn--pdf"
+            (click)="exportPdf()"
+            [disabled]="isExporting() || isLoading()"
+            aria-label="Export PDF"
+          >
+            <lucide-icon [img]="pdfExportIcon" color="currentColor" [size]="18"></lucide-icon>
+          </button>
+          <span class="ks-tooltip__label" role="tooltip">Export PDF</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <app-data-table
+    title="Loan Syndicate Details"
+    tableClass="ks-table--default-subjective-analytics"
+    [columns]="tableColumns"
+    [data]="tableRows()"
+    [sorting]="sorting()"
+    [columnFilters]="columnFilters()"
+    [columnFilterConfig]="columnFilterConfig"
+    [isLoading]="isLoading()"
+    [errorMessage]="errorMessage()"
+    loadingMessage="Loading subjective analytics..."
+    emptyMessage="No loans found."
+    [currentPage]="currentPage()"
+    [totalPages]="totalPages()"
+    [pageRangeLabel]="pageRangeLabel()"
+    [visiblePages]="visiblePages()"
+    [rowClassFn]="rowClassFn"
+    (sortingChange)="onSortingChange($event)"
+    (columnFiltersChange)="onColumnFiltersChange($event)"
+    (pagePrevious)="goToPreviousPage()"
+    (pageNext)="goToNextPage()"
+    (pageSelect)="goToPage($event)"
+  >
+    <ng-template appDataTableCell="loanId" let-row="row">
+      <span class="ks-table__cell--mono ks-table__cell--strong">{{ row.loanId || '—' }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="loanDescription" let-row="row">
+      <span>{{ row.loanDescription }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="loanAlias" let-row="row">
+      <span class="ks-table__cell--strong">{{ row.loanAlias }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="maturityDate" let-row="row">
+      <span class="ks-table__cell--mono">{{ formatDisplayDate(row.maturityDate) }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="defaultStatus" let-row="row">
+      <ng-select
+        class="ks-ng-select ks-ng-select--table"
+        appendTo="body"
+        [items]="defaultStatusOptions"
+        [clearable]="false"
+        [searchable]="false"
+        [ngModel]="row.defaultStatus"
+        (ngModelChange)="updateDefaultStatus(row.loanKey, $event ?? '')"
+        [attr.aria-label]="'Default status for ' + row.loanAlias"
+      ></ng-select>
+    </ng-template>
+
+    <ng-template appDataTableCell="exitPlan" let-row="row">
+      <ng-select
+        class="ks-ng-select ks-ng-select--table"
+        appendTo="body"
+        [items]="exitPlanOptions"
+        [clearable]="false"
+        [searchable]="false"
+        [ngModel]="row.exitPlan"
+        (ngModelChange)="updateExitPlan(row.loanKey, $event ?? '')"
+        [attr.aria-label]="'Exit plan for ' + row.loanAlias"
+      ></ng-select>
+    </ng-template>
+
+    <ng-template appDataTableCell="exitDate" let-row="row">
+      <input
+        type="date"
+        class="ks-input ks-input--date"
+        [value]="dateInputValue(row.exitDate)"
+        (input)="updateExitDate(row.loanKey, $any($event.target).value)"
+        [attr.aria-label]="'Exit date for ' + row.loanAlias"
+      />
+    </ng-template>
+
+    <ng-template appDataTableCell="maturityAdditionalDetail" let-row="row">
+      <input
+        type="text"
+        class="ks-input"
+        [value]="row.maturityAdditionalDetail"
+        (input)="updateMaturityAdditionalDetail(row.loanKey, $any($event.target).value)"
+        [attr.aria-label]="'Maturity additional detail for ' + row.loanAlias"
+      />
+    </ng-template>
+
+    <ng-template appDataTableCell="dateDwhUpdate" let-row="row">
+      <span class="ks-table__cell--mono">{{ formatDisplayDate(row.dateDwhUpdate) }}</span>
+    </ng-template>
+  </app-data-table>
+</section>

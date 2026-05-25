@@ -1,49 +1,31 @@
 <section>
-  <h1 class="ks-page__title">Security Value</h1>
+  <div class="ks-page__heading">
+    <h1 class="ks-page__title">Security Value</h1>
   <p class="ks-page__subtitle">
     Select one or more Loans from the drop down list and or update the Default Status and enter
     the Security Value
   </p>
 
+  </div>
   <div class="ks-filter-toolbar">
     <div class="ks-filter-toolbar__filters ks-filter-toolbar__filters--security-value">
       <div class="ks-filter-toolbar__item ks-filter-toolbar__item--wide">
         <label class="ks-label" for="loanAliasSearch">Loan Alias</label>
-        <input
+        <ng-select
           id="loanAliasSearch"
-          type="text"
-          class="ks-input"
-          [value]="loanAliasSearch()"
-          (input)="updateLoanAliasSearch($any($event.target).value)"
+          class="ks-ng-select"
+          appendTo="body"
+          [items]="loanAliasSelectOptions()"
+          bindLabel="label"
+          bindValue="value"
+          [multiple]="true"
+          [searchable]="true"
+          [closeOnSelect]="false"
+          [clearable]="true"
           placeholder="Search and select loan aliases..."
-        />
-
-        @if (searchedLoanAliasOptions().length > 0) {
-          <ul class="ks-search-results">
-            @for (row of searchedLoanAliasOptions(); track row.loanKey) {
-              <li>
-                <button type="button" (click)="selectLoan(row)">
-                  {{ row.loanAlias }}
-                </button>
-              </li>
-            }
-          </ul>
-        }
-
-        @if (selectedLoans().length > 0) {
-          <div class="ks-tag-list">
-            @for (selected of selectedLoans(); track selected.loanKey) {
-              <button
-                type="button"
-                class="ks-tag"
-                (click)="removeSelectedLoan(selected.loanKey)"
-              >
-                <span>{{ selected.loanAlias }}</span>
-                <span class="ks-tag__close" aria-hidden="true">×</span>
-              </button>
-            }
-          </div>
-        }
+          [ngModel]="selectedLoanKeys()"
+          (ngModelChange)="updateSelectedLoans($event)"
+        ></ng-select>
       </div>
 
       <div class="ks-filter-toolbar__item ks-filter-toolbar__item--narrow">
@@ -51,6 +33,7 @@
         <ng-select
           id="fundingStatus"
           class="ks-ng-select"
+          appendTo="body"
           [items]="statusSelectOptions"
           bindLabel="label"
           bindValue="value"
@@ -67,7 +50,7 @@
     <div class="ks-filter-toolbar__actions">
       <button
         type="button"
-        class="ks-btn ks-btn--outline"
+        class="ks-btn ks-btn--primary"
         (click)="saveChanges()"
         [disabled]="isSaving() || !hasPendingChanges()"
       >

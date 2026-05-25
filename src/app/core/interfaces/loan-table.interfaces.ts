@@ -57,4 +57,15 @@ export type LoanRankingRowSnapshot = {
   lateInterestOffNote: string;
 };
 
+export type AssignLoansToAliasPayload = {
+  aliasName: string;
+  loanKeys: string[];
+};
+
+export type UnassignedLoanOption = {
+  loanKey: string;
+  loanId: string;
+  loanDescription: string;
+};
+
 export type { LoanApiRecord };

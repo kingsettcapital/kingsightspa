@@ -291,6 +291,10 @@ export class DataTableComponent<TData extends object> {
     return this.columnFilterConfig()[columnId]?.type === 'boolean';
   }
 
+  isDateFilterColumn(columnId: string): boolean {
+    return this.columnFilterConfig()[columnId]?.type === 'date';
+  }
+
   getColumnFilterValue(columnId: string): string {
     const value = this.table.getColumn(columnId)?.getFilterValue();
     return value === undefined || value === null ? '' : String(value);
@@ -326,7 +330,10 @@ export class DataTableComponent<TData extends object> {
     }
 
     this.openFilterColumnId.set(columnId);
-    this.filterDraft.set(this.getColumnFilterValue(columnId));
+    const currentValue = this.getColumnFilterValue(columnId);
+    this.filterDraft.set(
+      this.isDateFilterColumn(columnId) ? this.toDateInputValue(currentValue) : currentValue,
+    );
   }
 
   setFilterDraft(value: string): void {
@@ -364,5 +371,19 @@ export class DataTableComponent<TData extends object> {
     }
     column.setFilterValue(value || undefined);
     this.columnFiltersChange.emit(this.table.getState().columnFilters);
+  }
+
+  private toDateInputValue(value: string): string {
+    if (!value || value === '-') {
+      return '';
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return value;
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return '';
+    }
+    return parsed.toISOString().slice(0, 10);
   }
 }

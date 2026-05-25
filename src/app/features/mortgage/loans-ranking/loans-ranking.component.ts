@@ -1,15 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NgSelectComponent } from '@ng-select/ng-select';
+import { NgFooterTemplateDirective, NgSelectComponent } from '@ng-select/ng-select';
 import { ColumnFiltersState, SortingState } from '@tanstack/angular-table';
-import {
-  FileType,
-  LUCIDE_ICONS,
-  LucideAngularModule,
-  LucideIconProvider,
-  Sheet,
-} from 'lucide-angular';
+import { FileType, LUCIDE_ICONS, LucideAngularModule, LucideIconProvider, Sheet } from 'lucide-angular';
 import { forkJoin, map, Observable } from 'rxjs';
 
 import { ExportColumn } from '../../../core/interfaces/export.interfaces';
@@ -18,7 +12,10 @@ import {
   LoanRankingRowSnapshot,
   LoanTableQuery,
   LoanUpdatePayload,
+  UnassignedLoanOption,
 } from '../../../core/interfaces/loan-table.interfaces';
+import { UserRole } from '../../../core/enums/user-role.enum';
+import { AuthService } from '../../../core/services/auth.service';
 import { ExcelService } from '../../../core/services/excel.service';
 import { rowToApiRecord } from '../../../core/services/loans-table-query.util';
 import { LoansApiService } from '../../../core/services/loans-api.service';
@@ -33,6 +30,8 @@ import {
   COLUMN_FILTER_CONFIG,
   LOAN_RANKING_COLUMNS,
 } from './loans-ranking.columns';
+import { LoanAliasAssignModalComponent } from './loan-alias-assign-modal/loan-alias-assign-modal.component';
+import { LoanAliasCreateModalComponent } from './loan-alias-create-modal/loan-alias-create-modal.component';
 
 const LOAN_RANKING_EXPORT_COLUMNS: ExportColumn<LoanRankingRow>[] = [
   { header: 'Loan ID', value: (row) => row.loanId || '—' },
@@ -72,6 +71,17 @@ function buildLoanRankingExportFilename(extension: 'xlsx' | 'pdf'): string {
   return `loan-ranking-${stamp}.${extension}`;
 }
 
+/** Set to true to load and save via local mock data instead of GET /api/Loans. */
+const USE_LOANS_RANKING_EXAMPLE_DATA = true;
+
+/** Sentinel value for the "+ Add new" option in the loan alias dropdown. */
+export const LOAN_ALIAS_ADD_NEW_VALUE = '__add_new_loan_alias__';
+
+export type LoanAliasSelectOption = {
+  value: string;
+  label: string;
+};
+
 @Component({
   selector: 'app-loans-ranking',
   standalone: true,
@@ -79,9 +89,12 @@ function buildLoanRankingExportFilename(extension: 'xlsx' | 'pdf'): string {
     CommonModule,
     FormsModule,
     NgSelectComponent,
+    NgFooterTemplateDirective,
     LucideAngularModule,
     DataTableComponent,
     DataTableCellDirective,
+    LoanAliasCreateModalComponent,
+    LoanAliasAssignModalComponent,
   ],
   providers: [
     {
@@ -97,16 +110,28 @@ function buildLoanRankingExportFilename(extension: 'xlsx' | 'pdf'): string {
 })
 export class LoansRankingComponent implements OnInit {
   private readonly loansApi = inject(LoansApiService);
+  private readonly authService = inject(AuthService);
   private readonly excelService = inject(ExcelService);
   private readonly pdfService = inject(PdfService);
   private readonly toastService = inject(ToastService);
   private readonly defaultPageSize = 20;
+  private readonly loansApiOptions = { useExampleData: USE_LOANS_RANKING_EXAMPLE_DATA };
 
   readonly tableColumns = LOAN_RANKING_COLUMNS;
   readonly columnFilterConfig = COLUMN_FILTER_CONFIG;
   readonly booleanFilterOptions = BOOLEAN_FILTER_OPTIONS;
   readonly excelExportIcon = Sheet;
   readonly pdfExportIcon = FileType;
+
+  readonly isAdministrator = computed(
+    () => this.authService.currentUser()?.role === UserRole.Administrator,
+  );
+
+  readonly isCreateAliasModalOpen = signal(false);
+  readonly isAssignAliasModalOpen = signal(false);
+  readonly isAliasFlowLoading = signal(false);
+  readonly pendingAliasName = signal('');
+  readonly unassignedLoansForAssign = signal<UnassignedLoanOption[]>([]);
 
   readonly statusSelectOptions: { value: string; label: string }[] = [
     { value: 'ACTIVE_SYNDICATE', label: 'ACTIVE_SYNDICATE' },
@@ -129,6 +154,15 @@ export class LoansRankingComponent implements OnInit {
   readonly sorting = signal<SortingState>([]);
   readonly columnFilters = signal<ColumnFiltersState>([]);
   readonly originalRowState = signal<Record<string, LoanRankingRowSnapshot>>({});
+
+  /** Stable per-row option lists — avoids ng-select reset when [items] gets a new array each CD cycle. */
+  readonly loanAliasSelectOptionsByKey = computed(() => {
+    const optionsByKey: Record<string, LoanAliasSelectOption[]> = {};
+    for (const row of this.rows()) {
+      optionsByKey[row.loanKey] = this.buildLoanAliasSelectOptions(row);
+    }
+    return optionsByKey;
+  });
 
   readonly totalPages = computed(() => {
     const fromServer = this.serverTotalPages();
@@ -247,6 +281,161 @@ export class LoansRankingComponent implements OnInit {
     return formatDwhDateForExport(value);
   }
 
+  readonly compareLoanAlias = (
+    optionValue: string | null | undefined,
+    modelValue: string | null | undefined,
+  ): boolean => (optionValue ?? '') === (modelValue ?? '');
+
+  readonly trackLoanAliasOption = (value: string): string => value;
+
+  loanAliasSelectOptionsFor(row: LoanRankingRow): LoanAliasSelectOption[] {
+    return this.loanAliasSelectOptionsByKey()[row.loanKey] ?? [{ value: '', label: '—' }];
+  }
+
+  loanAliasModelValue(row: LoanRankingRow): string {
+    const value = row.loanAlias || '';
+    return value === LOAN_ALIAS_ADD_NEW_VALUE ? '' : value;
+  }
+
+  onLoanAliasSelectChange(row: LoanRankingRow, value: string | LoanAliasSelectOption | null): void {
+    const selected =
+      typeof value === 'string' ? value : (value as LoanAliasSelectOption | null)?.value ?? '';
+    if (!selected || selected === LOAN_ALIAS_ADD_NEW_VALUE) {
+      return;
+    }
+    this.updateRowField(row.loanKey, 'loanAlias', selected);
+  }
+
+  onAddNewLoanAliasClick(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.openCreateLoanAliasModal();
+  }
+
+  private buildLoanAliasSelectOptions(row: LoanRankingRow): LoanAliasSelectOption[] {
+    const options: LoanAliasSelectOption[] = [{ value: '', label: '—' }];
+    for (const alias of row.loanAliasOptions) {
+      if (alias && alias !== LOAN_ALIAS_ADD_NEW_VALUE) {
+        options.push({ value: alias, label: alias });
+      }
+    }
+    return options;
+  }
+
+  private addLoanAliasOptionToAllRows(aliasName: string): void {
+    const trimmed = aliasName.trim();
+    if (!trimmed) {
+      return;
+    }
+    this.rows.update((current) =>
+      current.map((row) => {
+        const loanAlias =
+          row.loanAlias === LOAN_ALIAS_ADD_NEW_VALUE ? '' : row.loanAlias;
+        const loanAliasOptions = [
+          ...new Set([
+            ...row.loanAliasOptions.filter((option) => option !== LOAN_ALIAS_ADD_NEW_VALUE),
+            trimmed,
+          ]),
+        ];
+        return { ...row, loanAlias, loanAliasOptions };
+      }),
+    );
+  }
+
+  openCreateLoanAliasModal(): void {
+    this.isCreateAliasModalOpen.set(true);
+  }
+
+  closeCreateLoanAliasModal(): void {
+    this.isCreateAliasModalOpen.set(false);
+  }
+
+  onCreateLoanAliasSubmitted(aliasName: string): void {
+    this.isCreateAliasModalOpen.set(false);
+    this.pendingAliasName.set(aliasName);
+    this.isAssignAliasModalOpen.set(true);
+    this.isAliasFlowLoading.set(true);
+    this.unassignedLoansForAssign.set([]);
+
+    this.loansApi.createLoanAlias(aliasName, this.loansApiOptions).subscribe({
+      next: () => {
+        this.addLoanAliasOptionToAllRows(aliasName);
+        this.loansApi.getUnassignedLoans(this.loansApiOptions).subscribe({
+          next: (loans) => {
+            this.unassignedLoansForAssign.set(loans);
+            this.isAliasFlowLoading.set(false);
+          },
+          error: () => {
+            this.toastService.error('Unable to load unassigned loans.');
+            this.isAssignAliasModalOpen.set(false);
+            this.isAliasFlowLoading.set(false);
+          },
+        });
+      },
+      error: () => {
+        this.toastService.error('Unable to create loan alias.');
+        this.isAssignAliasModalOpen.set(false);
+        this.isAliasFlowLoading.set(false);
+      },
+    });
+  }
+
+  closeAssignLoanAliasModal(): void {
+    this.isAssignAliasModalOpen.set(false);
+    this.pendingAliasName.set('');
+    this.unassignedLoansForAssign.set([]);
+  }
+
+  onAssignLoansSubmitted(loanKeys: string[]): void {
+    const aliasName = this.pendingAliasName().trim();
+    if (!aliasName || !loanKeys.length) {
+      return;
+    }
+
+    this.isAliasFlowLoading.set(true);
+    this.loansApi
+      .assignLoansToAlias({ aliasName, loanKeys }, this.loansApiOptions)
+      .subscribe({
+        next: () => {
+          this.applyAssignedAliasToRows(aliasName, loanKeys);
+          this.isAssignAliasModalOpen.set(false);
+          this.pendingAliasName.set('');
+          this.unassignedLoansForAssign.set([]);
+          this.isAliasFlowLoading.set(false);
+          this.toastService.success(
+            `${loanKeys.length} loan(s) assigned to "${aliasName}". Save to persist changes.`,
+          );
+        },
+        error: () => {
+          this.toastService.error('Unable to assign loans to the new alias.');
+          this.isAliasFlowLoading.set(false);
+        },
+      });
+  }
+
+  private applyAssignedAliasToRows(aliasName: string, loanKeys: string[]): void {
+    const keySet = new Set(loanKeys);
+    this.rows.update((current) =>
+      current.map((row) => {
+        if (!keySet.has(row.loanKey)) {
+          return row;
+        }
+        const options = [
+          ...new Set([
+            ...row.loanAliasOptions.filter((option) => option !== LOAN_ALIAS_ADD_NEW_VALUE),
+            aliasName,
+          ]),
+        ];
+        return {
+          ...row,
+          loanAlias: aliasName,
+          loanAliasOptions: options,
+        };
+      }),
+    );
+    this.errorMessage.set('');
+  }
+
   saveChanges(): void {
     if (this.isSaving()) {
       return;
@@ -265,10 +454,10 @@ export class LoansRankingComponent implements OnInit {
     const updateRequests = changedRows.map((row) => {
       const payload = rowToApiRecord(row);
       if (row.isNew) {
-        return this.loansApi.createLoan(payload);
+        return this.loansApi.createLoan(payload, this.loansApiOptions);
       }
       const changes = this.getChangedFields(row);
-      return this.loansApi.updateLoan(row.loanKey, { ...payload, ...changes });
+      return this.loansApi.updateLoan(row.loanKey, { ...payload, ...changes }, this.loansApiOptions);
     });
 
     forkJoin(updateRequests).subscribe({
@@ -334,7 +523,9 @@ export class LoansRankingComponent implements OnInit {
       pageSize: Math.max(this.totalCount(), 1),
     };
 
-    return this.loansApi.getLoansTable(query).pipe(map((result) => result.rows));
+    return this.loansApi
+      .getLoansTable(query, this.loansApiOptions)
+      .pipe(map((result) => result.rows));
   }
 
   private loadLoans(): void {
@@ -342,7 +533,7 @@ export class LoansRankingComponent implements OnInit {
     this.errorMessage.set('');
 
     const query = this.buildTableQuery();
-    this.loansApi.getLoansTable(query).subscribe({
+    this.loansApi.getLoansTable(query, this.loansApiOptions).subscribe({
       next: (result) => {
         this.rows.set(result.rows);
         this.totalCount.set(result.totalCount);

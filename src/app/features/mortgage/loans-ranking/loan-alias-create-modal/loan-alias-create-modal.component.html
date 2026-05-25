@@ -1,0 +1,36 @@
+@if (isOpen()) {
+  <div class="ks-modal-backdrop" (click)="onBackdropClick($event)">
+    <div
+      class="ks-modal ks-modal--loan-alias-create"
+      role="dialog"
+      aria-labelledby="createLoanAliasTitle"
+    >
+      <header class="ks-modal__header">
+        <h2 id="createLoanAliasTitle" class="ks-modal__title">Create Loan Alias</h2>
+        <button type="button" class="ks-modal__close" (click)="close()" aria-label="Close">
+          <lucide-icon [img]="closeIcon" color="currentColor" [size]="20"></lucide-icon>
+        </button>
+      </header>
+
+      <div class="ks-modal__body">
+        <label class="ks-label" for="newLoanAliasName">Loan alias name</label>
+        <input
+          id="newLoanAliasName"
+          type="text"
+          class="ks-input"
+          [value]="aliasName()"
+          (input)="aliasName.set($any($event.target).value)"
+          placeholder="Enter new loan alias..."
+          (keydown.enter)="submit()"
+        />
+      </div>
+
+      <footer class="ks-modal__footer">
+        <button type="button" class="ks-btn ks-btn--ghost" (click)="close()">Cancel</button>
+        <button type="button" class="ks-btn ks-btn--primary" (click)="submit()" [disabled]="!isValid()">
+          Submit
+        </button>
+      </footer>
+    </div>
+  </div>
+}

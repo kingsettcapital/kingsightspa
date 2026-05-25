@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { NgSelectComponent } from '@ng-select/ng-select';
 import { ColumnFiltersState, SortingState } from '@tanstack/angular-table';
 import {
   FileType,
@@ -54,7 +56,14 @@ function buildInvestorAliasExportFilename(extension: 'xlsx' | 'pdf'): string {
 @Component({
   selector: 'app-investor-alias',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule, DataTableComponent, DataTableCellDirective],
+  imports: [
+    CommonModule,
+    FormsModule,
+    NgSelectComponent,
+    LucideAngularModule,
+    DataTableComponent,
+    DataTableCellDirective,
+  ],
   providers: [
     {
       provide: LUCIDE_ICONS,
@@ -80,7 +89,6 @@ export class InvestorAliasComponent implements OnInit {
   readonly excelExportIcon = Sheet;
   readonly pdfExportIcon = FileType;
 
-  readonly searchText = signal('');
   readonly selectedInvestorKeys = signal<number[]>([]);
   readonly errorMessage = signal('');
   readonly isLoading = signal(false);
@@ -94,46 +102,23 @@ export class InvestorAliasComponent implements OnInit {
   readonly columnFilters = signal<ColumnFiltersState>([]);
   readonly originalRowState = signal<Record<number, { investor_alias_name: string }>>({});
 
-  readonly selectedInvestors = computed(() => {
-    const selectedKeys = new Set(this.selectedInvestorKeys());
-    return this.rows().filter((row) => selectedKeys.has(row.investor_key));
-  });
-
-  readonly searchedInvestorOptions = computed(() => {
-    const keyword = this.searchText().trim().toLowerCase();
-    if (!keyword) {
-      return [];
-    }
-
-    const selectedKeys = new Set(this.selectedInvestorKeys());
-    return this.rows().filter((row) => {
-      if (selectedKeys.has(row.investor_key)) {
-        return false;
-      }
-      return (
-        row.investor_name.toLowerCase().includes(keyword) ||
-        row.investor_code.toLowerCase().includes(keyword)
-      );
-    });
-  });
+  readonly investorSelectOptions = computed(() =>
+    [...this.rows()]
+      .map((row) => ({
+        value: row.investor_key,
+        label: `${row.investor_code} ${row.investor_name}`,
+      }))
+      .sort((left, right) => left.label.localeCompare(right.label)),
+  );
 
   readonly investorFilteredRows = computed(() => {
     const selectedKeys = this.selectedInvestorKeys();
-    if (selectedKeys.length > 0) {
-      const selectedKeySet = new Set(selectedKeys);
-      return this.rows().filter((row) => selectedKeySet.has(row.investor_key));
-    }
-
-    const keyword = this.searchText().trim().toLowerCase();
-    if (!keyword) {
+    if (selectedKeys.length === 0) {
       return this.rows();
     }
 
-    return this.rows().filter(
-      (row) =>
-        row.investor_name.toLowerCase().includes(keyword) ||
-        row.investor_code.toLowerCase().includes(keyword),
-    );
+    const selectedKeySet = new Set(selectedKeys);
+    return this.rows().filter((row) => selectedKeySet.has(row.investor_key));
   });
 
   readonly tableFilteredRows = computed(() =>
@@ -213,27 +198,8 @@ export class InvestorAliasComponent implements OnInit {
     this.currentPage.set(1);
   }
 
-  updateSearch(value: string): void {
-    this.searchText.set(value);
-    this.currentPage.set(1);
-    this.errorMessage.set('');
-  }
-
-  selectInvestor(row: InvestorAliasRow): void {
-    if (this.selectedInvestorKeys().includes(row.investor_key)) {
-      return;
-    }
-
-    this.selectedInvestorKeys.set([...this.selectedInvestorKeys(), row.investor_key]);
-    this.searchText.set('');
-    this.currentPage.set(1);
-    this.errorMessage.set('');
-  }
-
-  removeSelectedInvestor(investorKey: number): void {
-    this.selectedInvestorKeys.set(
-      this.selectedInvestorKeys().filter((selectedKey) => selectedKey !== investorKey),
-    );
+  updateSelectedInvestors(values: number[] | null): void {
+    this.selectedInvestorKeys.set(values ?? []);
     this.currentPage.set(1);
     this.errorMessage.set('');
   }

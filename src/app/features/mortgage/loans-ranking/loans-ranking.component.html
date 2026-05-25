@@ -1,6 +1,8 @@
 <section>
-  <h1 class="ks-page__title">Loan Alias, Ranking and Late Interest Applicable Capture</h1>
+  <div class="ks-page__heading">
+    <h1 class="ks-page__title">Loan Alias, Ranking and Late Interest Applicable Capture</h1>
   <p class="ks-page__subtitle">Select one or more Loans from the drop down list and or update the Default Status and enter the Loan Alias, Rankings and If Late Interest is Applicable</p>
+  </div>
   <div class="ks-filter-toolbar">
     <div class="ks-filter-toolbar__filters ks-filter-toolbar__filters--loans">
       <div class="ks-filter-toolbar__item">
@@ -20,6 +22,7 @@
         <ng-select
           id="loanStatus"
           class="ks-ng-select"
+          appendTo="body"
           [items]="statusSelectOptions"
           bindLabel="label"
           bindValue="value"
@@ -36,7 +39,7 @@
     <div class="ks-filter-toolbar__actions">
       <button
         type="button"
-        class="ks-btn ks-btn--outline"
+        class="ks-btn ks-btn--primary"
         (click)="saveChanges()"
         [disabled]="isSaving()"
       >
@@ -103,16 +106,36 @@
     </ng-template>
 
     <ng-template appDataTableCell="loanAlias" let-row="row">
-      <select
-        class="ks-select"
-        [value]="row.loanAlias || ''"
-        (change)="updateRowField(row.loanKey, 'loanAlias', $any($event.target).value)"
-      >
-        <option value="">—</option>
-        @for (option of row.loanAliasOptions; track option) {
-          <option [value]="option">{{ option }}</option>
-        }
-      </select>
+      <div class="ks-loan-alias-cell">
+        <ng-select
+          class="ks-ng-select ks-ng-select--table ks-loan-alias-cell__select"
+          appendTo="body"
+          [attr.id]="'loanAlias-' + row.loanKey"
+          [items]="loanAliasSelectOptionsFor(row)"
+          bindLabel="label"
+          bindValue="value"
+          [compareWith]="compareLoanAlias"
+          [trackByFn]="trackLoanAliasOption"
+          [clearable]="false"
+          [searchable]="false"
+          placeholder="—"
+          [ngModel]="loanAliasModelValue(row)"
+          (change)="onLoanAliasSelectChange(row, $event)"
+          [attr.aria-label]="'Loan alias for ' + row.loanId"
+        >
+          <ng-template ng-footer-tmp>
+            @if (isAdministrator()) {
+              <button
+                type="button"
+                class="ks-loan-alias-cell__add-btn"
+                (mousedown)="onAddNewLoanAliasClick($event)"
+              >
+                + Add new
+              </button>
+            }
+          </ng-template>
+        </ng-select>
+      </div>
     </ng-template>
 
     <ng-template appDataTableCell="investorName" let-row="row">
@@ -151,3 +174,18 @@
     </ng-template>
   </app-data-table>
 </section>
+
+<app-loan-alias-create-modal
+  [isOpen]="isCreateAliasModalOpen()"
+  (closed)="closeCreateLoanAliasModal()"
+  (submitted)="onCreateLoanAliasSubmitted($event)"
+/>
+
+<app-loan-alias-assign-modal
+  [isOpen]="isAssignAliasModalOpen()"
+  [aliasName]="pendingAliasName()"
+  [unassignedLoans]="unassignedLoansForAssign()"
+  [isLoading]="isAliasFlowLoading()"
+  (closed)="closeAssignLoanAliasModal()"
+  (submitted)="onAssignLoansSubmitted($event)"
+/>

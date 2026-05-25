@@ -1,9 +1,11 @@
+import { UserRole } from '../app/core/enums/user-role.enum';
 import type { Environment } from '../app/core/interfaces/environment.interfaces';
 
 export const environment: Environment = {
   production: false,
   requireLogin: true,
   apiUrl: 'https://22e1-223-178-211-208.ngrok-free.app',
+  mockUserRole: UserRole.Administrator,
   azureConfig: {
     clientId: 'e32db1db-4cd9-4853-aa46-69cd1d63f8d7',
     authority: 'https://login.microsoftonline.com/f6d94abc-5472-43af-ab66-95726e5ab0cc',

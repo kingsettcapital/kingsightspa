@@ -1,16 +1,13 @@
-<div class="flex flex-col items-center justify-center h-full min-h-screen p-8">
-  <h2 class="text-3xl font-semibold text-gray-800 mb-2">Sign in</h2>
-  <p class="text-gray-600 mb-6 text-center max-w-md">
+<div class="ks-auth-shell ks-auth-login">
+  <app-kingsett-diamond-pattern class="ks-auth-login__diamonds" />
+  <app-kingsett-logo variant="secondary" size="lg" />
+  <p class="ks-type-subtitle ks-auth-login__product">KingSight — Data Insights</p>
+  <h1 class="ks-type-title ks-auth-login__title">Sign in</h1>
+  <p class="ks-type-body ks-auth-login__text">
     You have been signed out. Sign in with your Microsoft account to continue.
   </p>
-  <button
-    type="button"
-    class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-    (click)="signIn()"
-  >
+  <button type="button" class="ks-btn ks-btn--primary" (click)="signIn()">
     Sign in with Microsoft
   </button>
-  <a routerLink="/login-failed" class="mt-4 text-sm text-gray-500 hover:text-gray-700">
-    Having trouble signing in?
-  </a>
+  <a routerLink="/login-failed" class="ks-link ks-auth-login__help">Having trouble signing in?</a>
 </div>

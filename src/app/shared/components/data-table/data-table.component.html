@@ -172,6 +172,14 @@
             </button>
           }
         </div>
+      } @else if (isDateFilterColumn(filterColumnId)) {
+        <input
+          type="date"
+          class="ks-input ks-input--date"
+          [value]="filterDraft()"
+          (input)="setFilterDraft($any($event.target).value)"
+          [attr.aria-label]="'Filter ' + getOpenFilterColumnLabel()"
+        />
       } @else {
         <input
           type="text"

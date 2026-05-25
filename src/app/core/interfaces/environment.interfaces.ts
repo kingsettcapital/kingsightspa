@@ -1,3 +1,5 @@
+import { UserRole } from '../enums/user-role.enum';
+
 export interface AzureConfig {
   clientId: string;
   authority: string;
@@ -12,4 +14,6 @@ export interface Environment {
   requireLogin: boolean;
   apiUrl: string;
   azureConfig: AzureConfig;
+  /** Dev fallback when the token has no role claim. */
+  mockUserRole?: UserRole;
 }

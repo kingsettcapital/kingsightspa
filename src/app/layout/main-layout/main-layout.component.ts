@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
+import { UserRole } from '../../core/enums/user-role.enum';
 import { AuthService } from '../../core/services/auth.service';
 import {
   LucideAngularModule,
@@ -13,11 +14,11 @@ import {
   X,
   MessageSquare,
   User,
-  Building2,
   ChevronDown,
   Landmark,
 } from 'lucide-angular';
 import { AIChatSidebarComponent } from '../../shared/components/ai-chat-sidebar/ai-chat-sidebar.component';
+import { KingsettLogoComponent } from '../../shared/components/kingsett-logo';
 import { ToastContainerComponent } from '../../shared/components/toast/toast-container.component';
 
 @Component({
@@ -29,6 +30,7 @@ import { ToastContainerComponent } from '../../shared/components/toast/toast-con
     RouterLinkActive,
     LucideAngularModule,
     AIChatSidebarComponent,
+    KingsettLogoComponent,
     ToastContainerComponent,
   ],
   providers: [
@@ -42,7 +44,6 @@ import { ToastContainerComponent } from '../../shared/components/toast/toast-con
         X,
         MessageSquare,
         User,
-        Building2,
         ChevronDown,
         Landmark,
       }),
@@ -77,7 +78,7 @@ export class MainLayoutComponent implements OnInit {
     return {
       name: user?.name ?? 'John Doe',
       email: user?.email ?? '',
-      role: 'Administrator',
+      role: user?.role ?? UserRole.User,
     };
   });
 
@@ -88,7 +89,6 @@ export class MainLayoutComponent implements OnInit {
   xIcon = X;
   messageSquareIcon = MessageSquare;
   userIcon = User;
-  building2Icon = Building2;
   chevronDownIcon = ChevronDown;
   landmarkIcon = Landmark;
 

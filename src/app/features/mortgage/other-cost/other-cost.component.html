@@ -1,10 +1,12 @@
 <section>
-  <h1 class="ks-page__title">Other Cost Capture</h1>
+  <div class="ks-page__heading">
+    <h1 class="ks-page__title">Other Cost Capture</h1>
   <p class="ks-page__subtitle">
     Select one or more Loans from the drop down list and or update the Default Status and enter
     any related cost to be tracked
   </p>
 
+  </div>
   <div class="ks-filter-toolbar">
     <div class="ks-filter-toolbar__filters ks-filter-toolbar__filters--other-cost">
       <div class="ks-filter-toolbar__item ks-filter-toolbar__item--narrow">
@@ -12,6 +14,7 @@
         <ng-select
           id="loanAlias"
           class="ks-ng-select"
+          appendTo="body"
           [items]="loanAliasSelectOptions()"
           bindLabel="label"
           bindValue="value"
@@ -27,6 +30,7 @@
         <ng-select
           id="fundingStatus"
           class="ks-ng-select"
+          appendTo="body"
           [items]="statusSelectOptions"
           bindLabel="label"
           bindValue="value"
@@ -43,7 +47,7 @@
     <div class="ks-filter-toolbar__actions">
       <button
         type="button"
-        class="ks-btn ks-btn--outline"
+        class="ks-btn ks-btn--primary"
         (click)="saveChanges()"
         [disabled]="isSaving() || !hasPendingChanges()"
       >

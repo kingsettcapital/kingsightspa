@@ -37,4 +37,26 @@ export const MORTGAGE_ROUTES: Routes = [
     loadComponent: () =>
       import('./other-cost/other-cost.component').then((m) => m.OtherCostComponent),
   },
+  {
+    path: 'default-date',
+    loadComponent: () =>
+      import('./default-date/default-date.component').then((m) => m.DefaultDateComponent),
+  },
+  {
+    path: 'default-subjective-analytics',
+    loadComponent: () =>
+      import('./default-subjective-analytics/default-subjective-analytics.component').then(
+        (m) => m.DefaultSubjectiveAnalyticsComponent,
+      ),
+  },
+  {
+    path: 'tax-arrears',
+    loadComponent: () =>
+      import('./tax-arrears/tax-arrears.component').then((m) => m.TaxArrearsComponent),
+  },
+  {
+    path: 'ltv-validation',
+    loadComponent: () =>
+      import('./ltv-validation/ltv-validation.component').then((m) => m.LtvValidationComponent),
+  },
 ];

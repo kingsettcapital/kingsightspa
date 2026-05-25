@@ -1,0 +1,150 @@
+@if (isOpen()) {
+  <div class="ks-modal-backdrop" (click)="onBackdropClick($event)">
+    <div class="ks-modal ks-modal--tax-arrears-add" role="dialog" aria-labelledby="taxArrearsAddTitle">
+      <header class="ks-modal__header">
+        <h2 id="taxArrearsAddTitle" class="ks-modal__title">Add A New Record</h2>
+        <button type="button" class="ks-modal__close" (click)="close()" aria-label="Close">
+          <lucide-icon [img]="closeIcon" color="currentColor" [size]="20"></lucide-icon>
+        </button>
+      </header>
+
+      <div class="ks-modal__body">
+        <div class="ks-modal__row ks-modal__row--2">
+          <div class="ks-modal__field">
+            <label class="ks-label" for="addLoanAlias">Loan Alias</label>
+            <ng-select
+              id="addLoanAlias"
+              class="ks-ng-select"
+              [items]="loanAliasOptions()"
+              bindLabel="label"
+              bindValue="value"
+              [clearable]="false"
+              placeholder="Select loan alias..."
+              [ngModel]="form().loanAlias"
+              (ngModelChange)="onLoanAliasChange($event)"
+            ></ng-select>
+          </div>
+          <div class="ks-modal__field">
+            <label class="ks-label" for="addTaxMemoDate">Tax Memo Date</label>
+            <input
+              id="addTaxMemoDate"
+              type="date"
+              class="ks-input ks-input--date"
+              [value]="form().taxMemoDate"
+              (input)="updateField('taxMemoDate', $any($event.target).value)"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="ks-modal__row ks-modal__row--2">
+          <section class="ks-modal__panel">
+            <h3 class="ks-modal__panel-title">Loan Data</h3>
+            <div class="ks-modal__panel-grid">
+              <div class="ks-modal__field">
+                <label class="ks-label" for="addLoanId">Loan ID</label>
+                <input
+                  id="addLoanId"
+                  type="text"
+                  class="ks-input"
+                  [value]="form().loanId"
+                  (input)="updateField('loanId', $any($event.target).value)"
+                  required
+                />
+              </div>
+              <div class="ks-modal__field">
+                <label class="ks-label" for="addLoanDescription">Description</label>
+                <input
+                  id="addLoanDescription"
+                  type="text"
+                  class="ks-input"
+                  [value]="form().loanDescription"
+                  (input)="updateField('loanDescription', $any($event.target).value)"
+                  required
+                />
+              </div>
+              <div class="ks-modal__field">
+                <label class="ks-label" for="addSyndicateId">Syndicate ID</label>
+                <input
+                  id="addSyndicateId"
+                  type="text"
+                  class="ks-input"
+                  [value]="form().syndicateId"
+                  (input)="updateField('syndicateId', $any($event.target).value)"
+                  required
+                />
+              </div>
+              <div class="ks-modal__field">
+                <label class="ks-label" for="addSyndicateDescription">Description</label>
+                <input
+                  id="addSyndicateDescription"
+                  type="text"
+                  class="ks-input"
+                  [value]="form().syndicateDescription"
+                  (input)="updateField('syndicateDescription', $any($event.target).value)"
+                  required
+                />
+              </div>
+            </div>
+          </section>
+
+          <section class="ks-modal__panel">
+            <h3 class="ks-modal__panel-title">Tax Arrears</h3>
+            <div class="ks-modal__panel-grid ks-modal__panel-grid--stack">
+              <div class="ks-modal__field">
+                <label class="ks-label" for="addTaxYear">Tax Year</label>
+                <ng-select
+                  id="addTaxYear"
+                  class="ks-ng-select"
+                  [items]="taxYearOptions"
+                  bindLabel="label"
+                  bindValue="value"
+                  [clearable]="false"
+                  placeholder="Select year..."
+                  [ngModel]="form().taxYear"
+                  (ngModelChange)="updateField('taxYear', $event ?? '')"
+                ></ng-select>
+              </div>
+              <div class="ks-modal__field">
+                <label class="ks-label" for="addTaxArrears">Tax Arrears</label>
+                <input
+                  id="addTaxArrears"
+                  type="text"
+                  class="ks-input ks-input--currency"
+                  [value]="form().taxArrears"
+                  (input)="updateField('taxArrears', $any($event.target).value)"
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="ks-modal__field">
+          <label class="ks-label" for="addNotes">Notes</label>
+          <textarea
+            id="addNotes"
+            class="ks-input ks-input--textarea"
+            rows="3"
+            [value]="form().notes"
+            (input)="updateField('notes', $any($event.target).value)"
+            required
+          ></textarea>
+        </div>
+      </div>
+
+      <footer class="ks-modal__footer">
+        <button type="button" class="ks-btn ks-btn--ghost" (click)="close()">Cancel</button>
+        <button
+          type="button"
+          class="ks-btn ks-btn--primary"
+          (click)="submit()"
+          [disabled]="!isFormValid()"
+        >
+          Submit
+        </button>
+      </footer>
+    </div>
+  </div>
+}

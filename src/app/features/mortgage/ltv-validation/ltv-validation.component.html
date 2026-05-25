@@ -1,0 +1,172 @@
+<section>
+  <div class="ks-page__heading">
+    <h1 class="ks-page__title">Validation: LTV Extracted from QR Slides</h1>
+  <p class="ks-page__subtitle">
+    Select one or more Loans from the drop down list and or update the Default Status and validate
+    or update the LTV extracted from the QR Slides by the AI Agent
+  </p>
+
+  </div>
+  <div class="ks-filter-toolbar">
+    <div class="ks-filter-toolbar__filters ks-filter-toolbar__filters--ltv-validation">
+      <div class="ks-filter-toolbar__item ks-filter-toolbar__item--wide">
+        <label class="ks-label" for="mainLoan">Main Loan</label>
+        <ng-select
+          id="mainLoan"
+          class="ks-ng-select"
+          appendTo="body"
+          [items]="mainLoanSelectOptions()"
+          bindLabel="label"
+          bindValue="value"
+          [clearable]="true"
+          placeholder="Select main loan..."
+          [ngModel]="selectedMainLoanId()"
+          (ngModelChange)="updateMainLoan($event)"
+        ></ng-select>
+      </div>
+
+      <div class="ks-filter-toolbar__item ks-filter-toolbar__item--narrow">
+        <label class="ks-label" for="fundingStatus">Status</label>
+        <ng-select
+          id="fundingStatus"
+          class="ks-ng-select"
+          appendTo="body"
+          [items]="statusSelectOptions"
+          bindLabel="label"
+          bindValue="value"
+          [multiple]="true"
+          [closeOnSelect]="false"
+          [clearable]="true"
+          placeholder="Select status..."
+          [ngModel]="selectedFundingStatuses()"
+          (ngModelChange)="updateFundingStatuses($event)"
+        ></ng-select>
+      </div>
+    </div>
+
+    <div class="ks-filter-toolbar__actions">
+      <button
+        type="button"
+        class="ks-btn ks-btn--outline"
+        (click)="confirmChanges()"
+        [disabled]="isSaving() || !hasPendingChanges()"
+      >
+        Confirm
+      </button>
+      <button
+        type="button"
+        class="ks-btn ks-btn--primary"
+        (click)="saveAndUpdate()"
+        [disabled]="isSaving() || !hasPendingChanges()"
+      >
+        Save &amp; Update
+      </button>
+      <div class="ks-btn-group">
+        <div class="ks-tooltip">
+          <button
+            type="button"
+            class="ks-export-btn ks-export-btn--excel"
+            (click)="exportExcel()"
+            [disabled]="isExporting() || isLoading()"
+            aria-label="Export Excel"
+          >
+            <lucide-icon [img]="excelExportIcon" color="currentColor" [size]="18"></lucide-icon>
+          </button>
+          <span class="ks-tooltip__label" role="tooltip">Export Excel</span>
+        </div>
+        <div class="ks-tooltip">
+          <button
+            type="button"
+            class="ks-export-btn ks-export-btn--pdf"
+            (click)="exportPdf()"
+            [disabled]="isExporting() || isLoading()"
+            aria-label="Export PDF"
+          >
+            <lucide-icon [img]="pdfExportIcon" color="currentColor" [size]="18"></lucide-icon>
+          </button>
+          <span class="ks-tooltip__label" role="tooltip">Export PDF</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <app-data-table
+    title="Security Value"
+    tableClass="ks-table--ltv-validation"
+    [columns]="tableColumns"
+    [data]="tableRows()"
+    [sorting]="sorting()"
+    [columnFilters]="columnFilters()"
+    [columnFilterConfig]="columnFilterConfig"
+    [isLoading]="isLoading()"
+    [errorMessage]="errorMessage()"
+    loadingMessage="Loading LTV validation records..."
+    emptyMessage="No loans found."
+    [currentPage]="currentPage()"
+    [totalPages]="totalPages()"
+    [pageRangeLabel]="pageRangeLabel()"
+    [visiblePages]="visiblePages()"
+    [rowClassFn]="rowClassFn"
+    (sortingChange)="onSortingChange($event)"
+    (columnFiltersChange)="onColumnFiltersChange($event)"
+    (pagePrevious)="goToPreviousPage()"
+    (pageNext)="goToNextPage()"
+    (pageSelect)="goToPage($event)"
+  >
+    <ng-template appDataTableCell="parentLoanId" let-row="row">
+      <span class="ks-table__cell--mono ks-table__cell--strong">{{ row.parentLoanId || '—' }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="childLoanId" let-row="row">
+      <span class="ks-table__cell--mono">{{ row.childLoanId || '—' }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="loanDescription" let-row="row">
+      <span>{{ row.loanDescription }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="loanAlias" let-row="row">
+      <span class="ks-table__cell--strong">{{ row.loanAlias }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="investorAlias" let-row="row">
+      <span>{{ row.investorAlias }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="securityValue" let-row="row">
+      <input
+        type="text"
+        class="ks-input ks-input--currency"
+        [value]="currencyInputValue(row.securityValue)"
+        (input)="updateSecurityValue(row.recordKey, $any($event.target).value)"
+        [attr.aria-label]="'Security value for ' + row.childLoanId"
+      />
+    </ng-template>
+
+    <ng-template appDataTableCell="exposure" let-row="row">
+      <span class="ks-table__cell--currency">{{ formatCurrency(row.exposure) }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="ranking" let-row="row">
+      <span class="ks-table__cell--mono">{{ row.ranking }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="ltv" let-row="row">
+      <input
+        type="text"
+        class="ks-input ks-input--percent"
+        [value]="ltvInputValue(row.ltv)"
+        (input)="updateLtv(row.recordKey, $any($event.target).value)"
+        [attr.aria-label]="'LTV for ' + row.childLoanId"
+      />
+    </ng-template>
+
+    <ng-template appDataTableCell="aiCommentary" let-row="row">
+      <span>{{ row.aiCommentary }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="dateDwhUpdate" let-row="row">
+      <span class="ks-table__cell--mono">{{ formatDisplayDate(row.dateDwhUpdate) }}</span>
+    </ng-template>
+  </app-data-table>
+</section>

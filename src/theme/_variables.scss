@@ -1,44 +1,71 @@
 :root {
-  /* Brand */
-  --ks-color-navy: #0c274a;
-  --ks-color-navy-dark: #081c35;
-  --ks-color-primary: #2563eb;
-  --ks-color-primary-hover: #1d4ed8;
-  --ks-color-accent: #f5b800;
+  /* KingSett Capital brand palette — digital colours (Brand Guidelines v1.4, Sep 2025) */
 
-  /* Semantic */
-  --ks-color-success: #16a34a;
-  --ks-color-danger: #dc2626;
-  --ks-color-info: #2563eb;
-  --ks-color-warning: #d97706;
+  /* Primary */
+  --ks-color-blue: #00529b;
+  --ks-color-blue-dark: #003666;
+  --ks-color-navy: #0c274a;
+  --ks-color-navy-dark: #003666;
+  --ks-color-gold: #e7a614;
+  --ks-color-white: #ffffff;
+  --ks-color-black: #000000;
+
+  /* Secondary */
+  --ks-color-light-blue: #acc4e3;
+  --ks-color-pale-blue: #e6edf7;
+  --ks-color-pale-grey: #f2f2f2;
+  --ks-color-grey: #e5e5e5;
+
+  /* Chart / extended (diagrams, status accents) */
+  --ks-color-chart-blue-mid: #456896;
+  --ks-color-chart-green: #668c62;
+  --ks-color-chart-red: #661910;
+  --ks-color-chart-muted: #86898e;
+
+  /* Semantic aliases (use brand tokens above) */
+  --ks-color-primary: var(--ks-color-blue);
+  --ks-color-primary-hover: var(--ks-color-blue-dark);
+  --ks-color-accent: var(--ks-color-gold);
+  --ks-color-success: var(--ks-color-chart-green);
+  --ks-color-danger: var(--ks-color-chart-red);
+  --ks-color-info: var(--ks-color-blue);
+  --ks-color-warning: var(--ks-color-gold);
 
   /* Surfaces */
-  --ks-color-bg: #f4f6f9;
-  --ks-color-surface: #ffffff;
-  --ks-color-border: #e5e7eb;
-  --ks-color-border-strong: #d1d5db;
+  --ks-color-bg: var(--ks-color-pale-grey);
+  --ks-color-surface: var(--ks-color-white);
+  --ks-color-border: var(--ks-color-grey);
+  --ks-color-border-strong: var(--ks-color-light-blue);
 
   /* Text */
-  --ks-color-text: #111827;
-  --ks-color-text-muted: #6b7280;
-  --ks-color-text-inverse: #ffffff;
-  --ks-color-text-subtitle: #0c274a;
+  --ks-color-text: var(--ks-color-black);
+  --ks-color-text-muted: var(--ks-color-chart-muted);
+  --ks-color-text-inverse: var(--ks-color-white);
+  --ks-color-text-subtitle: var(--ks-color-blue);
+
+  /* Focus ring (Digital KingSett Blue @ 15%) */
+  --ks-color-focus-ring: rgba(0, 82, 155, 0.15);
+  --ks-color-primary-subtle: var(--ks-color-pale-blue);
+  --ks-color-hover-surface: var(--ks-color-pale-grey);
+  --ks-color-success-subtle: color-mix(in srgb, var(--ks-color-chart-green) 14%, var(--ks-color-white));
+  --ks-color-danger-subtle: color-mix(in srgb, var(--ks-color-chart-red) 12%, var(--ks-color-white));
+  --ks-color-warning-subtle: color-mix(in srgb, var(--ks-color-gold) 18%, var(--ks-color-white));
 
   /* Table */
-  --ks-color-table-title-bg: #0c274a;
-  --ks-color-table-head-bg: #d6e4ff;
-  --ks-color-table-head-text: #0c274a;
-  --ks-color-table-head-icon: #5a7a9e;
-  --ks-color-table-head-border: #a5beda;
-  --ks-color-table-head-border-top: #2563eb;
-  --ks-color-table-row-alt: #f8fafc;
-  --ks-color-table-border: #dbe3ef;
-  --ks-color-table-grid: #8fa8c4;
+  --ks-color-table-title-bg: var(--ks-color-navy);
+  --ks-color-table-head-bg: var(--ks-color-pale-blue);
+  --ks-color-table-head-text: var(--ks-color-navy);
+  --ks-color-table-head-icon: var(--ks-color-chart-blue-mid);
+  --ks-color-table-head-border: var(--ks-color-light-blue);
+  --ks-color-table-head-border-top: var(--ks-color-blue);
+  --ks-color-table-row-alt: var(--ks-color-pale-grey);
+  --ks-color-table-border: var(--ks-color-grey);
+  --ks-color-table-grid: var(--ks-color-light-blue);
 
   /* Status badges */
-  --ks-color-badge-active: #16a34a;
-  --ks-color-badge-settled: #2563eb;
-  --ks-color-badge-delinquent: #dc2626;
+  --ks-color-badge-active: var(--ks-color-chart-green);
+  --ks-color-badge-settled: var(--ks-color-blue);
+  --ks-color-badge-delinquent: var(--ks-color-chart-red);
 
   /* Layout */
   --ks-sidebar-width-collapsed: 5rem;
@@ -46,8 +73,32 @@
   --ks-header-height: 4rem;
   --ks-content-padding: 1.5rem;
 
-  /* Typography */
-  --ks-font-family: 'Open Sans', sans-serif;
+  /* Typography — Open Sans primary; Arial secondary / fallback (brand guidelines) */
+  --ks-font-family: 'Open Sans', Arial, sans-serif;
+  --ks-font-weight-light: 300;
+  --ks-font-weight-regular: 400;
+  --ks-font-weight-medium: 500;
+  --ks-font-weight-semibold: 600;
+  --ks-font-weight-bold: 700;
+  --ks-font-weight-extrabold: 800;
+
+  /* Vertical line + gold bar (brand guidelines — emphasized titles on light backgrounds) */
+  --ks-vline-gap: 0.85rem;
+  --ks-vline-width: 1px;
+  --ks-gold-bar-width: 3.5px;
+  --ks-vline-color-light-bg: var(--ks-color-light-blue);
+  --ks-vline-color-dark-bg: rgba(255, 255, 255, 0.85);
+  --ks-page-text-inset: calc(var(--ks-vline-gap) * 2 + var(--ks-vline-width));
+  --ks-gold-bar-height: calc(var(--ks-font-size-xl) * 1.2 * 1.25);
+
+  /* Diamond pattern (brand guidelines — edge length A, gap 0.7A, B = 1.5A, C = 1.5B layout A) */
+  --ks-diamond-a: 2.5rem;
+  --ks-diamond-b: calc(var(--ks-diamond-a) * 1.5);
+  --ks-diamond-c: calc(var(--ks-diamond-b) * 1.5);
+  --ks-diamond-gap: calc(var(--ks-diamond-a) * 0.7);
+  /* Logo wordmark — serif per KingSett Capital brand lockup */
+  --ks-logo-font-serif: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
+  --ks-logo-font-sans: var(--ks-font-family);
   --ks-font-size-xs: 0.625rem;
   --ks-font-size-sm: 0.75rem;
   --ks-font-size-base: 0.875rem;
@@ -59,8 +110,8 @@
   --ks-radius-none: 0;
   --ks-radius-sm: 0;
   --ks-radius-md: 0;
-  --ks-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --ks-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --ks-shadow-sm: 0 1px 3px rgba(12, 39, 74, 0.08);
+  --ks-shadow-md: 0 4px 12px rgba(12, 39, 74, 0.1);
 
   /* Breakpoints (for reference in media queries) */
   --ks-bp-sm: 640px;

@@ -1,0 +1,91 @@
+.ks-modal--loan-alias-assign {
+  width: min(52rem, 100%);
+}
+
+.ks-modal--loan-alias-assign .ks-modal__hint {
+  margin: 0 0 0.75rem;
+  color: var(--ks-color-text-muted);
+  font-size: var(--ks-font-size-sm);
+}
+
+.ks-modal--loan-alias-assign .ks-transfer {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.ks-modal--loan-alias-assign .ks-transfer__label {
+  margin: 0 0 0.35rem;
+  color: var(--ks-color-text-muted);
+  font-size: var(--ks-font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ks-modal--loan-alias-assign .ks-transfer__list {
+  min-height: 14rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  border: 1px solid var(--ks-color-border-strong);
+  background: var(--ks-color-surface);
+  padding: 0.35rem;
+}
+
+.ks-modal--loan-alias-assign .ks-transfer__list--target {
+  background: var(--ks-color-pale-grey);
+}
+
+.ks-modal--loan-alias-assign .ks-transfer__item {
+  display: block;
+  width: 100%;
+  margin: 0 0 0.25rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ks-color-text);
+  font-size: var(--ks-font-size-sm);
+  text-align: left;
+  cursor: grab;
+}
+
+.ks-modal--loan-alias-assign .ks-transfer__item:hover {
+  background: var(--ks-color-hover-surface);
+}
+
+.ks-modal--loan-alias-assign .ks-transfer__item--selected {
+  border-color: var(--ks-color-primary);
+  background: var(--ks-color-primary-subtle);
+}
+
+.ks-modal--loan-alias-assign .ks-transfer__empty {
+  margin: 0;
+  padding: 0.5rem;
+  color: var(--ks-color-text-muted);
+  font-size: var(--ks-font-size-sm);
+  font-style: italic;
+}
+
+.ks-modal--loan-alias-assign .ks-transfer__actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.ks-modal--loan-alias-assign .ks-transfer__action {
+  width: 2.75rem;
+  padding: 0;
+}
+
+@media (max-width: 768px) {
+  .ks-modal--loan-alias-assign .ks-transfer {
+    grid-template-columns: 1fr;
+  }
+
+  .ks-modal--loan-alias-assign .ks-transfer__actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+}

@@ -1,0 +1,28 @@
+/* Modal layout overrides; shared modal shell in src/theme/ */
+
+.ks-modal--tax-arrears-add {
+  width: min(52rem, 100%);
+}
+
+.ks-modal--tax-arrears-add .ks-modal__row--2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.ks-modal--tax-arrears-add .ks-modal__panel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.ks-modal--tax-arrears-add .ks-modal__panel-grid--stack {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 768px) {
+  .ks-modal--tax-arrears-add .ks-modal__row--2,
+  .ks-modal--tax-arrears-add .ks-modal__panel-grid {
+    grid-template-columns: 1fr;
+  }
+}

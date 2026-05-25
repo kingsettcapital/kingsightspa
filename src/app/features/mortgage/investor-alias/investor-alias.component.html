@@ -1,56 +1,37 @@
 <section>
-  <h1 class="ks-page__title">Investor Alias</h1>
-  <p class="ks-page__subtitle">
-    Select one or more Investors from the drop down list and enter the Investor Alias
-  </p>
+  <div class="ks-page__heading">
+    <h1 class="ks-page__title">Investor Alias</h1>
+    <p class="ks-page__subtitle">
+      Select one or more Investors from the drop down list and enter the Investor Alias
+    </p>
+  </div>
 
   <div class="ks-filter-toolbar">
     <div class="ks-filter-toolbar__filters">
       <div class="ks-filter-toolbar__item ks-filter-toolbar__item--wide">
         <label class="ks-label" for="investorSearch">Investor Name</label>
-        <input
+        <ng-select
           id="investorSearch"
-          type="text"
-          class="ks-input"
-          [value]="searchText()"
-          (input)="updateSearch($any($event.target).value)"
+          class="ks-ng-select"
+          appendTo="body"
+          [items]="investorSelectOptions()"
+          bindLabel="label"
+          bindValue="value"
+          [multiple]="true"
+          [searchable]="true"
+          [closeOnSelect]="false"
+          [clearable]="true"
           placeholder="Search and select investors..."
-        />
-
-        @if (searchedInvestorOptions().length > 0) {
-          <ul class="ks-search-results">
-            @for (row of searchedInvestorOptions(); track row.investor_key) {
-              <li>
-                <button type="button" (click)="selectInvestor(row)">
-                  <span class="ks-table__cell--mono ks-table__cell--strong">{{ row.investor_code }}</span>
-                  {{ row.investor_name }}
-                </button>
-              </li>
-            }
-          </ul>
-        }
-
-        @if (selectedInvestors().length > 0) {
-          <div class="ks-tag-list">
-            @for (selected of selectedInvestors(); track selected.investor_key) {
-              <button
-                type="button"
-                class="ks-tag"
-                (click)="removeSelectedInvestor(selected.investor_key)"
-              >
-                <span>{{ selected.investor_code }} {{ selected.investor_name }}</span>
-                <span class="ks-tag__close" aria-hidden="true">×</span>
-              </button>
-            }
-          </div>
-        }
+          [ngModel]="selectedInvestorKeys()"
+          (ngModelChange)="updateSelectedInvestors($event)"
+        ></ng-select>
       </div>
     </div>
 
     <div class="ks-filter-toolbar__actions">
       <button
         type="button"
-        class="ks-btn ks-btn--outline"
+        class="ks-btn ks-btn--primary"
         (click)="saveChanges()"
         [disabled]="isSaving() || !hasPendingAliasChanges()"
       >

@@ -1,0 +1,138 @@
+/* KingSett Capital typography — Brand Guidelines v1.4
+   Primary: Open Sans (Light, Regular, Medium, SemiBold, Extra Bold)
+   Secondary / fallback: Arial (emails, systems without Open Sans)
+   Type in Use: title, subtitle, h1–h3, body, CTA, hyperlink, legal
+*/
+
+.ks-type-title {
+  margin: 0;
+  color: var(--ks-color-text);
+  font-family: var(--ks-font-family);
+  font-size: var(--ks-font-size-xl);
+  font-weight: var(--ks-font-weight-medium);
+  line-height: 1.2;
+}
+
+.ks-type-title--blue {
+  color: var(--ks-color-blue);
+}
+
+.ks-type-subtitle {
+  margin: 0;
+  color: var(--ks-color-blue);
+  font-family: var(--ks-font-family);
+  font-size: var(--ks-font-size-md);
+  font-weight: var(--ks-font-weight-medium);
+  line-height: 1.5;
+}
+
+.ks-type-h1 {
+  margin: 0;
+  color: var(--ks-color-text);
+  font-family: var(--ks-font-family);
+  font-size: var(--ks-font-size-lg);
+  font-weight: var(--ks-font-weight-semibold);
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.ks-type-h2 {
+  margin: 0;
+  color: var(--ks-color-blue);
+  font-family: var(--ks-font-family);
+  font-size: var(--ks-font-size-lg);
+  font-weight: var(--ks-font-weight-semibold);
+  line-height: 1.4;
+}
+
+.ks-type-h3 {
+  margin: 0;
+  color: var(--ks-color-text);
+  font-family: var(--ks-font-family);
+  font-size: var(--ks-font-size-md);
+  font-weight: var(--ks-font-weight-semibold);
+  line-height: 1.4;
+}
+
+.ks-type-body {
+  margin: 0;
+  color: var(--ks-color-text);
+  font-family: var(--ks-font-family);
+  font-size: var(--ks-font-size-base);
+  font-weight: var(--ks-font-weight-regular);
+  line-height: 1.5;
+}
+
+.ks-type-body--light {
+  font-weight: var(--ks-font-weight-light);
+}
+
+.ks-type-cta {
+  font-family: var(--ks-font-family);
+  font-size: var(--ks-font-size-md);
+  font-weight: var(--ks-font-weight-medium);
+  color: var(--ks-color-blue);
+}
+
+.ks-link {
+  font-family: var(--ks-font-family);
+  font-size: inherit;
+  font-weight: var(--ks-font-weight-semibold);
+  color: var(--ks-color-blue);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ks-link:hover {
+  color: var(--ks-color-blue-dark);
+}
+
+.ks-type-legal {
+  margin: 0;
+  color: var(--ks-color-text);
+  font-family: var(--ks-font-family);
+  font-size: var(--ks-font-size-xs);
+  font-weight: var(--ks-font-weight-regular);
+  line-height: 1.4;
+}
+
+/* Centered auth / error shells */
+.ks-auth-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 2rem;
+  background: var(--ks-color-bg);
+  font-family: var(--ks-font-family);
+}
+
+.ks-auth-shell--fullscreen {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.ks-placeholder-page__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.ks-placeholder-card {
+  padding: 1.5rem;
+  border: 1px solid var(--ks-color-border);
+  background: var(--ks-color-surface);
+}
+
+.ks-placeholder-card__title {
+  margin: 0 0 0.5rem;
+}
+
+.ks-placeholder-card__text {
+  margin: 0;
+  font-size: var(--ks-font-size-sm);
+}

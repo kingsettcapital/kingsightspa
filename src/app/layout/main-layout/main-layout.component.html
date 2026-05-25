@@ -90,6 +90,26 @@
               routerLinkActive="ks-sidebar__sublink--active"
               class="ks-sidebar__sublink"
             >Other Cost</a>
+            <a
+              routerLink="/mortgage/default-date"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Default Date</a>
+            <a
+              routerLink="/mortgage/default-subjective-analytics"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Default Subjective Analytics</a>
+            <a
+              routerLink="/mortgage/tax-arrears"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Tax Arrears</a>
+            <a
+              routerLink="/mortgage/ltv-validation"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >LTV Validation</a>
           </div>
         }
       </div>
@@ -172,13 +192,10 @@
         >
           <lucide-icon [img]="menuIcon" color="currentColor" [size]="22"></lucide-icon>
         </button>
-        <div class="ks-header__logo">
-          <lucide-icon [img]="building2Icon" color="white" [size]="22"></lucide-icon>
-        </div>
-        <div>
-          <h1 class="ks-header__title">KingSight</h1>
-          <p class="ks-header__subtitle">Data Insights</p>
-        </div>
+        <a routerLink="/" class="ks-header__brand-link" aria-label="KingSett Capital — KingSight home">
+          <app-kingsett-logo variant="reversed" size="md" />
+        </a>
+        <p class="ks-header__app-tagline">Data Insights</p>
       </div>
 
       <div class="ks-header__actions">

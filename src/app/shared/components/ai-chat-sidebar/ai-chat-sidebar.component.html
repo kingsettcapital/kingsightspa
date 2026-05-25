@@ -1,0 +1,39 @@
+<div class="ks-ai-chat" [style.width]="isOpen ? '24rem' : '0'">
+  <div class="ks-ai-chat__header">
+    <h3 class="ks-type-h3 ks-ai-chat__title">AI Assistant</h3>
+    <button type="button" class="ks-ai-chat__close" (click)="closed.emit()" aria-label="Close AI Assistant">
+      <lucide-icon [img]="xIcon" [size]="20" color="currentColor"></lucide-icon>
+    </button>
+  </div>
+
+  <div class="ks-ai-chat__messages">
+    @for (msg of messages(); track $index) {
+      <div
+        class="ks-ai-chat__row"
+        [class.ks-ai-chat__row--user]="msg.role === 'user'"
+        [class.ks-ai-chat__row--ai]="msg.role === 'ai'"
+      >
+        <div
+          class="ks-type-body ks-ai-chat__bubble"
+          [class.ks-ai-chat__bubble--user]="msg.role === 'user'"
+          [class.ks-ai-chat__bubble--ai]="msg.role === 'ai'"
+        >
+          {{ msg.content }}
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="ks-ai-chat__footer">
+    <input
+      type="text"
+      class="ks-input ks-ai-chat__input"
+      [(ngModel)]="messageInput"
+      (keyup.enter)="sendMessage()"
+      placeholder="Ask me anything..."
+    />
+    <button type="button" class="ks-btn ks-btn--primary" (click)="sendMessage()" aria-label="Send message">
+      <lucide-icon [img]="sendIcon" [size]="18" color="currentColor"></lucide-icon>
+    </button>
+  </div>
+</div>

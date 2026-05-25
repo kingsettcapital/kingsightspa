@@ -1,0 +1,38 @@
+/* Override ng-select default.theme.css with KingSett brand tokens */
+
+.ng-select.ng-select-focused:not(.ng-select-opened) > .ng-select-container {
+  border-color: var(--ks-color-primary);
+  box-shadow: 0 0 0 2px var(--ks-color-focus-ring);
+}
+
+.ng-select .ng-select-container {
+  border-radius: var(--ks-radius-none);
+}
+
+/* Table cells: do not let the control stack above sticky column headers */
+.ks-table .ng-select.ks-ng-select--table {
+  position: relative;
+  z-index: 0;
+}
+
+.ks-table .ng-select.ks-ng-select--table.ng-select-opened {
+  z-index: 0;
+}
+
+.ng-dropdown-panel {
+  z-index: 1100;
+  border-radius: var(--ks-radius-none);
+  border-color: var(--ks-color-border-strong);
+}
+
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-marked,
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-selected,
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-selected.ng-option-marked {
+  background: var(--ks-color-primary-subtle);
+  color: var(--ks-color-navy);
+}
+
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-selected .ng-option-label,
+.ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-selected.ng-option-marked .ng-option-label {
+  color: var(--ks-color-primary);
+}

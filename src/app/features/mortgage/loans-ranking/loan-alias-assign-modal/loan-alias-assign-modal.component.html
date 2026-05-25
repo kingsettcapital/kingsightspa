@@ -1,0 +1,113 @@
+@if (isOpen()) {
+  <div class="ks-modal-backdrop" (click)="onBackdropClick($event)">
+    <div
+      class="ks-modal ks-modal--loan-alias-assign"
+      role="dialog"
+      aria-labelledby="assignLoanAliasTitle"
+    >
+      <header class="ks-modal__header">
+        <h2 id="assignLoanAliasTitle" class="ks-modal__title">Assign Loans to Loan Alias</h2>
+        <button type="button" class="ks-modal__close" (click)="close()" aria-label="Close">
+          <lucide-icon [img]="closeIcon" color="currentColor" [size]="20"></lucide-icon>
+        </button>
+      </header>
+
+      <div class="ks-modal__body">
+        @if (aliasName()) {
+          <p class="ks-modal__hint">
+            Assigning loans to <strong>{{ aliasName() }}</strong>
+          </p>
+        }
+
+        @if (isLoading()) {
+          <p class="ks-modal__hint">Loading unassigned loans...</p>
+        } @else {
+          <div class="ks-transfer">
+            <div class="ks-transfer__column">
+              <p class="ks-transfer__label">Unassigned Loans</p>
+              <div
+                class="ks-transfer__list"
+                (dragover)="onDragOver($event)"
+                (drop)="onDropToUnassigned($event)"
+              >
+                @if (availableLoans().length === 0) {
+                  <p class="ks-transfer__empty">No unassigned loans</p>
+                }
+                @for (loan of availableLoans(); track loan.loanKey) {
+                  <button
+                    type="button"
+                    class="ks-transfer__item"
+                    [class.ks-transfer__item--selected]="leftSelection() === loan.loanKey"
+                    draggable="true"
+                    (click)="selectLeft(loan.loanKey)"
+                    (dragstart)="onDragStart(loan.loanKey)"
+                    (dragend)="onDragEnd()"
+                  >
+                    {{ formatLoanLabel(loan) }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="ks-transfer__actions">
+              <button
+                type="button"
+                class="ks-btn ks-btn--outline ks-transfer__action"
+                (click)="moveSelectedToAssign()"
+                aria-label="Assign selected loans"
+              >
+                &gt;&gt;
+              </button>
+              <button
+                type="button"
+                class="ks-btn ks-btn--outline ks-transfer__action"
+                (click)="moveSelectedToUnassigned()"
+                aria-label="Unassign selected loans"
+              >
+                &lt;&lt;
+              </button>
+            </div>
+
+            <div class="ks-transfer__column">
+              <p class="ks-transfer__label">Loans to Assign</p>
+              <div
+                class="ks-transfer__list ks-transfer__list--target"
+                (dragover)="onDragOver($event)"
+                (drop)="onDropToAssign($event)"
+              >
+                @if (assignedLoans().length === 0) {
+                  <p class="ks-transfer__empty">Drag and Drop</p>
+                }
+                @for (loan of assignedLoans(); track loan.loanKey) {
+                  <button
+                    type="button"
+                    class="ks-transfer__item"
+                    [class.ks-transfer__item--selected]="rightSelection() === loan.loanKey"
+                    draggable="true"
+                    (click)="selectRight(loan.loanKey)"
+                    (dragstart)="onDragStart(loan.loanKey)"
+                    (dragend)="onDragEnd()"
+                  >
+                    {{ formatLoanLabel(loan) }}
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <footer class="ks-modal__footer">
+        <button type="button" class="ks-btn ks-btn--ghost" (click)="close()">Cancel</button>
+        <button
+          type="button"
+          class="ks-btn ks-btn--primary"
+          (click)="submit()"
+          [disabled]="!canSubmit() || isLoading()"
+        >
+          Submit
+        </button>
+      </footer>
+    </div>
+  </div>
+}

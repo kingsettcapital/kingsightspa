@@ -119,7 +119,6 @@ export class SecurityValueComponent implements OnInit {
     { value: 'COMMITTED', label: 'Committed' },
   ];
 
-  readonly loanAliasSearch = signal('');
   readonly selectedLoanKeys = signal<string[]>([]);
   readonly selectedFundingStatuses = signal<string[]>([...DEFAULT_FUNDING_STATUSES]);
   readonly errorMessage = signal('');
@@ -134,24 +133,16 @@ export class SecurityValueComponent implements OnInit {
   readonly columnFilters = signal<ColumnFiltersState>([]);
   readonly originalRowState = signal<Record<string, SecurityValueRowSnapshot>>({});
 
-  readonly selectedLoans = computed(() => {
-    const selectedKeys = new Set(this.selectedLoanKeys());
-    return this.rows().filter((row) => selectedKeys.has(row.loanKey));
-  });
-
-  readonly searchedLoanAliasOptions = computed(() => {
-    const keyword = this.loanAliasSearch().trim().toLowerCase();
-    if (!keyword) {
-      return [];
-    }
-
-    const selectedKeys = new Set(this.selectedLoanKeys());
-    return this.rows().filter((row) => {
-      if (selectedKeys.has(row.loanKey)) {
-        return false;
+  readonly loanAliasSelectOptions = computed(() => {
+    const byKey = new Map<string, string>();
+    for (const row of this.rows()) {
+      if (!byKey.has(row.loanKey)) {
+        byKey.set(row.loanKey, row.loanAlias);
       }
-      return row.loanAlias.toLowerCase().includes(keyword);
-    });
+    }
+    return [...byKey.entries()]
+      .map(([value, label]) => ({ value, label }))
+      .sort((left, right) => left.label.localeCompare(right.label));
   });
 
   readonly toolbarFilteredRows = computed(() => {
@@ -249,27 +240,8 @@ export class SecurityValueComponent implements OnInit {
     this.currentPage.set(1);
   }
 
-  updateLoanAliasSearch(value: string): void {
-    this.loanAliasSearch.set(value);
-    this.currentPage.set(1);
-    this.errorMessage.set('');
-  }
-
-  selectLoan(row: SecurityValueRow): void {
-    if (this.selectedLoanKeys().includes(row.loanKey)) {
-      return;
-    }
-
-    this.selectedLoanKeys.set([...this.selectedLoanKeys(), row.loanKey]);
-    this.loanAliasSearch.set('');
-    this.currentPage.set(1);
-    this.errorMessage.set('');
-  }
-
-  removeSelectedLoan(loanKey: string): void {
-    this.selectedLoanKeys.set(
-      this.selectedLoanKeys().filter((selectedKey) => selectedKey !== loanKey),
-    );
+  updateSelectedLoans(values: string[] | null): void {
+    this.selectedLoanKeys.set(values ?? []);
     this.currentPage.set(1);
     this.errorMessage.set('');
   }

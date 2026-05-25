@@ -1,0 +1,29 @@
+.ks-auth-login {
+  position: relative;
+  overflow: hidden;
+}
+
+.ks-auth-login__diamonds {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  opacity: 0.9;
+}
+
+.ks-auth-login__product {
+  margin: 1rem 0 0.25rem;
+}
+
+.ks-auth-login__title {
+  margin: 1.5rem 0 0.5rem;
+}
+
+.ks-auth-login__text {
+  margin: 0 0 1.5rem;
+  max-width: 22rem;
+  text-align: center;
+}
+
+.ks-auth-login__help {
+  margin-top: 1rem;
+}
