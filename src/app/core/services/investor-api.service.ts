@@ -23,6 +23,15 @@ export type InvestorAliasBulkUpdateRequest = {
   Investors: InvestorAliasUpdatePayload[];
 };
 
+/** Single strong type used for display, create, and update of Investor Aliases. */
+export type InvestorAlias = {
+  investorAliasId: number;
+  investorAliasName: string;
+  createdBy: string;
+  createdDtm: string;
+  updatedBy: string;
+  updatedDtm: string;
+};
 
 @Injectable({
   providedIn: 'root',
@@ -35,16 +44,37 @@ export class InvestorApiService {
     return `${this.apiConfig.baseUrl}/api/Investor`;
   }
 
+  private get investorAliasUrl(): string {
+    return `${this.apiConfig.baseUrl}/api/InvestorAlias`;
+  }
+
   getInvestors() {
     return this.http.get<InvestorAliasRow[]>(this.investorsUrl);
   }
 
-  /**
-   * Updates all changed investor aliases in one request.
-   * Body: array of per-row payloads (same shape as the former single-row PUT /api/Investor/{key}/alias).
-   */
   updateInvestorAliasesBulk(request: InvestorAliasBulkUpdateRequest) {
     const url = `${this.investorsUrl}/aliases`;
     return this.http.put<InvestorAliasBulkUpdateRequest>(url, request);
+  }
+
+  // ── InvestorAlias CRUD ──────────────────────────────────────────────────────
+
+  getAllAliases() {
+    return this.http.get<InvestorAlias[]>(this.investorAliasUrl);
+  }
+
+  createAlias(payload: InvestorAlias) {
+    return this.http.post<InvestorAlias>(this.investorAliasUrl, payload);
+  }
+
+  updateAlias(payload: InvestorAlias) {
+    return this.http.put<InvestorAlias>(
+      `${this.investorAliasUrl}/${payload.investorAliasId}`,
+      payload,
+    );
+  }
+
+  deleteAlias(investorAliasId: number) {
+    return this.http.delete<void>(`${this.investorAliasUrl}/${investorAliasId}`);
   }
 }
