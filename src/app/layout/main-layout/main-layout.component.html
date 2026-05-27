@@ -39,6 +39,15 @@
         <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
         <span class="ks-sidebar__link-label">Dashboard</span>
       </a>
+      <a
+        routerLink="/capital-dashboard"
+        routerLinkActive="ks-sidebar__link--active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="ks-sidebar__link"
+      >
+        <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
+        <span class="ks-sidebar__link-label">Capital Dashboard</span>
+      </a>
 
       <div
         class="ks-sidebar__group"

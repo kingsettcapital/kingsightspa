@@ -34,6 +34,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'capital-dashboard',
+        loadChildren: () =>
+          import('./features/capital-dashboard/capital-dashboard.routes').then(
+            (m) => m.CAPITAL_DASHBOARD_ROUTES
+          ),
+      },
+      {
         path: 'mortgage',
         loadChildren: () =>
           import('./features/mortgage/mortgage.routes').then(

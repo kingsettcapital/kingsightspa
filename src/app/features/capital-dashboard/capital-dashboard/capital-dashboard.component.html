@@ -1,0 +1,22 @@
+<section class="ks-capital-dashboard portal-shell" aria-label="Capital Dashboard">
+  <header class="ks-capital-dashboard__header">
+    <h1 class="ks-capital-dashboard__title">Capital Dashboard</h1>
+  </header>
+
+  <mat-tab-group
+    class="ks-capital-dashboard__tabs"
+    mat-stretch-tabs="false"
+    mat-align-tabs="start"
+  >
+    <mat-tab label="Investors">
+      <app-capital-dashboard-investors />
+    </mat-tab>
+    <mat-tab label="Investments">
+      <app-capital-dashboard-investments />
+    </mat-tab>
+    <mat-tab label="Assets">
+      <app-capital-dashboard-assets />
+    </mat-tab>
+  </mat-tab-group>
+</section>
+

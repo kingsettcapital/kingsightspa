@@ -27,7 +27,9 @@ export class ApiService {
     const httpParams = params
       ? new HttpParams({
           fromObject: Object.fromEntries(
-            Object.entries(params).map(([key, value]) => [key, String(value)])
+            Object.entries(params)
+              .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== '')
+              .map(([key, value]) => [key, String(value)])
           ),
         })
       : undefined;

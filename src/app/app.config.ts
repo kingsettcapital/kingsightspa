@@ -11,6 +11,7 @@ import {
   withInterceptorsFromDi,
 } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
+import { provideAnimations } from '@angular/platform-browser/animations';
 import {
   MsalBroadcastService,
   MsalGuard,
@@ -28,6 +29,7 @@ import { environment } from '../environments/environment';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    provideAnimations(),
     provideRouter(routes),
     provideHttpClient(withInterceptorsFromDi(), withInterceptors([errorInterceptor])),
     ...(environment.requireLogin

@@ -1,0 +1,223 @@
+<div class="master-detail" [class.master-detail--detail-open]="!!selectedAsset()">
+  <aside class="master-detail__list">
+    <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+      <input
+        matInput
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        placeholder="Search assets..."
+      />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+
+    @if (listLoading()) {
+      <div class="list-state">
+        <app-portal-spinner [size]="32" />
+      </div>
+    } @else if (listError()) {
+      <div class="list-state list-state--error">{{ listError() }}</div>
+    } @else {
+      <div
+        #listScrollContainer
+        class="list-table-wrap"
+        appListInfiniteScroll
+        (scrolledToEnd)="loadMore()"
+      >
+        <table mat-table [dataSource]="assets()" class="list-table">
+          <ng-container matColumnDef="asset">
+            <th mat-header-cell *matHeaderCellDef>Asset</th>
+            <td mat-cell *matCellDef="let row">
+              <div>{{ propertyListName(row) }}</div>
+              <div class="list-table__secondary">
+                {{ row.status || '—' }}@if (propertyLocation(row) !== 'N/A') { · {{ propertyLocation(row) }} }
+              </div>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="value">
+            <th mat-header-cell *matHeaderCellDef class="align-right">Value</th>
+            <td mat-cell *matCellDef="let row" class="align-right">
+              <div>{{ formatCurrency(row.currentValue) }}</div>
+              @if (row.yieldPercent != null && row.yieldPercent > 0) {
+                <div class="list-table__secondary return-positive">
+                  {{ formatPercent(row.yieldPercent) }} yield
+                </div>
+              }
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="listColumns; sticky: true"></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: listColumns"
+            [attr.data-list-key]="row.propertyKey"
+            (click)="selectAsset(row)"
+            [class.selected-row]="selectedPropertyKey() === row.propertyKey"
+          ></tr>
+        </table>
+
+        @if (listLoadingMore()) {
+          <div class="list-load-more">
+            <app-portal-spinner [size]="24" />
+          </div>
+        }
+
+        @if (assets().length === 0) {
+          <div class="list-state">No assets found.</div>
+        } @else {
+          <div class="list-footer">Showing {{ assets().length }} of {{ totalCount() }} assets</div>
+        }
+      </div>
+    }
+  </aside>
+
+  <section class="master-detail__panel">
+    @if (detailLoading()) {
+      <div class="detail-card master-detail__empty">
+        <app-portal-spinner [size]="40" />
+      </div>
+    } @else if (detailError()) {
+      <div class="detail-card master-detail__empty">
+        <mat-icon>error_outline</mat-icon>
+        <h3>{{ detailError() }}</h3>
+      </div>
+    } @else if (selectedAsset(); as asset) {
+      <button type="button" class="master-detail__back" (click)="clearSelection()">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Back to list</span>
+      </button>
+
+      <div class="detail-card">
+        <div class="detail-card__header">
+          <div class="detail-card__title-row">
+            <div class="detail-card__hero" aria-hidden="true">
+              <mat-icon>{{ assetIcon(propertyFieldString(asset, 'asset_type')) }}</mat-icon>
+            </div>
+            <div class="detail-card__title-block">
+              <h2>{{ propertyDetailName(asset) }}</h2>
+              @if (propertyDetailLocation(asset); as location) {
+                <p class="detail-card__subtitle">{{ location }}</p>
+              }
+            </div>
+          </div>
+
+          <div class="detail-card__metrics">
+            <div>
+              <div class="detail-card__metric-label">Current Value</div>
+              <div class="detail-card__metric-value">{{ formatCurrency(assetDetailListValue(asset)) }}</div>
+            </div>
+            <div>
+              <div class="detail-card__metric-label">Fund</div>
+              <div class="detail-card__metric-value">{{ propertyFieldString(asset, 'fund') || '—' }}</div>
+            </div>
+            <div>
+              <div class="detail-card__metric-label">Acquired</div>
+              <div class="detail-card__metric-value">
+                {{ propertyFieldString(asset, 'property_acquisition') || '—' }}
+              </div>
+            </div>
+            <div>
+              <div class="detail-card__metric-label">Investments</div>
+              <div class="detail-card__metric-value">{{ asset.investmentsCount }}</div>
+            </div>
+          </div>
+        </div>
+
+        <mat-tab-group
+          [(selectedIndex)]="activeTabIndex"
+          class="detail-tabs"
+          mat-stretch-tabs="false"
+          mat-align-tabs="start"
+        >
+          <mat-tab label="Overview">
+            <div class="detail-card__body overview-grid">
+              @for (card of overviewCards(); track card.title) {
+                <mat-card>
+                  <mat-card-header>
+                    <mat-card-title>{{ card.title }}</mat-card-title>
+                  </mat-card-header>
+                  <mat-card-content>
+                    <mat-list>
+                      @for (row of card.rows; track row.label) {
+                        <mat-list-item>
+                          <span matListItemTitle>{{ row.label }}</span>
+                          <span matListItemLine>{{ row.value }}</span>
+                        </mat-list-item>
+                      }
+                    </mat-list>
+                  </mat-card-content>
+                </mat-card>
+              }
+            </div>
+          </mat-tab>
+
+          <mat-tab [label]="'Associated Investments (' + assetInvestments().length + ')'">
+            <div class="detail-card__body">
+              <div class="detail-table-wrap">
+                <table mat-table [dataSource]="assetInvestments()" class="detail-table">
+                  <ng-container matColumnDef="name">
+                    <th mat-header-cell *matHeaderCellDef>Investment Name</th>
+                    <td mat-cell *matCellDef="let row">
+                      <div class="link-cell" (click)="goToInvestment(row.fundKey)">
+                        <div class="link-cell__title">{{ row.fundName }}</div>
+                      </div>
+                    </td>
+                  </ng-container>
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <td mat-cell *matCellDef="let row">{{ row.fundType || '—' }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="strategy">
+                    <th mat-header-cell *matHeaderCellDef>Strategy</th>
+                    <td mat-cell *matCellDef="let row">{{ row.fundStrategy || '—' }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="status">
+                    <th mat-header-cell *matHeaderCellDef>Status</th>
+                    <td mat-cell *matCellDef="let row">{{ row.status || '—' }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="value">
+                    <th mat-header-cell *matHeaderCellDef class="align-right">Total Value</th>
+                    <td mat-cell *matCellDef="let row" class="align-right">
+                      {{ formatCurrency(row.totalValue) }}
+                    </td>
+                  </ng-container>
+                  <ng-container matColumnDef="return">
+                    <th mat-header-cell *matHeaderCellDef class="align-right">Return</th>
+                    <td
+                      mat-cell
+                      *matCellDef="let row"
+                      class="align-right"
+                      [class.return-positive]="(row.totalReturnPercent ?? 0) > 0"
+                      [class.return-negative]="(row.totalReturnPercent ?? 0) <= 0"
+                    >
+                      @if (row.totalReturnPercent != null) {
+                        {{ formatPercent(row.totalReturnPercent, true) }}
+                      } @else {
+                        —
+                      }
+                    </td>
+                  </ng-container>
+                  <tr
+                    mat-header-row
+                    *matHeaderRowDef="['name', 'type', 'strategy', 'status', 'value', 'return']"
+                  ></tr>
+                  <tr
+                    mat-row
+                    *matRowDef="let row; columns: ['name', 'type', 'strategy', 'status', 'value', 'return']"
+                  ></tr>
+                </table>
+                @if (assetInvestments().length === 0) {
+                  <div class="list-state">No associated investments.</div>
+                }
+              </div>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+      </div>
+    } @else {
+      <div class="detail-card master-detail__empty">
+        <mat-icon>category</mat-icon>
+        <h3>Select an asset to view details</h3>
+      </div>
+    }
+  </section>
+</div>
+
