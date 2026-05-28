@@ -118,11 +118,28 @@ export interface PropertyListItemDto {
   yieldPercent: number | null;
 }
 
+export interface PropertySummaryDto {
+  propertyKey?: number;
+  propertyName?: string | null;
+  acquisitionDate?: string | null;
+  assetType?: string | null;
+  currentValue?: number;
+  /** API summary field for associated investment count */
+  investments?: number;
+  investmentsCount?: number;
+  location?: string | null;
+  city?: string | null;
+  province?: string | null;
+  status?: string | null;
+  yield?: number | null;
+  yieldPercent?: number | null;
+}
+
 export interface PropertyDetailDto {
-  propertyKey: number;
-  investmentsCount: number;
-  fields: Record<string, unknown> | null;
-  summary?: Record<string, unknown> | null;
+  propertyKey?: number;
+  investmentsCount?: number;
+  fields?: Record<string, unknown> | null;
+  summary?: PropertySummaryDto | null;
   sections?: DynamicSectionDto[] | null;
 }
 

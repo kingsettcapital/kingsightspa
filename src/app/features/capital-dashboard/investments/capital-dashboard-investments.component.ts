@@ -10,16 +10,14 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatListModule } from '@angular/material/list';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import {
@@ -37,6 +35,8 @@ import {
 
 import { LIST_PAGE_SIZE } from '../shared/list-pagination.constants';
 import { ListInfiniteScrollDirective } from '../shared/list-infinite-scroll.directive';
+import { DetailStatusBadgeComponent } from '../shared/components/detail-status-badge/detail-status-badge.component';
+import { OverviewSectionCardsComponent } from '../shared/components/overview-section-cards/overview-section-cards.component';
 import { PortalSpinnerComponent } from '../shared/components/portal-spinner/portal-spinner.component';
 import {
   FundDetailDto,
@@ -59,16 +59,16 @@ import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util'
     FormsModule,
     DecimalPipe,
     MatButtonModule,
-    MatCardModule,
     MatChipsModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    MatListModule,
     MatProgressBarModule,
     MatTableModule,
     MatTabsModule,
     ListInfiniteScrollDirective,
+    DetailStatusBadgeComponent,
+    OverviewSectionCardsComponent,
     PortalSpinnerComponent,
   ],
   templateUrl: './capital-dashboard-investments.component.html',
@@ -86,6 +86,7 @@ import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util'
 })
 export class CapitalDashboardInvestmentsComponent {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly fundsApi = inject(CapitalFundsApiService);
   private readonly assetsApi = inject(CapitalAssetsApiService);
   private readonly destroyRef = inject(DestroyRef);
@@ -109,8 +110,13 @@ export class CapitalDashboardInvestmentsComponent {
   readonly fundInvestors = signal<FundInvestorDto[]>([]);
   readonly fundAssets = signal<PropertyListItemDto[]>([]);
   readonly fundAssetsLoading = signal(false);
+  readonly fundAssetsLoadingMore = signal(false);
+  readonly fundAssetsHasNextPage = signal(false);
   readonly detailLoading = signal(false);
   readonly detailError = signal<string | null>(null);
+
+  readonly focusInvestorKey = signal<number | null>(null);
+  private readonly fundInvestorsWrap = viewChild<ElementRef<HTMLElement>>('fundInvestorsWrap');
 
   activeTabIndex = 0;
   readonly listColumns = ['investment', 'value'];
@@ -120,12 +126,43 @@ export class CapitalDashboardInvestmentsComponent {
   private currentPage = 1;
   private currentSearch = '';
   private pendingScrollKey: number | null = null;
+  private pendingSelectName: string | null = null;
+  private pendingAutoOpenFirst = false;
   private loadingMoreForScroll = false;
+  private fundAssetsPage = 1;
+  private fundAssetsFundCode: string | null = null;
+  private fundAssetsFundKey: number | null = null;
 
   private readonly listScrollContainer = viewChild<ElementRef<HTMLElement>>('listScrollContainer');
   private readonly loadDetail$ = new Subject<number>();
 
   constructor() {
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed())
+      .subscribe((params) => {
+        const focusRaw = params.get('focusInvestor');
+        const focusParsed = focusRaw ? Number(focusRaw) : NaN;
+        this.focusInvestorKey.set(Number.isFinite(focusParsed) ? focusParsed : null);
+
+        const detailTab = params.get('detailTab');
+        if (detailTab === 'investors') this.activeTabIndex = 2;
+        if (detailTab === 'assets') this.activeTabIndex = 1;
+        if (detailTab === 'overview') this.activeTabIndex = 0;
+
+        const selectedRaw = params.get('selected');
+        const selectedParsed = selectedRaw ? Number(selectedRaw) : NaN;
+        this.pendingScrollKey = Number.isFinite(selectedParsed) ? selectedParsed : null;
+
+        const search = (params.get('search') ?? '').trim();
+        this.pendingSelectName = search || null;
+        // If we arrive via deep-link search, auto-open a result once the list loads.
+        // This flag is cleared after the first successful auto-open.
+        this.pendingAutoOpenFirst = !!search;
+        if (search && this.searchQuery() !== search) {
+          this.searchQuery.set(search);
+        }
+      });
+
     toObservable(this.searchQuery)
       .pipe(
         debounceTime(300),
@@ -133,7 +170,8 @@ export class CapitalDashboardInvestmentsComponent {
         tap((search) => {
           this.currentSearch = search;
           this.currentPage = 1;
-          this.pendingScrollKey = this.selectedIdFromRoute();
+          // pendingScrollKey may already be set from query params subscription.
+          this.pendingScrollKey = this.pendingScrollKey ?? this.selectedIdFromRoute();
           this.listLoading.set(true);
           this.listError.set(null);
           this.hasNextPage.set(false);
@@ -156,6 +194,10 @@ export class CapitalDashboardInvestmentsComponent {
         switchMap((fundKey) => {
           this.selectedFundKey.set(fundKey);
           this.fundAssets.set([]);
+          this.fundAssetsHasNextPage.set(false);
+          this.fundAssetsLoadingMore.set(false);
+          this.fundAssetsPage = 1;
+          this.fundAssetsFundKey = fundKey;
           this.detailLoading.set(true);
           this.detailError.set(null);
           this.activeTabIndex = 0;
@@ -166,10 +208,16 @@ export class CapitalDashboardInvestmentsComponent {
           }).pipe(
             switchMap(({ detail, investors }) => {
               this.fundAssetsLoading.set(true);
-              const { fundCode, assets } = detail.summary;
-              return this.assetsApi.getAssetsForFund(fundKey, fundCode, assets).pipe(
-                map((assets) => ({ detail, investors, assets })),
-                catchError(() => of({ detail, investors, assets: [] as PropertyListItemDto[] })),
+              const fundCode = detail.summary.fundCode?.trim() || null;
+              this.fundAssetsFundCode = fundCode;
+              return this.assetsApi.getAssetsForFundPage(fundKey, fundCode, 1).pipe(
+                map((assetsPage) => ({
+                  detail,
+                  investors,
+                  assets: assetsPage.items ?? [],
+                  assetsHasNext: assetsPage.hasNextPage,
+                })),
+                catchError(() => of({ detail, investors, assets: [] as PropertyListItemDto[], assetsHasNext: false })),
                 finalize(() => this.fundAssetsLoading.set(false)),
               );
             }),
@@ -190,7 +238,67 @@ export class CapitalDashboardInvestmentsComponent {
         this.fundDetail.set(result.detail);
         this.fundInvestors.set(result.investors);
         this.fundAssets.set(result.assets);
+        this.fundAssetsHasNextPage.set(result.assetsHasNext);
+        this.scrollFocusedInvestorIntoView();
+        this.cleanupDeepLinkQueryParams();
       });
+  }
+
+  loadMoreFundAssets(): void {
+    if (this.fundAssetsLoading() || this.fundAssetsLoadingMore() || !this.fundAssetsHasNextPage()) return;
+    const fundKey = this.fundAssetsFundKey;
+    const fundCode = this.fundAssetsFundCode;
+    if (!fundKey || !fundCode?.trim()) return;
+
+    this.fundAssetsLoadingMore.set(true);
+    const nextPage = this.fundAssetsPage + 1;
+
+    this.assetsApi
+      .getAssetsForFundPage(fundKey, fundCode, nextPage)
+      .pipe(
+        catchError(() => of(null)),
+        finalize(() => this.fundAssetsLoadingMore.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((page) => {
+        if (!page) return;
+        this.fundAssetsPage = nextPage;
+        this.fundAssets.update((list) => [...list, ...(page.items ?? [])]);
+        this.fundAssetsHasNextPage.set(page.hasNextPage);
+      });
+  }
+
+  private cleanupDeepLinkQueryParams(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const hasDeepLinkParams =
+      params.has('selected') || params.has('search') || params.has('detailTab') || params.has('focusInvestor');
+    if (!hasDeepLinkParams) return;
+
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        selected: null,
+        search: null,
+        detailTab: null,
+        focusInvestor: null,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  private scrollFocusedInvestorIntoView(): void {
+    const key = this.focusInvestorKey();
+    if (key == null) return;
+    // Ensure the Investors tab is visible
+    this.activeTabIndex = 2;
+
+    queueMicrotask(() => {
+      const host = this.fundInvestorsWrap()?.nativeElement;
+      if (!host) return;
+      const target = host.querySelector<HTMLElement>(`[data-investor-key="${key}"]`);
+      target?.scrollIntoView({ block: 'center' });
+    });
   }
 
   loadMore(): void {
@@ -248,8 +356,29 @@ export class CapitalDashboardInvestmentsComponent {
     return 'person';
   }
 
-  goToInvestor(_investorKey: number): void {}
-  goToAsset(_propertyKey: number): void {}
+  goToInvestor(investorKey: number, investorName: string | null | undefined): void {
+    void this.router.navigate(['../investor'], {
+      relativeTo: this.route,
+      queryParams: {
+        selected: investorKey,
+        search: investorName?.trim() || undefined,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  goToAsset(propertyKey: number, assetName: string | null | undefined): void {
+    void this.router.navigate(['../asset'], {
+      relativeTo: this.route,
+      queryParams: {
+        selected: propertyKey,
+        search: assetName?.trim() || undefined,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
 
   memberSinceDisplay(row: FundInvestorDto): string {
     const year = row.joinYear;
@@ -281,17 +410,73 @@ export class CapitalDashboardInvestmentsComponent {
   }
 
   private ensureSelectedInListAndScroll(): void {
-    const key = this.pendingScrollKey ?? this.selectedFundKey();
-    if (key == null || this.listLoading()) return;
+    let key = this.pendingScrollKey ?? this.selectedFundKey();
+    if (key == null && this.pendingSelectName) {
+      key = this.matchFundKeyByName(this.pendingSelectName);
+      if (key != null) this.pendingScrollKey = key;
+    }
+    if (key == null) {
+      if (this.pendingAutoOpenFirst) {
+        const first = this.funds()[0] ?? null;
+        if (first) {
+          this.pendingAutoOpenFirst = false;
+          this.pendingScrollKey = first.fundKey;
+          this.loadDetail$.next(first.fundKey);
+          this.scrollToSelected(first.fundKey);
+        }
+      }
+      return;
+    }
 
-    if (this.funds().some((fund) => fund.fundKey === key)) {
+    const selectedFund = this.funds().find((fund) => fund.fundKey === key) ?? null;
+    if (selectedFund) {
+      // If we deep-linked into this tab, also load the right-side detail panel.
+      if (this.selectedFundKey() !== key || !this.fundDetail()) {
+        this.loadDetail$.next(key);
+      }
       this.scrollToSelected(key);
       return;
+    }
+
+    // If the requested key isn't in the search results, fall back to an unambiguous name match.
+    if (!this.hasNextPage() && this.pendingSelectName) {
+      const byName = this.matchFundKeyByName(this.pendingSelectName);
+      if (byName != null && byName !== key) {
+        this.pendingScrollKey = byName;
+        this.loadDetail$.next(byName);
+        this.scrollToSelected(byName);
+        return;
+      }
+    }
+
+    // If we reached the end and still didn't find the key, auto-open the first result from the deep-link search.
+    if (!this.hasNextPage() && this.pendingAutoOpenFirst) {
+      const first = this.funds()[0] ?? null;
+      if (first) {
+        this.pendingAutoOpenFirst = false;
+        this.pendingScrollKey = first.fundKey;
+        this.loadDetail$.next(first.fundKey);
+        this.scrollToSelected(first.fundKey);
+        return;
+      }
     }
 
     if (this.hasNextPage() && !this.listLoadingMore() && !this.loadingMoreForScroll) {
       this.fetchNextPage(true);
     }
+  }
+
+  private matchFundKeyByName(name: string): number | null {
+    const needle = name.trim().toLowerCase();
+    if (!needle) return null;
+
+    const matches = this.funds().filter((fund) => {
+      const hay = (fund.fundName ?? '').trim().toLowerCase();
+      return hay === needle || hay.includes(needle);
+    });
+
+    if (matches.length === 1) return matches[0].fundKey;
+    return null;
   }
 
   private scrollToSelected(key: number): void {

@@ -1,0 +1,15 @@
+<div class="overview-section-cards">
+  @for (card of cards(); track card.title) {
+    <article class="overview-section-cards__card">
+      <h3 class="overview-section-cards__title">{{ card.title }}</h3>
+      <dl class="overview-section-cards__fields">
+        @for (row of card.rows; track row.key ?? row.label) {
+          <div class="overview-section-cards__field">
+            <dt class="overview-section-cards__label">{{ row.label }}</dt>
+            <dd class="overview-section-cards__value">{{ row.value }}</dd>
+          </div>
+        }
+      </dl>
+    </article>
+  }
+</div>

@@ -1,4 +1,7 @@
-<div class="master-detail" [class.master-detail--detail-open]="!!selectedInvestor()">
+<div
+  class="master-detail"
+  [class.master-detail--detail-open]="selectedInvestorKey() != null || detailLoading()"
+>
   <aside class="master-detail__list">
     <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
       <input
@@ -131,49 +134,45 @@
           class="detail-tabs"
           mat-stretch-tabs="false"
           mat-align-tabs="start"
+          animationDuration="0ms"
         >
           <mat-tab label="Overview">
-            <div class="detail-card__body overview-grid">
-              @for (card of overviewCards(); track card.title) {
-                <mat-card>
-                  <mat-card-header>
-                    <mat-card-title>{{ card.title }}</mat-card-title>
-                  </mat-card-header>
-                  <mat-card-content>
-                    <mat-list>
-                      @for (row of card.rows; track row.label) {
-                        <mat-list-item>
-                          <span matListItemTitle>{{ row.label }}</span>
-                          <span matListItemLine>{{ row.value }}</span>
-                        </mat-list-item>
-                      }
-                    </mat-list>
-                  </mat-card-content>
-                </mat-card>
-              }
+            <div class="detail-card__body">
+              <div class="detail-scroll-x">
+                <app-overview-section-cards [cards]="overviewCards()" />
+              </div>
             </div>
           </mat-tab>
 
           <mat-tab [label]="'Investments (' + investorInvestments().length + ')'">
-            <div class="detail-card__body">
+            <div class="detail-card__body detail-card__body--table">
               <div class="detail-table-wrap">
-                <table mat-table [dataSource]="investorInvestments()" class="detail-table">
+                <table
+                  mat-table
+                  [dataSource]="investorInvestments()"
+                  class="detail-table"
+                  aria-label="Investor investments"
+                >
                   <ng-container matColumnDef="name">
                     <th mat-header-cell *matHeaderCellDef>Investment Name</th>
                     <td mat-cell *matCellDef="let row">
-                      <div class="link-cell" (click)="goToInvestment(row.fundKey)">
-                        <div class="link-cell__title">{{ row.fundName }}</div>
-                        <div class="link-cell__subtitle">{{ row.fundCategory }}</div>
+                      <div class="detail-table__name-cell link-cell" (click)="goToInvestment(row.fundKey, row.fundName)">
+                        <div class="detail-table__primary">{{ row.fundName }}</div>
+                        @if (row.fundCategory) {
+                          <div class="detail-table__secondary">{{ row.fundCategory }}</div>
+                        }
                       </div>
                     </td>
                   </ng-container>
                   <ng-container matColumnDef="type">
                     <th mat-header-cell *matHeaderCellDef>Type</th>
-                    <td mat-cell *matCellDef="let row">{{ row.fundType }}</td>
+                    <td mat-cell *matCellDef="let row">{{ row.fundType || '—' }}</td>
                   </ng-container>
                   <ng-container matColumnDef="status">
                     <th mat-header-cell *matHeaderCellDef>Status</th>
-                    <td mat-cell *matCellDef="let row">{{ row.status || '—' }}</td>
+                    <td mat-cell *matCellDef="let row">
+                      <app-detail-status-badge [status]="row.status" />
+                    </td>
                   </ng-container>
                   <ng-container matColumnDef="value">
                     <th mat-header-cell *matHeaderCellDef class="align-right">Current Value</th>
@@ -207,6 +206,67 @@
               </div>
             </div>
           </mat-tab>
+
+          <!-- <mat-tab [label]="'Documents (' + summaryNumber('documentsCount') + ')'">
+            <div class="detail-card__body detail-card__body--table">
+              <div class="detail-table-wrap">
+                <table
+                  mat-table
+                  [dataSource]="investorDocuments()"
+                  class="detail-table"
+                  aria-label="Investor documents"
+                >
+                  <ng-container matColumnDef="name">
+                    <th mat-header-cell *matHeaderCellDef>Document</th>
+                    <td mat-cell *matCellDef="let row">
+                      <div class="detail-table__name-cell">
+                        <div class="detail-table__primary">{{ row.documentName }}</div>
+                        <div class="detail-table__secondary">{{ row.documentType }}</div>
+                      </div>
+                    </td>
+                  </ng-container>
+                  <ng-container matColumnDef="type">
+                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <td mat-cell *matCellDef="let row">{{ row.documentType || '—' }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="date">
+                    <th mat-header-cell *matHeaderCellDef>Uploaded</th>
+                    <td mat-cell *matCellDef="let row">{{ row.uploadedOn || '—' }}</td>
+                  </ng-container>
+                  <ng-container matColumnDef="size">
+                    <th mat-header-cell *matHeaderCellDef class="align-right">Size</th>
+                    <td mat-cell *matCellDef="let row" class="align-right">{{ row.sizeLabel || '—' }}</td>
+                  </ng-container>
+                  <tr mat-header-row *matHeaderRowDef="documentColumns"></tr>
+                  <tr mat-row *matRowDef="let row; columns: documentColumns"></tr>
+                </table>
+
+                @if (documentsHasNextPage()) {
+                  <div class="list-load-more">
+                    <button
+                      mat-flat-button
+                      color="primary"
+                      class="ks-load-more"
+                      type="button"
+                      (click)="loadMoreDocuments()"
+                      [disabled]="documentsLoadingMore()"
+                    >
+                      @if (documentsLoadingMore()) {
+                        <app-portal-spinner [size]="18" />
+                        <span>Loading…</span>
+                      } @else {
+                        Load more
+                      }
+                    </button>
+                  </div>
+                }
+
+                @if (investorDocuments().length === 0) {
+                  <div class="list-state">No documents available.</div>
+                }
+              </div>
+            </div>
+          </mat-tab> -->
         </mat-tab-group>
       </div>
     } @else {

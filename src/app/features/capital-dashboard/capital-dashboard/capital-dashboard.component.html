@@ -3,20 +3,39 @@
     <h1 class="ks-capital-dashboard__title">Capital Dashboard</h1>
   </header>
 
-  <mat-tab-group
-    class="ks-capital-dashboard__tabs"
-    mat-stretch-tabs="false"
-    mat-align-tabs="start"
-  >
-    <mat-tab label="Investors">
-      <app-capital-dashboard-investors />
-    </mat-tab>
-    <mat-tab label="Investments">
-      <app-capital-dashboard-investments />
-    </mat-tab>
-    <mat-tab label="Assets">
-      <app-capital-dashboard-assets />
-    </mat-tab>
-  </mat-tab-group>
+  <nav mat-tab-nav-bar class="ks-capital-dashboard__tabs" mat-stretch-tabs="false" mat-align-tabs="start">
+    <a
+      mat-tab-link
+      [active]="activeTab === 'investor'"
+      (click)="goToTab('investor')"
+      (keydown.enter)="goToTab('investor')"
+      tabindex="0"
+    >
+      <mat-icon aria-hidden="true" class="ks-tab-icon">person</mat-icon>
+      <span>Investors</span>
+    </a>
+    <a
+      mat-tab-link
+      [active]="activeTab === 'investment'"
+      (click)="goToTab('investment')"
+      (keydown.enter)="goToTab('investment')"
+      tabindex="0"
+    >
+      <mat-icon aria-hidden="true" class="ks-tab-icon">trending_up</mat-icon>
+      <span>Investments</span>
+    </a>
+    <a
+      mat-tab-link
+      [active]="activeTab === 'asset'"
+      (click)="goToTab('asset')"
+      (keydown.enter)="goToTab('asset')"
+      tabindex="0"
+    >
+      <mat-icon aria-hidden="true" class="ks-tab-icon">apartment</mat-icon>
+      <span>Assets</span>
+    </a>
+  </nav>
+
+  <router-outlet />
 </section>
 

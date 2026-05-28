@@ -1,4 +1,7 @@
-<div class="master-detail" [class.master-detail--detail-open]="!!selectedInvestment()">
+<div
+  class="master-detail"
+  [class.master-detail--detail-open]="selectedFundKey() != null || detailLoading()"
+>
   <aside class="master-detail__list">
     <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
       <input
@@ -39,7 +42,8 @@
                 <div
                   class="list-table__secondary"
                   [class.return-positive]="row.totalReturnPercent > 0"
-                  [class.return-negative]="row.totalReturnPercent <= 0"
+                  [class.return-negative]="row.totalReturnPercent < 0"
+                  [class.return-neutral]="row.totalReturnPercent === 0"
                 >
                   {{ formatPercent(row.totalReturnPercent, true) }}
                 </div>
@@ -120,7 +124,8 @@
               <div
                 class="detail-card__metric-value"
                 [class.return-positive]="summaryNumber('totalReturnPercent') > 0"
-                [class.return-negative]="summaryNumber('totalReturnPercent') <= 0"
+                [class.return-negative]="summaryNumber('totalReturnPercent') < 0"
+                [class.return-neutral]="summaryNumber('totalReturnPercent') === 0"
               >
                 {{ summaryDisplay('totalReturnPercent') }}
               </div>
@@ -135,15 +140,13 @@
             </div>
           </div>
 
-          @if (summaryNumber('currentValue') > 0) {
-            <div class="deployment">
-              <div class="deployment__label">
-                <span>Capital Deployed</span>
-                <span>{{ deploymentPercent() | number: '1.0-0' }}%</span>
-              </div>
-              <mat-progress-bar mode="determinate" [value]="deploymentPercent()" />
+          <div class="deployment">
+            <div class="deployment__label">
+              <span>Capital Deployed</span>
+              <span>{{ deploymentPercent() | number: '1.0-0' }}%</span>
             </div>
-          }
+            <mat-progress-bar mode="determinate" [value]="deploymentPercent()" />
+          </div>
         </div>
 
         <mat-tab-group
@@ -153,41 +156,30 @@
           mat-align-tabs="start"
         >
           <mat-tab label="Overview">
-            <div class="detail-card__body overview-grid">
-              @for (card of overviewCards(); track card.title) {
-                <mat-card>
-                  <mat-card-header>
-                    <mat-card-title>{{ card.title }}</mat-card-title>
-                  </mat-card-header>
-                  <mat-card-content>
-                    <mat-list>
-                      @for (row of card.rows; track row.label) {
-                        <mat-list-item>
-                          <span matListItemTitle>{{ row.label }}</span>
-                          <span matListItemLine>{{ row.value }}</span>
-                        </mat-list-item>
-                      }
-                    </mat-list>
-                  </mat-card-content>
-                </mat-card>
-              }
+            <div class="detail-card__body">
+              <div class="detail-scroll-x">
+                <app-overview-section-cards [cards]="overviewCards()" />
+              </div>
             </div>
           </mat-tab>
 
           <mat-tab [label]="'Assets (' + summaryNumber('assets') + ')'">
-            <div class="detail-card__body">
+            <div class="detail-card__body detail-card__body--table">
               @if (fundAssetsLoading()) {
                 <div class="list-state">
                   <app-portal-spinner [size]="32" />
                 </div>
               } @else {
                 <div class="detail-table-wrap">
-                  <table mat-table [dataSource]="fundAssets()" class="detail-table">
+                  <table mat-table [dataSource]="fundAssets()" class="detail-table" aria-label="Fund assets">
                     <ng-container matColumnDef="name">
-                      <th mat-header-cell *matHeaderCellDef>Asset Name</th>
-                      <td mat-cell *matCellDef="let row">
-                        <div class="link-cell" (click)="goToAsset(row.propertyKey)">
-                          <div class="link-cell__title">{{ propertyListName(row) }}</div>
+                      <th mat-header-cell *matHeaderCellDef class="align-left">Asset Name</th>
+                      <td mat-cell *matCellDef="let row" class="align-left">
+                        <div class="detail-table__name-cell link-cell" (click)="goToAsset(row.propertyKey, propertyListName(row))">
+                          <div class="detail-table__primary">{{ propertyListName(row) }}</div>
+                          @if (row.assetType) {
+                            <div class="detail-table__secondary">{{ row.assetType }}</div>
+                          }
                         </div>
                       </td>
                     </ng-container>
@@ -201,7 +193,9 @@
                     </ng-container>
                     <ng-container matColumnDef="status">
                       <th mat-header-cell *matHeaderCellDef>Status</th>
-                      <td mat-cell *matCellDef="let row">{{ row.status || '—' }}</td>
+                      <td mat-cell *matCellDef="let row">
+                        <app-detail-status-badge [status]="row.status" />
+                      </td>
                     </ng-container>
                     <ng-container matColumnDef="value">
                       <th mat-header-cell *matHeaderCellDef class="align-right">Value</th>
@@ -228,6 +222,24 @@
                       *matRowDef="let row; columns: ['name', 'type', 'location', 'status', 'value', 'yield']"
                     ></tr>
                   </table>
+                  @if (fundAssetsHasNextPage()) {
+                    <div class="list-load-more">
+                      <button
+                        color="primary"
+                        class="ks-load-more"
+                        type="button"
+                        (click)="loadMoreFundAssets()"
+                        [disabled]="fundAssetsLoadingMore()"
+                      >
+                        @if (fundAssetsLoadingMore()) {
+                          <app-portal-spinner [size]="18" />
+                          <span>Loading…</span>
+                        } @else {
+                          Load more
+                        }
+                      </button>
+                    </div>
+                  }
                   @if (fundAssets().length === 0) {
                     <div class="list-state">No assets found for this investment.</div>
                   }
@@ -237,37 +249,47 @@
           </mat-tab>
 
           <mat-tab [label]="'Investors (' + summaryNumber('investors') + ')'">
-            <div class="detail-card__body">
-              <div class="detail-table-wrap">
-                <table mat-table [dataSource]="fundInvestors()" class="detail-table">
+            <div class="detail-card__body detail-card__body--table">
+              <div #fundInvestorsWrap class="detail-table-wrap">
+                <table mat-table [dataSource]="fundInvestors()" class="detail-table" aria-label="Fund investors">
                   <ng-container matColumnDef="name">
-                    <th mat-header-cell *matHeaderCellDef>INVESTOR NAME</th>
+                    <th mat-header-cell *matHeaderCellDef>Investor Name</th>
                     <td mat-cell *matCellDef="let row">
-                      <div class="link-cell" (click)="goToInvestor(row.investorKey)">
+                      <div
+                        class="detail-table__name-cell detail-table__name-cell--with-icon link-cell"
+                        (click)="goToInvestor(row.investorKey, row.investorName)"
+                      >
                         <mat-icon>{{ investorIcon(row.investorType) }}</mat-icon>
                         <div>
-                          <div class="link-cell__title">{{ row.investorName }}</div>
-                          <div class="link-cell__subtitle">{{ memberSinceDisplay(row) }}</div>
+                          <div class="detail-table__primary">{{ row.investorName }}</div>
+                          <div class="detail-table__secondary">{{ memberSinceDisplay(row) }}</div>
                         </div>
                       </div>
                     </td>
                   </ng-container>
                   <ng-container matColumnDef="type">
                     <th mat-header-cell *matHeaderCellDef>Type</th>
-                    <td mat-cell *matCellDef="let row">{{ row.investorType }}</td>
+                    <td mat-cell *matCellDef="let row">{{ row.investorType || '—' }}</td>
                   </ng-container>
                   <ng-container matColumnDef="status">
                     <th mat-header-cell *matHeaderCellDef>Status</th>
-                    <td mat-cell *matCellDef="let row">{{ row.status }}</td>
+                    <td mat-cell *matCellDef="let row">
+                      <app-detail-status-badge [status]="row.status" />
+                    </td>
                   </ng-container>
                   <ng-container matColumnDef="invested">
-                    <th mat-header-cell *matHeaderCellDef class="align-right">TOTAL INVESTED</th>
+                    <th mat-header-cell *matHeaderCellDef class="align-right">Total Invested</th>
                     <td mat-cell *matCellDef="let row" class="align-right">
                       {{ formatCurrency(row.totalInvested) }}
                     </td>
                   </ng-container>
                   <tr mat-header-row *matHeaderRowDef="['name', 'type', 'status', 'invested']"></tr>
-                  <tr mat-row *matRowDef="let row; columns: ['name', 'type', 'status', 'invested']"></tr>
+                  <tr
+                    mat-row
+                    *matRowDef="let row; columns: ['name', 'type', 'status', 'invested']"
+                    [attr.data-investor-key]="row.investorKey"
+                    [class.portal-row-selected]="focusInvestorKey() === row.investorKey"
+                  ></tr>
                 </table>
                 @if (fundInvestors().length === 0) {
                   <div class="list-state">No investors in this fund.</div>

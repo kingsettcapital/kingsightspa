@@ -4,3 +4,20 @@
   gap: 0.5rem;
 }
 
+/* Capital dashboard list styles define `.list-table__secondary { color: ... }`.
+   Increase specificity so return colors always win. */
+.list-table__secondary.return-positive {
+  color: var(--portal-success);
+  font-weight: 600;
+}
+
+.list-table__secondary.return-negative {
+  color: var(--portal-error);
+  font-weight: 600;
+}
+
+.list-table__secondary.return-neutral {
+  color: var(--portal-text-secondary);
+  font-weight: 500;
+}
+

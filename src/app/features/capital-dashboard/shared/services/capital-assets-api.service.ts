@@ -45,10 +45,24 @@ export class CapitalAssetsApiService {
     return this.api.get<PropertyInvestmentDto[]>(`api/Assets/${propertyKey}/investments`);
   }
 
-  getAssetsForFund(fundKey: number, fundCode: string | null, assetsCount = 0): Observable<PropertyListItemDto[]> {
-    if (!fundCode?.trim()) return of([]);
-    const pageSize = Math.max(assetsCount, LIST_PAGE_SIZE);
-    return this.getAllAssets({ search: fundCode.trim(), fundKey, pageSize });
+  getAssetsForFundPage(
+    fundKey: number,
+    fundCode: string | null,
+    page: number,
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<PropertyListItemDto>> {
+    if (!fundCode?.trim()) {
+      return of({
+        items: [],
+        page,
+        pageSize,
+        totalCount: 0,
+        totalPages: 0,
+        hasPreviousPage: false,
+        hasNextPage: false,
+      });
+    }
+    return this.getAssets({ search: fundCode.trim(), fundKey, page, pageSize });
   }
 
   getAssetsForInvestorFundKeys(fundKeys: readonly number[]): Observable<PropertyListItemDto[]> {

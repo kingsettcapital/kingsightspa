@@ -1,0 +1,31 @@
+.detail-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  white-space: nowrap;
+}
+
+.detail-status-badge--active {
+  background: var(--portal-success, #2e7d32);
+  color: #ffffff;
+}
+
+.detail-status-badge--warning {
+  background: var(--portal-warning, #ed6c02);
+  color: #ffffff;
+}
+
+.detail-status-badge--inactive {
+  background: #757575;
+  color: #ffffff;
+}
+
+.detail-status-badge--neutral {
+  background: #eeeeee;
+  color: var(--portal-text-secondary, #666666);
+}
