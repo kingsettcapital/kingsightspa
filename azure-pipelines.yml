@@ -33,7 +33,7 @@ steps:
   - script: npm install -g npm@$(NPM_VERSION)
     displayName: 'Pin npm to $(NPM_VERSION)'
 
-  - script: npm ci
+  - script: npm ci --legacy-peer-deps
     displayName: 'Install dependencies'
 
   - script: npm run build:$(BUILD_CONFIG)
