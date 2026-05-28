@@ -71,6 +71,16 @@ import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util'
   ],
   templateUrl: './capital-dashboard-assets.component.html',
   styleUrls: ['./capital-dashboard-assets.component.scss'],
+  styles: [
+    `
+      :host {
+        display: block;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+      }
+    `,
+  ],
 })
 export class CapitalDashboardAssetsComponent {
   private readonly assetsApi = inject(CapitalAssetsApiService);

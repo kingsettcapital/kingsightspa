@@ -46,7 +46,7 @@
               }
             </td>
           </ng-container>
-          <tr mat-header-row *matHeaderRowDef="listColumns; sticky: true"></tr>
+          <tr mat-header-row *matHeaderRowDef="listColumns"></tr>
           <tr
             mat-row
             *matRowDef="let row; columns: listColumns"
@@ -95,7 +95,18 @@
             </div>
             <div class="detail-card__title-block">
               <h2>{{ summaryDisplay('fundName') }}</h2>
-              <p class="detail-card__subtitle">{{ summaryDisplay('status') }}</p>
+              <div class="detail-card__chips">
+                <mat-chip-set>
+                  <mat-chip class="portal-chip portal-chip--outlined">{{ summaryDisplay('fundType') }}</mat-chip>
+                  <mat-chip
+                    class="portal-chip"
+                    [class.portal-chip--success]="summaryDisplay('status') === 'Active'"
+                    [class.portal-chip--warning]="summaryDisplay('status') === 'In Progress'"
+                  >
+                    {{ summaryDisplay('status') }}
+                  </mat-chip>
+                </mat-chip-set>
+              </div>
             </div>
           </div>
 

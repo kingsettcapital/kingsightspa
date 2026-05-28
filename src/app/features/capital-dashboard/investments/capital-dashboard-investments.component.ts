@@ -73,6 +73,16 @@ import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util'
   ],
   templateUrl: './capital-dashboard-investments.component.html',
   styleUrls: ['./capital-dashboard-investments.component.scss'],
+  styles: [
+    `
+      :host {
+        display: block;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+      }
+    `,
+  ],
 })
 export class CapitalDashboardInvestmentsComponent {
   private readonly route = inject(ActivatedRoute);

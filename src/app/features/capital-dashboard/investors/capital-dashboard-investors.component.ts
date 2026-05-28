@@ -64,6 +64,16 @@ import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util'
     PortalSpinnerComponent,
   ],
   templateUrl: './capital-dashboard-investors.component.html',
+  styles: [
+    `
+      :host {
+        display: block;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+      }
+    `,
+  ],
 })
 export class CapitalDashboardInvestorsComponent {
   private readonly investorsApi = inject(CapitalInvestorsApiService);
