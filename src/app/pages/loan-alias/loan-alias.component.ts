@@ -34,7 +34,6 @@ export class LoanAliasComponent implements OnInit {
   readonly selectedAlias = signal<LoanAlias | null>(null);
 
   readonly formName = signal('');
-  readonly formSecurityValue = signal('');
 
   readonly filteredAliases = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
@@ -113,7 +112,6 @@ export class LoanAliasComponent implements OnInit {
 
   openCreateDialog(): void {
     this.formName.set('');
-    this.formSecurityValue.set('');
     this.clearMessages();
     this.showCreateDialog.set(true);
   }
@@ -121,13 +119,11 @@ export class LoanAliasComponent implements OnInit {
   closeCreateDialog(): void {
     this.showCreateDialog.set(false);
     this.formName.set('');
-    this.formSecurityValue.set('');
   }
 
   openEditDialog(alias: LoanAlias): void {
     this.selectedAlias.set({ ...alias });
     this.formName.set(alias.loanAliasName);
-    this.formSecurityValue.set(alias.securityValue != null ? String(alias.securityValue) : '');
     this.clearMessages();
     this.showEditDialog.set(true);
   }
@@ -135,7 +131,6 @@ export class LoanAliasComponent implements OnInit {
   closeEditDialog(): void {
     this.showEditDialog.set(false);
     this.formName.set('');
-    this.formSecurityValue.set('');
     this.selectedAlias.set(null);
   }
 
@@ -156,7 +151,6 @@ export class LoanAliasComponent implements OnInit {
 
     const payload: LoanAliasSaveRequest = {
       loanAliasName: name,
-      securityValue: this.parseDecimal(this.formSecurityValue()),
       createdBy: 'system',
       updatedBy: 'system',
     };
@@ -184,7 +178,6 @@ export class LoanAliasComponent implements OnInit {
 
     const payload: LoanAliasSaveRequest = {
       loanAliasName: name,
-      securityValue: this.parseDecimal(this.formSecurityValue()),
       createdBy: selected.createdBy,
       updatedBy: 'system',
     };
@@ -195,7 +188,6 @@ export class LoanAliasComponent implements OnInit {
         const merged: LoanAlias = updated ?? {
           ...selected,
           loanAliasName: payload.loanAliasName,
-          securityValue: payload.securityValue,
           updatedBy: payload.updatedBy,
           updatedDtm: new Date().toISOString(),
         };
@@ -233,19 +225,12 @@ export class LoanAliasComponent implements OnInit {
     });
   }
 
-  private parseDecimal(value: string): number | null {
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    const parsed = parseFloat(trimmed);
-    return isFinite(parsed) ? parsed : null;
-  }
-
   private buildOptimisticRecord(payload: LoanAliasSaveRequest): LoanAlias {
     return {
       loanAliasId: 0,
       loanAliasName: payload.loanAliasName,
       collateralValue: null,
-      securityValue: payload.securityValue,
+      securityValue: null,
       createdBy: payload.createdBy,
       createdDtm: new Date().toISOString(),
       updatedBy: payload.updatedBy,

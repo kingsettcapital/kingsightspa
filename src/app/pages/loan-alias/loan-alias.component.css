@@ -189,7 +189,6 @@
   white-space: nowrap;
 }
 
-.la-table thead th.col-num,
 .la-table thead th.col-actions {
   text-align: right;
 }
@@ -215,15 +214,6 @@
 }
 
 .la-table .col-name { font-weight: 500; }
-
-.la-table .col-num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.la-table .col-readonly {
-  color: #6b7280;
-}
 
 .la-table .col-actions { text-align: right; }
 
@@ -417,23 +407,6 @@
 .dlg-input:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgb(37 99 235 / 0.12);
-}
-
-.dlg-readonly-value {
-  margin: 0;
-  padding: 0.5rem 0.75rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-variant-numeric: tabular-nums;
-}
-
-.dlg-hint {
-  margin: 0;
-  font-size: 0.75rem;
-  color: #9ca3af;
 }
 
 .dlg-error {

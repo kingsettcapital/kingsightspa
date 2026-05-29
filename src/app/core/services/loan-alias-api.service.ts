@@ -18,7 +18,6 @@ export type LoanAlias = {
 /** Mirrors LoanAliasSaveRequest / LoanAliasUpdateRequest — used for both create and update calls. */
 export type LoanAliasSaveRequest = {
   loanAliasName: string;
-  securityValue: number | null;
   createdBy: string;
   updatedBy: string;
 };
