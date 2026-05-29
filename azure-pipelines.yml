@@ -1,4 +1,9 @@
-# Node.js with Angular 21
+# Node.js with Angular
+# Build a Node.js project that uses Angular.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+# ng build -c uat
+
 trigger:
 - develop
 - staging
@@ -11,54 +16,33 @@ steps:
 
 - checkout: self
   persistCredentials: true
-
+  
 - task: NodeTool@0
   inputs:
-    versionSpec: '24.x'          # Matches "node": "^24.15.0" in dependencies
-  displayName: 'Install Node.js 24.x'
+    versionSpec: '20.x'
+  displayName: 'Install Node.js 20.x'
 
 - script: |
-    npm install -g npm@8.19.4    # Lock npm to match packageManager field
-  displayName: 'Set npm version'
-
-- script: |
-    npm install                  # Installs Angular CLI locally (no global install needed)
-  displayName: 'npm install'
-
-# Build step — swap -c flag per branch using a pipeline variable or conditions
-- script: |
-    npm run build:dev            # uses --configuration development
-  displayName: 'Angular Build (development)'
-  condition: eq(variables['Build.SourceBranchName'], 'develop')
-
-- script: |
-    npm run build:prod           # uses --configuration production
-  displayName: 'Angular Build (production)'
-  condition: eq(variables['Build.SourceBranchName'], 'main')
-
-- script: |
-    npm run build:dev            # staging uses dev config — adjust if you have a staging config
-  displayName: 'Angular Build (staging)'
-  condition: eq(variables['Build.SourceBranchName'], 'staging')
-
+    npm install -g @angular/cli@20.x
+    npm install
+    ng build -c dev
+  displayName: 'npm install and build'
 - task: ArchiveFiles@2
-  displayName: 'Archive dist folder'
   inputs:
-    rootFolderOrFile: 'dist/kingsight'   # Matches "name" in package.json
-    includeRootFolder: false
+    rootFolderOrFile: '$(Build.BinariesDirectory)'
+    includeRootFolder: true
     archiveType: 'zip'
     archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
     replaceExistingArchive: true
-
-- task: CopyPublishBuildArtifacts@1
-  displayName: 'Publish Artifact: drop'
-  inputs:
-    CopyRoot: 'dist/kingsight'           # Matches "name" in package.json
-    Contents: '**'
-    ArtifactName: drop
-    ArtifactType: Container
-
-- task: DownloadPipelineArtifact@2
-  displayName: 'Download Pipeline Artifact'
-  inputs:
-    targetPath: '$(Build.ArtifactStagingDirectory)/dist/kingsight'
+- task: CopyPublishBuildArtifacts@1  
+  displayName: 'Copy Publish Artifact: drop'  
+  inputs:  
+    CopyRoot: dist  
+    Contents: '**'  
+    ArtifactName: drop  
+    ArtifactType: Container  
+  
+- task: DownloadPipelineArtifact@2  
+  displayName: 'Download Pipeline Artifact'  
+  inputs:  
+    targetPath: '$(Build.ArtifactStagingDirectory)/dist/AngularTest'
