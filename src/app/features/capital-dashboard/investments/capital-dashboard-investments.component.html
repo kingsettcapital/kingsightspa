@@ -3,15 +3,24 @@
   [class.master-detail--detail-open]="selectedFundKey() != null || detailLoading()"
 >
   <aside class="master-detail__list">
-    <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
-      <input
-        matInput
-        [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set($event)"
-        placeholder="Search investments..."
-      />
-      <mat-icon matPrefix>search</mat-icon>
-    </mat-form-field>
+    <div class="ks-investments-search">
+      <mat-form-field
+        appearance="outline"
+        class="ks-investments-search__field"
+        subscriptSizing="dynamic"
+      >
+        <mat-icon matPrefix class="ks-investments-search__icon" aria-hidden="true">search</mat-icon>
+        <input
+          matInput
+          class="ks-investments-search__input"
+          type="search"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          placeholder="Search investments..."
+          aria-label="Search investments"
+        />
+      </mat-form-field>
+    </div>
 
     @if (listLoading()) {
       <div class="list-state">
@@ -28,14 +37,14 @@
       >
         <table mat-table [dataSource]="funds()" class="list-table">
           <ng-container matColumnDef="investment">
-            <th mat-header-cell *matHeaderCellDef>Investment</th>
+            <th mat-header-cell *matHeaderCellDef class="list-table__header-cell">Investment</th>
             <td mat-cell *matCellDef="let row">
-              <div>{{ row.fundName }}</div>
+              <div class="list-table__primary-text">{{ row.fundName }}</div>
               <div class="list-table__secondary">{{ row.category }}</div>
             </td>
           </ng-container>
           <ng-container matColumnDef="value">
-            <th mat-header-cell *matHeaderCellDef class="align-right">Value</th>
+            <th mat-header-cell *matHeaderCellDef class="align-right list-table__header-cell">Value</th>
             <td mat-cell *matCellDef="let row" class="align-right">
               <div>{{ formatCurrency(row.currentValue) }}</div>
               @if (row.totalReturnPercent != null) {
@@ -69,7 +78,7 @@
         @if (funds().length === 0) {
           <div class="list-state">No investments found.</div>
         } @else {
-          <div class="list-footer">Showing {{ funds().length }} of {{ totalCount() }} investments</div>
+          <!-- <div class="list-footer">Showing {{ funds().length }} of {{ totalCount() }} investments</div> -->
         }
       </div>
     }
@@ -116,6 +125,10 @@
 
           <div class="detail-card__metrics">
             <div>
+              <div class="detail-card__metric-label">Total Value</div>
+              <div class="detail-card__metric-value">{{ summaryDisplay('totalValue') ?? '--' }}</div>
+            </div>
+            <div>
               <div class="detail-card__metric-label">Current Value</div>
               <div class="detail-card__metric-value">{{ summaryDisplay('currentValue') }}</div>
             </div>
@@ -134,10 +147,10 @@
               <div class="detail-card__metric-label">Assets</div>
               <div class="detail-card__metric-value">{{ summaryNumber('assets') }}</div>
             </div>
-            <div>
+            <!-- <div>
               <div class="detail-card__metric-label">Investors</div>
               <div class="detail-card__metric-value">{{ summaryNumber('investors') }}</div>
-            </div>
+            </div> -->
           </div>
 
           <div class="deployment">
@@ -173,7 +186,7 @@
                 <div class="detail-table-wrap">
                   <table mat-table [dataSource]="fundAssets()" class="detail-table" aria-label="Fund assets">
                     <ng-container matColumnDef="name">
-                      <th mat-header-cell *matHeaderCellDef class="align-left">Asset Name</th>
+                      <th mat-header-cell *matHeaderCellDef class="align-left inner-table-header-cell">Asset Name</th>
                       <td mat-cell *matCellDef="let row" class="align-left">
                         <div class="detail-table__name-cell link-cell" (click)="goToAsset(row.propertyKey, propertyListName(row))">
                           <div class="detail-table__primary">{{ propertyListName(row) }}</div>
@@ -184,27 +197,27 @@
                       </td>
                     </ng-container>
                     <ng-container matColumnDef="type">
-                      <th mat-header-cell *matHeaderCellDef>Type</th>
+                      <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Type</th>
                       <td mat-cell *matCellDef="let row">{{ row.assetType || '—' }}</td>
                     </ng-container>
                     <ng-container matColumnDef="location">
-                      <th mat-header-cell *matHeaderCellDef>Location</th>
+                      <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Location</th>
                       <td mat-cell *matCellDef="let row">{{ propertyLocation(row) }}</td>
                     </ng-container>
                     <ng-container matColumnDef="status">
-                      <th mat-header-cell *matHeaderCellDef>Status</th>
+                      <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Status</th>
                       <td mat-cell *matCellDef="let row">
                         <app-detail-status-badge [status]="row.status" />
                       </td>
                     </ng-container>
                     <ng-container matColumnDef="value">
-                      <th mat-header-cell *matHeaderCellDef class="align-right">Value</th>
+                      <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Value</th>
                       <td mat-cell *matCellDef="let row" class="align-right">
                         {{ formatCurrency(row.currentValue) }}
                       </td>
                     </ng-container>
                     <ng-container matColumnDef="yield">
-                      <th mat-header-cell *matHeaderCellDef class="align-right">Yield</th>
+                      <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Yield</th>
                       <td mat-cell *matCellDef="let row" class="align-right">
                         @if (row.yieldPercent != null) {
                           {{ formatPercent(row.yieldPercent) }}
@@ -253,7 +266,7 @@
               <div #fundInvestorsWrap class="detail-table-wrap">
                 <table mat-table [dataSource]="fundInvestors()" class="detail-table" aria-label="Fund investors">
                   <ng-container matColumnDef="name">
-                    <th mat-header-cell *matHeaderCellDef>Investor Name</th>
+                    <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Investor Name</th>
                     <td mat-cell *matCellDef="let row">
                       <div
                         class="detail-table__name-cell detail-table__name-cell--with-icon link-cell"
@@ -268,17 +281,17 @@
                     </td>
                   </ng-container>
                   <ng-container matColumnDef="type">
-                    <th mat-header-cell *matHeaderCellDef>Type</th>
+                    <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Type</th>
                     <td mat-cell *matCellDef="let row">{{ row.investorType || '—' }}</td>
                   </ng-container>
                   <ng-container matColumnDef="status">
-                    <th mat-header-cell *matHeaderCellDef>Status</th>
+                    <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Status</th>
                     <td mat-cell *matCellDef="let row">
                       <app-detail-status-badge [status]="row.status" />
                     </td>
                   </ng-container>
                   <ng-container matColumnDef="invested">
-                    <th mat-header-cell *matHeaderCellDef class="align-right">Total Invested</th>
+                    <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Total Invested</th>
                     <td mat-cell *matCellDef="let row" class="align-right">
                       {{ formatCurrency(row.totalInvested) }}
                     </td>

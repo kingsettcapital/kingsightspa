@@ -1,0 +1,115 @@
+// Shared list search field — matches Capital Dashboard portal mock
+$ks-list-search-placeholder: #8e95a2;
+$ks-list-search-placeholder-font-size: 0.9375rem;
+$ks-list-search-placeholder-letter-spacing: 0.02em;
+$ks-list-search-icon: #8e95a2;
+$ks-list-search-bg: #f8f9fa;
+$ks-list-search-border: #c2c4c7;
+$ks-list-search-border-hover: #d1d5db;
+
+@mixin ks-list-search-field($block) {
+  .ks-#{$block}-search {
+    width: 100%;
+    margin-bottom: 1rem;
+    box-sizing: border-box;
+
+    --ks-list-search-placeholder: #{$ks-list-search-placeholder};
+    --ks-list-search-icon: #{$ks-list-search-icon};
+    --ks-list-search-bg: #{$ks-list-search-bg};
+    --ks-list-search-border: #{$ks-list-search-border};
+    --ks-list-search-border-hover: #{$ks-list-search-border-hover};
+  }
+
+  :host ::ng-deep .ks-#{$block}-search__field {
+    width: 100%;
+    margin: 0;
+
+    --mat-form-field-placeholder-text-color: #{$ks-list-search-placeholder};
+    --mdc-outlined-text-field-outline-color: var(--ks-list-search-border);
+    --mdc-outlined-text-field-hover-outline-color: var(--ks-list-search-border-hover);
+    --mdc-outlined-text-field-focus-outline-color: var(--ks-list-search-border-hover);
+    --mdc-outlined-text-field-focus-outline-width: 1px;
+    --mdc-outlined-text-field-container-shape: 6px;
+    --mat-form-field-container-height: 2.5rem;
+    --mat-form-field-container-vertical-padding: 0;
+    --mdc-outlined-text-field-input-text-placeholder-color: #{$ks-list-search-placeholder};
+  }
+
+  :host ::ng-deep .ks-#{$block}-search__field .mat-mdc-text-field-wrapper {
+    background-color: var(--ks-list-search-bg);
+    border-radius: 6px;
+  }
+
+  :host ::ng-deep .ks-#{$block}-search__field .mat-mdc-form-field-flex {
+    align-items: center;
+  }
+
+  :host ::ng-deep .ks-#{$block}-search__field .mat-mdc-form-field-infix {
+    min-height: 2.5rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    padding-left: 0;
+  }
+
+  :host ::ng-deep .ks-#{$block}-search__field .mat-mdc-form-field-icon-prefix {
+    // padding: 0 0.625rem 0 0.875rem;
+    padding: 0;
+  }
+
+  :host ::ng-deep .ks-#{$block}-search__icon.mat-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    font-size: 1.125rem;
+    line-height: 1.125rem;
+    color: var(--ks-list-search-icon);
+  }
+
+  :host ::ng-deep .ks-#{$block}-search__field .mat-mdc-input-element,
+  :host ::ng-deep .ks-#{$block}-search__input.mat-mdc-input-element,
+  :host ::ng-deep .ks-#{$block}-search__input {
+    // font-family: var(--ks-font-family, inherit);
+    font-family: var(--ks-capital-dashboard-font-family, "Arial", sans-serif);
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.25rem;
+    letter-spacing: normal;
+    color: var(--ks-color-text, #1a1a1a);
+  }
+
+  :host ::ng-deep .ks-#{$block}-search__field .mat-mdc-input-element::placeholder,
+  :host ::ng-deep .ks-#{$block}-search__field .mat-mdc-input-element::-webkit-input-placeholder,
+  :host ::ng-deep .ks-#{$block}-search__field .mat-mdc-input-element::-moz-placeholder,
+  :host ::ng-deep .ks-#{$block}-search__input::placeholder,
+  :host ::ng-deep .ks-#{$block}-search__input::-webkit-input-placeholder,
+  :host ::ng-deep .ks-#{$block}-search__input::-moz-placeholder {
+    color: #{$ks-list-search-placeholder} !important;
+    -webkit-text-fill-color: #{$ks-list-search-placeholder} !important;
+    font-size: $ks-list-search-placeholder-font-size !important;
+    letter-spacing: $ks-list-search-placeholder-letter-spacing !important;
+    opacity: 1 !important;
+  }
+
+  :host ::ng-deep .ks-#{$block}-search__field .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+
+  :host ::ng-deep .ks-#{$block}-search__field .mdc-notched-outline .mdc-notched-outline__leading,
+  :host ::ng-deep .ks-#{$block}-search__field .mdc-notched-outline .mdc-notched-outline__notch,
+  :host ::ng-deep .ks-#{$block}-search__field .mdc-notched-outline .mdc-notched-outline__trailing {
+    border-color: var(--ks-list-search-border) !important;
+    border-width: 1px !important;
+  }
+
+  :host ::ng-deep .ks-#{$block}-search__field:hover .mdc-notched-outline .mdc-notched-outline__leading,
+  :host ::ng-deep .ks-#{$block}-search__field:hover .mdc-notched-outline .mdc-notched-outline__notch,
+  :host ::ng-deep .ks-#{$block}-search__field:hover .mdc-notched-outline .mdc-notched-outline__trailing {
+    border-color: var(--ks-list-search-border-hover) !important;
+  }
+
+  :host ::ng-deep .ks-#{$block}-search__field.mat-focused .mdc-notched-outline .mdc-notched-outline__leading,
+  :host ::ng-deep .ks-#{$block}-search__field.mat-focused .mdc-notched-outline .mdc-notched-outline__notch,
+  :host ::ng-deep .ks-#{$block}-search__field.mat-focused .mdc-notched-outline .mdc-notched-outline__trailing {
+    border-color: var(--ks-list-search-border-hover) !important;
+    border-width: 1px !important;
+  }
+}

@@ -1,7 +1,14 @@
 import { createFeature, createReducer, on } from '@ngrx/store';
 
 import {
+  FundDetailCacheEntry,
+  listStateFromCacheEntry,
+  readListCacheEntry,
+  writeListCacheEntry,
+} from './capital-dashboard-cache.util';
+import {
   AssetsApiActions,
+  CapitalDashboardCacheActions,
   CapitalDashboardShellActions,
   FundsApiActions,
   InvestorsApiActions,
@@ -26,10 +33,27 @@ function applyPagedList<T>(
   };
 }
 
+function listLoadingState<T>(
+  state: PagedListState<T>,
+  search: string,
+  replace: boolean,
+): PagedListState<T> {
+  return {
+    ...state,
+    search,
+    loading: replace,
+    loadingMore: !replace,
+    error: null,
+    ...(replace ? { hasNextPage: false } : {}),
+  };
+}
+
 export const capitalDashboardFeature = createFeature({
   name: 'capitalDashboard',
   reducer: createReducer(
     initialCapitalDashboardState,
+
+    on(CapitalDashboardCacheActions.resetAll, () => initialCapitalDashboardState),
 
     on(CapitalDashboardShellActions.activeTabChanged, (state, { tab }) => ({
       ...state,
@@ -37,27 +61,41 @@ export const capitalDashboardFeature = createFeature({
     })),
 
     // Investors list
-    on(InvestorsApiActions.loadList, (state, { search, replace }) => ({
-      ...state,
-      investors: {
-        ...state.investors,
-        list: {
-          ...state.investors.list,
-          search,
-          loading: replace,
-          loadingMore: !replace,
-          error: null,
-          ...(replace ? { hasNextPage: false } : {}),
+    on(InvestorsApiActions.loadList, (state, { search, page, replace }) => {
+      const cached = readListCacheEntry(state.investors.cache.lists, search, page);
+      if (cached) {
+        const list = listStateFromCacheEntry(search, cached);
+        return {
+          ...state,
+          investors: {
+            ...state.investors,
+            list: replace ? list : applyPagedList(state.investors.list, cached, false),
+          },
+        };
+      }
+      return {
+        ...state,
+        investors: {
+          ...state.investors,
+          list: listLoadingState(state.investors.list, search, replace),
         },
-      },
-    })),
-    on(InvestorsApiActions.loadListSuccess, (state, { result, replace }) => ({
-      ...state,
-      investors: {
-        ...state.investors,
-        list: applyPagedList(state.investors.list, result, replace),
-      },
-    })),
+      };
+    }),
+    on(InvestorsApiActions.loadListSuccess, (state, { result, replace }) => {
+      const search = state.investors.list.search;
+      const page = result.page ?? state.investors.list.page;
+      return {
+        ...state,
+        investors: {
+          ...state.investors,
+          list: applyPagedList(state.investors.list, result, replace),
+          cache: {
+            ...state.investors.cache,
+            lists: writeListCacheEntry(state.investors.cache.lists, search, result, page),
+          },
+        },
+      };
+    }),
     on(InvestorsApiActions.loadListFailure, (state, { error }) => ({
       ...state,
       investors: {
@@ -72,19 +110,37 @@ export const capitalDashboardFeature = createFeature({
     })),
 
     // Investors detail
-    on(InvestorsApiActions.loadDetail, (state, { investorKey }) => ({
-      ...state,
-      investors: {
-        ...state.investors,
-        detail: {
-          selectedKey: investorKey,
-          detail: null,
-          investments: [],
-          loading: true,
-          error: null,
+    on(InvestorsApiActions.loadDetail, (state, { investorKey }) => {
+      const cached = state.investors.cache.details[investorKey];
+      if (cached) {
+        return {
+          ...state,
+          investors: {
+            ...state.investors,
+            detail: {
+              selectedKey: investorKey,
+              detail: cached.detail,
+              investments: cached.investments,
+              loading: false,
+              error: null,
+            },
+          },
+        };
+      }
+      return {
+        ...state,
+        investors: {
+          ...state.investors,
+          detail: {
+            selectedKey: investorKey,
+            detail: null,
+            investments: [],
+            loading: true,
+            error: null,
+          },
         },
-      },
-    })),
+      };
+    }),
     on(InvestorsApiActions.loadDetailSuccess, (state, { investorKey, detail, investments }) => ({
       ...state,
       investors: {
@@ -95,6 +151,13 @@ export const capitalDashboardFeature = createFeature({
           investments,
           loading: false,
           error: null,
+        },
+        cache: {
+          ...state.investors.cache,
+          details: {
+            ...state.investors.cache.details,
+            [investorKey]: { detail, investments },
+          },
         },
       },
     })),
@@ -120,27 +183,41 @@ export const capitalDashboardFeature = createFeature({
     })),
 
     // Funds list
-    on(FundsApiActions.loadList, (state, { search, replace }) => ({
-      ...state,
-      funds: {
-        ...state.funds,
-        list: {
-          ...state.funds.list,
-          search,
-          loading: replace,
-          loadingMore: !replace,
-          error: null,
-          ...(replace ? { hasNextPage: false } : {}),
+    on(FundsApiActions.loadList, (state, { search, page, replace }) => {
+      const cached = readListCacheEntry(state.funds.cache.lists, search, page);
+      if (cached) {
+        const list = listStateFromCacheEntry(search, cached);
+        return {
+          ...state,
+          funds: {
+            ...state.funds,
+            list: replace ? list : applyPagedList(state.funds.list, cached, false),
+          },
+        };
+      }
+      return {
+        ...state,
+        funds: {
+          ...state.funds,
+          list: listLoadingState(state.funds.list, search, replace),
         },
-      },
-    })),
-    on(FundsApiActions.loadListSuccess, (state, { result, replace }) => ({
-      ...state,
-      funds: {
-        ...state.funds,
-        list: applyPagedList(state.funds.list, result, replace),
-      },
-    })),
+      };
+    }),
+    on(FundsApiActions.loadListSuccess, (state, { result, replace }) => {
+      const search = state.funds.list.search;
+      const page = result.page ?? state.funds.list.page;
+      return {
+        ...state,
+        funds: {
+          ...state.funds,
+          list: applyPagedList(state.funds.list, result, replace),
+          cache: {
+            ...state.funds.cache,
+            lists: writeListCacheEntry(state.funds.cache.lists, search, result, page),
+          },
+        },
+      };
+    }),
     on(FundsApiActions.loadListFailure, (state, { error }) => ({
       ...state,
       funds: {
@@ -155,44 +232,88 @@ export const capitalDashboardFeature = createFeature({
     })),
 
     // Funds detail
-    on(FundsApiActions.loadDetail, (state, { fundKey }) => ({
-      ...state,
-      funds: {
-        ...state.funds,
-        detail: {
-          selectedKey: fundKey,
-          detail: null,
-          investors: [],
-          assets: [],
-          assetsPage: 1,
-          assetsFundCode: null,
-          assetsHasNextPage: false,
-          assetsLoading: true,
-          assetsLoadingMore: false,
-          loading: true,
-          error: null,
+    on(FundsApiActions.loadDetail, (state, { fundKey }) => {
+      const cached = state.funds.cache.details[fundKey];
+      if (cached) {
+        return {
+          ...state,
+          funds: {
+            ...state.funds,
+            detail: {
+              selectedKey: fundKey,
+              detail: cached.detail,
+              investors: cached.investors,
+              assets: [...cached.assets],
+              assetsPage: cached.assetsPage,
+              assetsFundCode: cached.assetsFundCode,
+              assetsHasNextPage: cached.assetsHasNextPage,
+              assetsLoading: false,
+              assetsLoadingMore: false,
+              loading: false,
+              error: null,
+            },
+          },
+        };
+      }
+      return {
+        ...state,
+        funds: {
+          ...state.funds,
+          detail: {
+            selectedKey: fundKey,
+            detail: null,
+            investors: [],
+            assets: [],
+            assetsPage: 1,
+            assetsFundCode: null,
+            assetsHasNextPage: false,
+            assetsLoading: true,
+            assetsLoadingMore: false,
+            loading: true,
+            error: null,
+          },
         },
-      },
-    })),
-    on(FundsApiActions.loadDetailSuccess, (state, { fundKey, detail, investors, assets, assetsHasNextPage, assetsFundCode }) => ({
-      ...state,
-      funds: {
-        ...state.funds,
-        detail: {
-          selectedKey: fundKey,
+      };
+    }),
+    on(
+      FundsApiActions.loadDetailSuccess,
+      (state, { fundKey, detail, investors, assets, assetsHasNextPage, assetsFundCode }) => {
+        const entry: FundDetailCacheEntry = {
           detail,
           investors,
-          assets,
+          assets: [...assets],
           assetsPage: 1,
           assetsFundCode,
           assetsHasNextPage,
-          assetsLoading: false,
-          assetsLoadingMore: false,
-          loading: false,
-          error: null,
-        },
+        };
+        return {
+          ...state,
+          funds: {
+            ...state.funds,
+            detail: {
+              selectedKey: fundKey,
+              detail,
+              investors,
+              assets,
+              assetsPage: 1,
+              assetsFundCode,
+              assetsHasNextPage,
+              assetsLoading: false,
+              assetsLoadingMore: false,
+              loading: false,
+              error: null,
+            },
+            cache: {
+              ...state.funds.cache,
+              details: {
+                ...state.funds.cache.details,
+                [fundKey]: entry,
+              },
+            },
+          },
+        };
       },
-    })),
+    ),
     on(FundsApiActions.loadDetailFailure, (state, { error }) => ({
       ...state,
       funds: {
@@ -208,7 +329,7 @@ export const capitalDashboardFeature = createFeature({
         },
       },
     })),
-    on(FundsApiActions.loadFundAssetsPage, (state, { page }) => ({
+    on(FundsApiActions.loadFundAssetsPage, (state, { fundKey, fundCode, page }) => ({
       ...state,
       funds: {
         ...state.funds,
@@ -219,20 +340,42 @@ export const capitalDashboardFeature = createFeature({
         },
       },
     })),
-    on(FundsApiActions.loadFundAssetsPageSuccess, (state, { page, items, hasNextPage, append }) => ({
-      ...state,
-      funds: {
-        ...state.funds,
-        detail: {
-          ...state.funds.detail,
-          assetsPage: page,
-          assets: append ? [...state.funds.detail.assets, ...items] : [...items],
-          assetsHasNextPage: hasNextPage,
-          assetsLoading: false,
-          assetsLoadingMore: false,
+    on(FundsApiActions.loadFundAssetsPageSuccess, (state, { page, items, hasNextPage, append }) => {
+      const fundKey = state.funds.detail.selectedKey;
+      const fundCode = state.funds.detail.assetsFundCode;
+      const nextAssets = append ? [...state.funds.detail.assets, ...items] : [...items];
+      const nextDetail = {
+        ...state.funds.detail,
+        assetsPage: page,
+        assets: nextAssets,
+        assetsHasNextPage: hasNextPage,
+        assetsLoading: false,
+        assetsLoadingMore: false,
+      };
+      const nextCache = { ...state.funds.cache };
+      if (fundKey != null && fundCode) {
+        const cachedFund = nextCache.details[fundKey];
+        if (cachedFund) {
+          nextCache.details = {
+            ...nextCache.details,
+            [fundKey]: {
+              ...cachedFund,
+              assets: [...nextAssets],
+              assetsPage: page,
+              assetsHasNextPage: hasNextPage,
+            },
+          };
+        }
+      }
+      return {
+        ...state,
+        funds: {
+          ...state.funds,
+          detail: nextDetail,
+          cache: nextCache,
         },
-      },
-    })),
+      };
+    }),
     on(FundsApiActions.loadFundAssetsPageFailure, (state) => ({
       ...state,
       funds: {
@@ -253,27 +396,41 @@ export const capitalDashboardFeature = createFeature({
     })),
 
     // Assets list
-    on(AssetsApiActions.loadList, (state, { search, replace }) => ({
-      ...state,
-      assets: {
-        ...state.assets,
-        list: {
-          ...state.assets.list,
-          search,
-          loading: replace,
-          loadingMore: !replace,
-          error: null,
-          ...(replace ? { hasNextPage: false } : {}),
+    on(AssetsApiActions.loadList, (state, { search, page, replace }) => {
+      const cached = readListCacheEntry(state.assets.cache.lists, search, page);
+      if (cached) {
+        const list = listStateFromCacheEntry(search, cached);
+        return {
+          ...state,
+          assets: {
+            ...state.assets,
+            list: replace ? list : applyPagedList(state.assets.list, cached, false),
+          },
+        };
+      }
+      return {
+        ...state,
+        assets: {
+          ...state.assets,
+          list: listLoadingState(state.assets.list, search, replace),
         },
-      },
-    })),
-    on(AssetsApiActions.loadListSuccess, (state, { result, replace }) => ({
-      ...state,
-      assets: {
-        ...state.assets,
-        list: applyPagedList(state.assets.list, result, replace),
-      },
-    })),
+      };
+    }),
+    on(AssetsApiActions.loadListSuccess, (state, { result, replace }) => {
+      const search = state.assets.list.search;
+      const page = result.page ?? state.assets.list.page;
+      return {
+        ...state,
+        assets: {
+          ...state.assets,
+          list: applyPagedList(state.assets.list, result, replace),
+          cache: {
+            ...state.assets.cache,
+            lists: writeListCacheEntry(state.assets.cache.lists, search, result, page),
+          },
+        },
+      };
+    }),
     on(AssetsApiActions.loadListFailure, (state, { error }) => ({
       ...state,
       assets: {
@@ -288,19 +445,37 @@ export const capitalDashboardFeature = createFeature({
     })),
 
     // Assets detail
-    on(AssetsApiActions.loadDetail, (state, { propertyKey }) => ({
-      ...state,
-      assets: {
-        ...state.assets,
-        detail: {
-          selectedKey: propertyKey,
-          detail: null,
-          investments: [],
-          loading: true,
-          error: null,
+    on(AssetsApiActions.loadDetail, (state, { propertyKey }) => {
+      const cached = state.assets.cache.details[propertyKey];
+      if (cached) {
+        return {
+          ...state,
+          assets: {
+            ...state.assets,
+            detail: {
+              selectedKey: propertyKey,
+              detail: cached.detail,
+              investments: cached.investments,
+              loading: false,
+              error: null,
+            },
+          },
+        };
+      }
+      return {
+        ...state,
+        assets: {
+          ...state.assets,
+          detail: {
+            selectedKey: propertyKey,
+            detail: null,
+            investments: [],
+            loading: true,
+            error: null,
+          },
         },
-      },
-    })),
+      };
+    }),
     on(AssetsApiActions.loadDetailSuccess, (state, { propertyKey, detail, investments }) => ({
       ...state,
       assets: {
@@ -311,6 +486,13 @@ export const capitalDashboardFeature = createFeature({
           investments,
           loading: false,
           error: null,
+        },
+        cache: {
+          ...state.assets.cache,
+          details: {
+            ...state.assets.cache.details,
+            [propertyKey]: { detail, investments },
+          },
         },
       },
     })),

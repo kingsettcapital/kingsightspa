@@ -60,17 +60,7 @@ import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util'
     PortalSpinnerComponent,
   ],
   templateUrl: './capital-dashboard-assets.component.html',
-  styleUrls: ['./capital-dashboard-assets.component.scss'],
-  styles: [
-    `
-      :host {
-        display: block;
-        height: 100%;
-        min-height: 0;
-        overflow: hidden;
-      }
-    `,
-  ],
+  styleUrl: './capital-dashboard-assets.component.scss',
 })
 export class CapitalDashboardAssetsComponent {
   private readonly store = inject(Store);

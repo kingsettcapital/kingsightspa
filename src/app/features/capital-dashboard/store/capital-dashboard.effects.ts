@@ -8,6 +8,8 @@ import { CapitalAssetsApiService } from '../shared/services/capital-assets-api.s
 import { CapitalFundsApiService } from '../shared/services/capital-funds-api.service';
 import { CapitalInvestorsApiService } from '../shared/services/capital-investors-api.service';
 import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
+import { readListCacheEntry } from './capital-dashboard-cache.util';
+import { selectAssets, selectFunds, selectInvestors } from './capital-dashboard.reducer';
 import { selectAssetsList, selectFundsList, selectInvestorsList } from './capital-dashboard.selectors';
 
 @Injectable()
@@ -21,14 +23,20 @@ export class CapitalDashboardEffects {
   readonly loadInvestorsList$ = createEffect(() =>
     this.actions$.pipe(
       ofType(InvestorsApiActions.loadList),
-      switchMap(({ search, page, replace }) =>
-        this.investorsApi.getInvestors({ search: search || undefined, page, pageSize: LIST_PAGE_SIZE }).pipe(
-          map((result) => InvestorsApiActions.loadListSuccess({ result, replace })),
-          catchError(() =>
-            of(InvestorsApiActions.loadListFailure({ error: 'Unable to load investors. Please try again.' })),
-          ),
-        ),
-      ),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        if (readListCacheEntry(investors.cache.lists, request.search, request.page)) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestors({ search: request.search || undefined, page: request.page, pageSize: LIST_PAGE_SIZE })
+          .pipe(
+            map((result) => InvestorsApiActions.loadListSuccess({ result, replace: request.replace })),
+            catchError(() =>
+              of(InvestorsApiActions.loadListFailure({ error: 'Unable to load investors. Please try again.' })),
+            ),
+          );
+      }),
     ),
   );
 
@@ -54,33 +62,47 @@ export class CapitalDashboardEffects {
   readonly loadInvestorDetail$ = createEffect(() =>
     this.actions$.pipe(
       ofType(InvestorsApiActions.loadDetail),
-      switchMap(({ investorKey }) =>
-        forkJoin({
-          detail: this.investorsApi.getInvestor(investorKey),
-          investments: this.investorsApi.getInvestorInvestments(investorKey),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        if (investors.cache.details[request.investorKey]) {
+          return EMPTY;
+        }
+        return forkJoin({
+          detail: this.investorsApi.getInvestor(request.investorKey),
+          investments: this.investorsApi.getInvestorInvestments(request.investorKey),
         }).pipe(
           map(({ detail, investments }) =>
-            InvestorsApiActions.loadDetailSuccess({ investorKey, detail, investments }),
+            InvestorsApiActions.loadDetailSuccess({
+              investorKey: request.investorKey,
+              detail,
+              investments,
+            }),
           ),
           catchError(() =>
             of(InvestorsApiActions.loadDetailFailure({ error: 'Unable to load investor details.' })),
           ),
-        ),
-      ),
+        );
+      }),
     ),
   );
 
   readonly loadFundsList$ = createEffect(() =>
     this.actions$.pipe(
       ofType(FundsApiActions.loadList),
-      switchMap(({ search, page, replace }) =>
-        this.fundsApi.getFunds({ search: search || undefined, page, pageSize: LIST_PAGE_SIZE }).pipe(
-          map((result) => FundsApiActions.loadListSuccess({ result, replace })),
-          catchError(() =>
-            of(FundsApiActions.loadListFailure({ error: 'Unable to load investments. Please try again.' })),
-          ),
-        ),
-      ),
+      withLatestFrom(this.store.select(selectFunds)),
+      switchMap(([request, funds]) => {
+        if (readListCacheEntry(funds.cache.lists, request.search, request.page)) {
+          return EMPTY;
+        }
+        return this.fundsApi
+          .getFunds({ search: request.search || undefined, page: request.page, pageSize: LIST_PAGE_SIZE })
+          .pipe(
+            map((result) => FundsApiActions.loadListSuccess({ result, replace: request.replace })),
+            catchError(() =>
+              of(FundsApiActions.loadListFailure({ error: 'Unable to load investments. Please try again.' })),
+            ),
+          );
+      }),
     ),
   );
 
@@ -106,17 +128,21 @@ export class CapitalDashboardEffects {
   readonly loadFundDetail$ = createEffect(() =>
     this.actions$.pipe(
       ofType(FundsApiActions.loadDetail),
-      switchMap(({ fundKey }) =>
-        forkJoin({
-          detail: this.fundsApi.getFund(fundKey),
-          investors: this.fundsApi.getFundInvestors(fundKey),
+      withLatestFrom(this.store.select(selectFunds)),
+      switchMap(([request, funds]) => {
+        if (funds.cache.details[request.fundKey]) {
+          return EMPTY;
+        }
+        return forkJoin({
+          detail: this.fundsApi.getFund(request.fundKey),
+          investors: this.fundsApi.getFundInvestors(request.fundKey),
         }).pipe(
           switchMap(({ detail, investors }) => {
             const fundCode = detail.summary.fundCode?.trim() || null;
             if (!fundCode) {
               return of(
                 FundsApiActions.loadDetailSuccess({
-                  fundKey,
+                  fundKey: request.fundKey,
                   detail,
                   investors,
                   assets: [],
@@ -125,10 +151,10 @@ export class CapitalDashboardEffects {
                 }),
               );
             }
-            return this.assetsApi.getAssetsForFundPage(fundKey, fundCode, 1).pipe(
+            return this.assetsApi.getAssetsForFundPage(request.fundKey, fundCode, 1).pipe(
               map((assetsPage) =>
                 FundsApiActions.loadDetailSuccess({
-                  fundKey,
+                  fundKey: request.fundKey,
                   detail,
                   investors,
                   assets: assetsPage.items ?? [],
@@ -139,7 +165,7 @@ export class CapitalDashboardEffects {
               catchError(() =>
                 of(
                   FundsApiActions.loadDetailSuccess({
-                    fundKey,
+                    fundKey: request.fundKey,
                     detail,
                     investors,
                     assets: [],
@@ -153,8 +179,8 @@ export class CapitalDashboardEffects {
           catchError(() =>
             of(FundsApiActions.loadDetailFailure({ error: 'Unable to load investment details.' })),
           ),
-        ),
-      ),
+        );
+      }),
     ),
   );
 
@@ -180,14 +206,20 @@ export class CapitalDashboardEffects {
   readonly loadAssetsList$ = createEffect(() =>
     this.actions$.pipe(
       ofType(AssetsApiActions.loadList),
-      switchMap(({ search, page, replace }) =>
-        this.assetsApi.getAssets({ search: search || undefined, page, pageSize: LIST_PAGE_SIZE }).pipe(
-          map((result) => AssetsApiActions.loadListSuccess({ result, replace })),
-          catchError(() =>
-            of(AssetsApiActions.loadListFailure({ error: 'Unable to load assets. Please try again.' })),
-          ),
-        ),
-      ),
+      withLatestFrom(this.store.select(selectAssets)),
+      switchMap(([request, assets]) => {
+        if (readListCacheEntry(assets.cache.lists, request.search, request.page)) {
+          return EMPTY;
+        }
+        return this.assetsApi
+          .getAssets({ search: request.search || undefined, page: request.page, pageSize: LIST_PAGE_SIZE })
+          .pipe(
+            map((result) => AssetsApiActions.loadListSuccess({ result, replace: request.replace })),
+            catchError(() =>
+              of(AssetsApiActions.loadListFailure({ error: 'Unable to load assets. Please try again.' })),
+            ),
+          );
+      }),
     ),
   );
 
@@ -213,19 +245,27 @@ export class CapitalDashboardEffects {
   readonly loadAssetDetail$ = createEffect(() =>
     this.actions$.pipe(
       ofType(AssetsApiActions.loadDetail),
-      switchMap(({ propertyKey }) =>
-        forkJoin({
-          detail: this.assetsApi.getAsset(propertyKey),
-          investments: this.assetsApi.getAssetInvestments(propertyKey),
+      withLatestFrom(this.store.select(selectAssets)),
+      switchMap(([request, assets]) => {
+        if (assets.cache.details[request.propertyKey]) {
+          return EMPTY;
+        }
+        return forkJoin({
+          detail: this.assetsApi.getAsset(request.propertyKey),
+          investments: this.assetsApi.getAssetInvestments(request.propertyKey),
         }).pipe(
           map(({ detail, investments }) =>
-            AssetsApiActions.loadDetailSuccess({ propertyKey, detail, investments }),
+            AssetsApiActions.loadDetailSuccess({
+              propertyKey: request.propertyKey,
+              detail,
+              investments,
+            }),
           ),
           catchError(() =>
             of(AssetsApiActions.loadDetailFailure({ error: 'Unable to load asset details.' })),
           ),
-        ),
-      ),
+        );
+      }),
     ),
   );
 }

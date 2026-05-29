@@ -1,3 +1,14 @@
+@use '../shared/styles/list-search-field' as search;
+
+:host {
+  display: block;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@include search.ks-list-search-field('investments');
+
 .link-cell {
   display: flex;
   align-items: center;
@@ -20,4 +31,3 @@
   color: var(--portal-text-secondary);
   font-weight: 500;
 }
-
