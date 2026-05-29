@@ -20,6 +20,7 @@ import {
 } from '@azure/msal-angular';
 
 import { APP_API_CONFIG } from './core/constants/api.config';
+import { provideAppStore } from './core/store/app.store';
 import { msalProviders } from './core/factories/msal.factory';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { AuthService } from './core/services/auth.service';
@@ -31,6 +32,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideAnimations(),
     provideRouter(routes),
+    ...provideAppStore(),
     provideHttpClient(withInterceptorsFromDi(), withInterceptors([errorInterceptor])),
     ...(environment.requireLogin
       ? [

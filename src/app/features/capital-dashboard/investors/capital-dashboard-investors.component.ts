@@ -1,13 +1,14 @@
 import {
   Component,
   computed,
-  DestroyRef,
+  effect,
   ElementRef,
   inject,
   signal,
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { Store } from '@ngrx/store';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,31 +18,15 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
-import {
-  catchError,
-  debounceTime,
-  distinctUntilChanged,
-  finalize,
-  forkJoin,
-  map,
-  of,
-  Subject,
-  switchMap,
-  tap,
-} from 'rxjs';
+import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
-import { LIST_PAGE_SIZE } from '../shared/list-pagination.constants';
+import { InvestorsApiActions } from '../store';
+import { selectInvestorsDetail, selectInvestorsList } from '../store/capital-dashboard.selectors';
 import { ListInfiniteScrollDirective } from '../shared/list-infinite-scroll.directive';
 import { DetailStatusBadgeComponent } from '../shared/components/detail-status-badge/detail-status-badge.component';
 import { OverviewSectionCardsComponent } from '../shared/components/overview-section-cards/overview-section-cards.component';
 import { PortalSpinnerComponent } from '../shared/components/portal-spinner/portal-spinner.component';
-import {
-  InvestorDetailDto,
-  InvestorInvestmentDto,
-  InvestorListItemDto,
-  PagedResult,
-} from '../shared/models/api.models';
-import { CapitalInvestorsApiService } from '../shared/services/capital-investors-api.service';
+import { InvestorListItemDto } from '../shared/models/api.models';
 import { formatCurrency, formatPercent } from '../shared/utils/format-currency.util';
 import { scrollListItemIntoView } from '../shared/utils/list-scroll.util';
 import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util';
@@ -84,10 +69,12 @@ type InvestorDocumentRow = {
   ],
 })
 export class CapitalDashboardInvestorsComponent {
-  private readonly investorsApi = inject(CapitalInvestorsApiService);
-  private readonly destroyRef = inject(DestroyRef);
+  private readonly store = inject(Store);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+
+  private readonly investorsListState = this.store.selectSignal(selectInvestorsList);
+  private readonly investorsDetailState = this.store.selectSignal(selectInvestorsDetail);
 
   readonly formatCurrency = formatCurrency;
   readonly formatPercent = formatPercent;
@@ -96,21 +83,21 @@ export class CapitalDashboardInvestorsComponent {
   );
 
   readonly searchQuery = signal('');
-  readonly investors = signal<InvestorListItemDto[]>([]);
-  readonly listLoading = signal(true);
-  readonly listLoadingMore = signal(false);
-  readonly listError = signal<string | null>(null);
-  readonly totalCount = signal(0);
-  readonly hasNextPage = signal(false);
+  readonly investors = computed(() => this.investorsListState().items);
+  readonly listLoading = computed(() => this.investorsListState().loading);
+  readonly listLoadingMore = computed(() => this.investorsListState().loadingMore);
+  readonly listError = computed(() => this.investorsListState().error);
+  readonly totalCount = computed(() => this.investorsListState().totalCount);
+  readonly hasNextPage = computed(() => this.investorsListState().hasNextPage);
 
-  readonly selectedInvestorKey = signal<number | null>(null);
-  readonly investorDetail = signal<InvestorDetailDto | null>(null);
-  readonly investorInvestments = signal<InvestorInvestmentDto[]>([]);
+  readonly selectedInvestorKey = computed(() => this.investorsDetailState().selectedKey);
+  readonly investorDetail = computed(() => this.investorsDetailState().detail);
+  readonly investorInvestments = computed(() => this.investorsDetailState().investments);
   readonly investorDocuments = signal<InvestorDocumentRow[]>([]);
   readonly documentsLoadingMore = signal(false);
   readonly documentsHasNextPage = signal(false);
-  readonly detailLoading = signal(false);
-  readonly detailError = signal<string | null>(null);
+  readonly detailLoading = computed(() => this.investorsDetailState().loading);
+  readonly detailError = computed(() => this.investorsDetailState().error);
 
   activeTabIndex = 0;
   readonly listColumns = ['investor', 'invested'];
@@ -118,8 +105,6 @@ export class CapitalDashboardInvestorsComponent {
 
   readonly selectedInvestor = computed(() => this.investorDetail());
 
-  private currentPage = 1;
-  private currentSearch = '';
   private pendingScrollKey: number | null = null;
   private pendingSelectName: string | null = null;
   private pendingAutoOpenFirst = false;
@@ -149,69 +134,37 @@ export class CapitalDashboardInvestorsComponent {
       });
 
     toObservable(this.searchQuery)
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        tap((search) => {
-          this.currentSearch = search;
-          this.currentPage = 1;
-          // pendingScrollKey may already be set from query params subscription.
-          this.pendingScrollKey = this.pendingScrollKey ?? this.selectedIdFromRoute();
-          this.listLoading.set(true);
-          this.listError.set(null);
-          this.hasNextPage.set(false);
-        }),
-        switchMap((search) =>
-          this.investorsApi.getInvestors({ search: search || undefined, page: 1, pageSize: LIST_PAGE_SIZE }).pipe(
-            catchError(() => {
-              this.listError.set('Unable to load investors. Please try again.');
-              return of(emptyPagedResult<InvestorListItemDto>());
-            }),
-            finalize(() => this.listLoading.set(false)),
-          ),
-        ),
-        takeUntilDestroyed(),
-      )
-      .subscribe((result) => this.applyPageResult(result, true));
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe((search) => {
+        this.pendingScrollKey = this.pendingScrollKey ?? this.selectedIdFromRoute();
+        this.store.dispatch(InvestorsApiActions.loadList({ search, page: 1, replace: true }));
+      });
 
-    // Allow deep-links from other tabs: ?tab=investors&selected=<investorKey>
     const initialSelected = this.selectedIdFromRoute();
     if (initialSelected != null) {
       this.pendingScrollKey = initialSelected;
     }
 
-    this.loadDetail$
-      .pipe(
-        switchMap((investorKey) => {
-          this.selectedInvestorKey.set(investorKey);
-          this.detailLoading.set(true);
-          this.detailError.set(null);
-          this.activeTabIndex = 0;
+    this.loadDetail$.pipe(takeUntilDestroyed()).subscribe((investorKey) => {
+      this.activeTabIndex = 0;
+      this.investorDocuments.set([]);
+      this.documentsHasNextPage.set(false);
+      this.store.dispatch(InvestorsApiActions.loadDetail({ investorKey }));
+    });
 
-          return forkJoin({
-            detail: this.investorsApi.getInvestor(investorKey),
-            investments: this.investorsApi.getInvestorInvestments(investorKey),
-          }).pipe(
-            map(({ detail, investments }) => ({ detail, investments })),
-            catchError(() => {
-              this.detailError.set('Unable to load investor details.');
-              this.investorDetail.set(null);
-              this.investorInvestments.set([]);
-              return of(null);
-            }),
-            finalize(() => this.detailLoading.set(false)),
-          );
-        }),
-        takeUntilDestroyed(),
-      )
-      .subscribe((result) => {
-        if (!result) return;
-        this.investorDetail.set(result.detail);
-        this.investorInvestments.set(result.investments);
-        this.investorDocuments.set([]);
-        this.documentsHasNextPage.set(false);
+    effect(() => {
+      const list = this.investorsListState();
+      if (!list.loading && !list.loadingMore) {
+        this.ensureSelectedInListAndScroll();
+      }
+    });
+
+    effect(() => {
+      const detail = this.investorsDetailState();
+      if (!detail.loading && detail.detail) {
         this.cleanupDeepLinkQueryParams();
-      });
+      }
+    });
   }
 
   loadMoreDocuments(): void {
@@ -239,7 +192,7 @@ export class CapitalDashboardInvestorsComponent {
   }
 
   loadMore(): void {
-    this.fetchNextPage(false);
+    this.store.dispatch(InvestorsApiActions.loadListMore());
   }
 
   selectInvestor(investor: InvestorListItemDto): void {
@@ -248,10 +201,7 @@ export class CapitalDashboardInvestorsComponent {
   }
 
   clearSelection(): void {
-    this.selectedInvestorKey.set(null);
-    this.investorDetail.set(null);
-    this.investorInvestments.set([]);
-    this.detailError.set(null);
+    this.store.dispatch(InvestorsApiActions.clearDetail());
     this.activeTabIndex = 0;
   }
 
@@ -332,20 +282,6 @@ export class CapitalDashboardInvestorsComponent {
     return Number.isFinite(parsed) ? parsed : null;
   };
 
-  private applyPageResult(result: PagedResult<InvestorListItemDto>, replace: boolean): void {
-    const items = result.items ?? [];
-    if (replace) {
-      this.investors.set([...items]);
-      this.currentPage = result.page || 1;
-    } else {
-      this.investors.update((list) => [...list, ...items]);
-      this.currentPage = result.page || this.currentPage + 1;
-    }
-    this.totalCount.set(result.totalCount ?? 0);
-    this.hasNextPage.set(result.hasNextPage);
-    this.ensureSelectedInListAndScroll();
-  }
-
   private ensureSelectedInListAndScroll(): void {
     let key = this.pendingScrollKey ?? this.selectedInvestorKey();
     if (key == null && this.pendingSelectName) {
@@ -396,7 +332,11 @@ export class CapitalDashboardInvestorsComponent {
     }
 
     if (this.hasNextPage() && !this.listLoadingMore() && !this.loadingMoreForScroll) {
-      this.fetchNextPage(true);
+      this.loadingMoreForScroll = true;
+      this.store.dispatch(InvestorsApiActions.loadListMore());
+      queueMicrotask(() => {
+        this.loadingMoreForScroll = false;
+      });
     }
   }
 
@@ -423,43 +363,5 @@ export class CapitalDashboardInvestorsComponent {
     });
   }
 
-  private fetchNextPage(forScroll: boolean): void {
-    if (this.listLoading() || this.listLoadingMore() || !this.hasNextPage()) return;
-
-    const nextPage = this.currentPage + 1;
-    this.listLoadingMore.set(true);
-    if (forScroll) this.loadingMoreForScroll = true;
-
-    this.investorsApi
-      .getInvestors({
-        search: this.currentSearch || undefined,
-        page: nextPage,
-        pageSize: LIST_PAGE_SIZE,
-      })
-      .pipe(
-        catchError(() => of(null)),
-        finalize(() => {
-          this.listLoadingMore.set(false);
-          this.loadingMoreForScroll = false;
-        }),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((result) => {
-        if (!result) return;
-        this.applyPageResult(result, false);
-      });
-  }
-}
-
-function emptyPagedResult<T>(): PagedResult<T> {
-  return {
-    items: [],
-    page: 1,
-    pageSize: LIST_PAGE_SIZE,
-    totalCount: 0,
-    totalPages: 0,
-    hasPreviousPage: false,
-    hasNextPage: false,
-  };
 }
 

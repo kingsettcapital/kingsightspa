@@ -17,3 +17,13 @@ export interface InvestorAliasUpdatePayload {
 export interface InvestorAliasBulkUpdateRequest {
   Investors: InvestorAliasUpdatePayload[];
 }
+
+/** Entity for InvestorAlias CRUD (`api/InvestorAlias`). */
+export interface InvestorAlias {
+  investorAliasId: number;
+  investorAliasName: string;
+  createdBy: string;
+  createdDtm: string;
+  updatedBy: string;
+  updatedDtm: string;
+}

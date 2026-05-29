@@ -3,6 +3,7 @@ import { delay, Observable, of } from 'rxjs';
 
 import { INVESTOR_ALIAS_EXAMPLE_DATA } from '../constants/investor-alias-example.data';
 import {
+  InvestorAlias,
   InvestorAliasBulkUpdateRequest,
   InvestorAliasRow,
 } from '../interfaces/investor.interfaces';
@@ -46,5 +47,23 @@ export class InvestorApiService {
       return of({ Investors: request.Investors }).pipe(delay(500));
     }
     return this.api.put<InvestorAliasBulkUpdateRequest>('api/Investor/aliases', request);
+  }
+
+  // ── InvestorAlias CRUD (`api/InvestorAlias`) ─────────────────────────────────
+
+  getAllAliases(): Observable<InvestorAlias[]> {
+    return this.api.get<InvestorAlias[]>('api/InvestorAlias');
+  }
+
+  createAlias(payload: InvestorAlias): Observable<InvestorAlias> {
+    return this.api.post<InvestorAlias>('api/InvestorAlias', payload);
+  }
+
+  updateAlias(payload: InvestorAlias): Observable<InvestorAlias> {
+    return this.api.put<InvestorAlias>(`api/InvestorAlias/${payload.investorAliasId}`, payload);
+  }
+
+  deleteAlias(investorAliasId: number): Observable<void> {
+    return this.api.delete<void>(`api/InvestorAlias/${investorAliasId}`);
   }
 }
