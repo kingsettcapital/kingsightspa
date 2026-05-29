@@ -21,6 +21,14 @@ export const CapitalDashboardShellActions = createActionGroup({
   },
 });
 
+/** Clears all Capital Dashboard API cache (call when leaving /capital-dashboard). */
+export const CapitalDashboardCacheActions = createActionGroup({
+  source: 'Capital Dashboard Cache',
+  events: {
+    'Reset All': emptyProps(),
+  },
+});
+
 export const InvestorsApiActions = createActionGroup({
   source: 'Capital Dashboard Investors API',
   events: {

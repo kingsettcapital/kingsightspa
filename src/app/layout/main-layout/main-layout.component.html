@@ -40,9 +40,9 @@
         <span class="ks-sidebar__link-label">Dashboard</span>
       </a>
       <a
-        routerLink="/capital-dashboard"
+        routerLink="/capital-dashboard/investor"
         routerLinkActive="ks-sidebar__link--active"
-        [routerLinkActiveOptions]="{ exact: true }"
+        [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
         class="ks-sidebar__link"
       >
         <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>

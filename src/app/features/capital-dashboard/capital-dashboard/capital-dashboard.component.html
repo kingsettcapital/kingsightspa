@@ -3,39 +3,62 @@
     <h1 class="ks-capital-dashboard__title">Capital Dashboard</h1>
   </header>
 
-  <nav mat-tab-nav-bar class="ks-capital-dashboard__tabs" mat-stretch-tabs="false" mat-align-tabs="start">
+  <nav
+    mat-tab-nav-bar
+    class="ks-capital-dashboard__tabs"
+    aria-label="Capital Dashboard sections"
+    mat-stretch-tabs="false"
+    mat-align-tabs="start"
+  >
     <a
       mat-tab-link
-      [active]="activeTab === 'investor'"
-      (click)="goToTab('investor')"
-      (keydown.enter)="goToTab('investor')"
-      tabindex="0"
+      class="ks-capital-dashboard__tab"
+      routerLink="./investor"
+      [queryParams]="tabClearQueryParams"
+      queryParamsHandling="merge"
+      replaceUrl="true"
+      routerLinkActive
+      #investorTab="routerLinkActive"
+      [active]="investorTab.isActive"
     >
-      <mat-icon aria-hidden="true" class="ks-tab-icon">person</mat-icon>
-      <span>Investors</span>
+      <span class="ks-capital-dashboard__tab-label">
+        <mat-icon aria-hidden="true" class="ks-tab-icon">person</mat-icon>
+        <span class="ks-capital-dashboard__tab-text">Investors</span>
+      </span>
     </a>
     <a
       mat-tab-link
-      [active]="activeTab === 'investment'"
-      (click)="goToTab('investment')"
-      (keydown.enter)="goToTab('investment')"
-      tabindex="0"
+      class="ks-capital-dashboard__tab"
+      routerLink="./investment"
+      [queryParams]="tabClearQueryParams"
+      queryParamsHandling="merge"
+      replaceUrl="true"
+      routerLinkActive
+      #investmentTab="routerLinkActive"
+      [active]="investmentTab.isActive"
     >
-      <mat-icon aria-hidden="true" class="ks-tab-icon">trending_up</mat-icon>
-      <span>Investments</span>
+      <span class="ks-capital-dashboard__tab-label">
+        <mat-icon aria-hidden="true" class="ks-tab-icon">trending_up</mat-icon>
+        <span class="ks-capital-dashboard__tab-text">Investments</span>
+      </span>
     </a>
     <a
       mat-tab-link
-      [active]="activeTab === 'asset'"
-      (click)="goToTab('asset')"
-      (keydown.enter)="goToTab('asset')"
-      tabindex="0"
+      class="ks-capital-dashboard__tab"
+      routerLink="./asset"
+      [queryParams]="tabClearQueryParams"
+      queryParamsHandling="merge"
+      replaceUrl="true"
+      routerLinkActive
+      #assetTab="routerLinkActive"
+      [active]="assetTab.isActive"
     >
-      <mat-icon aria-hidden="true" class="ks-tab-icon">apartment</mat-icon>
-      <span>Assets</span>
+      <span class="ks-capital-dashboard__tab-label">
+        <mat-icon aria-hidden="true" class="ks-tab-icon">category</mat-icon>
+        <span class="ks-capital-dashboard__tab-text">Assets</span>
+      </span>
     </a>
   </nav>
 
   <router-outlet />
 </section>
-

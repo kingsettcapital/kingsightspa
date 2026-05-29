@@ -57,16 +57,7 @@ type InvestorDocumentRow = {
     PortalSpinnerComponent,
   ],
   templateUrl: './capital-dashboard-investors.component.html',
-  styles: [
-    `
-      :host {
-        display: block;
-        height: 100%;
-        min-height: 0;
-        overflow: hidden;
-      }
-    `,
-  ],
+  styleUrl: './capital-dashboard-investors.component.scss',
 })
 export class CapitalDashboardInvestorsComponent {
   private readonly store = inject(Store);
