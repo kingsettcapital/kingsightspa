@@ -2,13 +2,14 @@ import { DecimalPipe } from '@angular/common';
 import {
   Component,
   computed,
-  DestroyRef,
+  effect,
   ElementRef,
   inject,
   signal,
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { Store } from '@ngrx/store';
 import { ActivatedRoute } from '@angular/router';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -20,33 +21,15 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
-import {
-  catchError,
-  debounceTime,
-  distinctUntilChanged,
-  finalize,
-  forkJoin,
-  map,
-  of,
-  Subject,
-  switchMap,
-  tap,
-} from 'rxjs';
+import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
-import { LIST_PAGE_SIZE } from '../shared/list-pagination.constants';
+import { FundsApiActions } from '../store';
+import { selectFundsDetail, selectFundsList } from '../store/capital-dashboard.selectors';
 import { ListInfiniteScrollDirective } from '../shared/list-infinite-scroll.directive';
 import { DetailStatusBadgeComponent } from '../shared/components/detail-status-badge/detail-status-badge.component';
 import { OverviewSectionCardsComponent } from '../shared/components/overview-section-cards/overview-section-cards.component';
 import { PortalSpinnerComponent } from '../shared/components/portal-spinner/portal-spinner.component';
-import {
-  FundDetailDto,
-  FundInvestorDto,
-  FundListItemDto,
-  PagedResult,
-  PropertyListItemDto,
-} from '../shared/models/api.models';
-import { CapitalAssetsApiService } from '../shared/services/capital-assets-api.service';
-import { CapitalFundsApiService } from '../shared/services/capital-funds-api.service';
+import { FundInvestorDto, FundListItemDto } from '../shared/models/api.models';
 import { propertyListName, propertyLocation } from '../shared/utils/property-display.util';
 import { formatCurrency, formatPercent } from '../shared/utils/format-currency.util';
 import { scrollListItemIntoView } from '../shared/utils/list-scroll.util';
@@ -87,9 +70,10 @@ import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util'
 export class CapitalDashboardInvestmentsComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly fundsApi = inject(CapitalFundsApiService);
-  private readonly assetsApi = inject(CapitalAssetsApiService);
-  private readonly destroyRef = inject(DestroyRef);
+  private readonly store = inject(Store);
+
+  private readonly fundsListState = this.store.selectSignal(selectFundsList);
+  private readonly fundsDetailState = this.store.selectSignal(selectFundsDetail);
 
   readonly formatCurrency = formatCurrency;
   readonly formatPercent = formatPercent;
@@ -98,22 +82,22 @@ export class CapitalDashboardInvestmentsComponent {
   readonly overviewCards = computed(() => sectionCardsFromSections(this.fundDetail()?.sections ?? null));
 
   readonly searchQuery = signal('');
-  readonly funds = signal<FundListItemDto[]>([]);
-  readonly listLoading = signal(true);
-  readonly listLoadingMore = signal(false);
-  readonly listError = signal<string | null>(null);
-  readonly totalCount = signal(0);
-  readonly hasNextPage = signal(false);
+  readonly funds = computed(() => this.fundsListState().items);
+  readonly listLoading = computed(() => this.fundsListState().loading);
+  readonly listLoadingMore = computed(() => this.fundsListState().loadingMore);
+  readonly listError = computed(() => this.fundsListState().error);
+  readonly totalCount = computed(() => this.fundsListState().totalCount);
+  readonly hasNextPage = computed(() => this.fundsListState().hasNextPage);
 
-  readonly selectedFundKey = signal<number | null>(null);
-  readonly fundDetail = signal<FundDetailDto | null>(null);
-  readonly fundInvestors = signal<FundInvestorDto[]>([]);
-  readonly fundAssets = signal<PropertyListItemDto[]>([]);
-  readonly fundAssetsLoading = signal(false);
-  readonly fundAssetsLoadingMore = signal(false);
-  readonly fundAssetsHasNextPage = signal(false);
-  readonly detailLoading = signal(false);
-  readonly detailError = signal<string | null>(null);
+  readonly selectedFundKey = computed(() => this.fundsDetailState().selectedKey);
+  readonly fundDetail = computed(() => this.fundsDetailState().detail);
+  readonly fundInvestors = computed(() => this.fundsDetailState().investors);
+  readonly fundAssets = computed(() => this.fundsDetailState().assets);
+  readonly fundAssetsLoading = computed(() => this.fundsDetailState().assetsLoading);
+  readonly fundAssetsLoadingMore = computed(() => this.fundsDetailState().assetsLoadingMore);
+  readonly fundAssetsHasNextPage = computed(() => this.fundsDetailState().assetsHasNextPage);
+  readonly detailLoading = computed(() => this.fundsDetailState().loading);
+  readonly detailError = computed(() => this.fundsDetailState().error);
 
   readonly focusInvestorKey = signal<number | null>(null);
   private readonly fundInvestorsWrap = viewChild<ElementRef<HTMLElement>>('fundInvestorsWrap');
@@ -123,15 +107,10 @@ export class CapitalDashboardInvestmentsComponent {
 
   readonly selectedInvestment = computed(() => this.fundDetail());
 
-  private currentPage = 1;
-  private currentSearch = '';
   private pendingScrollKey: number | null = null;
   private pendingSelectName: string | null = null;
   private pendingAutoOpenFirst = false;
   private loadingMoreForScroll = false;
-  private fundAssetsPage = 1;
-  private fundAssetsFundCode: string | null = null;
-  private fundAssetsFundKey: number | null = null;
 
   private readonly listScrollContainer = viewChild<ElementRef<HTMLElement>>('listScrollContainer');
   private readonly loadDetail$ = new Subject<number>();
@@ -164,108 +143,47 @@ export class CapitalDashboardInvestmentsComponent {
       });
 
     toObservable(this.searchQuery)
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        tap((search) => {
-          this.currentSearch = search;
-          this.currentPage = 1;
-          // pendingScrollKey may already be set from query params subscription.
-          this.pendingScrollKey = this.pendingScrollKey ?? this.selectedIdFromRoute();
-          this.listLoading.set(true);
-          this.listError.set(null);
-          this.hasNextPage.set(false);
-        }),
-        switchMap((search) =>
-          this.fundsApi.getFunds({ search: search || undefined, page: 1, pageSize: LIST_PAGE_SIZE }).pipe(
-            catchError(() => {
-              this.listError.set('Unable to load investments. Please try again.');
-              return of(emptyPagedResult<FundListItemDto>());
-            }),
-            finalize(() => this.listLoading.set(false)),
-          ),
-        ),
-        takeUntilDestroyed(),
-      )
-      .subscribe((result) => this.applyPageResult(result, true));
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe((search) => {
+        this.pendingScrollKey = this.pendingScrollKey ?? this.selectedIdFromRoute();
+        this.store.dispatch(FundsApiActions.loadList({ search, page: 1, replace: true }));
+      });
 
-    this.loadDetail$
-      .pipe(
-        switchMap((fundKey) => {
-          this.selectedFundKey.set(fundKey);
-          this.fundAssets.set([]);
-          this.fundAssetsHasNextPage.set(false);
-          this.fundAssetsLoadingMore.set(false);
-          this.fundAssetsPage = 1;
-          this.fundAssetsFundKey = fundKey;
-          this.detailLoading.set(true);
-          this.detailError.set(null);
-          this.activeTabIndex = 0;
+    this.loadDetail$.pipe(takeUntilDestroyed()).subscribe((fundKey) => {
+      this.activeTabIndex = 0;
+      this.store.dispatch(FundsApiActions.loadDetail({ fundKey }));
+    });
 
-          return forkJoin({
-            detail: this.fundsApi.getFund(fundKey),
-            investors: this.fundsApi.getFundInvestors(fundKey),
-          }).pipe(
-            switchMap(({ detail, investors }) => {
-              this.fundAssetsLoading.set(true);
-              const fundCode = detail.summary.fundCode?.trim() || null;
-              this.fundAssetsFundCode = fundCode;
-              return this.assetsApi.getAssetsForFundPage(fundKey, fundCode, 1).pipe(
-                map((assetsPage) => ({
-                  detail,
-                  investors,
-                  assets: assetsPage.items ?? [],
-                  assetsHasNext: assetsPage.hasNextPage,
-                })),
-                catchError(() => of({ detail, investors, assets: [] as PropertyListItemDto[], assetsHasNext: false })),
-                finalize(() => this.fundAssetsLoading.set(false)),
-              );
-            }),
-            catchError(() => {
-              this.detailError.set('Unable to load investment details.');
-              this.fundDetail.set(null);
-              this.fundInvestors.set([]);
-              this.fundAssets.set([]);
-              return of(null);
-            }),
-            finalize(() => this.detailLoading.set(false)),
-          );
-        }),
-        takeUntilDestroyed(),
-      )
-      .subscribe((result) => {
-        if (!result) return;
-        this.fundDetail.set(result.detail);
-        this.fundInvestors.set(result.investors);
-        this.fundAssets.set(result.assets);
-        this.fundAssetsHasNextPage.set(result.assetsHasNext);
+    effect(() => {
+      const list = this.fundsListState();
+      if (!list.loading && !list.loadingMore) {
+        this.ensureSelectedInListAndScroll();
+      }
+    });
+
+    effect(() => {
+      const detail = this.fundsDetailState();
+      if (!detail.loading && detail.detail) {
         this.scrollFocusedInvestorIntoView();
         this.cleanupDeepLinkQueryParams();
-      });
+      }
+    });
   }
 
   loadMoreFundAssets(): void {
-    if (this.fundAssetsLoading() || this.fundAssetsLoadingMore() || !this.fundAssetsHasNextPage()) return;
-    const fundKey = this.fundAssetsFundKey;
-    const fundCode = this.fundAssetsFundCode;
+    const detail = this.fundsDetailState();
+    if (detail.assetsLoading || detail.assetsLoadingMore || !detail.assetsHasNextPage) return;
+    const fundKey = detail.selectedKey;
+    const fundCode = detail.assetsFundCode;
     if (!fundKey || !fundCode?.trim()) return;
 
-    this.fundAssetsLoadingMore.set(true);
-    const nextPage = this.fundAssetsPage + 1;
-
-    this.assetsApi
-      .getAssetsForFundPage(fundKey, fundCode, nextPage)
-      .pipe(
-        catchError(() => of(null)),
-        finalize(() => this.fundAssetsLoadingMore.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((page) => {
-        if (!page) return;
-        this.fundAssetsPage = nextPage;
-        this.fundAssets.update((list) => [...list, ...(page.items ?? [])]);
-        this.fundAssetsHasNextPage.set(page.hasNextPage);
-      });
+    this.store.dispatch(
+      FundsApiActions.loadFundAssetsPage({
+        fundKey,
+        fundCode: fundCode.trim(),
+        page: detail.assetsPage + 1,
+      }),
+    );
   }
 
   private cleanupDeepLinkQueryParams(): void {
@@ -302,7 +220,7 @@ export class CapitalDashboardInvestmentsComponent {
   }
 
   loadMore(): void {
-    this.fetchNextPage(false);
+    this.store.dispatch(FundsApiActions.loadListMore());
   }
 
   selectInvestment(fund: FundListItemDto): void {
@@ -311,11 +229,7 @@ export class CapitalDashboardInvestmentsComponent {
   }
 
   clearSelection(): void {
-    this.selectedFundKey.set(null);
-    this.fundDetail.set(null);
-    this.fundInvestors.set([]);
-    this.fundAssets.set([]);
-    this.detailError.set(null);
+    this.store.dispatch(FundsApiActions.clearDetail());
     this.activeTabIndex = 0;
   }
 
@@ -395,20 +309,6 @@ export class CapitalDashboardInvestmentsComponent {
     return Number.isFinite(parsed) ? parsed : null;
   };
 
-  private applyPageResult(result: PagedResult<FundListItemDto>, replace: boolean): void {
-    const items = result.items ?? [];
-    if (replace) {
-      this.funds.set([...items]);
-      this.currentPage = result.page || 1;
-    } else {
-      this.funds.update((list) => [...list, ...items]);
-      this.currentPage = result.page || this.currentPage + 1;
-    }
-    this.totalCount.set(result.totalCount ?? 0);
-    this.hasNextPage.set(result.hasNextPage);
-    this.ensureSelectedInListAndScroll();
-  }
-
   private ensureSelectedInListAndScroll(): void {
     let key = this.pendingScrollKey ?? this.selectedFundKey();
     if (key == null && this.pendingSelectName) {
@@ -462,7 +362,11 @@ export class CapitalDashboardInvestmentsComponent {
     }
 
     if (this.hasNextPage() && !this.listLoadingMore() && !this.loadingMoreForScroll) {
-      this.fetchNextPage(true);
+      this.loadingMoreForScroll = true;
+      this.store.dispatch(FundsApiActions.loadListMore());
+      queueMicrotask(() => {
+        this.loadingMoreForScroll = false;
+      });
     }
   }
 
@@ -489,43 +393,5 @@ export class CapitalDashboardInvestmentsComponent {
     });
   }
 
-  private fetchNextPage(forScroll: boolean): void {
-    if (this.listLoading() || this.listLoadingMore() || !this.hasNextPage()) return;
-
-    const nextPage = this.currentPage + 1;
-    this.listLoadingMore.set(true);
-    if (forScroll) this.loadingMoreForScroll = true;
-
-    this.fundsApi
-      .getFunds({
-        search: this.currentSearch || undefined,
-        page: nextPage,
-        pageSize: LIST_PAGE_SIZE,
-      })
-      .pipe(
-        catchError(() => of(null)),
-        finalize(() => {
-          this.listLoadingMore.set(false);
-          this.loadingMoreForScroll = false;
-        }),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((result) => {
-        if (!result) return;
-        this.applyPageResult(result, false);
-      });
-  }
-}
-
-function emptyPagedResult<T>(): PagedResult<T> {
-  return {
-    items: [],
-    page: 1,
-    pageSize: LIST_PAGE_SIZE,
-    totalCount: 0,
-    totalPages: 0,
-    hasPreviousPage: false,
-    hasNextPage: false,
-  };
 }
 

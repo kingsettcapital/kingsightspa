@@ -1,10 +1,13 @@
 import { Routes } from '@angular/router';
 
+import { provideCapitalDashboardStore } from './store';
+
 export const CAPITAL_DASHBOARD_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () =>
       import('./capital-dashboard/capital-dashboard.component').then((m) => m.CapitalDashboardComponent),
+    providers: [...provideCapitalDashboardStore()],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'investor' },
       {

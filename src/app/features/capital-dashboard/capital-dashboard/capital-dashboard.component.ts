@@ -4,9 +4,11 @@ import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { filter, map } from 'rxjs';
 
-type CapitalDashboardTab = 'investor' | 'investment' | 'asset';
+import { CapitalDashboardShellActions } from '../store';
+import { CapitalDashboardTab } from '../store/capital-dashboard.state';
 
 @Component({
   selector: 'app-capital-dashboard',
@@ -24,6 +26,7 @@ export class CapitalDashboardComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly store = inject(Store);
 
   activeTab: CapitalDashboardTab = 'investor';
 
@@ -39,11 +42,15 @@ export class CapitalDashboardComponent {
         map(() => (this.route.firstChild?.snapshot.url[0]?.path ?? 'investor') as CapitalDashboardTab),
         takeUntilDestroyed(),
       )
-      .subscribe((tab) => (this.activeTab = tab));
+      .subscribe((tab) => {
+        this.activeTab = tab;
+        this.store.dispatch(CapitalDashboardShellActions.activeTabChanged({ tab }));
+      });
   }
 
   goToTab(tab: CapitalDashboardTab): void {
     this.activeTab = tab;
+    this.store.dispatch(CapitalDashboardShellActions.activeTabChanged({ tab }));
     void this.router.navigate(['./', tab], {
       relativeTo: this.route,
       queryParams: {
