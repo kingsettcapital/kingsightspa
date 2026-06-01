@@ -159,17 +159,17 @@ function emptyAssetsCache(): AssetsCacheState {
 export const initialCapitalDashboardState: CapitalDashboardState = {
   activeTab: 'investor',
   investors: {
-    list: emptyListState(),
+    list: { ...emptyListState(), loading: true },
     detail: emptyInvestorsDetail(),
     cache: emptyInvestorsCache(),
   },
   funds: {
-    list: emptyListState(),
+    list: { ...emptyListState(), loading: true },
     detail: emptyFundsDetail(),
     cache: emptyFundsCache(),
   },
   assets: {
-    list: emptyListState(),
+    list: { ...emptyListState(), loading: true },
     detail: emptyAssetsDetail(),
     cache: emptyAssetsCache(),
   },

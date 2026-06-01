@@ -17,6 +17,8 @@ export interface ListQueryParams {
 export interface AssetsQueryParams extends ListQueryParams {
   fundKey?: number;
   investorKey?: number;
+  /** Filter assets by fund code (Kingsight API query param). */
+  fundCode?: string;
 }
 
 export interface DynamicFieldDto {

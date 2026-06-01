@@ -62,7 +62,7 @@ export class CapitalAssetsApiService {
         hasNextPage: false,
       });
     }
-    return this.getAssets({ search: fundCode.trim(), fundKey, page, pageSize });
+    return this.getAssets({ fundCode: fundCode.trim(), fundKey, page, pageSize });
   }
 
   getAssetsForInvestorFundKeys(fundKeys: readonly number[]): Observable<PropertyListItemDto[]> {

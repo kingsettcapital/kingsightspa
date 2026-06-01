@@ -41,6 +41,7 @@ import {
   propertyListSubtitle,
 } from '../shared/utils/property-display.util';
 import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util';
+import { shouldRequestDetail } from '../shared/utils/should-request-detail.util';
 
 @Component({
   selector: 'app-capital-dashboard-assets',
@@ -185,8 +186,7 @@ export class CapitalDashboardAssetsComponent {
   }
 
   selectAsset(asset: PropertyListItemDto): void {
-    if (this.selectedPropertyKey() === asset.propertyKey && this.assetDetail()) return;
-    this.loadDetail$.next(asset.propertyKey);
+    this.requestDetail(asset.propertyKey);
   }
 
   clearSelection(): void {
@@ -306,7 +306,7 @@ export class CapitalDashboardAssetsComponent {
         if (first) {
           this.pendingAutoOpenFirst = false;
           this.pendingScrollKey = first.propertyKey;
-          this.loadDetail$.next(first.propertyKey);
+          this.requestDetail(first.propertyKey);
           this.scrollToSelected(first.propertyKey);
         }
       }
@@ -314,10 +314,7 @@ export class CapitalDashboardAssetsComponent {
     }
 
     if (this.assets().some((asset) => asset.propertyKey === key)) {
-      // If we deep-linked into this tab, also load the right-side detail panel.
-      if (this.selectedPropertyKey() !== key || !this.assetDetail()) {
-        this.loadDetail$.next(key);
-      }
+      this.requestDetail(key);
       this.scrollToSelected(key);
       return;
     }
@@ -326,7 +323,7 @@ export class CapitalDashboardAssetsComponent {
       const byName = this.matchAssetKeyByName(this.pendingSelectName);
       if (byName != null && byName !== key) {
         this.pendingScrollKey = byName;
-        this.loadDetail$.next(byName);
+        this.requestDetail(byName);
         this.scrollToSelected(byName);
         return;
       }
@@ -337,7 +334,7 @@ export class CapitalDashboardAssetsComponent {
       if (first) {
         this.pendingAutoOpenFirst = false;
         this.pendingScrollKey = first.propertyKey;
-        this.loadDetail$.next(first.propertyKey);
+        this.requestDetail(first.propertyKey);
         this.scrollToSelected(first.propertyKey);
         return;
       }
@@ -363,6 +360,21 @@ export class CapitalDashboardAssetsComponent {
 
     if (matches.length === 1) return matches[0].propertyKey;
     return null;
+  }
+
+  private requestDetail(propertyKey: number): void {
+    const detail = this.assetsDetailState();
+    if (
+      !shouldRequestDetail(
+        detail.selectedKey,
+        detail.loading,
+        detail.detail != null,
+        propertyKey,
+      )
+    ) {
+      return;
+    }
+    this.loadDetail$.next(propertyKey);
   }
 
   private scrollToSelected(key: number): void {

@@ -30,6 +30,7 @@ import { InvestorListItemDto } from '../shared/models/api.models';
 import { formatCurrency, formatPercent } from '../shared/utils/format-currency.util';
 import { scrollListItemIntoView } from '../shared/utils/list-scroll.util';
 import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util';
+import { shouldRequestDetail } from '../shared/utils/should-request-detail.util';
 
 type InvestorDocumentRow = {
   documentKey: string;
@@ -187,8 +188,7 @@ export class CapitalDashboardInvestorsComponent {
   }
 
   selectInvestor(investor: InvestorListItemDto): void {
-    if (this.selectedInvestorKey() === investor.investorKey && this.investorDetail()) return;
-    this.loadDetail$.next(investor.investorKey);
+    this.requestDetail(investor.investorKey);
   }
 
   clearSelection(): void {
@@ -285,7 +285,7 @@ export class CapitalDashboardInvestorsComponent {
         if (first) {
           this.pendingAutoOpenFirst = false;
           this.pendingScrollKey = first.investorKey;
-          this.loadDetail$.next(first.investorKey);
+          this.requestDetail(first.investorKey);
           this.scrollToSelected(first.investorKey);
         }
       }
@@ -293,10 +293,7 @@ export class CapitalDashboardInvestorsComponent {
     }
 
     if (this.investors().some((investor) => investor.investorKey === key)) {
-      // If we deep-linked into this tab, also load the right-side detail panel.
-      if (this.selectedInvestorKey() !== key || !this.investorDetail()) {
-        this.loadDetail$.next(key);
-      }
+      this.requestDetail(key);
       this.scrollToSelected(key);
       return;
     }
@@ -305,7 +302,7 @@ export class CapitalDashboardInvestorsComponent {
       const byName = this.matchInvestorKeyByName(this.pendingSelectName);
       if (byName != null && byName !== key) {
         this.pendingScrollKey = byName;
-        this.loadDetail$.next(byName);
+        this.requestDetail(byName);
         this.scrollToSelected(byName);
         return;
       }
@@ -316,7 +313,7 @@ export class CapitalDashboardInvestorsComponent {
       if (first) {
         this.pendingAutoOpenFirst = false;
         this.pendingScrollKey = first.investorKey;
-        this.loadDetail$.next(first.investorKey);
+        this.requestDetail(first.investorKey);
         this.scrollToSelected(first.investorKey);
         return;
       }
@@ -342,6 +339,21 @@ export class CapitalDashboardInvestorsComponent {
 
     if (matches.length === 1) return matches[0].investorKey;
     return null;
+  }
+
+  private requestDetail(investorKey: number): void {
+    const detail = this.investorsDetailState();
+    if (
+      !shouldRequestDetail(
+        detail.selectedKey,
+        detail.loading,
+        detail.detail != null,
+        investorKey,
+      )
+    ) {
+      return;
+    }
+    this.loadDetail$.next(investorKey);
   }
 
   private scrollToSelected(key: number): void {
