@@ -81,6 +81,12 @@
               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-all no-underline"
             >Investor Alias</a>
             <a
+              routerLink="/capital-reporting/investor"
+              routerLinkActive="dropdown-link-active"
+              (click)="closeDropdown()"
+              class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-all no-underline"
+            >Investor Alias Assignment</a>
+            <a
               routerLink="/mortgage/loan-alias"
               routerLinkActive="dropdown-link-active"
               (click)="closeDropdown()"
@@ -135,7 +141,7 @@
               routerLinkActive="dropdown-link-active"
               (click)="closeDropdown()"
               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-all no-underline"
-            >Investor</a>
+            >Investor Alias Assignment</a>
           </div>
         }
       </div>

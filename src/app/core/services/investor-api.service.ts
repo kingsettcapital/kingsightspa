@@ -3,6 +3,26 @@ import { inject, Injectable } from '@angular/core';
 
 import { APP_API_CONFIG } from '../config/api.config';
 
+export type InvestorDto = {
+  investorKey: number;
+  investorCode: string;
+  investorName: string;
+  investorAliasName: string;
+  userUpdatedBy?: string | null;
+  userUpdatedDate?: string | null;
+};
+
+export type InvestorUpdatePayload = {
+  investorKey: number;
+  investorAliasName: string;
+  userUpdatedBy: string;
+};
+
+export type InvestorBulkUpdateRequest = {
+  investors: InvestorUpdatePayload[];
+};
+
+/** @deprecated Use InvestorDto */
 export type InvestorAliasRow = {
   investor_key: number;
   investor_code: string;
@@ -12,16 +32,8 @@ export type InvestorAliasRow = {
   user_updated_date: string | null;
 };
 
-export type InvestorAliasUpdatePayload = {
-  investor_key: number;
-  investor_alias_name: string;
-  user_updated_date: string | null;
-  user_updated_by: string | null;
-};
-
-export type InvestorAliasBulkUpdateRequest = {
-  Investors: InvestorAliasUpdatePayload[];
-};
+/** @deprecated Use InvestorBulkUpdateRequest */
+export type InvestorAliasBulkUpdateRequest = InvestorBulkUpdateRequest;
 
 /** Single strong type used for display, create, and update of Investor Aliases. */
 export type InvestorAlias = {
@@ -41,7 +53,7 @@ export class InvestorApiService {
   private readonly apiConfig = inject(APP_API_CONFIG);
 
   private get investorsUrl(): string {
-    return `${this.apiConfig.baseUrl}/api/Investor`;
+    return `${this.apiConfig.baseUrl}/api/Investors`;
   }
 
   private get investorAliasUrl(): string {
@@ -49,12 +61,12 @@ export class InvestorApiService {
   }
 
   getInvestors() {
-    return this.http.get<InvestorAliasRow[]>(this.investorsUrl);
+    return this.http.get<InvestorDto[]>(this.investorsUrl);
   }
 
-  updateInvestorAliasesBulk(request: InvestorAliasBulkUpdateRequest) {
-    const url = `${this.investorsUrl}/aliases`;
-    return this.http.put<InvestorAliasBulkUpdateRequest>(url, request);
+  updateInvestorAliasesBulk(request: InvestorBulkUpdateRequest) {
+    const url = `${this.investorsUrl}`;
+    return this.http.put<void>(url, request);
   }
 
   // ── InvestorAlias CRUD ──────────────────────────────────────────────────────
