@@ -33,6 +33,7 @@ import { FundInvestorDto, FundListItemDto } from '../shared/models/api.models';
 import { propertyListName, propertyLocation } from '../shared/utils/property-display.util';
 import { formatCurrency, formatPercent } from '../shared/utils/format-currency.util';
 import { scrollListItemIntoView } from '../shared/utils/list-scroll.util';
+import { shouldRequestDetail } from '../shared/utils/should-request-detail.util';
 import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util';
 
 @Component({
@@ -214,8 +215,7 @@ export class CapitalDashboardInvestmentsComponent {
   }
 
   selectInvestment(fund: FundListItemDto): void {
-    if (this.selectedFundKey() === fund.fundKey && this.fundDetail()) return;
-    this.loadDetail$.next(fund.fundKey);
+    this.requestDetail(fund.fundKey);
   }
 
   clearSelection(): void {
@@ -224,10 +224,7 @@ export class CapitalDashboardInvestmentsComponent {
   }
 
   deploymentPercent(): number {
-    const current = this.summaryNumber('currentValue');
-    const invested = this.summaryNumber('investedAmount');
-    if (current <= 0 || invested <= 0) return 0;
-    return Math.min(100, (invested / current) * 100);
+    return this.summaryNumber('capitalDeployed');
   }
 
   summaryDisplay(key: string): string {
@@ -311,7 +308,7 @@ export class CapitalDashboardInvestmentsComponent {
         if (first) {
           this.pendingAutoOpenFirst = false;
           this.pendingScrollKey = first.fundKey;
-          this.loadDetail$.next(first.fundKey);
+          this.requestDetail(first.fundKey);
           this.scrollToSelected(first.fundKey);
         }
       }
@@ -320,10 +317,7 @@ export class CapitalDashboardInvestmentsComponent {
 
     const selectedFund = this.funds().find((fund) => fund.fundKey === key) ?? null;
     if (selectedFund) {
-      // If we deep-linked into this tab, also load the right-side detail panel.
-      if (this.selectedFundKey() !== key || !this.fundDetail()) {
-        this.loadDetail$.next(key);
-      }
+      this.requestDetail(key);
       this.scrollToSelected(key);
       return;
     }
@@ -333,7 +327,7 @@ export class CapitalDashboardInvestmentsComponent {
       const byName = this.matchFundKeyByName(this.pendingSelectName);
       if (byName != null && byName !== key) {
         this.pendingScrollKey = byName;
-        this.loadDetail$.next(byName);
+        this.requestDetail(byName);
         this.scrollToSelected(byName);
         return;
       }
@@ -345,7 +339,7 @@ export class CapitalDashboardInvestmentsComponent {
       if (first) {
         this.pendingAutoOpenFirst = false;
         this.pendingScrollKey = first.fundKey;
-        this.loadDetail$.next(first.fundKey);
+        this.requestDetail(first.fundKey);
         this.scrollToSelected(first.fundKey);
         return;
       }
@@ -371,6 +365,16 @@ export class CapitalDashboardInvestmentsComponent {
 
     if (matches.length === 1) return matches[0].fundKey;
     return null;
+  }
+
+  private requestDetail(fundKey: number): void {
+    const detail = this.fundsDetailState();
+    if (
+      !shouldRequestDetail(detail.selectedKey, detail.loading, detail.detail != null, fundKey)
+    ) {
+      return;
+    }
+    this.loadDetail$.next(fundKey);
   }
 
   private scrollToSelected(key: number): void {
