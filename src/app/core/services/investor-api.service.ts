@@ -7,14 +7,15 @@ export type InvestorDto = {
   investorKey: number;
   investorCode: string;
   investorName: string;
-  investorAliasName: string;
+  investorAliasKey?: number | null;
+  investorAliasName?: string | null;
   userUpdatedBy?: string | null;
   userUpdatedDate?: string | null;
 };
 
 export type InvestorUpdatePayload = {
   investorKey: number;
-  investorAliasName: string;
+  investorAliasKey: number;
   userUpdatedBy: string;
 };
 
@@ -37,7 +38,8 @@ export type InvestorAliasBulkUpdateRequest = InvestorBulkUpdateRequest;
 
 /** Single strong type used for display, create, and update of Investor Aliases. */
 export type InvestorAlias = {
-  investorAliasId: number;
+  investorAliasKey?: number;
+  investorAliasId?: number;
   investorAliasName: string;
   createdBy: string;
   createdDtm: string;

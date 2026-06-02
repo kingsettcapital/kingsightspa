@@ -70,19 +70,21 @@
             <td>
               <select
                 class="alias-select"
-                [value]="row.investorAliasName"
                 (change)="updateAlias(row.investorKey, $any($event.target).value)"
               >
-                <option value="">— Select alias —</option>
-                @for (alias of aliasOptions(); track alias.investorAliasId) {
-                  <option [value]="alias.investorAliasName">
+                <option value="" [selected]="row.investorAliasKey == null">— Select alias —</option>
+                @for (alias of aliasOptions(); track getAliasKey(alias)) {
+                  <option
+                    [value]="'' + getAliasKey(alias)"
+                    [selected]="row.investorAliasKey === getAliasKey(alias)"
+                  >
                     {{ alias.investorAliasName }}
                   </option>
                 }
               </select>
             </td>
-            <td>{{ row.userUpdatedDate }}</td>
-            <td>{{ row.userUpdatedBy }}</td>
+            <td class="date-cell">{{ row.userUpdatedDate }}</td>
+            <td class="updated-by-cell">{{ row.userUpdatedBy }}</td>
           </tr>
         } @empty {
           <tr>

@@ -189,6 +189,15 @@ tbody td {
   background: #ffffff;
 }
 
+.date-cell {
+  white-space: nowrap;
+  color: #374151;
+}
+
+.updated-by-cell {
+  white-space: nowrap;
+}
+
 .empty-row {
   text-align: center;
   color: #6b7280;

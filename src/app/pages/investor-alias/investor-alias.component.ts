@@ -203,13 +203,16 @@ export class InvestorAliasComponent implements OnInit {
 
   deleteAlias(): void {
     const selected = this.selectedAlias();
-    if (!selected || this.isDeleting()) return;
+    const aliasId = selected?.investorAliasId ?? selected?.investorAliasKey;
+    if (!selected || aliasId == null || this.isDeleting()) return;
 
     this.isDeleting.set(true);
-    this.investorApi.deleteAlias(selected.investorAliasId).subscribe({
+    this.investorApi.deleteAlias(aliasId).subscribe({
       next: () => {
         this.aliases.set(
-          this.aliases().filter((a) => a.investorAliasId !== selected.investorAliasId),
+          this.aliases().filter(
+            (a) => (a.investorAliasId ?? a.investorAliasKey) !== aliasId,
+          ),
         );
         this.isDeleting.set(false);
         this.closeDeleteDialog();

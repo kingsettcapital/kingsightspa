@@ -13,6 +13,7 @@ type InvestorRow = {
   investorKey: number;
   investorCode: string;
   investorName: string;
+  investorAliasKey: number | null;
   investorAliasName: string;
   userUpdatedBy: string;
   userUpdatedDate: string;
@@ -40,7 +41,7 @@ export class InvestorComponent implements OnInit {
 
   readonly rows = signal<InvestorRow[]>([]);
   readonly aliasOptions = signal<InvestorAlias[]>([]);
-  readonly originalRowState = signal<Record<number, string>>({});
+  readonly originalRowState = signal<Record<number, number | null>>({});
 
   ngOnInit(): void {
     this.loadData();
@@ -151,10 +152,16 @@ export class InvestorComponent implements OnInit {
   }
 
   updateAlias(investorKey: number, value: string): void {
+    const investorAliasKey = value ? Number(value) : null;
+    const alias = this.aliasOptions().find((a) => this.getAliasKey(a) === investorAliasKey);
     this.rows.set(
       this.rows().map((row) =>
         row.investorKey === investorKey
-          ? { ...row, investorAliasName: value }
+          ? {
+              ...row,
+              investorAliasKey,
+              investorAliasName: alias?.investorAliasName ?? '',
+            }
           : row,
       ),
     );
@@ -184,6 +191,11 @@ export class InvestorComponent implements OnInit {
     this.currentPage.set(1);
   }
 
+  getAliasKey(alias: InvestorAlias): number {
+    const key = alias.investorAliasKey ?? alias.investorAliasId;
+    return key != null ? Number(key) : 0;
+  }
+
   saveChanges(): void {
     if (this.isSaving()) {
       return;
@@ -206,7 +218,7 @@ export class InvestorComponent implements OnInit {
     const request: InvestorBulkUpdateRequest = {
       investors: changedRows.map((row) => ({
         investorKey: row.investorKey,
-        investorAliasName: row.investorAliasName.trim(),
+        investorAliasKey: row.investorAliasKey ?? 0,
         userUpdatedBy,
       })),
     };
@@ -214,7 +226,6 @@ export class InvestorComponent implements OnInit {
     this.isSaving.set(true);
     this.statusMessage.set('Saving changes...');
     this.errorMessage.set('');
-
     this.investorApi.updateInvestorAliasesBulk(request).subscribe({
       next: () => {
         const now = new Date().toISOString();
@@ -226,7 +237,7 @@ export class InvestorComponent implements OnInit {
               ? {
                   ...row,
                   userUpdatedBy,
-                  userUpdatedDate: now,
+                  userUpdatedDate: this.normalizeDate(now),
                 }
               : row,
           ),
@@ -255,12 +266,13 @@ export class InvestorComponent implements OnInit {
       aliases: this.investorApi.getAllAliases(),
     }).subscribe({
       next: ({ investors, aliases }) => {
+        const normalizedAliases = this.normalizeAliases(aliases);
         const mappedRows = investors
-          .map((record, index) => this.mapApiInvestorToRow(record, index))
+          .map((record, index) => this.mapApiInvestorToRow(record, index, normalizedAliases))
           .filter((row) => row.investorKey > 0);
 
         this.rows.set(mappedRows);
-        this.aliasOptions.set(aliases);
+        this.aliasOptions.set(normalizedAliases);
         this.currentPage.set(1);
         this.snapshotOriginalState();
         this.statusMessage.set(
@@ -280,28 +292,62 @@ export class InvestorComponent implements OnInit {
     });
   }
 
-  private mapApiInvestorToRow(record: InvestorDto, index: number): InvestorRow {
+  private mapApiInvestorToRow(
+    record: InvestorDto,
+    index: number,
+    aliases: InvestorAlias[],
+  ): InvestorRow {
+    const investorAliasKey =
+      record.investorAliasKey != null && Number(record.investorAliasKey) > 0
+        ? Number(record.investorAliasKey)
+        : this.resolveAliasKey(record.investorAliasName, aliases);
+    const alias = aliases.find((a) => this.getAliasKey(a) === investorAliasKey);
+
     return {
       investorKey: record.investorKey > 0 ? record.investorKey : index + 1,
       investorCode: record.investorCode || `INV-${index + 1}`,
       investorName: record.investorName || '-',
-      investorAliasName: record.investorAliasName ?? '',
+      investorAliasKey,
+      investorAliasName: alias?.investorAliasName ?? record.investorAliasName?.trim() ?? '',
       userUpdatedBy: record.userUpdatedBy?.trim() || '-',
       userUpdatedDate: this.normalizeDate(record.userUpdatedDate ?? ''),
     };
   }
 
+  private resolveAliasKey(
+    aliasName: string | null | undefined,
+    aliases: InvestorAlias[],
+  ): number | null {
+    const normalized = aliasName?.trim().toLowerCase();
+    if (!normalized) {
+      return null;
+    }
+    const match = aliases.find((a) => a.investorAliasName.trim().toLowerCase() === normalized);
+    return match ? this.getAliasKey(match) : null;
+  }
+
+  private normalizeAliases(aliases: InvestorAlias[]): InvestorAlias[] {
+    return aliases.map((alias) => {
+      const key = this.getAliasKey(alias);
+      return {
+        ...alias,
+        investorAliasKey: key,
+        investorAliasId: key,
+      };
+    });
+  }
+
   private snapshotOriginalState(): void {
-    const snapshot: Record<number, string> = {};
+    const snapshot: Record<number, number | null> = {};
     for (const row of this.rows()) {
-      snapshot[row.investorKey] = row.investorAliasName.trim();
+      snapshot[row.investorKey] = row.investorAliasKey;
     }
     this.originalRowState.set(snapshot);
   }
 
   private hasAliasChanged(row: InvestorRow): boolean {
     const original = this.originalRowState()[row.investorKey];
-    return row.investorAliasName.trim() !== (original ?? '').trim();
+    return row.investorAliasKey !== (original ?? null);
   }
 
   private extractBackendError(error: unknown): string {
@@ -350,14 +396,19 @@ export class InvestorComponent implements OnInit {
   }
 
   private normalizeDate(value: string): string {
-    if (!value) {
+    if (!value?.trim()) {
       return '-';
     }
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) {
       return value;
     }
-    return parsed.toLocaleString();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    const year = parsed.getFullYear();
+    const hours = String(parsed.getHours()).padStart(2, '0');
+    const minutes = String(parsed.getMinutes()).padStart(2, '0');
+    return `${month}/${day}/${year} ${hours}:${minutes}`;
   }
 
   private clearMessages(): void {
