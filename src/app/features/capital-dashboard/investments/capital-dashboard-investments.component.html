@@ -46,7 +46,9 @@
           <ng-container matColumnDef="value">
             <th mat-header-cell *matHeaderCellDef class="align-right list-table__header-cell">Value</th>
             <td mat-cell *matCellDef="let row" class="align-right">
-              <div>{{ formatCurrency(row.currentValue) }}</div>
+              <div [class.ks-currency--negative]="row.currentValue < 0">
+                {{ row.currentValue | ksCurrency }}
+              </div>
               @if (row.totalReturnPercent != null) {
                 <div
                   class="list-table__secondary"
@@ -213,7 +215,9 @@
                     <ng-container matColumnDef="value">
                       <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Value</th>
                       <td mat-cell *matCellDef="let row" class="align-right">
-                        {{ formatCurrency(row.currentValue) }}
+                        <span [class.ks-currency--negative]="row.currentValue < 0">
+                          {{ row.currentValue | ksCurrency }}
+                        </span>
                       </td>
                     </ng-container>
                     <ng-container matColumnDef="yield">
@@ -293,7 +297,9 @@
                   <ng-container matColumnDef="invested">
                     <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Total Invested</th>
                     <td mat-cell *matCellDef="let row" class="align-right">
-                      {{ formatCurrency(row.totalInvested) }}
+                      <span [class.ks-currency--negative]="row.totalInvested < 0">
+                        {{ row.totalInvested | ksCurrency }}
+                      </span>
                     </td>
                   </ng-container>
                   <tr mat-header-row *matHeaderRowDef="['name', 'type', 'status', 'invested']"></tr>

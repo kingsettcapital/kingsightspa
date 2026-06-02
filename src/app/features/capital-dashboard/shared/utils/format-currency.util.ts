@@ -1,11 +1,13 @@
 export function formatCurrency(value: number, options?: { compact?: boolean }): string {
-  return new Intl.NumberFormat('en-US', {
+  const abs = Math.abs(value);
+  const formatted = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
     ...(options?.compact ? { notation: 'compact', compactDisplay: 'short' } : {}),
-  }).format(value);
+  }).format(abs);
+  return value < 0 ? `(-${formatted})` : formatted;
 }
 
 export function formatPercent(value: number, signed = false): string {

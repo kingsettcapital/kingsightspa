@@ -31,6 +31,7 @@ import { formatCurrency, formatPercent } from '../shared/utils/format-currency.u
 import { scrollListItemIntoView } from '../shared/utils/list-scroll.util';
 import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util';
 import { shouldRequestDetail } from '../shared/utils/should-request-detail.util';
+import { KsCurrencyPipe } from '../../../shared/pipes/ks-currency.pipe';
 
 type InvestorDocumentRow = {
   documentKey: string;
@@ -56,6 +57,7 @@ type InvestorDocumentRow = {
     DetailStatusBadgeComponent,
     OverviewSectionCardsComponent,
     PortalSpinnerComponent,
+    KsCurrencyPipe,
   ],
   templateUrl: './capital-dashboard-investors.component.html',
   styleUrl: './capital-dashboard-investors.component.scss',

@@ -27,6 +27,7 @@ import {
   DataTableCellDirective,
   DataTableComponent,
 } from '../../../shared/components/data-table';
+import { KsCurrencyPipe } from '../../../shared/pipes/ks-currency.pipe';
 import {
   SECURITY_VALUE_COLUMN_FILTER_CONFIG,
   SECURITY_VALUE_COLUMNS,
@@ -84,6 +85,7 @@ function buildSecurityValueExportFilename(extension: 'xlsx' | 'pdf'): string {
     LucideAngularModule,
     DataTableComponent,
     DataTableCellDirective,
+    KsCurrencyPipe,
   ],
   providers: [
     {

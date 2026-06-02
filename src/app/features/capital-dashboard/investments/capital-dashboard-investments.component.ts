@@ -35,6 +35,7 @@ import { formatCurrency, formatPercent } from '../shared/utils/format-currency.u
 import { scrollListItemIntoView } from '../shared/utils/list-scroll.util';
 import { shouldRequestDetail } from '../shared/utils/should-request-detail.util';
 import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util';
+import { KsCurrencyPipe } from '../../../shared/pipes/ks-currency.pipe';
 
 @Component({
   selector: 'app-capital-dashboard-investments',
@@ -54,6 +55,7 @@ import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util'
     DetailStatusBadgeComponent,
     OverviewSectionCardsComponent,
     PortalSpinnerComponent,
+    KsCurrencyPipe,
   ],
   templateUrl: './capital-dashboard-investments.component.html',
   styleUrl: './capital-dashboard-investments.component.scss',
