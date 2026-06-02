@@ -49,6 +49,7 @@ export class CapitalAssetsApiService {
     fundKey: number,
     fundCode: string | null,
     page: number,
+    search: string | undefined,
     pageSize = LIST_PAGE_SIZE,
   ): Observable<PagedResult<PropertyListItemDto>> {
     if (!fundCode?.trim()) {
@@ -62,7 +63,7 @@ export class CapitalAssetsApiService {
         hasNextPage: false,
       });
     }
-    return this.getAssets({ fundCode: fundCode.trim(), fundKey, page, pageSize });
+    return this.getAssets({ fundCode: fundCode.trim(), fundKey, search, page, pageSize });
   }
 
   getAssetsForInvestorFundKeys(fundKeys: readonly number[]): Observable<PropertyListItemDto[]> {

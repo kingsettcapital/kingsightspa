@@ -1161,5 +1161,18 @@ body[data-ks-capital-dashboard] {
     font-weight: 500 !important;
     font-size: 0.875rem !important;
   }
+
+  /* Commitments period select — panel is in CDK overlay (outside component host). */
+  .tab-period-panel.mat-mdc-select-panel {
+    background: var(--portal-paper);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  .mat-mdc-outlined-button:not(:disabled).tab-download {
+    color: #4280d5;
+    border-color: #4280d5;
+    --mdc-outlined-button-outline-color: #4280d5;
+    --mdc-outlined-button-label-text-color: #4280d5;
+  }
 }
 

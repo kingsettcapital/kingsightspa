@@ -36,6 +36,11 @@ import { scrollListItemIntoView } from '../shared/utils/list-scroll.util';
 import { shouldRequestDetail } from '../shared/utils/should-request-detail.util';
 import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util';
 import { KsCurrencyPipe } from '../../../shared/pipes/ks-currency.pipe';
+import { InvestmentCommitmentsTabComponent } from './tabs/commitments/investment-commitments-tab.component';
+import { InvestmentUnfundedCommitmentTabComponent } from './tabs/unfunded-commitment/investment-unfunded-commitment-tab.component';
+import { InvestmentInvestmentsTabComponent } from './tabs/investments/investment-investments-tab.component';
+import { InvestmentDistributionsTabComponent } from './tabs/distributions/investment-distributions-tab.component';
+import { InvestmentNavTabComponent } from './tabs/nav/investment-nav-tab.component';
 
 @Component({
   selector: 'app-capital-dashboard-investments',
@@ -56,6 +61,11 @@ import { KsCurrencyPipe } from '../../../shared/pipes/ks-currency.pipe';
     OverviewSectionCardsComponent,
     PortalSpinnerComponent,
     KsCurrencyPipe,
+    InvestmentCommitmentsTabComponent,
+    InvestmentUnfundedCommitmentTabComponent,
+    InvestmentInvestmentsTabComponent,
+    InvestmentDistributionsTabComponent,
+    InvestmentNavTabComponent,
   ],
   templateUrl: './capital-dashboard-investments.component.html',
   styleUrl: './capital-dashboard-investments.component.scss',
@@ -86,6 +96,7 @@ export class CapitalDashboardInvestmentsComponent {
   readonly fundDetail = computed(() => this.fundsDetailState().detail);
   readonly fundInvestors = computed(() => this.fundsDetailState().investors);
   readonly fundAssets = computed(() => this.fundsDetailState().assets);
+  readonly assetSearchQuery = signal('');
   readonly fundAssetsLoading = computed(() => this.fundsDetailState().assetsLoading);
   readonly fundAssetsLoadingMore = computed(() => this.fundsDetailState().assetsLoadingMore);
   readonly fundAssetsHasNextPage = computed(() => this.fundsDetailState().assetsHasNextPage);
@@ -99,6 +110,10 @@ export class CapitalDashboardInvestmentsComponent {
   readonly listColumns = ['investment', 'value'];
 
   readonly selectedInvestment = computed(() => this.fundDetail());
+
+  readonly investorSearchQuery = signal('');
+  readonly fundInvestorsLoading = computed(() => this.fundsDetailState().investorsLoading);
+  readonly fundInvestorsError = computed(() => this.fundsDetailState().investorsError);
 
   private pendingScrollKey: number | null = null;
   private pendingSelectName: string | null = null;
@@ -142,6 +157,31 @@ export class CapitalDashboardInvestmentsComponent {
         this.store.dispatch(FundsApiActions.loadList({ search, page: 1, replace: true }));
       });
 
+    toObservable(this.investorSearchQuery)
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe((search) => {
+        const fundKey = this.selectedFundKey();
+        if (!fundKey) return;
+        this.store.dispatch(FundsApiActions.loadFundInvestors({ fundKey, search }));
+      });
+
+    toObservable(this.assetSearchQuery)
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe((search) => {
+        const detail = this.fundsDetailState();
+        const fundKey = detail.selectedKey;
+        const fundCode = detail.assetsFundCode;
+        if (!fundKey || !fundCode?.trim()) return;
+        this.store.dispatch(
+          FundsApiActions.loadFundAssetsPage({
+            fundKey,
+            fundCode: fundCode.trim(),
+            page: 1,
+            search,
+          }),
+        );
+      });
+
     this.loadDetail$.pipe(takeUntilDestroyed()).subscribe((fundKey) => {
       this.activeTabIndex = 0;
       this.store.dispatch(FundsApiActions.loadDetail({ fundKey }));
@@ -161,6 +201,13 @@ export class CapitalDashboardInvestmentsComponent {
         this.cleanupDeepLinkQueryParams();
       }
     });
+
+    effect(() => {
+      const fundKey = this.selectedFundKey();
+      const search = this.investorSearchQuery().trim();
+      if (!fundKey || !search) return;
+      this.store.dispatch(FundsApiActions.loadFundInvestors({ fundKey, search }));
+    });
   }
 
   loadMoreFundAssets(): void {
@@ -175,6 +222,7 @@ export class CapitalDashboardInvestmentsComponent {
         fundKey,
         fundCode: fundCode.trim(),
         page: detail.assetsPage + 1,
+        search: detail.assetsSearch,
       }),
     );
   }
@@ -232,14 +280,15 @@ export class CapitalDashboardInvestmentsComponent {
   summaryDisplay(key: string): string {
     const summary = this.fundDetail()?.summary as unknown as Record<string, unknown> | undefined;
     const raw = summary?.[key] ?? null;
-    if (raw == null) return '—';
-    if (typeof raw === 'number') {
-      if (key.toLowerCase().includes('percent')) return formatPercent(raw, true);
-      return formatCurrency(raw);
-    }
-    if (typeof raw === 'string') return raw.trim() || '—';
-    if (typeof raw === 'boolean') return String(raw);
     return String(raw).trim() || '—';
+    // if (raw == null) return '—';
+    // if (typeof raw === 'number') {
+    //   if (key.toLowerCase().includes('percent')) return formatPercent(raw, true);
+    //   return formatCurrency(raw);
+    // }
+    // if (typeof raw === 'string') return raw.trim() || '—';
+    // if (typeof raw === 'boolean') return String(raw);
+    // return String(raw).trim() || '—';
   }
 
   summaryNumber(key: string): number {
@@ -281,6 +330,16 @@ export class CapitalDashboardInvestmentsComponent {
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
+  }
+
+  clearInvestorSearch(): void {
+    if (!this.investorSearchQuery()) return;
+    this.investorSearchQuery.set('');
+  }
+
+  clearAssetSearch(): void {
+    if (!this.assetSearchQuery()) return;
+    this.assetSearchQuery.set('');
   }
 
   memberSinceDisplay(row: FundInvestorDto): string {

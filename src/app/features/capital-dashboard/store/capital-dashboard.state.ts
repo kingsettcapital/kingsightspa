@@ -42,8 +42,11 @@ export interface FundsDetailState {
   selectedKey: number | null;
   detail: FundDetailDto | null;
   investors: FundInvestorDto[];
+  investorsLoading: boolean;
+  investorsError: string | null;
   assets: PropertyListItemDto[];
   assetsPage: number;
+  assetsSearch: string;
   assetsFundCode: string | null;
   assetsHasNextPage: boolean;
   assetsLoading: boolean;
@@ -123,8 +126,11 @@ function emptyFundsDetail(): FundsDetailState {
     selectedKey: null,
     detail: null,
     investors: [],
+    investorsLoading: false,
+    investorsError: null,
     assets: [],
     assetsPage: 1,
+    assetsSearch: '',
     assetsFundCode: null,
     assetsHasNextPage: false,
     assetsLoading: false,

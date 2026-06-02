@@ -49,7 +49,7 @@
               <div [class.ks-currency--negative]="row.currentValue < 0">
                 {{ row.currentValue | ksCurrency }}
               </div>
-              @if (row.totalReturnPercent != null) {
+              <!-- @if (row.totalReturnPercent != null) {
                 <div
                   class="list-table__secondary"
                   [class.return-positive]="row.totalReturnPercent > 0"
@@ -58,7 +58,7 @@
                 >
                   {{ formatPercent(row.totalReturnPercent, true) }}
                 </div>
-              }
+              } -->
             </td>
           </ng-container>
           <tr mat-header-row *matHeaderRowDef="listColumns"></tr>
@@ -127,27 +127,40 @@
 
           <div class="detail-card__metrics">
             <div>
-              <div class="detail-card__metric-label">Total Value</div>
-              <div class="detail-card__metric-value">{{ summaryDisplay('totalValue') ?? '--' }}</div>
+              <div class="detail-card__metric-label">Commitment</div>
+              <div class="detail-card__metric-value">{{ summaryNumber('commitment') | number }}</div>
             </div>
             <div>
-              <div class="detail-card__metric-label">Current Value</div>
-              <div class="detail-card__metric-value">{{ summaryDisplay('currentValue') }}</div>
+              <div class="detail-card__metric-label">Called</div>
+              <div class="detail-card__metric-value">{{ summaryNumber('called') | number }}</div>
             </div>
             <div>
-              <div class="detail-card__metric-label">Total Return</div>
+              <div class="detail-card__metric-label">Net Invested Amount</div>
               <div
                 class="detail-card__metric-value"
-                [class.return-positive]="summaryNumber('totalReturnPercent') > 0"
-                [class.return-negative]="summaryNumber('totalReturnPercent') < 0"
-                [class.return-neutral]="summaryNumber('totalReturnPercent') === 0"
+                [class.return-positive]="summaryNumber('netinvestedamount') > 0"
+                [class.return-negative]="summaryNumber('netinvestedamount') < 0"
+                [class.return-neutral]="summaryNumber('netinvestedamount') === 0"
               >
-                {{ summaryDisplay('totalReturnPercent') }}
+                {{ summaryNumber('netinvestedamount') | ksCurrency }}
               </div>
             </div>
+            @if (summaryDisplay('fundType') === 'Unitized') {
+              <div>
+                <div class="detail-card__metric-label">Net Invested Units</div>
+                <div class="detail-card__metric-value">{{ summaryNumber('netinvestedunits') | number }}</div>
+              </div>
+            }
             <div>
-              <div class="detail-card__metric-label">Assets</div>
-              <div class="detail-card__metric-value">{{ summaryNumber('assets') }}</div>
+              <div class="detail-card__metric-label">Reserve Amount</div>
+              <div
+                class="detail-card__metric-value"
+                [class.return-positive]="summaryNumber('reserveamount') > 0"
+                [class.return-negative]="summaryNumber('reserveamount') < 0"
+                [class.return-neutral]="summaryNumber('reserveamount') === 0"
+              >
+                {{ summaryNumber('reserveamount') | ksCurrency }}
+              </div>
             </div>
             <!-- <div>
               <div class="detail-card__metric-label">Investors</div>
@@ -180,13 +193,54 @@
 
           <mat-tab [label]="'Assets (' + summaryNumber('assets') + ')'">
             <div class="detail-card__body detail-card__body--table">
-              @if (fundAssetsLoading()) {
+              @if (fundAssetsLoading() && !assetSearchQuery()) {
                 <div class="list-state">
                   <app-portal-spinner [size]="32" />
                 </div>
               } @else {
                 <div class="detail-table-wrap">
-                  <table mat-table [dataSource]="fundAssets()" class="detail-table" aria-label="Fund assets">
+                  <div class="detail-table__toolbar">
+                    <div class="ks-investments-search ks-investments-search--inline">
+                      <mat-form-field
+                        appearance="outline"
+                        class="ks-investments-search__field"
+                        subscriptSizing="dynamic"
+                      >
+                        <mat-icon matPrefix class="ks-investments-search__icon" aria-hidden="true">search</mat-icon>
+                        <input
+                          matInput
+                          class="ks-investments-search__input"
+                          type="search"
+                          [ngModel]="assetSearchQuery()"
+                          (ngModelChange)="assetSearchQuery.set($event)"
+                          placeholder="Search assets..."
+                          aria-label="Search assets"
+                        />
+                        @if (assetSearchQuery()) {
+                          <button
+                            mat-icon-button
+                            matSuffix
+                            type="button"
+                            (click)="clearAssetSearch()"
+                            aria-label="Clear asset search"
+                          >
+                            <mat-icon>close</mat-icon>
+                          </button>
+                        }
+                      </mat-form-field>
+                    </div>
+                  </div>
+
+                  @if (fundAssetsLoading() && assetSearchQuery()) {
+                    <mat-progress-bar mode="indeterminate" />
+                  }
+
+                  <table
+                    mat-table
+                    [dataSource]="fundAssets()"
+                    class="detail-table"
+                    aria-label="Fund assets"
+                  >
                     <ng-container matColumnDef="name">
                       <th mat-header-cell *matHeaderCellDef class="align-left inner-table-header-cell">Asset Name</th>
                       <td mat-cell *matCellDef="let row" class="align-left">
@@ -268,6 +322,44 @@
           <mat-tab [label]="'Investors (' + summaryNumber('investors') + ')'">
             <div class="detail-card__body detail-card__body--table">
               <div #fundInvestorsWrap class="detail-table-wrap">
+                <div class="detail-table__toolbar">
+                  <div class="ks-investments-search ks-investments-search--inline">
+                    <mat-form-field
+                      appearance="outline"
+                      class="ks-investments-search__field"
+                      subscriptSizing="dynamic"
+                    >
+                      <mat-icon matPrefix class="ks-investments-search__icon" aria-hidden="true">search</mat-icon>
+                      <input
+                        matInput
+                        class="ks-investments-search__input"
+                        type="search"
+                        [ngModel]="investorSearchQuery()"
+                        (ngModelChange)="investorSearchQuery.set($event)"
+                        placeholder="Search investors..."
+                        aria-label="Search investors"
+                      />
+                      @if (investorSearchQuery()) {
+                        <button
+                          mat-icon-button
+                          matSuffix
+                          type="button"
+                          (click)="clearInvestorSearch()"
+                          aria-label="Clear investor search"
+                        >
+                          <mat-icon>close</mat-icon>
+                        </button>
+                      }
+                    </mat-form-field>
+                  </div>
+                </div>
+
+                @if (fundInvestorsLoading()) {
+                  <mat-progress-bar mode="indeterminate" />
+                } @else if (fundInvestorsError()) {
+                  <div class="list-state list-state--error">{{ fundInvestorsError() }}</div>
+                }
+
                 <table mat-table [dataSource]="fundInvestors()" class="detail-table" aria-label="Fund investors">
                   <ng-container matColumnDef="name">
                     <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Investor Name</th>
@@ -314,6 +406,36 @@
                   <div class="list-state">No investors in this fund.</div>
                 }
               </div>
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Commitments">
+            <div class="detail-card__body">
+              <app-investment-commitments-tab />
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Unfunded Commitment">
+            <div class="detail-card__body">
+              <app-investment-unfunded-commitment-tab />
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Investments">
+            <div class="detail-card__body">
+              <app-investment-investments-tab />
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Distributions">
+            <div class="detail-card__body">
+              <app-investment-distributions-tab />
+            </div>
+          </mat-tab>
+
+          <mat-tab label="NAV">
+            <div class="detail-card__body">
+              <app-investment-nav-tab />
             </div>
           </mat-tab>
         </mat-tab-group>
