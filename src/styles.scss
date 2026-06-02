@@ -114,6 +114,10 @@
     color: var(--ks-color-text);
   }
 
+  .ks-currency--negative {
+    color: var(--ks-color-danger);
+  }
+
   .subtitle {
     font-weight: var(--ks-font-weight-medium);
     color: var(--ks-color-blue);
