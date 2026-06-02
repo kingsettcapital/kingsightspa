@@ -464,7 +464,7 @@ body[data-ks-capital-dashboard] {
     display: flex;
     flex-direction: column;
     gap: 0;
-    padding: 1rem;
+    padding: 0.6rem;
     overflow: hidden;
     background: var(--portal-sidebar-bg);
     padding-right: 0;
@@ -478,7 +478,7 @@ body[data-ks-capital-dashboard] {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding: 1rem;
+    padding: 0.6rem;
     background: var(--portal-bg);
   }
   .list-state {
@@ -891,7 +891,7 @@ body[data-ks-capital-dashboard] {
   .search-field {
     width: 100%;
     max-width: 100%;
-    margin-bottom: 1rem;
+    margin-bottom: 0.6rem;
     box-sizing: border-box;
   }
   .search-field.mat-mdc-form-field {
