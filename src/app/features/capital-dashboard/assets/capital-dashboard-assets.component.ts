@@ -29,6 +29,7 @@ import { PortalSpinnerComponent } from '../shared/components/portal-spinner/port
 import { PropertyListItemDto } from '../shared/models/api.models';
 import { formatCurrency, formatPercent } from '../shared/utils/format-currency.util';
 import { scrollListItemIntoView } from '../shared/utils/list-scroll.util';
+import { KsCurrencyPipe } from '../../../shared/pipes/ks-currency.pipe';
 import {
   propertyDetailAcquisitionYear,
   propertyDetailCurrentValue,
@@ -59,6 +60,7 @@ import { shouldRequestDetail } from '../shared/utils/should-request-detail.util'
     DetailStatusBadgeComponent,
     OverviewSectionCardsComponent,
     PortalSpinnerComponent,
+    KsCurrencyPipe,
   ],
   templateUrl: './capital-dashboard-assets.component.html',
   styleUrl: './capital-dashboard-assets.component.scss',

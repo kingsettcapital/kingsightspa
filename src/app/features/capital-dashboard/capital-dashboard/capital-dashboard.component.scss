@@ -464,7 +464,7 @@ body[data-ks-capital-dashboard] {
     display: flex;
     flex-direction: column;
     gap: 0;
-    padding: 1rem;
+    padding: 0.6rem;
     overflow: hidden;
     background: var(--portal-sidebar-bg);
     padding-right: 0;
@@ -478,7 +478,7 @@ body[data-ks-capital-dashboard] {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding: 1rem 1.5rem 1.5rem;
+    padding: 0.6rem;
     background: var(--portal-bg);
   }
   .list-state {
@@ -891,7 +891,7 @@ body[data-ks-capital-dashboard] {
   .search-field {
     width: 100%;
     max-width: 100%;
-    margin-bottom: 1rem;
+    margin-bottom: 0.6rem;
     box-sizing: border-box;
   }
   .search-field.mat-mdc-form-field {
@@ -1160,6 +1160,19 @@ body[data-ks-capital-dashboard] {
     line-height: 1.5rem !important;
     font-weight: 500 !important;
     font-size: 0.875rem !important;
+  }
+
+  /* Commitments period select — panel is in CDK overlay (outside component host). */
+  .tab-period-panel.mat-mdc-select-panel {
+    background: var(--portal-paper);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  .mat-mdc-outlined-button:not(:disabled).tab-download {
+    color: #4280d5;
+    border-color: #4280d5;
+    --mdc-outlined-button-outline-color: #4280d5;
+    --mdc-outlined-button-label-text-color: #4280d5;
   }
 }
 

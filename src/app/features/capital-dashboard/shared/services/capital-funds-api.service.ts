@@ -16,8 +16,8 @@ export class CapitalFundsApiService {
     return this.api.get<FundDetailDto>(`api/Funds/${fundKey}`);
   }
 
-  getFundInvestors(fundKey: number): Observable<FundInvestorDto[]> {
-    return this.api.get<FundInvestorDto[]>(`api/Funds/${fundKey}/investors`);
+  getFundInvestors(fundKey: number, params: { search?: string } = {}): Observable<FundInvestorDto[]> {
+    return this.api.get<FundInvestorDto[]>(`api/Funds/${fundKey}/investors`, params as any);
   }
 }
 

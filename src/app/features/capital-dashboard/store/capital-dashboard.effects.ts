@@ -151,7 +151,7 @@ export class CapitalDashboardEffects {
                 }),
               );
             }
-            return this.assetsApi.getAssetsForFundPage(request.fundKey, fundCode, 1).pipe(
+            return this.assetsApi.getAssetsForFundPage(request.fundKey, fundCode, 1, undefined).pipe(
               map((assetsPage) =>
                 FundsApiActions.loadDetailSuccess({
                   fundKey: request.fundKey,
@@ -184,11 +184,25 @@ export class CapitalDashboardEffects {
     ),
   );
 
+  readonly loadFundInvestors$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FundsApiActions.loadFundInvestors),
+      switchMap(({ fundKey, search }) =>
+        this.fundsApi.getFundInvestors(fundKey, { search: search.trim() || undefined }).pipe(
+          map((investors) => FundsApiActions.loadFundInvestorsSuccess({ investors })),
+          catchError(() =>
+            of(FundsApiActions.loadFundInvestorsFailure({ error: 'Unable to load fund investors.' })),
+          ),
+        ),
+      ),
+    ),
+  );
+
   readonly loadFundAssetsPage$ = createEffect(() =>
     this.actions$.pipe(
       ofType(FundsApiActions.loadFundAssetsPage),
-      switchMap(({ fundKey, fundCode, page }) =>
-        this.assetsApi.getAssetsForFundPage(fundKey, fundCode, page).pipe(
+      switchMap(({ fundKey, fundCode, page, search }) =>
+        this.assetsApi.getAssetsForFundPage(fundKey, fundCode, page, search.trim() || undefined).pipe(
           map((result) =>
             FundsApiActions.loadFundAssetsPageSuccess({
               page,

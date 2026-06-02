@@ -114,6 +114,10 @@
     color: var(--ks-color-text);
   }
 
+  .ks-currency--negative {
+    color: rgb(176, 8, 8);
+  }
+
   .subtitle {
     font-weight: var(--ks-font-weight-medium);
     color: var(--ks-color-blue);

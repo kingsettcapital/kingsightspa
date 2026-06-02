@@ -10,7 +10,7 @@ $ks-list-search-border-hover: #d1d5db;
 @mixin ks-list-search-field($block) {
   .ks-#{$block}-search {
     width: 100%;
-    margin-bottom: 1rem;
+    margin-bottom: 0.6rem;
     box-sizing: border-box;
 
     --ks-list-search-placeholder: #{$ks-list-search-placeholder};

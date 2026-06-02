@@ -121,7 +121,12 @@
     </ng-template>
 
     <ng-template appDataTableCell="collateralPerYardi" let-row="row">
-      <span class="ks-table__cell--mono">{{ formatCurrency(row.collateralPerYardi) }}</span>
+      <span
+        class="ks-table__cell--mono"
+        [class.ks-currency--negative]="(row.collateralPerYardi ?? 0) < 0"
+      >
+        {{ row.collateralPerYardi | ksCurrency:'CAD':0 }}
+      </span>
     </ng-template>
 
     <ng-template appDataTableCell="securityValue" let-row="row">

@@ -144,7 +144,12 @@
     </ng-template>
 
     <ng-template appDataTableCell="exposure" let-row="row">
-      <span class="ks-table__cell--currency">{{ formatCurrency(row.exposure) }}</span>
+      <span
+        class="ks-table__cell--currency"
+        [class.ks-currency--negative]="(row.exposure ?? 0) < 0"
+      >
+        {{ row.exposure | ksCurrency:'CAD':2 }}
+      </span>
     </ng-template>
 
     <ng-template appDataTableCell="ranking" let-row="row">

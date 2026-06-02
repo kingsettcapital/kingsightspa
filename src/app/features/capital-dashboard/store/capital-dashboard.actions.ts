@@ -64,7 +64,10 @@ export const FundsApiActions = createActionGroup({
       assetsFundCode: string | null;
     }>(),
     'Load Detail Failure': props<{ error: string }>(),
-    'Load Fund Assets Page': props<{ fundKey: number; fundCode: string; page: number }>(),
+    'Load Fund Investors': props<{ fundKey: number; search: string }>(),
+    'Load Fund Investors Success': props<{ investors: FundInvestorDto[] }>(),
+    'Load Fund Investors Failure': props<{ error: string }>(),
+    'Load Fund Assets Page': props<{ fundKey: number; fundCode: string; page: number; search: string }>(),
     'Load Fund Assets Page Success': props<{
       page: number;
       items: PropertyListItemDto[];

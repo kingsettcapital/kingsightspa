@@ -28,6 +28,7 @@ import {
   DataTableCellDirective,
   DataTableComponent,
 } from '../../../shared/components/data-table';
+import { KsCurrencyPipe } from '../../../shared/pipes/ks-currency.pipe';
 import {
   LTV_VALIDATION_COLUMN_FILTER_CONFIG,
   LTV_VALIDATION_COLUMNS,
@@ -99,6 +100,7 @@ function isSecurityValueEmpty(value: number | null): boolean {
     LucideAngularModule,
     DataTableComponent,
     DataTableCellDirective,
+    KsCurrencyPipe,
   ],
   providers: [
     {

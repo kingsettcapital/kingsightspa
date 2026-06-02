@@ -243,8 +243,11 @@ export const capitalDashboardFeature = createFeature({
               selectedKey: fundKey,
               detail: cached.detail,
               investors: cached.investors,
+              investorsLoading: false,
+              investorsError: null,
               assets: [...cached.assets],
               assetsPage: cached.assetsPage,
+              assetsSearch: '',
               assetsFundCode: cached.assetsFundCode,
               assetsHasNextPage: cached.assetsHasNextPage,
               assetsLoading: false,
@@ -263,8 +266,11 @@ export const capitalDashboardFeature = createFeature({
             selectedKey: fundKey,
             detail: null,
             investors: [],
+            investorsLoading: true,
+            investorsError: null,
             assets: [],
             assetsPage: 1,
+            assetsSearch: '',
             assetsFundCode: null,
             assetsHasNextPage: false,
             assetsLoading: true,
@@ -294,8 +300,11 @@ export const capitalDashboardFeature = createFeature({
               selectedKey: fundKey,
               detail,
               investors,
+              investorsLoading: false,
+              investorsError: null,
               assets,
               assetsPage: 1,
+              assetsSearch: '',
               assetsFundCode,
               assetsHasNextPage,
               assetsLoading: false,
@@ -322,6 +331,8 @@ export const capitalDashboardFeature = createFeature({
           ...state.funds.detail,
           detail: null,
           investors: [],
+          investorsLoading: false,
+          investorsError: null,
           assets: [],
           loading: false,
           assetsLoading: false,
@@ -329,12 +340,51 @@ export const capitalDashboardFeature = createFeature({
         },
       },
     })),
-    on(FundsApiActions.loadFundAssetsPage, (state, { fundKey, fundCode, page }) => ({
+    on(FundsApiActions.loadFundInvestors, (state, { fundKey }) => {
+      // Avoid clobbering investors if the requested fund isn't selected anymore.
+      if (state.funds.detail.selectedKey !== fundKey) return state;
+      return {
+        ...state,
+        funds: {
+          ...state.funds,
+          detail: {
+            ...state.funds.detail,
+            investorsLoading: true,
+            investorsError: null,
+          },
+        },
+      };
+    }),
+    on(FundsApiActions.loadFundInvestorsSuccess, (state, { investors }) => ({
       ...state,
       funds: {
         ...state.funds,
         detail: {
           ...state.funds.detail,
+          investors,
+          investorsLoading: false,
+          investorsError: null,
+        },
+      },
+    })),
+    on(FundsApiActions.loadFundInvestorsFailure, (state, { error }) => ({
+      ...state,
+      funds: {
+        ...state.funds,
+        detail: {
+          ...state.funds.detail,
+          investorsLoading: false,
+          investorsError: error,
+        },
+      },
+    })),
+    on(FundsApiActions.loadFundAssetsPage, (state, { fundKey, fundCode, page, search }) => ({
+      ...state,
+      funds: {
+        ...state.funds,
+        detail: {
+          ...state.funds.detail,
+          assetsSearch: search,
           assetsLoading: page === 1,
           assetsLoadingMore: page > 1,
         },
