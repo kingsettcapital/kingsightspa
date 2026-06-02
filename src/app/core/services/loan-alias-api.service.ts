@@ -5,6 +5,7 @@ import { APP_API_CONFIG } from '../config/api.config';
 
 /** Mirrors LoanAliasDto — used for display and as the base type throughout the component. */
 export type LoanAlias = {
+  loanAliasKey?: number;
   loanAliasId: number;
   loanAliasName: string;
   collateralValue: number | null;
@@ -35,6 +36,10 @@ export class LoanAliasApiService {
 
   getAll() {
     return this.http.get<LoanAlias[]>(this.baseUrl);
+  }
+
+  getAllAliases() {
+    return this.getAll();
   }
 
   create(payload: LoanAliasSaveRequest) {

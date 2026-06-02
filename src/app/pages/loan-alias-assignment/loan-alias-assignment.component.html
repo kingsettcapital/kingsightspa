@@ -1,0 +1,139 @@
+<section class="loan-alias-assignment-page">
+  <h1>Loan Alias Update</h1>
+  <p class="subtitle">Search loans and assign alias names from the master list</p>
+
+  <div class="search-panel">
+    <label for="loanSearch">Search Loans</label>
+    <div class="search-input-wrap">
+      <span class="search-icon" aria-hidden="true"></span>
+      <input
+        id="loanSearch"
+        type="text"
+        [value]="searchText()"
+        (input)="updateSearch($any($event.target).value)"
+        placeholder="Search by Loan Name"
+      />
+    </div>
+
+    @if (searchedLoanOptions().length > 0) {
+      <ul class="search-results">
+        @for (row of searchedLoanOptions(); track row.loanKey) {
+          <li>
+            <button type="button" (click)="selectLoan(row)">
+              <span class="result-code">{{ row.loanCode }}</span>
+              <span>{{ row.loanName }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+
+    <div class="selected-loan-tags">
+      @for (selectedLoan of selectedLoans(); track selectedLoan.loanKey) {
+        <button
+          type="button"
+          class="loan-tag"
+          (click)="removeSelectedLoan(selectedLoan.loanKey)"
+        >
+          <span>{{ selectedLoan.loanCode }}&nbsp; {{ selectedLoan.loanName }}</span>
+          <span class="tag-close">x</span>
+        </button>
+      }
+    </div>
+
+    @if (isLoading()) {
+      <p class="meta-message">Loading loans...</p>
+    }
+    @if (errorMessage() && !isSaving()) {
+      <p class="error-message">{{ errorMessage() }}</p>
+    }
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="hidden-column">Loan Key</th>
+          <th>Loan Code</th>
+          <th>Loan Name</th>
+          <th>Loan Alias</th>
+          <th>Date Updated</th>
+          <th>Updated By</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of paginatedRows(); track row.loanKey) {
+          <tr>
+            <td class="hidden-column">{{ row.loanKey }}</td>
+            <td>{{ row.loanCode }}</td>
+            <td>{{ row.loanName }}</td>
+            <td>
+              <select
+                class="alias-select"
+                (change)="updateAlias(row.loanKey, $any($event.target).value)"
+              >
+                <option value="" [selected]="row.loanAliasKey == null">— Select alias —</option>
+                @for (alias of aliasOptions(); track getAliasKey(alias)) {
+                  <option
+                    [value]="'' + getAliasKey(alias)"
+                    [selected]="row.loanAliasKey === getAliasKey(alias)"
+                  >
+                    {{ alias.loanAliasName }}
+                  </option>
+                }
+              </select>
+            </td>
+            <td class="date-cell">{{ row.userUpdatedDate }}</td>
+            <td class="updated-by-cell">{{ row.userUpdatedBy }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6" class="empty-row">No loans found for this search.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <div class="pagination-left">
+      <label for="pageSize">Rows per page</label>
+      <select
+        id="pageSize"
+        [value]="pageSize()"
+        (change)="updatePageSize($any($event.target).value)"
+      >
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+    <div class="pagination-right">
+      <span class="page-range">{{ pageRangeLabel() }}</span>
+      <button type="button" class="pager-btn" (click)="goToPreviousPage()" [disabled]="currentPage() <= 1">
+        Prev
+      </button>
+      <span class="page-index">Page {{ currentPage() }} / {{ totalPages() }}</span>
+      <button
+        type="button"
+        class="pager-btn"
+        (click)="goToNextPage()"
+        [disabled]="currentPage() >= totalPages()"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn-close" (click)="clearSelection()">Clear Selection</button>
+    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving()">
+      @if (isSaving()) { Saving… } @else { Save Changes }
+    </button>
+  </div>
+
+  @if (statusMessage()) {
+    <p class="status">{{ statusMessage() }}</p>
+  }
+</section>

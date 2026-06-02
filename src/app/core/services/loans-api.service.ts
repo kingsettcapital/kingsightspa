@@ -3,7 +3,34 @@ import { inject, Injectable } from '@angular/core';
 
 import { APP_API_CONFIG } from '../config/api.config';
 
-export type LoanApiRecord = Record<string, string | number | null | undefined>;
+/** Mirrors GET /api/Loans — aligned with InvestorDto (loanDesc ↔ investorName). */
+export type LoanDto = {
+  loanKey: number;
+  loanCode: string;
+  loanDesc?: string | null;
+  loanAliasKey?: number | null;
+  loanAliasName?: string | null;
+  investorName?: string | null;
+  loanRanking?: number | null;
+  dummyLoanLink?: string | null;
+  isLoanInterestApplicable?: boolean | null;
+  lateInterestOffNote?: string | null;
+  userUpdatedBy?: string | null;
+  userUpdatedDate?: string | null;
+};
+
+export type LoanUpdatePayload = {
+  loanKey: number;
+  loanAliasKey: number;
+  userUpdatedBy: string;
+};
+
+export type LoanBulkUpdateRequest = {
+  loans: LoanUpdatePayload[];
+};
+
+/** @deprecated Prefer LoanDto for typed loan responses. */
+export type LoanApiRecord = Record<string, string | number | boolean | null | undefined>;
 
 @Injectable({
   providedIn: 'root',
@@ -13,19 +40,27 @@ export class LoansApiService {
   private readonly apiConfig = inject(APP_API_CONFIG);
 
   private get loansUrl(): string {
-    return `${this.apiConfig.baseUrl}/api/loans`;
+    return `${this.apiConfig.baseUrl}/api/Loans`;
   }
 
   getLoans() {
-    return this.http.get<LoanApiRecord[]>(this.loansUrl);
+    return this.http.get<LoanDto[]>(this.loansUrl);
+  }
+
+  updateLoanAliasesBulk(request: LoanBulkUpdateRequest) {
+    return this.http.put<void>(this.loansUrl, request);
+  }
+
+  /** @deprecated API has no per-loan PUT; use updateLoanAliasesBulk. */
+  updateLoan(loanKey: string | number, payload: LoanApiRecord) {
+    return this.http.put<void>(
+      `${this.loansUrl}/${encodeURIComponent(String(loanKey))}`,
+      payload,
+    );
   }
 
   createLoan(payload: LoanApiRecord) {
     return this.http.post<LoanApiRecord>(this.loansUrl, payload);
-  }
-
-  updateLoan(loanKey: string | number, payload: LoanApiRecord) {
-    return this.http.put<LoanApiRecord>(`${this.loansUrl}/${encodeURIComponent(String(loanKey))}`, payload);
   }
 
   deleteLoan(loanId: string | number) {

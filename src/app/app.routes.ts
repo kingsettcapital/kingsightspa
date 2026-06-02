@@ -31,6 +31,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'mortgage/loan-alias-assignment',
+        loadComponent: () =>
+          import('./pages/loan-alias-assignment/loan-alias-assignment.component').then(
+            (m) => m.LoanAliasAssignmentComponent
+          ),
+      },
+      {
         path: 'mortgage/loans-ranking',
         loadComponent: () =>
           import('./pages/loans-ranking/loans-ranking.component').then(
