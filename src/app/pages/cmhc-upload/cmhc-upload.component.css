@@ -1,0 +1,173 @@
+.cmhc-upload-page {
+  min-height: 100%;
+  padding: 1.5rem 1.35rem;
+  background: #f3f4f6;
+}
+
+.upload-card {
+  max-width: 52rem;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 1.5rem 1.75rem 1.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.card-header {
+  margin-bottom: 1.5rem;
+}
+
+.card-header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #111827;
+  text-transform: none;
+}
+
+.drop-zone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 4px;
+  background: #fafafa;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.drop-zone:hover,
+.drop-zone-active {
+  border-color: #2563eb;
+  background: #f8fafc;
+}
+
+.file-input {
+  display: none;
+}
+
+.upload-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto 1rem;
+  color: #1e3a5f;
+}
+
+.upload-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.drop-zone-title {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.drop-zone-file {
+  margin: 0.65rem 0 0;
+  color: #111827;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.upload-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.btn-primary,
+.btn-secondary {
+  border: 1px solid #d1d5db;
+  height: 2rem;
+  padding: 0 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.btn-primary {
+  border-color: #005b9f;
+  background: #005b9f;
+  color: #ffffff;
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #ffffff;
+  color: #111827;
+}
+
+.status-message {
+  margin: 0.85rem 0 0;
+  color: #1d4ed8;
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+.error-message {
+  margin: 0.85rem 0 0;
+  color: #b91c1c;
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+.history-section {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.history-section h2 {
+  margin: 0 0 0.85rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  text-transform: none;
+}
+
+.history-empty {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.history-table-wrap {
+  border: 1px solid #e5e7eb;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  background: #f3f4f6;
+  text-align: left;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #111827;
+}
+
+tbody td {
+  font-size: 0.88rem;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+  color: #111827;
+}
+
+.hidden-column {
+  display: none;
+}

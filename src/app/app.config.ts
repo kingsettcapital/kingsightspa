@@ -14,6 +14,8 @@ export const appConfig: ApplicationConfig = {
       provide: APP_API_CONFIG,
       useValue: {
         baseUrl: 'https://localhost:7140',
+        // Placeholder GUID for "system" until auth is wired (displayed as "system" in the grid).
+        cmhcUploadedByUserId: '00000000-0000-0000-0000-000000000000',
       },
     },
   ]

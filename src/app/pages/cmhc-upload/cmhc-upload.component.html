@@ -1,0 +1,92 @@
+<section class="cmhc-upload-page">
+  <div class="upload-card">
+    <div class="card-header">
+      <h1>CMHC File Upload</h1>
+    </div>
+
+    <div
+      class="drop-zone"
+      [class.drop-zone-active]="isDragOver()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
+      (click)="openFilePicker(fileInput)"
+      role="button"
+      tabindex="0"
+      (keydown.enter)="openFilePicker(fileInput)"
+      (keydown.space)="openFilePicker(fileInput); $event.preventDefault()"
+    >
+      <input
+        #fileInput
+        type="file"
+        class="file-input"
+        accept=".xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+        (change)="onFileInputChange($event)"
+        (click)="$event.stopPropagation()"
+      />
+      <div class="upload-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64" focusable="false">
+          <path
+            d="M32 8c-8 0-14 6-14 14v4H14l10 12 10-12H24v-4c0-4.4 3.6-8 8-8s8 3.6 8 8v8h8V22c0-8-6-14-14-14z"
+            fill="currentColor"
+          />
+          <path d="M12 44h40v8H12z" fill="currentColor" opacity="0.85" />
+        </svg>
+      </div>
+      <p class="drop-zone-title">Choose Excel file to upload or drag &amp; drop here</p>
+      @if (selectedFile(); as file) {
+        <p class="drop-zone-file">{{ file.name }}</p>
+      }
+    </div>
+
+    <div class="upload-actions">
+      @if (selectedFile()) {
+        <button type="button" class="btn-secondary" (click)="clearSelectedFile()" [disabled]="isUploading()">
+          Clear
+        </button>
+        <button type="button" class="btn-primary" (click)="uploadFile()" [disabled]="isUploading()">
+          @if (isUploading()) { Uploading… } @else { Upload File }
+        </button>
+      }
+    </div>
+
+    @if (statusMessage()) {
+      <p class="status-message">{{ statusMessage() }}</p>
+    }
+    @if (errorMessage()) {
+      <p class="error-message">{{ errorMessage() }}</p>
+    }
+
+    <div class="history-section">
+      <h2>Upload History</h2>
+      @if (isLoadingHistory()) {
+        <p class="history-empty">Loading upload history…</p>
+      } @else if (history().length === 0) {
+        <p class="history-empty">No files uploaded yet.</p>
+      } @else {
+        <div class="history-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="hidden-column">File Id</th>
+                <th>File Name</th>
+                <th>Uploaded Date</th>
+                <th>Uploaded By</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of history(); track row.fileId) {
+                <tr>
+                  <td class="hidden-column">{{ row.fileId }}</td>
+                  <td>{{ row.filename }}</td>
+                  <td>{{ formatUploadedDate(row.uploadedDate) }}</td>
+                  <td>{{ row.uploadedBy }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+</section>

@@ -59,6 +59,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'mortgage/cmhc-upload',
+        loadComponent: () =>
+          import('./pages/cmhc-upload/cmhc-upload.component').then(
+            (m) => m.CmhcUploadComponent
+          ),
+      },
+      {
         path: 'capital-reporting/fund',
         loadComponent: () =>
           import('./pages/fund/fund.component').then((m) => m.FundComponent),
