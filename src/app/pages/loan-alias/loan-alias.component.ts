@@ -229,8 +229,6 @@ export class LoanAliasComponent implements OnInit {
     return {
       loanAliasId: 0,
       loanAliasName: payload.loanAliasName,
-      collateralValue: null,
-      securityValue: null,
       createdBy: payload.createdBy,
       createdDtm: new Date().toISOString(),
       updatedBy: payload.updatedBy,

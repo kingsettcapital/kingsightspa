@@ -3,20 +3,20 @@ import { inject, Injectable } from '@angular/core';
 
 import { APP_API_CONFIG } from '../config/api.config';
 
-/** Mirrors LoanAliasDto — used for display and as the base type throughout the component. */
+/** Mirrors LoanAliasDto — used on Loan Alias CRUD and Security Value alias filter. */
 export type LoanAlias = {
   loanAliasKey?: number;
   loanAliasId: number;
   loanAliasName: string;
-  collateralValue: number | null;
-  securityValue: number | null;
+  collateralValue?: number | null;
+  securityValue?: number | null;
   createdBy: string;
   createdDtm: string | null;
   updatedBy: string;
   updatedDtm: string | null;
 };
 
-/** Mirrors LoanAliasSaveRequest / LoanAliasUpdateRequest — used for both create and update calls. */
+/** Mirrors LoanAliasSaveRequest — name-only create/update on Loan Alias CRUD page. */
 export type LoanAliasSaveRequest = {
   loanAliasName: string;
   createdBy: string;
