@@ -40,6 +40,13 @@ export function investmentDetailTabRowSearchText(row: InvestmentDetailTabRow): s
   return `${periodOrDate} ${row.amount} ${row.units} ${row.description}`;
 }
 
+export function investmentDetailTableColumns(isDaily: boolean, fundType: string): string[] {
+  const cols: string[] = isDaily ? ['date'] : ['period'];
+  cols.push(fundType === 'Unitized' ? 'units' : 'amount');
+  cols.push('description');
+  return cols;
+}
+
 export function rowsForInvestmentDetailTimeframe(
   timeframe: InvestmentDetailTabTimeframe,
   sources: {

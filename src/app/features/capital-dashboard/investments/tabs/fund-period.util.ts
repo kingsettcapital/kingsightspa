@@ -53,3 +53,21 @@ export function mapFundPeriodsToSelectOptions(
 export function dateKeyFromPeriodFilter(period: FundPeriodFilterValue): number | undefined {
   return period === 'all' ? undefined : period;
 }
+
+/** Period dropdown selection remembered per LTD / Quarterly / Daily view. */
+export type FundPeriodByTimeframe = Partial<Record<FundCommitmentTimeframe, FundPeriodFilterValue>>;
+
+export function periodForTimeframe(
+  byTimeframe: FundPeriodByTimeframe,
+  timeframe: FundCommitmentTimeframe,
+): FundPeriodFilterValue {
+  return byTimeframe[timeframe] ?? 'all';
+}
+
+export function setPeriodForTimeframe(
+  byTimeframe: FundPeriodByTimeframe,
+  timeframe: FundCommitmentTimeframe,
+  period: FundPeriodFilterValue,
+): FundPeriodByTimeframe {
+  return { ...byTimeframe, [timeframe]: period };
+}

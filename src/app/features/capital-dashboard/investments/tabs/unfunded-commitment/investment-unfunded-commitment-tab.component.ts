@@ -22,10 +22,17 @@ import { selectFunds, selectFundsDetail, selectFundsDetailSelectedKey } from '..
 import { PortalSpinnerComponent } from '../../../shared/components/portal-spinner/portal-spinner.component';
 import {
   dateKeyFromPeriodFilter,
+  FundPeriodByTimeframe,
   FundPeriodFilterValue,
   mapFundPeriodsToSelectOptions,
+  periodForTimeframe,
+  setPeriodForTimeframe,
 } from '../fund-period.util';
-import { filterInvestmentDetailTabRows, sumInvestmentDetailTabRows } from '../investment-detail-tab.util';
+import {
+  filterInvestmentDetailTabRows,
+  investmentDetailTableColumns,
+  sumInvestmentDetailTabRows,
+} from '../investment-detail-tab.util';
 
 @Component({
   selector: 'app-investment-unfunded-commitment-tab',
@@ -61,7 +68,8 @@ export class InvestmentUnfundedCommitmentTabComponent {
   private unfundedAutoLoadKey: string | null = null;
   private periodsLoadKey: string | null = null;
 
-  readonly period = signal<FundPeriodFilterValue>('all');
+  private readonly periodByTimeframe = signal<FundPeriodByTimeframe>({});
+  readonly period = computed(() => periodForTimeframe(this.periodByTimeframe(), this.timeframe()));
   readonly searchQuery = signal('');
 
   readonly timeframe = computed(() => this.fundsDetail().unfundedCommitmentsTimeframe);
@@ -81,7 +89,7 @@ export class InvestmentUnfundedCommitmentTabComponent {
   });
 
   readonly columns = computed(() =>
-    this.isDaily() ? ['date', 'amount', 'units', 'description'] : ['period', 'amount', 'units', 'description'],
+    investmentDetailTableColumns(this.isDaily(), this.fundType()),
   );
 
   readonly rows = computed(() =>
@@ -137,7 +145,6 @@ export class InvestmentUnfundedCommitmentTabComponent {
     if (!this.tabActive()) return;
     const fundKey = this.selectedFundKey();
     if (!fundKey) return;
-    this.period.set('all');
     this.unfundedAutoLoadKey = null;
     this.periodsLoadKey = null;
     this.store.dispatch(
@@ -147,12 +154,13 @@ export class InvestmentUnfundedCommitmentTabComponent {
         page: 1,
         search: this.searchQuery(),
         replace: true,
+        dateKey: dateKeyFromPeriodFilter(periodForTimeframe(this.periodByTimeframe(), value)),
       }),
     );
   }
 
   onPeriodChange(value: FundPeriodFilterValue): void {
-    this.period.set(value);
+    this.periodByTimeframe.update((m) => setPeriodForTimeframe(m, this.timeframe(), value));
     if (!this.tabActive()) return;
     const fundKey = this.selectedFundKey();
     if (!fundKey) return;
