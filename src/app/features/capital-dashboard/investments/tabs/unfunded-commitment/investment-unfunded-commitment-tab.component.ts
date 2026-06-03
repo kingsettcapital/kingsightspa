@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -37,6 +37,7 @@ import {
 })
 export class InvestmentUnfundedCommitmentTabComponent {
   private readonly excelService = inject(ExcelService);
+  readonly fundType = input('');
 
   readonly timeframe = signal<'ltd' | 'quarterly' | 'daily'>('ltd');
   readonly period = signal<'all'>('all');

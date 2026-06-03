@@ -44,6 +44,7 @@ import { sumInvestmentDetailTabRows } from '../investment-detail-tab.util';
 export class InvestmentNavTabComponent {
   private readonly excelService = inject(ExcelService);
   private readonly store = inject(Store);
+  readonly fundType = input('');
 
   /** True when the NAV mat-tab is selected (lazy-load gate). */
   readonly tabActive = input(false);

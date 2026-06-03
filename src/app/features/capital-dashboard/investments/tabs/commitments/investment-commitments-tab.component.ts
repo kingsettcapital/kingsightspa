@@ -42,6 +42,7 @@ import { sumInvestmentDetailTabRows } from '../investment-detail-tab.util';
   styleUrl: './investment-commitments-tab.component.scss',
 })
 export class InvestmentCommitmentsTabComponent {
+  readonly fundType = input('');
   private readonly excelService = inject(ExcelService);
   private readonly store = inject(Store);
 
