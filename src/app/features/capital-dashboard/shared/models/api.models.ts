@@ -109,6 +109,85 @@ export interface FundInvestorDto {
   joinYear: number | null;
 }
 
+/** UI / store timeframe keys (mat-button-toggle values). */
+export type FundCommitmentTimeframe = 'ltd' | 'quarterly' | 'daily';
+
+/** API `view` query param for GET api/Funds/{fundKey}/commitments */
+export enum FundCommitmentsView {
+  Ltd = 'Ltd',
+  Quarterly = 'Quarterly',
+  Daily = 'Daily',
+}
+
+export function fundCommitmentsViewFromTimeframe(timeframe: FundCommitmentTimeframe): FundCommitmentsView {
+  switch (timeframe) {
+    case 'quarterly':
+      return FundCommitmentsView.Quarterly;
+    case 'daily':
+      return FundCommitmentsView.Daily;
+    default:
+      return FundCommitmentsView.Ltd;
+  }
+}
+
+export interface FundCommitmentsQueryParams {
+  view: FundCommitmentsView;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+  quarterYear?: string;
+}
+
+/** LTD / quarterly commitment row */
+export interface FundCommitmentPeriodDto {
+  period: string;
+  amount: number;
+  units: number;
+  description: string;
+}
+
+/** Daily commitment row */
+export interface FundCommitmentDailyDto {
+  fund_key?: number;
+  posted_date_key?: number;
+  date: string;
+  amount: number;
+  units: number;
+  description: string;
+}
+
+export type FundCommitmentDto = FundCommitmentPeriodDto | FundCommitmentDailyDto;
+
+export interface FundCommitmentTabRow {
+  period?: string;
+  date?: string;
+  amount: number;
+  units: string;
+  description: string;
+}
+
+/** UI timeframe for fund NAV tab (same values as commitments). */
+export type FundNavTimeframe = FundCommitmentTimeframe;
+
+/** API `view` query param for GET api/Funds/{fundKey}/nav */
+export type FundNavView = FundCommitmentsView;
+
+export const fundNavViewFromTimeframe = fundCommitmentsViewFromTimeframe;
+
+export interface FundNavQueryParams {
+  view: FundNavView;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+  quarterYear?: string;
+}
+
+export type FundNavPeriodDto = FundCommitmentPeriodDto;
+export type FundNavDailyDto = FundCommitmentDailyDto;
+export type FundNavDto = FundCommitmentDto;
+
+export type FundNavTabRow = FundCommitmentTabRow;
+
 export interface PropertyListItemDto {
   propertyKey: number;
   propertyName: string | null;

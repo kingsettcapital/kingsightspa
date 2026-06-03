@@ -107,6 +107,9 @@ export class CapitalDashboardInvestmentsComponent {
   private readonly fundInvestorsWrap = viewChild<ElementRef<HTMLElement>>('fundInvestorsWrap');
 
   activeTabIndex = 0;
+  /** Overview=0, Assets=1, Investors=2, Commitments=3, Unfunded=4, Investments=5, Distributions=6, NAV=7 */
+  readonly commitmentsTabIndex = 3;
+  readonly navTabIndex = 7;
   readonly listColumns = ['investment', 'value'];
 
   readonly selectedInvestment = computed(() => this.fundDetail());

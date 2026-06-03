@@ -3,9 +3,19 @@ import { createFeature, createReducer, on } from '@ngrx/store';
 import {
   FundDetailCacheEntry,
   listStateFromCacheEntry,
+  readFundCommitmentsPageCache,
+  readFundNavPageCache,
   readListCacheEntry,
+  writeFundCommitmentsPageCache,
+  writeFundNavPageCache,
   writeListCacheEntry,
 } from './capital-dashboard-cache.util';
+import {
+  CapitalDashboardState,
+  FundsDetailState,
+  initialCapitalDashboardState,
+  PagedListState,
+} from './capital-dashboard.state';
 import {
   AssetsApiActions,
   CapitalDashboardCacheActions,
@@ -13,7 +23,6 @@ import {
   FundsApiActions,
   InvestorsApiActions,
 } from './capital-dashboard.actions';
-import { CapitalDashboardState, initialCapitalDashboardState, PagedListState } from './capital-dashboard.state';
 
 function applyPagedList<T>(
   state: PagedListState<T>,
@@ -30,6 +39,54 @@ function applyPagedList<T>(
     loading: false,
     loadingMore: false,
     error: null,
+  };
+}
+
+function emptyFundCommitmentsDetail(): Pick<
+  FundsDetailState,
+  | 'commitmentsTimeframe'
+  | 'commitments'
+  | 'commitmentsPage'
+  | 'commitmentsSearch'
+  | 'commitmentsHasNextPage'
+  | 'commitmentsLoading'
+  | 'commitmentsLoadingMore'
+  | 'commitmentsError'
+> {
+  const d = initialCapitalDashboardState.funds.detail;
+  return {
+    commitmentsTimeframe: d.commitmentsTimeframe,
+    commitments: d.commitments,
+    commitmentsPage: d.commitmentsPage,
+    commitmentsSearch: d.commitmentsSearch,
+    commitmentsHasNextPage: d.commitmentsHasNextPage,
+    commitmentsLoading: d.commitmentsLoading,
+    commitmentsLoadingMore: d.commitmentsLoadingMore,
+    commitmentsError: d.commitmentsError,
+  };
+}
+
+function emptyFundNavDetail(): Pick<
+  FundsDetailState,
+  | 'navTimeframe'
+  | 'nav'
+  | 'navPage'
+  | 'navSearch'
+  | 'navHasNextPage'
+  | 'navLoading'
+  | 'navLoadingMore'
+  | 'navError'
+> {
+  const d = initialCapitalDashboardState.funds.detail;
+  return {
+    navTimeframe: d.navTimeframe,
+    nav: d.nav,
+    navPage: d.navPage,
+    navSearch: d.navSearch,
+    navHasNextPage: d.navHasNextPage,
+    navLoading: d.navLoading,
+    navLoadingMore: d.navLoadingMore,
+    navError: d.navError,
   };
 }
 
@@ -240,6 +297,8 @@ export const capitalDashboardFeature = createFeature({
           funds: {
             ...state.funds,
             detail: {
+              ...emptyFundCommitmentsDetail(),
+              ...emptyFundNavDetail(),
               selectedKey: fundKey,
               detail: cached.detail,
               investors: cached.investors,
@@ -263,6 +322,8 @@ export const capitalDashboardFeature = createFeature({
         funds: {
           ...state.funds,
           detail: {
+            ...emptyFundCommitmentsDetail(),
+            ...emptyFundNavDetail(),
             selectedKey: fundKey,
             detail: null,
             investors: [],
@@ -297,6 +358,8 @@ export const capitalDashboardFeature = createFeature({
           funds: {
             ...state.funds,
             detail: {
+              ...emptyFundCommitmentsDetail(),
+              ...emptyFundNavDetail(),
               selectedKey: fundKey,
               detail,
               investors,
@@ -434,6 +497,222 @@ export const capitalDashboardFeature = createFeature({
           ...state.funds.detail,
           assetsLoading: false,
           assetsLoadingMore: false,
+        },
+      },
+    })),
+    on(
+      FundsApiActions.loadFundCommitmentsPage,
+      (state, { fundKey, timeframe, page, search, replace, quarterYear = '' }) => {
+        const qy = quarterYear ?? '';
+        const sameRequestInFlight =
+          replace &&
+          page === 1 &&
+          state.funds.detail.selectedKey === fundKey &&
+          state.funds.detail.commitmentsTimeframe === timeframe &&
+          state.funds.detail.commitmentsSearch === search &&
+          (state.funds.detail.commitmentsLoading || state.funds.detail.commitmentsLoadingMore);
+        if (sameRequestInFlight) {
+          return state;
+        }
+
+        const cached =
+          !search.trim() &&
+          readFundCommitmentsPageCache(state.funds.cache.commitmentPages, fundKey, timeframe, page, qy);
+        if (cached) {
+          const nextCommitments = replace
+            ? [...cached.items]
+            : [...state.funds.detail.commitments, ...cached.items];
+          return {
+            ...state,
+            funds: {
+              ...state.funds,
+              detail: {
+                ...state.funds.detail,
+                selectedKey: fundKey,
+                commitmentsTimeframe: timeframe,
+                commitments: nextCommitments,
+                commitmentsPage: page,
+                commitmentsSearch: search,
+                commitmentsHasNextPage: cached.hasNextPage,
+                commitmentsLoading: false,
+                commitmentsLoadingMore: false,
+                commitmentsError: null,
+              },
+            },
+          };
+        }
+        return {
+          ...state,
+          funds: {
+            ...state.funds,
+            detail: {
+              ...state.funds.detail,
+              selectedKey: fundKey,
+              commitmentsTimeframe: timeframe,
+              commitmentsSearch: search,
+              commitmentsLoading: replace,
+              commitmentsLoadingMore: !replace,
+              commitmentsError: null,
+              ...(replace ? { commitments: [], commitmentsHasNextPage: false } : {}),
+            },
+          },
+        };
+      },
+    ),
+    on(
+      FundsApiActions.loadFundCommitmentsPageSuccess,
+      (state, { timeframe, page, items, hasNextPage, replace, search, quarterYear }) => {
+        const fundKey = state.funds.detail.selectedKey;
+        const nextCommitments = replace ? [...items] : [...state.funds.detail.commitments, ...items];
+        let nextCache = state.funds.cache;
+        if (fundKey != null && !search.trim()) {
+          nextCache = {
+            ...nextCache,
+            commitmentPages: writeFundCommitmentsPageCache(
+              nextCache.commitmentPages,
+              fundKey,
+              timeframe,
+              page,
+              items,
+              hasNextPage,
+              quarterYear,
+            ),
+          };
+        }
+        return {
+          ...state,
+          funds: {
+            ...state.funds,
+            detail: {
+              ...state.funds.detail,
+              commitmentsTimeframe: timeframe,
+              commitments: nextCommitments,
+              commitmentsPage: page,
+              commitmentsSearch: search,
+              commitmentsHasNextPage: hasNextPage,
+              commitmentsLoading: false,
+              commitmentsLoadingMore: false,
+              commitmentsError: null,
+            },
+            cache: nextCache,
+          },
+        };
+      },
+    ),
+    on(FundsApiActions.loadFundCommitmentsPageFailure, (state, { error }) => ({
+      ...state,
+      funds: {
+        ...state.funds,
+        detail: {
+          ...state.funds.detail,
+          commitmentsLoading: false,
+          commitmentsLoadingMore: false,
+          commitmentsError: error,
+        },
+      },
+    })),
+    on(FundsApiActions.loadFundNavPage, (state, { fundKey, timeframe, page, search, replace, quarterYear = '' }) => {
+      const qy = quarterYear ?? '';
+      const sameRequestInFlight =
+        replace &&
+        page === 1 &&
+        state.funds.detail.selectedKey === fundKey &&
+        state.funds.detail.navTimeframe === timeframe &&
+        state.funds.detail.navSearch === search &&
+        (state.funds.detail.navLoading || state.funds.detail.navLoadingMore);
+      if (sameRequestInFlight) {
+        return state;
+      }
+
+      const cached =
+        !search.trim() && readFundNavPageCache(state.funds.cache.navPages, fundKey, timeframe, page, qy);
+      if (cached) {
+        const nextNav = replace ? [...cached.items] : [...state.funds.detail.nav, ...cached.items];
+        return {
+          ...state,
+          funds: {
+            ...state.funds,
+            detail: {
+              ...state.funds.detail,
+              selectedKey: fundKey,
+              navTimeframe: timeframe,
+              nav: nextNav,
+              navPage: page,
+              navSearch: search,
+              navHasNextPage: cached.hasNextPage,
+              navLoading: false,
+              navLoadingMore: false,
+              navError: null,
+            },
+          },
+        };
+      }
+      return {
+        ...state,
+        funds: {
+          ...state.funds,
+          detail: {
+            ...state.funds.detail,
+            selectedKey: fundKey,
+            navTimeframe: timeframe,
+            navSearch: search,
+            navLoading: replace,
+            navLoadingMore: !replace,
+            navError: null,
+            ...(replace ? { nav: [], navHasNextPage: false } : {}),
+          },
+        },
+      };
+    }),
+    on(
+      FundsApiActions.loadFundNavPageSuccess,
+      (state, { timeframe, page, items, hasNextPage, replace, search, quarterYear }) => {
+        const fundKey = state.funds.detail.selectedKey;
+        const nextNav = replace ? [...items] : [...state.funds.detail.nav, ...items];
+        let nextCache = state.funds.cache;
+        if (fundKey != null && !search.trim()) {
+          nextCache = {
+            ...nextCache,
+            navPages: writeFundNavPageCache(
+              nextCache.navPages,
+              fundKey,
+              timeframe,
+              page,
+              items,
+              hasNextPage,
+              quarterYear,
+            ),
+          };
+        }
+        return {
+          ...state,
+          funds: {
+            ...state.funds,
+            detail: {
+              ...state.funds.detail,
+              navTimeframe: timeframe,
+              nav: nextNav,
+              navPage: page,
+              navSearch: search,
+              navHasNextPage: hasNextPage,
+              navLoading: false,
+              navLoadingMore: false,
+              navError: null,
+            },
+            cache: nextCache,
+          },
+        };
+      },
+    ),
+    on(FundsApiActions.loadFundNavPageFailure, (state, { error }) => ({
+      ...state,
+      funds: {
+        ...state.funds,
+        detail: {
+          ...state.funds.detail,
+          navLoading: false,
+          navLoadingMore: false,
+          navError: error,
         },
       },
     })),

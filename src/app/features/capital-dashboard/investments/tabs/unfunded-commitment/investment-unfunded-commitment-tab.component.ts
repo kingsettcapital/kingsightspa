@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,13 +10,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { KsCurrencyPipe } from '../../../../../shared/pipes/ks-currency.pipe';
 import { ExcelService } from '../../../../../core/services/excel.service';
-
-type UnfundedCommitmentRow = {
-  period: string;
-  amount: number;
-  units: string;
-  description: string;
-};
+import {
+  filterInvestmentDetailTabRows,
+  InvestmentDetailTabRow,
+  rowsForInvestmentDetailTimeframe,
+  sumInvestmentDetailTabRows,
+} from '../investment-detail-tab.util';
 
 @Component({
   selector: 'app-investment-unfunded-commitment-tab',
@@ -29,6 +29,7 @@ type UnfundedCommitmentRow = {
     MatInputModule,
     MatSelectModule,
     MatTableModule,
+    DecimalPipe,
     KsCurrencyPipe,
   ],
   templateUrl: './investment-unfunded-commitment-tab.component.html',
@@ -41,7 +42,7 @@ export class InvestmentUnfundedCommitmentTabComponent {
   readonly period = signal<'all'>('all');
   readonly searchQuery = signal('');
 
-  private readonly allRows = signal<UnfundedCommitmentRow[]>([
+  private readonly ltdRows = signal<InvestmentDetailTabRow[]>([
     {
       period: 'Life to Date',
       amount: 4000000,
@@ -50,24 +51,68 @@ export class InvestmentUnfundedCommitmentTabComponent {
     },
   ]);
 
-  readonly columns = ['period', 'amount', 'units', 'description'];
+  private readonly quarterlyRows = signal<InvestmentDetailTabRow[]>([
+    {
+      period: 'Q4 2025',
+      amount: 2200000,
+      units: '0',
+      description: 'Quarterly unfunded commitment',
+    },
+    {
+      period: 'Q1 2026',
+      amount: 1800000,
+      units: '0',
+      description: 'Quarterly unfunded commitment',
+    },
+  ]);
 
-  readonly rows = computed(() => {
-    const q = this.searchQuery().trim().toLowerCase();
-    const all = this.allRows();
-    if (!q) return all;
-    return all.filter((row) =>
-      `${row.period} ${row.amount} ${row.units} ${row.description}`.toLowerCase().includes(q),
-    );
-  });
+  private readonly dailyRows = signal<InvestmentDetailTabRow[]>([
+    {
+      date: '2026-01-15',
+      amount: 125000,
+      units: '0',
+      description: 'Daily unfunded commitment',
+    },
+    {
+      date: '2026-01-22',
+      amount: 87500,
+      units: '0',
+      description: 'Daily unfunded commitment',
+    },
+  ]);
+
+  readonly isDaily = computed(() => this.timeframe() === 'daily');
+  readonly showSummaryFooter = computed(() => this.timeframe() !== 'ltd');
+
+  readonly columns = computed(() =>
+    this.isDaily() ? ['date', 'amount', 'units', 'description'] : ['period', 'amount', 'units', 'description'],
+  );
+
+  readonly rows = computed(() =>
+    filterInvestmentDetailTabRows(
+      rowsForInvestmentDetailTimeframe(this.timeframe(), {
+        ltd: this.ltdRows(),
+        quarterly: this.quarterlyRows(),
+        daily: this.dailyRows(),
+      }),
+      this.searchQuery(),
+    ),
+  );
+
+  readonly totalAmount = computed(() => sumInvestmentDetailTabRows(this.rows()).totalAmount);
+  readonly totalUnits = computed(() => sumInvestmentDetailTabRows(this.rows()).totalUnits);
 
   downloadExcel(): void {
     const exportRows = this.rows();
-    this.excelService.export<UnfundedCommitmentRow>({
+    const periodColumn = this.isDaily()
+      ? { header: 'Date', value: (r: InvestmentDetailTabRow) => r.date ?? '' }
+      : { header: 'Period', value: (r: InvestmentDetailTabRow) => r.period ?? '' };
+
+    this.excelService.export<InvestmentDetailTabRow>({
       filename: 'unfunded-commitment.xlsx',
       sheetName: 'Unfunded Commitment',
       columns: [
-        { header: 'Period', value: (r) => r.period },
+        periodColumn,
         { header: 'Amount', value: (r) => r.amount },
         { header: 'Units', value: (r) => r.units },
         { header: 'Description', value: (r) => r.description },

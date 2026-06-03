@@ -1,6 +1,10 @@
 import { createActionGroup, emptyProps, props } from '@ngrx/store';
 
 import {
+  FundCommitmentTabRow,
+  FundCommitmentTimeframe,
+  FundNavTabRow,
+  FundNavTimeframe,
   FundDetailDto,
   FundInvestorDto,
   FundListItemDto,
@@ -75,6 +79,42 @@ export const FundsApiActions = createActionGroup({
       append: boolean;
     }>(),
     'Load Fund Assets Page Failure': emptyProps(),
+    'Load Fund Commitments Page': props<{
+      fundKey: number;
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      search: string;
+      replace: boolean;
+      quarterYear?: string;
+    }>(),
+    'Load Fund Commitments Page Success': props<{
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      items: FundCommitmentTabRow[];
+      hasNextPage: boolean;
+      replace: boolean;
+      search: string;
+      quarterYear: string;
+    }>(),
+    'Load Fund Commitments Page Failure': props<{ error: string }>(),
+    'Load Fund Nav Page': props<{
+      fundKey: number;
+      timeframe: FundNavTimeframe;
+      page: number;
+      search: string;
+      replace: boolean;
+      quarterYear?: string;
+    }>(),
+    'Load Fund Nav Page Success': props<{
+      timeframe: FundNavTimeframe;
+      page: number;
+      items: FundNavTabRow[];
+      hasNextPage: boolean;
+      replace: boolean;
+      search: string;
+      quarterYear: string;
+    }>(),
+    'Load Fund Nav Page Failure': props<{ error: string }>(),
     'Clear Detail': emptyProps(),
   },
 });

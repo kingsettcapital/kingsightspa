@@ -1,14 +1,63 @@
 @use '../../../shared/styles/list-search-field' as search;
+@use '../tab-table-summary';
 
 @include search.ks-list-search-field('commitments');
+
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  height: 100%;
+}
+
+.tab-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  height: 100%;
+  padding-left: 24px;
+  padding-right: 24px;
+}
 
 .tab-toolbar {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.25rem 0 0.75rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  // padding: 0.25rem 1.5rem 0.75rem;
+  background: var(--portal-paper);
   position: relative;
   z-index: 2;
+  padding: 0.5rem 0;
+}
+
+.tab-shell > mat-progress-bar {
+  flex-shrink: 0;
+}
+
+.tab-shell__status {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+:host .detail-table-wrap.tab-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:host .detail-table-wrap.tab-table-wrap .detail-table__scroll {
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+:host .detail-table-wrap.tab-table-wrap .tab-table-summary {
+  flex-shrink: 0;
 }
 
 .tab-toolbar__spacer {
@@ -116,19 +165,30 @@ $tab-period-blue: var(--portal-primary);
   height: 16px;
   margin-right: 0.375rem;
   color: currentColor;
+  margin-top: 4px;
 }
 
-:host ::ng-deep .detail-table {
+:host ::ng-deep .detail-table__scroll .detail-table {
   border: 1px solid var(--portal-divider);
   border-radius: 4px;
-  overflow: hidden;
+  /* Must not clip; sticky header sticks within .detail-table__scroll */
+  overflow: visible;
 }
 
-:host ::ng-deep .detail-table .mat-mdc-header-row,
-:host ::ng-deep .detail-table .mat-mdc-header-cell {
+:host ::ng-deep .detail-table__scroll .detail-table .mat-mdc-header-row {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+:host ::ng-deep .detail-table__scroll .detail-table .mat-mdc-header-cell {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   border-top: 1px solid var(--portal-divider);
   background-color: #f3f4f6 !important;
   font-weight: 700 !important;
+  box-shadow: 0 1px 0 var(--portal-divider);
 }
 
 :host ::ng-deep .detail-table .mat-mdc-cell {

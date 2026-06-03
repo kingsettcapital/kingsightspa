@@ -8,7 +8,9 @@ import { CapitalAssetsApiService } from '../shared/services/capital-assets-api.s
 import { CapitalFundsApiService } from '../shared/services/capital-funds-api.service';
 import { CapitalInvestorsApiService } from '../shared/services/capital-investors-api.service';
 import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
-import { readListCacheEntry } from './capital-dashboard-cache.util';
+import { readFundCommitmentsPageCache, readFundNavPageCache, readListCacheEntry } from './capital-dashboard-cache.util';
+import { mapFundCommitmentsToTabRows } from '../investments/tabs/commitments/fund-commitment.mapper';
+import { mapFundNavToTabRows } from '../investments/tabs/nav/fund-nav.mapper';
 import { selectAssets, selectFunds, selectInvestors } from './capital-dashboard.reducer';
 import { selectAssetsList, selectFundsList, selectInvestorsList } from './capital-dashboard.selectors';
 
@@ -214,6 +216,100 @@ export class CapitalDashboardEffects {
           catchError(() => of(FundsApiActions.loadFundAssetsPageFailure())),
         ),
       ),
+    ),
+  );
+
+  readonly loadFundCommitmentsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FundsApiActions.loadFundCommitmentsPage),
+      withLatestFrom(this.store.select(selectFunds)),
+      switchMap(([request, funds]) => {
+        const search = request.search.trim();
+        const quarterYear = request.quarterYear?.trim() ?? '';
+        if (
+          !search &&
+          readFundCommitmentsPageCache(
+            funds.cache.commitmentPages,
+            request.fundKey,
+            request.timeframe,
+            request.page,
+            quarterYear,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.fundsApi
+          .getFundCommitmentsPage(request.fundKey, request.timeframe, {
+            page: request.page,
+            search: search || undefined,
+            quarterYear: quarterYear || undefined,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundCommitmentsToTabRows(result.items, request.timeframe);
+              return FundsApiActions.loadFundCommitmentsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                quarterYear,
+              });
+            }),
+            catchError(() =>
+              of(
+                FundsApiActions.loadFundCommitmentsPageFailure({
+                  error: 'Unable to load commitments. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadFundNavPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FundsApiActions.loadFundNavPage),
+      withLatestFrom(this.store.select(selectFunds)),
+      switchMap(([request, funds]) => {
+        const search = request.search.trim();
+        const quarterYear = request.quarterYear?.trim() ?? '';
+        if (
+          !search &&
+          readFundNavPageCache(funds.cache.navPages, request.fundKey, request.timeframe, request.page, quarterYear)
+        ) {
+          return EMPTY;
+        }
+        return this.fundsApi
+          .getFundNavPage(request.fundKey, request.timeframe, {
+            page: request.page,
+            search: search || undefined,
+            quarterYear: quarterYear || undefined,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundNavToTabRows(result.items, request.timeframe);
+              return FundsApiActions.loadFundNavPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                quarterYear,
+              });
+            }),
+            catchError(() =>
+              of(
+                FundsApiActions.loadFundNavPageFailure({
+                  error: 'Unable to load NAV. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
     ),
   );
 

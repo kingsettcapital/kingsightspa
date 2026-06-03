@@ -209,7 +209,7 @@ body[data-ks-capital-dashboard] {
     letter-spacing: 0.04em;
     text-transform: uppercase;
     font-weight: 500;
-    font-size: 0.875rem;
+    // font-size: 0.875rem;
     line-height: 1.25;
     text-transform: uppercase;
   }
@@ -645,7 +645,7 @@ body[data-ks-capital-dashboard] {
     // font-size: var(--ks-font-size-lg);
     // font-weight: var(--ks-font-weight-semibold);
     color: var(--portal-text-primary);
-    font-size: 1.25rem;
+    font-size: 1rem;
     line-height: 1.6;
     font-weight: 600;
   }
@@ -670,7 +670,9 @@ body[data-ks-capital-dashboard] {
     padding: 0;
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
     min-height: 0;
+    overflow: hidden;
   }
 
   .detail-card__body--table > .list-state {
@@ -691,6 +693,67 @@ body[data-ks-capital-dashboard] {
     padding-right: 24px;
   }
 
+  .detail-table-wrap--sticky-toolbar {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    .detail-table__toolbar,
+    > mat-progress-bar,
+    > .list-state--error {
+      flex-shrink: 0;
+    }
+
+    .detail-table__toolbar {
+      background: var(--portal-paper);
+    }
+
+    .detail-table__scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      @include portal-scrollbar;
+    }
+  }
+
+  mat-tab-group.detail-tabs.detail-tabs--split-body-scroll {
+    > .mat-mdc-tab-body-wrapper {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mat-mdc-tab-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mat-mdc-tab-body-content {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .detail-card__body {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .detail-card__body:not(.detail-card__body--table) {
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      @include portal-scrollbar;
+    }
+  }
+
   .detail-table.mat-mdc-table {
     width: 100%;
     min-width: 56rem;
@@ -703,6 +766,9 @@ body[data-ks-capital-dashboard] {
   .detail-table .mat-mdc-header-row {
     height: auto;
     background: var(--portal-paper);
+    position: sticky;
+    top: 0;
+    z-index: 1;
   }
 
   .detail-table .mat-mdc-header-cell {
@@ -1114,7 +1180,7 @@ body[data-ks-capital-dashboard] {
       gap: 0.75rem;
     }
     .detail-card__metric-value {
-      font-size: 1.0625rem;
+      font-size: 1rem;
     }
     .detail-card__body {
       padding: 1rem;
