@@ -66,6 +66,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'mortgage/other-cost-capture',
+        loadComponent: () =>
+          import('./pages/other-cost-capture/other-cost-capture.component').then(
+            (m) => m.OtherCostCaptureComponent
+          ),
+      },
+      {
         path: 'capital-reporting/fund',
         loadComponent: () =>
           import('./pages/fund/fund.component').then((m) => m.FundComponent),
