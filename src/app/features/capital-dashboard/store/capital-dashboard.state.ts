@@ -18,6 +18,7 @@ import {
   FundAssetsPageCacheEntry,
   FundCommitmentsPageCacheEntry,
   FundNavPageCacheEntry,
+  FundPeriodsCacheEntry,
   FundDetailCacheEntry,
   InvestorDetailCacheEntry,
   ListCacheEntry,
@@ -65,6 +66,30 @@ export interface FundsDetailState {
   commitmentsLoading: boolean;
   commitmentsLoadingMore: boolean;
   commitmentsError: string | null;
+  unfundedCommitmentsTimeframe: FundCommitmentTimeframe;
+  unfundedCommitments: FundCommitmentTabRow[];
+  unfundedCommitmentsPage: number;
+  unfundedCommitmentsSearch: string;
+  unfundedCommitmentsHasNextPage: boolean;
+  unfundedCommitmentsLoading: boolean;
+  unfundedCommitmentsLoadingMore: boolean;
+  unfundedCommitmentsError: string | null;
+  fundInvestmentsTimeframe: FundCommitmentTimeframe;
+  fundInvestments: FundCommitmentTabRow[];
+  fundInvestmentsPage: number;
+  fundInvestmentsSearch: string;
+  fundInvestmentsHasNextPage: boolean;
+  fundInvestmentsLoading: boolean;
+  fundInvestmentsLoadingMore: boolean;
+  fundInvestmentsError: string | null;
+  fundDistributionsTimeframe: FundCommitmentTimeframe;
+  fundDistributions: FundCommitmentTabRow[];
+  fundDistributionsPage: number;
+  fundDistributionsSearch: string;
+  fundDistributionsHasNextPage: boolean;
+  fundDistributionsLoading: boolean;
+  fundDistributionsLoadingMore: boolean;
+  fundDistributionsError: string | null;
   navTimeframe: FundNavTimeframe;
   nav: FundNavTabRow[];
   navPage: number;
@@ -94,7 +119,11 @@ export interface FundsCacheState {
   lists: Record<string, ListCacheEntry<FundListItemDto>>;
   details: Record<number, FundDetailCacheEntry>;
   assetPages: Record<string, FundAssetsPageCacheEntry>;
+  periodLists: Record<string, FundPeriodsCacheEntry>;
   commitmentPages: Record<string, FundCommitmentsPageCacheEntry>;
+  unfundedCommitmentPages: Record<string, FundCommitmentsPageCacheEntry>;
+  investmentPages: Record<string, FundCommitmentsPageCacheEntry>;
+  distributionPages: Record<string, FundCommitmentsPageCacheEntry>;
   navPages: Record<string, FundNavPageCacheEntry>;
 }
 
@@ -167,6 +196,30 @@ function emptyFundsDetail(): FundsDetailState {
     commitmentsLoading: false,
     commitmentsLoadingMore: false,
     commitmentsError: null,
+    unfundedCommitmentsTimeframe: 'ltd',
+    unfundedCommitments: [],
+    unfundedCommitmentsPage: 1,
+    unfundedCommitmentsSearch: '',
+    unfundedCommitmentsHasNextPage: false,
+    unfundedCommitmentsLoading: false,
+    unfundedCommitmentsLoadingMore: false,
+    unfundedCommitmentsError: null,
+    fundInvestmentsTimeframe: 'ltd',
+    fundInvestments: [],
+    fundInvestmentsPage: 1,
+    fundInvestmentsSearch: '',
+    fundInvestmentsHasNextPage: false,
+    fundInvestmentsLoading: false,
+    fundInvestmentsLoadingMore: false,
+    fundInvestmentsError: null,
+    fundDistributionsTimeframe: 'ltd',
+    fundDistributions: [],
+    fundDistributionsPage: 1,
+    fundDistributionsSearch: '',
+    fundDistributionsHasNextPage: false,
+    fundDistributionsLoading: false,
+    fundDistributionsLoadingMore: false,
+    fundDistributionsError: null,
     navTimeframe: 'ltd',
     nav: [],
     navPage: 1,
@@ -195,7 +248,17 @@ function emptyInvestorsCache(): InvestorsCacheState {
 }
 
 function emptyFundsCache(): FundsCacheState {
-  return { lists: {}, details: {}, assetPages: {}, commitmentPages: {}, navPages: {} };
+  return {
+    lists: {},
+    details: {},
+    assetPages: {},
+    periodLists: {},
+    commitmentPages: {},
+    unfundedCommitmentPages: {},
+    investmentPages: {},
+    distributionPages: {},
+    navPages: {},
+  };
 }
 
 function emptyAssetsCache(): AssetsCacheState {

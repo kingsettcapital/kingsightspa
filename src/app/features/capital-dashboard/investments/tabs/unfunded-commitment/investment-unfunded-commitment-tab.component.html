@@ -23,7 +23,7 @@
       class="tab-segment"
       [hideSingleSelectionIndicator]="true"
       [value]="timeframe()"
-      (valueChange)="timeframe.set($event)"
+      (valueChange)="onTimeframeChange($event)"
       aria-label="Unfunded commitment timeframe"
     >
       <mat-button-toggle value="ltd">LTD</mat-button-toggle>
@@ -41,11 +41,14 @@
       <mat-label>Period</mat-label>
       <mat-select
         [value]="period()"
-        (valueChange)="period.set($event)"
+        (valueChange)="onPeriodChange($event)"
         panelClass="tab-period-panel"
         [hideSingleSelectionIndicator]="true"
       >
         <mat-option value="all">All Periods</mat-option>
+        @for (option of periodOptions(); track option.value) {
+          <mat-option [value]="option.value" [disabled]="option.disabled">{{ option.label }}</mat-option>
+        }
       </mat-select>
     </mat-form-field>
 
@@ -56,6 +59,17 @@
       <span>Download</span>
     </button>
   </div>
+
+  @if (loading() && !searchQuery().trim()) {
+    <div class="tab-shell__status list-state">
+      <app-portal-spinner [size]="32" />
+    </div>
+  } @else if (error()) {
+    <div class="tab-shell__status list-state list-state--error">{{ error() }}</div>
+  } @else {
+    @if (loading() && searchQuery().trim()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
 
   <div class="detail-table-wrap tab-table-wrap" style="padding-left: 0px; padding-right: 0px;">
     <div class="tab-table-block">
@@ -90,15 +104,41 @@
           <tr mat-header-row *matHeaderRowDef="columns()"></tr>
           <tr mat-row *matRowDef="let row; columns: columns()"></tr>
         </table>
+
+        @if (hasNextPage()) {
+          <div class="list-load-more">
+            <button
+              color="primary"
+              class="ks-load-more"
+              type="button"
+              (click)="loadMore()"
+              [disabled]="loadingMore()"
+            >
+              @if (loadingMore()) {
+                <app-portal-spinner [size]="18" />
+                <span>Loading…</span>
+              } @else {
+                Load more
+              }
+            </button>
+          </div>
+        }
+
+        @if (rows().length === 0 && !loading()) {
+          <div class="list-state">No unfunded commitments found.</div>
+        }
       </div>
     @if (showSummaryFooter()) {
       <div class="tab-table-summary" aria-label="Table totals">
         <span>Total: {{ totalAmount() | ksCurrency }}</span>
-        <span class="tab-table-summary__sep" aria-hidden="true">|</span>
-        <span>Units: {{ totalUnits() | number: '1.0-0' }}</span>
+        @if (fundType() === 'Unitized') {
+          <span class="tab-table-summary__sep" aria-hidden="true">|</span>
+          <span>Units: {{ totalUnits() | number: '1.0-0' }}</span>
+        }
       </div>
     }
     </div>
   </div>
+  }
 </div>
 

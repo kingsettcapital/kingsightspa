@@ -109,6 +109,9 @@ export class CapitalDashboardInvestmentsComponent {
   activeTabIndex = 0;
   /** Overview=0, Assets=1, Investors=2, Commitments=3, Unfunded=4, Investments=5, Distributions=6, NAV=7 */
   readonly commitmentsTabIndex = 3;
+  readonly unfundedCommitmentsTabIndex = 4;
+  readonly fundInvestmentsTabIndex = 5;
+  readonly fundDistributionsTabIndex = 6;
   readonly navTabIndex = 7;
   readonly listColumns = ['investment', 'value'];
 

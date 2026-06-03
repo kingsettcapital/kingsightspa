@@ -16,10 +16,16 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { KsCurrencyPipe } from '../../../../../shared/pipes/ks-currency.pipe';
 import { ExcelService } from '../../../../../core/services/excel.service';
 import { FundNavTabRow, FundNavTimeframe } from '../../../shared/models/api.models';
+import { readFundPeriodsCache } from '../../../store/capital-dashboard-cache.util';
 import { FundsApiActions } from '../../../store';
-import { selectFundsDetail, selectFundsDetailSelectedKey } from '../../../store/capital-dashboard.selectors';
+import { selectFunds, selectFundsDetail, selectFundsDetailSelectedKey } from '../../../store/capital-dashboard.selectors';
 import { PortalSpinnerComponent } from '../../../shared/components/portal-spinner/portal-spinner.component';
-import { sumInvestmentDetailTabRows } from '../investment-detail-tab.util';
+import {
+  dateKeyFromPeriodFilter,
+  FundPeriodFilterValue,
+  mapFundPeriodsToSelectOptions,
+} from '../fund-period.util';
+import { filterInvestmentDetailTabRows, sumInvestmentDetailTabRows } from '../investment-detail-tab.util';
 
 @Component({
   selector: 'app-investment-nav-tab',
@@ -49,23 +55,32 @@ export class InvestmentNavTabComponent {
   /** True when the NAV mat-tab is selected (lazy-load gate). */
   readonly tabActive = input(false);
 
+  private readonly funds = this.store.selectSignal(selectFunds);
   private readonly fundsDetail = this.store.selectSignal(selectFundsDetail);
   private readonly selectedFundKey = this.store.selectSignal(selectFundsDetailSelectedKey);
 
   private navAutoLoadKey: string | null = null;
+  private periodsLoadKey: string | null = null;
 
-  readonly period = signal<'all'>('all');
+  readonly period = signal<FundPeriodFilterValue>('all');
   readonly searchQuery = signal('');
 
   readonly timeframe = computed(() => this.fundsDetail().navTimeframe);
   readonly isDaily = computed(() => this.timeframe() === 'daily');
   readonly showSummaryFooter = computed(() => this.timeframe() !== 'ltd');
 
+  readonly periodOptions = computed(() => {
+    const fundKey = this.selectedFundKey();
+    if (!fundKey) return [];
+    const cached = readFundPeriodsCache(this.funds().cache.periodLists, fundKey, 'nav', this.timeframe());
+    return mapFundPeriodsToSelectOptions(cached?.items);
+  });
+
   readonly columns = computed(() =>
     this.isDaily() ? ['date', 'amount', 'units', 'description'] : ['period', 'amount', 'units', 'description'],
   );
 
-  readonly rows = computed(() => this.fundsDetail().nav);
+  readonly rows = computed(() => filterInvestmentDetailTabRows(this.fundsDetail().nav, this.searchQuery()));
   readonly loading = computed(() => this.fundsDetail().navLoading);
   readonly loadingMore = computed(() => this.fundsDetail().navLoadingMore);
   readonly hasNextPage = computed(() => this.fundsDetail().navHasNextPage);
@@ -78,12 +93,22 @@ export class InvestmentNavTabComponent {
     effect(() => {
       if (!this.tabActive()) {
         this.navAutoLoadKey = null;
+        this.periodsLoadKey = null;
         return;
       }
       const fundKey = this.selectedFundKey();
+      const timeframe = this.timeframe();
       if (!fundKey) return;
 
-      const autoLoadKey = `${fundKey}`;
+      const periodsKey = `${fundKey}:nav:${timeframe}`;
+      if (this.periodsLoadKey !== periodsKey) {
+        this.periodsLoadKey = periodsKey;
+        untracked(() =>
+          this.store.dispatch(FundsApiActions.loadFundPeriods({ fundKey, source: 'nav', view: timeframe })),
+        );
+      }
+
+      const autoLoadKey = `${fundKey}:${timeframe}:${this.period()}`;
       if (this.navAutoLoadKey === autoLoadKey) return;
       this.navAutoLoadKey = autoLoadKey;
 
@@ -104,7 +129,9 @@ export class InvestmentNavTabComponent {
     if (!this.tabActive()) return;
     const fundKey = this.selectedFundKey();
     if (!fundKey) return;
-    this.navAutoLoadKey = `${fundKey}:${value}`;
+    this.period.set('all');
+    this.navAutoLoadKey = null;
+    this.periodsLoadKey = null;
     this.store.dispatch(
       FundsApiActions.loadFundNavPage({
         fundKey,
@@ -114,6 +141,15 @@ export class InvestmentNavTabComponent {
         replace: true,
       }),
     );
+  }
+
+  onPeriodChange(value: FundPeriodFilterValue): void {
+    this.period.set(value);
+    if (!this.tabActive()) return;
+    const fundKey = this.selectedFundKey();
+    if (!fundKey) return;
+    this.navAutoLoadKey = null;
+    untracked(() => this.dispatchPage(1, true));
   }
 
   loadMore(): void {
@@ -155,6 +191,7 @@ export class InvestmentNavTabComponent {
         page,
         search: this.searchQuery(),
         replace,
+        dateKey: dateKeyFromPeriodFilter(this.period()),
       }),
     );
   }

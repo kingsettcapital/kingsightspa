@@ -112,30 +112,74 @@ export interface FundInvestorDto {
 /** UI / store timeframe keys (mat-button-toggle values). */
 export type FundCommitmentTimeframe = 'ltd' | 'quarterly' | 'daily';
 
-/** API `view` query param for GET api/Funds/{fundKey}/commitments */
-export enum FundCommitmentsView {
-  Ltd = 'Ltd',
-  Quarterly = 'Quarterly',
-  Daily = 'Daily',
+/** API `view` / `TimeGranularity` query param (lowercase per OpenAPI). */
+export type FundTimeGranularity = FundCommitmentTimeframe;
+
+export function fundTimeGranularityFromTimeframe(timeframe: FundCommitmentTimeframe): FundTimeGranularity {
+  return timeframe;
 }
 
-export function fundCommitmentsViewFromTimeframe(timeframe: FundCommitmentTimeframe): FundCommitmentsView {
-  switch (timeframe) {
-    case 'quarterly':
-      return FundCommitmentsView.Quarterly;
-    case 'daily':
-      return FundCommitmentsView.Daily;
-    default:
-      return FundCommitmentsView.Ltd;
-  }
-}
+/** @deprecated Use FundTimeGranularity */
+export type FundCommitmentsView = FundTimeGranularity;
 
-export interface FundCommitmentsQueryParams {
-  view: FundCommitmentsView;
-  search?: string;
+/** @deprecated Use fundTimeGranularityFromTimeframe */
+export const fundCommitmentsViewFromTimeframe = fundTimeGranularityFromTimeframe;
+
+export interface FundFundamentalQueryParams {
+  view: FundTimeGranularity;
   page?: number;
   pageSize?: number;
-  quarterYear?: string;
+  dateKey?: number;
+}
+
+export interface FundCommitmentsQueryParams extends FundFundamentalQueryParams {}
+
+export interface FundPeriodDto {
+  date_key?: number | null;
+  dateKey?: number | null;
+  full_date?: string | null;
+  fullDate?: string | null;
+  label?: string | null;
+  disabled?: boolean;
+  quarter_year?: string | null;
+  quarterYear?: string | null;
+  calendar_year?: number;
+  calendarYear?: number;
+  month_year?: string | null;
+  monthYear?: string | null;
+  period_start?: string | null;
+  periodStart?: string | null;
+  period_end?: string | null;
+  periodEnd?: string | null;
+}
+
+export type FundPeriodSource =
+  | 'commitments'
+  | 'nav'
+  | 'unfunded-commitments'
+  | 'investments'
+  | 'distributions';
+
+export interface FundPeriodsQueryParams {
+  view: FundTimeGranularity;
+  source: FundPeriodSource;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface FundInvestmentsQueryParams extends FundFundamentalQueryParams {}
+
+export interface FundDistributionsQueryParams extends FundFundamentalQueryParams {}
+
+/** Granular row returned by commitments, unfunded-commitments, and nav endpoints. */
+export interface FundGranularRowDto {
+  period?: string | null;
+  date?: string | null;
+  posted_date_key?: number | null;
+  postedDateKey?: number | null;
+  amount: number;
+  units: number;
+  description?: string | null;
 }
 
 /** LTD / quarterly commitment row */
@@ -156,7 +200,7 @@ export interface FundCommitmentDailyDto {
   description: string;
 }
 
-export type FundCommitmentDto = FundCommitmentPeriodDto | FundCommitmentDailyDto;
+export type FundCommitmentDto = FundCommitmentPeriodDto | FundCommitmentDailyDto | FundGranularRowDto;
 
 export interface FundCommitmentTabRow {
   period?: string;
@@ -174,13 +218,9 @@ export type FundNavView = FundCommitmentsView;
 
 export const fundNavViewFromTimeframe = fundCommitmentsViewFromTimeframe;
 
-export interface FundNavQueryParams {
-  view: FundNavView;
-  search?: string;
-  page?: number;
-  pageSize?: number;
-  quarterYear?: string;
-}
+export interface FundNavQueryParams extends FundFundamentalQueryParams {}
+
+export interface FundUnfundedCommitmentsQueryParams extends FundFundamentalQueryParams {}
 
 export type FundNavPeriodDto = FundCommitmentPeriodDto;
 export type FundNavDailyDto = FundCommitmentDailyDto;

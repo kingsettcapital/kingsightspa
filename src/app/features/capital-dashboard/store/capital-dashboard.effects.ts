@@ -7,10 +7,18 @@ import { LIST_PAGE_SIZE } from '../shared/list-pagination.constants';
 import { CapitalAssetsApiService } from '../shared/services/capital-assets-api.service';
 import { CapitalFundsApiService } from '../shared/services/capital-funds-api.service';
 import { CapitalInvestorsApiService } from '../shared/services/capital-investors-api.service';
-import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
-import { readFundCommitmentsPageCache, readFundNavPageCache, readListCacheEntry } from './capital-dashboard-cache.util';
 import { mapFundCommitmentsToTabRows } from '../investments/tabs/commitments/fund-commitment.mapper';
 import { mapFundNavToTabRows } from '../investments/tabs/nav/fund-nav.mapper';
+import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
+import {
+  readFundCommitmentsPageCache,
+  readFundNavPageCache,
+  readFundPeriodsCache,
+  readFundDistributionsPageCache,
+  readFundInvestmentsPageCache,
+  readFundUnfundedCommitmentsPageCache,
+  readListCacheEntry,
+} from './capital-dashboard-cache.util';
 import { selectAssets, selectFunds, selectInvestors } from './capital-dashboard.reducer';
 import { selectAssetsList, selectFundsList, selectInvestorsList } from './capital-dashboard.selectors';
 
@@ -219,13 +227,50 @@ export class CapitalDashboardEffects {
     ),
   );
 
+  readonly loadFundPeriods$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FundsApiActions.loadFundPeriods),
+      withLatestFrom(this.store.select(selectFunds)),
+      switchMap(([request, funds]) => {
+        if (readFundPeriodsCache(funds.cache.periodLists, request.fundKey, request.source, request.view)) {
+          return EMPTY;
+        }
+        return this.fundsApi
+          .getFundPeriodsPage(request.fundKey, {
+            view: request.view,
+            source: request.source,
+            page: 1,
+          })
+          .pipe(
+            map((result) =>
+              FundsApiActions.loadFundPeriodsSuccess({
+                fundKey: request.fundKey,
+                source: request.source,
+                view: request.view,
+                items: result.items ?? [],
+              }),
+            ),
+            catchError(() =>
+              of(
+                FundsApiActions.loadFundPeriodsFailure({
+                  fundKey: request.fundKey,
+                  source: request.source,
+                  view: request.view,
+                  error: 'Unable to load periods.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
   readonly loadFundCommitmentsPage$ = createEffect(() =>
     this.actions$.pipe(
       ofType(FundsApiActions.loadFundCommitmentsPage),
       withLatestFrom(this.store.select(selectFunds)),
       switchMap(([request, funds]) => {
         const search = request.search.trim();
-        const quarterYear = request.quarterYear?.trim() ?? '';
         if (
           !search &&
           readFundCommitmentsPageCache(
@@ -233,7 +278,7 @@ export class CapitalDashboardEffects {
             request.fundKey,
             request.timeframe,
             request.page,
-            quarterYear,
+            request.dateKey,
           )
         ) {
           return EMPTY;
@@ -241,8 +286,7 @@ export class CapitalDashboardEffects {
         return this.fundsApi
           .getFundCommitmentsPage(request.fundKey, request.timeframe, {
             page: request.page,
-            search: search || undefined,
-            quarterYear: quarterYear || undefined,
+            dateKey: request.dateKey,
           })
           .pipe(
             map((result) => {
@@ -254,7 +298,7 @@ export class CapitalDashboardEffects {
                 hasNextPage: !!result.hasNextPage,
                 replace: request.replace,
                 search: request.search,
-                quarterYear,
+                dateKey: request.dateKey,
               });
             }),
             catchError(() =>
@@ -269,24 +313,172 @@ export class CapitalDashboardEffects {
     ),
   );
 
+  readonly loadFundUnfundedCommitmentsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FundsApiActions.loadFundUnfundedCommitmentsPage),
+      withLatestFrom(this.store.select(selectFunds)),
+      switchMap(([request, funds]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          readFundUnfundedCommitmentsPageCache(
+            funds.cache.unfundedCommitmentPages,
+            request.fundKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.fundsApi
+          .getFundUnfundedCommitmentsPage(request.fundKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundCommitmentsToTabRows(result.items, request.timeframe);
+              return FundsApiActions.loadFundUnfundedCommitmentsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+              });
+            }),
+            catchError(() =>
+              of(
+                FundsApiActions.loadFundUnfundedCommitmentsPageFailure({
+                  error: 'Unable to load unfunded commitments. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadFundInvestmentsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FundsApiActions.loadFundInvestmentsPage),
+      withLatestFrom(this.store.select(selectFunds)),
+      switchMap(([request, funds]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          readFundInvestmentsPageCache(
+            funds.cache.investmentPages,
+            request.fundKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.fundsApi
+          .getFundInvestmentsPage(request.fundKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundCommitmentsToTabRows(result.items, request.timeframe);
+              return FundsApiActions.loadFundInvestmentsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+              });
+            }),
+            catchError(() =>
+              of(
+                FundsApiActions.loadFundInvestmentsPageFailure({
+                  error: 'Unable to load investments. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadFundDistributionsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FundsApiActions.loadFundDistributionsPage),
+      withLatestFrom(this.store.select(selectFunds)),
+      switchMap(([request, funds]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          readFundDistributionsPageCache(
+            funds.cache.distributionPages,
+            request.fundKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.fundsApi
+          .getFundDistributionsPage(request.fundKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundCommitmentsToTabRows(result.items, request.timeframe);
+              return FundsApiActions.loadFundDistributionsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+              });
+            }),
+            catchError(() =>
+              of(
+                FundsApiActions.loadFundDistributionsPageFailure({
+                  error: 'Unable to load distributions. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
   readonly loadFundNavPage$ = createEffect(() =>
     this.actions$.pipe(
       ofType(FundsApiActions.loadFundNavPage),
       withLatestFrom(this.store.select(selectFunds)),
       switchMap(([request, funds]) => {
         const search = request.search.trim();
-        const quarterYear = request.quarterYear?.trim() ?? '';
         if (
           !search &&
-          readFundNavPageCache(funds.cache.navPages, request.fundKey, request.timeframe, request.page, quarterYear)
+          readFundNavPageCache(
+            funds.cache.navPages,
+            request.fundKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
         ) {
           return EMPTY;
         }
         return this.fundsApi
           .getFundNavPage(request.fundKey, request.timeframe, {
             page: request.page,
-            search: search || undefined,
-            quarterYear: quarterYear || undefined,
+            dateKey: request.dateKey,
           })
           .pipe(
             map((result) => {
@@ -298,7 +490,7 @@ export class CapitalDashboardEffects {
                 hasNextPage: !!result.hasNextPage,
                 replace: request.replace,
                 search: request.search,
-                quarterYear,
+                dateKey: request.dateKey,
               });
             }),
             catchError(() =>

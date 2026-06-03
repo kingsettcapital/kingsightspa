@@ -45,7 +45,7 @@
 }
 
 :host .detail-table-wrap.tab-table-wrap {
-  flex: 1 1 auto;
+  flex: none;
   min-height: 0;
   overflow: hidden;
 }
@@ -53,6 +53,7 @@
 :host .detail-table-wrap.tab-table-wrap .detail-table__scroll {
   overflow-x: auto;
   overflow-y: auto;
+  max-height: calc(100vh - 600px);
 }
 
 :host .detail-table-wrap.tab-table-wrap .tab-table-summary {

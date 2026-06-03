@@ -37,12 +37,14 @@
       <mat-label>Period</mat-label>
       <mat-select
         [value]="period()"
-        (valueChange)="period.set($event)"
+        (valueChange)="onPeriodChange($event)"
         panelClass="tab-period-panel"
         [hideSingleSelectionIndicator]="true"
       >
         <mat-option value="all">All Periods</mat-option>
-        <mat-option value="2019-09">2029-09</mat-option>
+        @for (option of periodOptions(); track option.value) {
+          <mat-option [value]="option.value" [disabled]="option.disabled">{{ option.label }}</mat-option>
+        }
       </mat-select>
     </mat-form-field>
 
@@ -126,8 +128,10 @@
       @if (showSummaryFooter()) {
         <div class="tab-table-summary" aria-label="Table totals">
           <span>Total: {{ totalAmount() | ksCurrency }}</span>
-          <span class="tab-table-summary__sep" aria-hidden="true">|</span>
-          <span>Units: {{ totalUnits() | number: '1.0-0' }}</span>
+          @if (fundType() === 'Unitized') {
+            <span class="tab-table-summary__sep" aria-hidden="true">|</span>
+            <span>Units: {{ totalUnits() | number: '1.0-0' }}</span>
+          }
         </div>
       }
     </div>

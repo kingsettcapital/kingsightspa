@@ -14,4 +14,4 @@ export const selectFundsDetailSelectedKey = createSelector(selectFundsDetail, (d
 export const selectAssetsList = createSelector(selectAssets, (s) => s.list);
 export const selectAssetsDetail = createSelector(selectAssets, (s) => s.detail);
 
-export { selectActiveTab };
+export { selectActiveTab, selectFunds };

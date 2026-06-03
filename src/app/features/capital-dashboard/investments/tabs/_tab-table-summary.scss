@@ -5,6 +5,7 @@
   flex-direction: column;
   width: max-content;
   min-width: 100%;
+  max-height: calc(100vh - 600px);
 }
 
 .tab-table-scroll {

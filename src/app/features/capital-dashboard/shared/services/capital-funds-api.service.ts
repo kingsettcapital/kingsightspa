@@ -3,17 +3,20 @@ import { Observable } from 'rxjs';
 
 import { ApiService } from '../../../../core/services/api.service';
 import {
-  FundCommitmentDto,
   FundCommitmentTimeframe,
   FundCommitmentsQueryParams,
-  fundCommitmentsViewFromTimeframe,
+  fundTimeGranularityFromTimeframe,
   FundDetailDto,
+  FundGranularRowDto,
   FundInvestorDto,
   FundListItemDto,
-  FundNavDto,
   FundNavQueryParams,
   FundNavTimeframe,
-  fundNavViewFromTimeframe,
+  FundPeriodDto,
+  FundDistributionsQueryParams,
+  FundInvestmentsQueryParams,
+  FundPeriodsQueryParams,
+  FundUnfundedCommitmentsQueryParams,
   ListQueryParams,
   PagedResult,
 } from '../models/api.models';
@@ -35,20 +38,51 @@ export class CapitalFundsApiService {
     return this.api.get<FundInvestorDto[]>(`api/Funds/${fundKey}/investors`, params as any);
   }
 
+  getFundPeriodsPage(
+    fundKey: number,
+    params: FundPeriodsQueryParams,
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<FundPeriodDto>> {
+    const query: FundPeriodsQueryParams = {
+      view: params.view,
+      source: params.source,
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? pageSize,
+    };
+    return this.api.get<PagedResult<FundPeriodDto>>(`api/Funds/${fundKey}/periods`, query as any);
+  }
+
   getFundCommitmentsPage(
     fundKey: number,
     timeframe: FundCommitmentTimeframe,
     params: Omit<FundCommitmentsQueryParams, 'view'> = {},
     pageSize = LIST_PAGE_SIZE,
-  ): Observable<PagedResult<FundCommitmentDto>> {
+  ): Observable<PagedResult<FundGranularRowDto>> {
     const query: FundCommitmentsQueryParams = {
-      view: fundCommitmentsViewFromTimeframe(timeframe),
+      view: fundTimeGranularityFromTimeframe(timeframe),
       page: params.page ?? 1,
       pageSize: params.pageSize ?? pageSize,
-      ...(params.search?.trim() ? { search: params.search.trim() } : {}),
-      ...(params.quarterYear?.trim() ? { quarterYear: params.quarterYear.trim() } : {}),
+      ...(params.dateKey != null ? { dateKey: params.dateKey } : {}),
     };
-    return this.api.get<PagedResult<FundCommitmentDto>>(`api/Funds/${fundKey}/commitments`, query as any);
+    return this.api.get<PagedResult<FundGranularRowDto>>(`api/Funds/${fundKey}/commitments`, query as any);
+  }
+
+  getFundUnfundedCommitmentsPage(
+    fundKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: Omit<FundUnfundedCommitmentsQueryParams, 'view'> = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<FundGranularRowDto>> {
+    const query: FundUnfundedCommitmentsQueryParams = {
+      view: fundTimeGranularityFromTimeframe(timeframe),
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? pageSize,
+      ...(params.dateKey != null ? { dateKey: params.dateKey } : {}),
+    };
+    return this.api.get<PagedResult<FundGranularRowDto>>(
+      `api/Funds/${fundKey}/unfunded-commitments`,
+      query as any,
+    );
   }
 
   getFundNavPage(
@@ -56,15 +90,43 @@ export class CapitalFundsApiService {
     timeframe: FundNavTimeframe,
     params: Omit<FundNavQueryParams, 'view'> = {},
     pageSize = LIST_PAGE_SIZE,
-  ): Observable<PagedResult<FundNavDto>> {
+  ): Observable<PagedResult<FundGranularRowDto>> {
     const query: FundNavQueryParams = {
-      view: fundNavViewFromTimeframe(timeframe),
+      view: fundTimeGranularityFromTimeframe(timeframe),
       page: params.page ?? 1,
       pageSize: params.pageSize ?? pageSize,
-      ...(params.search?.trim() ? { search: params.search.trim() } : {}),
-      ...(params.quarterYear?.trim() ? { quarterYear: params.quarterYear.trim() } : {}),
+      ...(params.dateKey != null ? { dateKey: params.dateKey } : {}),
     };
-    return this.api.get<PagedResult<FundNavDto>>(`api/Funds/${fundKey}/nav`, query as any);
+    return this.api.get<PagedResult<FundGranularRowDto>>(`api/Funds/${fundKey}/nav`, query as any);
+  }
+
+  getFundInvestmentsPage(
+    fundKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: Omit<FundInvestmentsQueryParams, 'view'> = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<FundGranularRowDto>> {
+    const query: FundInvestmentsQueryParams = {
+      view: fundTimeGranularityFromTimeframe(timeframe),
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? pageSize,
+      ...(params.dateKey != null ? { dateKey: params.dateKey } : {}),
+    };
+    return this.api.get<PagedResult<FundGranularRowDto>>(`api/Funds/${fundKey}/investments`, query as any);
+  }
+
+  getFundDistributionsPage(
+    fundKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: Omit<FundDistributionsQueryParams, 'view'> = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<FundGranularRowDto>> {
+    const query: FundDistributionsQueryParams = {
+      view: fundTimeGranularityFromTimeframe(timeframe),
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? pageSize,
+      ...(params.dateKey != null ? { dateKey: params.dateKey } : {}),
+    };
+    return this.api.get<PagedResult<FundGranularRowDto>>(`api/Funds/${fundKey}/distributions`, query as any);
   }
 }
-

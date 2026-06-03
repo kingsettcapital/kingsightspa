@@ -16,10 +16,16 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { KsCurrencyPipe } from '../../../../../shared/pipes/ks-currency.pipe';
 import { ExcelService } from '../../../../../core/services/excel.service';
 import { FundCommitmentTabRow, FundCommitmentTimeframe } from '../../../shared/models/api.models';
+import { readFundPeriodsCache } from '../../../store/capital-dashboard-cache.util';
 import { FundsApiActions } from '../../../store';
-import { selectFundsDetail, selectFundsDetailSelectedKey } from '../../../store/capital-dashboard.selectors';
+import { selectFunds, selectFundsDetail, selectFundsDetailSelectedKey } from '../../../store/capital-dashboard.selectors';
 import { PortalSpinnerComponent } from '../../../shared/components/portal-spinner/portal-spinner.component';
-import { sumInvestmentDetailTabRows } from '../investment-detail-tab.util';
+import {
+  dateKeyFromPeriodFilter,
+  FundPeriodFilterValue,
+  mapFundPeriodsToSelectOptions,
+} from '../fund-period.util';
+import { filterInvestmentDetailTabRows, sumInvestmentDetailTabRows } from '../investment-detail-tab.util';
 
 @Component({
   selector: 'app-investment-commitments-tab',
@@ -49,24 +55,39 @@ export class InvestmentCommitmentsTabComponent {
   /** True when the Commitments mat-tab is selected (lazy-load gate). */
   readonly tabActive = input(false);
 
+  private readonly funds = this.store.selectSignal(selectFunds);
   private readonly fundsDetail = this.store.selectSignal(selectFundsDetail);
   private readonly selectedFundKey = this.store.selectSignal(selectFundsDetailSelectedKey);
 
-  /** Prevents the tab-activate effect from re-firing on every commitments state update. */
   private commitmentsAutoLoadKey: string | null = null;
+  private periodsLoadKey: string | null = null;
 
-  readonly period = signal<'all'>('all');
+  readonly period = signal<FundPeriodFilterValue>('all');
   readonly searchQuery = signal('');
 
   readonly timeframe = computed(() => this.fundsDetail().commitmentsTimeframe);
   readonly isDaily = computed(() => this.timeframe() === 'daily');
   readonly showSummaryFooter = computed(() => this.timeframe() !== 'ltd');
 
+  readonly periodOptions = computed(() => {
+    const fundKey = this.selectedFundKey();
+    if (!fundKey) return [];
+    const cached = readFundPeriodsCache(
+      this.funds().cache.periodLists,
+      fundKey,
+      'commitments',
+      this.timeframe(),
+    );
+    return mapFundPeriodsToSelectOptions(cached?.items);
+  });
+
   readonly columns = computed(() =>
     this.isDaily() ? ['date', 'amount', 'units', 'description'] : ['period', 'amount', 'units', 'description'],
   );
 
-  readonly rows = computed(() => this.fundsDetail().commitments);
+  readonly rows = computed(() =>
+    filterInvestmentDetailTabRows(this.fundsDetail().commitments, this.searchQuery()),
+  );
   readonly loading = computed(() => this.fundsDetail().commitmentsLoading);
   readonly loadingMore = computed(() => this.fundsDetail().commitmentsLoadingMore);
   readonly hasNextPage = computed(() => this.fundsDetail().commitmentsHasNextPage);
@@ -79,12 +100,24 @@ export class InvestmentCommitmentsTabComponent {
     effect(() => {
       if (!this.tabActive()) {
         this.commitmentsAutoLoadKey = null;
+        this.periodsLoadKey = null;
         return;
       }
       const fundKey = this.selectedFundKey();
+      const timeframe = this.timeframe();
       if (!fundKey) return;
 
-      const autoLoadKey = `${fundKey}`;
+      const periodsKey = `${fundKey}:commitments:${timeframe}`;
+      if (this.periodsLoadKey !== periodsKey) {
+        this.periodsLoadKey = periodsKey;
+        untracked(() =>
+          this.store.dispatch(
+            FundsApiActions.loadFundPeriods({ fundKey, source: 'commitments', view: timeframe }),
+          ),
+        );
+      }
+
+      const autoLoadKey = `${fundKey}:${timeframe}:${this.period()}`;
       if (this.commitmentsAutoLoadKey === autoLoadKey) return;
       this.commitmentsAutoLoadKey = autoLoadKey;
 
@@ -105,7 +138,9 @@ export class InvestmentCommitmentsTabComponent {
     if (!this.tabActive()) return;
     const fundKey = this.selectedFundKey();
     if (!fundKey) return;
-    this.commitmentsAutoLoadKey = `${fundKey}:${value}`;
+    this.period.set('all');
+    this.commitmentsAutoLoadKey = null;
+    this.periodsLoadKey = null;
     this.store.dispatch(
       FundsApiActions.loadFundCommitmentsPage({
         fundKey,
@@ -115,6 +150,15 @@ export class InvestmentCommitmentsTabComponent {
         replace: true,
       }),
     );
+  }
+
+  onPeriodChange(value: FundPeriodFilterValue): void {
+    this.period.set(value);
+    if (!this.tabActive()) return;
+    const fundKey = this.selectedFundKey();
+    if (!fundKey) return;
+    this.commitmentsAutoLoadKey = null;
+    untracked(() => this.dispatchPage(1, true));
   }
 
   loadMore(): void {
@@ -156,6 +200,7 @@ export class InvestmentCommitmentsTabComponent {
         page,
         search: this.searchQuery(),
         replace,
+        dateKey: dateKeyFromPeriodFilter(this.period()),
       }),
     );
   }

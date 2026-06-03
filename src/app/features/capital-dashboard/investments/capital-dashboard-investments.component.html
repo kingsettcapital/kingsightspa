@@ -421,19 +421,28 @@
 
           <mat-tab label="Unfunded Commitment">
             <div class="detail-card__body">
-              <app-investment-unfunded-commitment-tab [fundType]="summaryDisplay('fundType')"/>
+              <app-investment-unfunded-commitment-tab
+                [tabActive]="activeTabIndex === unfundedCommitmentsTabIndex"
+                [fundType]="summaryDisplay('fundType')"
+              />
             </div>
           </mat-tab>
 
           <mat-tab label="Investments">
-            <div class="detail-card__body">
-              <app-investment-investments-tab [fundType]="summaryDisplay('fundType')"/>
+            <div class="detail-card__body detail-card__body--table">
+              <app-investment-investments-tab
+                [tabActive]="activeTabIndex === fundInvestmentsTabIndex"
+                [fundType]="summaryDisplay('fundType')"
+              />
             </div>
           </mat-tab>
 
           <mat-tab label="Distributions">
-            <div class="detail-card__body">
-              <app-investment-distributions-tab [fundType]="summaryDisplay('fundType')"/>
+            <div class="detail-card__body detail-card__body--table">
+              <app-investment-distributions-tab
+                [tabActive]="activeTabIndex === fundDistributionsTabIndex"
+                [fundType]="summaryDisplay('fundType')"
+              />
             </div>
           </mat-tab>
 

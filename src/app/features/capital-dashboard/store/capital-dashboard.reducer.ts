@@ -5,9 +5,17 @@ import {
   listStateFromCacheEntry,
   readFundCommitmentsPageCache,
   readFundNavPageCache,
+  readFundPeriodsCache,
+  readFundDistributionsPageCache,
+  readFundInvestmentsPageCache,
+  readFundUnfundedCommitmentsPageCache,
   readListCacheEntry,
   writeFundCommitmentsPageCache,
+  writeFundDistributionsPageCache,
+  writeFundInvestmentsPageCache,
   writeFundNavPageCache,
+  writeFundPeriodsCache,
+  writeFundUnfundedCommitmentsPageCache,
   writeListCacheEntry,
 } from './capital-dashboard-cache.util';
 import {
@@ -63,6 +71,78 @@ function emptyFundCommitmentsDetail(): Pick<
     commitmentsLoading: d.commitmentsLoading,
     commitmentsLoadingMore: d.commitmentsLoadingMore,
     commitmentsError: d.commitmentsError,
+  };
+}
+
+function emptyFundUnfundedCommitmentsDetail(): Pick<
+  FundsDetailState,
+  | 'unfundedCommitmentsTimeframe'
+  | 'unfundedCommitments'
+  | 'unfundedCommitmentsPage'
+  | 'unfundedCommitmentsSearch'
+  | 'unfundedCommitmentsHasNextPage'
+  | 'unfundedCommitmentsLoading'
+  | 'unfundedCommitmentsLoadingMore'
+  | 'unfundedCommitmentsError'
+> {
+  const d = initialCapitalDashboardState.funds.detail;
+  return {
+    unfundedCommitmentsTimeframe: d.unfundedCommitmentsTimeframe,
+    unfundedCommitments: d.unfundedCommitments,
+    unfundedCommitmentsPage: d.unfundedCommitmentsPage,
+    unfundedCommitmentsSearch: d.unfundedCommitmentsSearch,
+    unfundedCommitmentsHasNextPage: d.unfundedCommitmentsHasNextPage,
+    unfundedCommitmentsLoading: d.unfundedCommitmentsLoading,
+    unfundedCommitmentsLoadingMore: d.unfundedCommitmentsLoadingMore,
+    unfundedCommitmentsError: d.unfundedCommitmentsError,
+  };
+}
+
+function emptyFundInvestmentsDetail(): Pick<
+  FundsDetailState,
+  | 'fundInvestmentsTimeframe'
+  | 'fundInvestments'
+  | 'fundInvestmentsPage'
+  | 'fundInvestmentsSearch'
+  | 'fundInvestmentsHasNextPage'
+  | 'fundInvestmentsLoading'
+  | 'fundInvestmentsLoadingMore'
+  | 'fundInvestmentsError'
+> {
+  const d = initialCapitalDashboardState.funds.detail;
+  return {
+    fundInvestmentsTimeframe: d.fundInvestmentsTimeframe,
+    fundInvestments: d.fundInvestments,
+    fundInvestmentsPage: d.fundInvestmentsPage,
+    fundInvestmentsSearch: d.fundInvestmentsSearch,
+    fundInvestmentsHasNextPage: d.fundInvestmentsHasNextPage,
+    fundInvestmentsLoading: d.fundInvestmentsLoading,
+    fundInvestmentsLoadingMore: d.fundInvestmentsLoadingMore,
+    fundInvestmentsError: d.fundInvestmentsError,
+  };
+}
+
+function emptyFundDistributionsDetail(): Pick<
+  FundsDetailState,
+  | 'fundDistributionsTimeframe'
+  | 'fundDistributions'
+  | 'fundDistributionsPage'
+  | 'fundDistributionsSearch'
+  | 'fundDistributionsHasNextPage'
+  | 'fundDistributionsLoading'
+  | 'fundDistributionsLoadingMore'
+  | 'fundDistributionsError'
+> {
+  const d = initialCapitalDashboardState.funds.detail;
+  return {
+    fundDistributionsTimeframe: d.fundDistributionsTimeframe,
+    fundDistributions: d.fundDistributions,
+    fundDistributionsPage: d.fundDistributionsPage,
+    fundDistributionsSearch: d.fundDistributionsSearch,
+    fundDistributionsHasNextPage: d.fundDistributionsHasNextPage,
+    fundDistributionsLoading: d.fundDistributionsLoading,
+    fundDistributionsLoadingMore: d.fundDistributionsLoadingMore,
+    fundDistributionsError: d.fundDistributionsError,
   };
 }
 
@@ -298,6 +378,9 @@ export const capitalDashboardFeature = createFeature({
             ...state.funds,
             detail: {
               ...emptyFundCommitmentsDetail(),
+              ...emptyFundUnfundedCommitmentsDetail(),
+              ...emptyFundInvestmentsDetail(),
+              ...emptyFundDistributionsDetail(),
               ...emptyFundNavDetail(),
               selectedKey: fundKey,
               detail: cached.detail,
@@ -323,6 +406,9 @@ export const capitalDashboardFeature = createFeature({
           ...state.funds,
           detail: {
             ...emptyFundCommitmentsDetail(),
+            ...emptyFundUnfundedCommitmentsDetail(),
+            ...emptyFundInvestmentsDetail(),
+            ...emptyFundDistributionsDetail(),
             ...emptyFundNavDetail(),
             selectedKey: fundKey,
             detail: null,
@@ -359,6 +445,9 @@ export const capitalDashboardFeature = createFeature({
             ...state.funds,
             detail: {
               ...emptyFundCommitmentsDetail(),
+              ...emptyFundUnfundedCommitmentsDetail(),
+              ...emptyFundInvestmentsDetail(),
+              ...emptyFundDistributionsDetail(),
               ...emptyFundNavDetail(),
               selectedKey: fundKey,
               detail,
@@ -500,10 +589,20 @@ export const capitalDashboardFeature = createFeature({
         },
       },
     })),
+    on(FundsApiActions.loadFundPeriodsSuccess, (state, { fundKey, source, view, items }) => ({
+      ...state,
+      funds: {
+        ...state.funds,
+        cache: {
+          ...state.funds.cache,
+          periodLists: writeFundPeriodsCache(state.funds.cache.periodLists, fundKey, source, view, items),
+        },
+      },
+    })),
+    on(FundsApiActions.loadFundPeriodsFailure, (state) => state),
     on(
       FundsApiActions.loadFundCommitmentsPage,
-      (state, { fundKey, timeframe, page, search, replace, quarterYear = '' }) => {
-        const qy = quarterYear ?? '';
+      (state, { fundKey, timeframe, page, search, replace, dateKey }) => {
         const sameRequestInFlight =
           replace &&
           page === 1 &&
@@ -517,7 +616,7 @@ export const capitalDashboardFeature = createFeature({
 
         const cached =
           !search.trim() &&
-          readFundCommitmentsPageCache(state.funds.cache.commitmentPages, fundKey, timeframe, page, qy);
+          readFundCommitmentsPageCache(state.funds.cache.commitmentPages, fundKey, timeframe, page, dateKey);
         if (cached) {
           const nextCommitments = replace
             ? [...cached.items]
@@ -561,7 +660,7 @@ export const capitalDashboardFeature = createFeature({
     ),
     on(
       FundsApiActions.loadFundCommitmentsPageSuccess,
-      (state, { timeframe, page, items, hasNextPage, replace, search, quarterYear }) => {
+      (state, { timeframe, page, items, hasNextPage, replace, search, dateKey }) => {
         const fundKey = state.funds.detail.selectedKey;
         const nextCommitments = replace ? [...items] : [...state.funds.detail.commitments, ...items];
         let nextCache = state.funds.cache;
@@ -575,7 +674,7 @@ export const capitalDashboardFeature = createFeature({
               page,
               items,
               hasNextPage,
-              quarterYear,
+              dateKey,
             ),
           };
         }
@@ -611,8 +710,352 @@ export const capitalDashboardFeature = createFeature({
         },
       },
     })),
-    on(FundsApiActions.loadFundNavPage, (state, { fundKey, timeframe, page, search, replace, quarterYear = '' }) => {
-      const qy = quarterYear ?? '';
+    on(
+      FundsApiActions.loadFundUnfundedCommitmentsPage,
+      (state, { fundKey, timeframe, page, search, replace, dateKey }) => {
+        const sameRequestInFlight =
+          replace &&
+          page === 1 &&
+          state.funds.detail.selectedKey === fundKey &&
+          state.funds.detail.unfundedCommitmentsTimeframe === timeframe &&
+          state.funds.detail.unfundedCommitmentsSearch === search &&
+          (state.funds.detail.unfundedCommitmentsLoading ||
+            state.funds.detail.unfundedCommitmentsLoadingMore);
+        if (sameRequestInFlight) {
+          return state;
+        }
+
+        const cached =
+          !search.trim() &&
+          readFundUnfundedCommitmentsPageCache(
+            state.funds.cache.unfundedCommitmentPages,
+            fundKey,
+            timeframe,
+            page,
+            dateKey,
+          );
+        if (cached) {
+          const nextRows = replace
+            ? [...cached.items]
+            : [...state.funds.detail.unfundedCommitments, ...cached.items];
+          return {
+            ...state,
+            funds: {
+              ...state.funds,
+              detail: {
+                ...state.funds.detail,
+                selectedKey: fundKey,
+                unfundedCommitmentsTimeframe: timeframe,
+                unfundedCommitments: nextRows,
+                unfundedCommitmentsPage: page,
+                unfundedCommitmentsSearch: search,
+                unfundedCommitmentsHasNextPage: cached.hasNextPage,
+                unfundedCommitmentsLoading: false,
+                unfundedCommitmentsLoadingMore: false,
+                unfundedCommitmentsError: null,
+              },
+            },
+          };
+        }
+        return {
+          ...state,
+          funds: {
+            ...state.funds,
+            detail: {
+              ...state.funds.detail,
+              selectedKey: fundKey,
+              unfundedCommitmentsTimeframe: timeframe,
+              unfundedCommitmentsSearch: search,
+              unfundedCommitmentsLoading: replace,
+              unfundedCommitmentsLoadingMore: !replace,
+              unfundedCommitmentsError: null,
+              ...(replace ? { unfundedCommitments: [], unfundedCommitmentsHasNextPage: false } : {}),
+            },
+          },
+        };
+      },
+    ),
+    on(
+      FundsApiActions.loadFundUnfundedCommitmentsPageSuccess,
+      (state, { timeframe, page, items, hasNextPage, replace, search, dateKey }) => {
+        const fundKey = state.funds.detail.selectedKey;
+        const nextRows = replace
+          ? [...items]
+          : [...state.funds.detail.unfundedCommitments, ...items];
+        let nextCache = state.funds.cache;
+        if (fundKey != null && !search.trim()) {
+          nextCache = {
+            ...nextCache,
+            unfundedCommitmentPages: writeFundUnfundedCommitmentsPageCache(
+              nextCache.unfundedCommitmentPages,
+              fundKey,
+              timeframe,
+              page,
+              items,
+              hasNextPage,
+              dateKey,
+            ),
+          };
+        }
+        return {
+          ...state,
+          funds: {
+            ...state.funds,
+            detail: {
+              ...state.funds.detail,
+              unfundedCommitmentsTimeframe: timeframe,
+              unfundedCommitments: nextRows,
+              unfundedCommitmentsPage: page,
+              unfundedCommitmentsSearch: search,
+              unfundedCommitmentsHasNextPage: hasNextPage,
+              unfundedCommitmentsLoading: false,
+              unfundedCommitmentsLoadingMore: false,
+              unfundedCommitmentsError: null,
+            },
+            cache: nextCache,
+          },
+        };
+      },
+    ),
+    on(FundsApiActions.loadFundUnfundedCommitmentsPageFailure, (state, { error }) => ({
+      ...state,
+      funds: {
+        ...state.funds,
+        detail: {
+          ...state.funds.detail,
+          unfundedCommitmentsLoading: false,
+          unfundedCommitmentsLoadingMore: false,
+          unfundedCommitmentsError: error,
+        },
+      },
+    })),
+    on(
+      FundsApiActions.loadFundInvestmentsPage,
+      (state, { fundKey, timeframe, page, search, replace, dateKey }) => {
+        const sameRequestInFlight =
+          replace &&
+          page === 1 &&
+          state.funds.detail.selectedKey === fundKey &&
+          state.funds.detail.fundInvestmentsTimeframe === timeframe &&
+          state.funds.detail.fundInvestmentsSearch === search &&
+          (state.funds.detail.fundInvestmentsLoading || state.funds.detail.fundInvestmentsLoadingMore);
+        if (sameRequestInFlight) {
+          return state;
+        }
+
+        const cached =
+          !search.trim() &&
+          readFundInvestmentsPageCache(state.funds.cache.investmentPages, fundKey, timeframe, page, dateKey);
+        if (cached) {
+          const nextRows = replace
+            ? [...cached.items]
+            : [...state.funds.detail.fundInvestments, ...cached.items];
+          return {
+            ...state,
+            funds: {
+              ...state.funds,
+              detail: {
+                ...state.funds.detail,
+                selectedKey: fundKey,
+                fundInvestmentsTimeframe: timeframe,
+                fundInvestments: nextRows,
+                fundInvestmentsPage: page,
+                fundInvestmentsSearch: search,
+                fundInvestmentsHasNextPage: cached.hasNextPage,
+                fundInvestmentsLoading: false,
+                fundInvestmentsLoadingMore: false,
+                fundInvestmentsError: null,
+              },
+            },
+          };
+        }
+        return {
+          ...state,
+          funds: {
+            ...state.funds,
+            detail: {
+              ...state.funds.detail,
+              selectedKey: fundKey,
+              fundInvestmentsTimeframe: timeframe,
+              fundInvestmentsSearch: search,
+              fundInvestmentsLoading: replace,
+              fundInvestmentsLoadingMore: !replace,
+              fundInvestmentsError: null,
+              ...(replace ? { fundInvestments: [], fundInvestmentsHasNextPage: false } : {}),
+            },
+          },
+        };
+      },
+    ),
+    on(
+      FundsApiActions.loadFundInvestmentsPageSuccess,
+      (state, { timeframe, page, items, hasNextPage, replace, search, dateKey }) => {
+        const fundKey = state.funds.detail.selectedKey;
+        const nextRows = replace ? [...items] : [...state.funds.detail.fundInvestments, ...items];
+        let nextCache = state.funds.cache;
+        if (fundKey != null && !search.trim()) {
+          nextCache = {
+            ...nextCache,
+            investmentPages: writeFundInvestmentsPageCache(
+              nextCache.investmentPages,
+              fundKey,
+              timeframe,
+              page,
+              items,
+              hasNextPage,
+              dateKey,
+            ),
+          };
+        }
+        return {
+          ...state,
+          funds: {
+            ...state.funds,
+            detail: {
+              ...state.funds.detail,
+              fundInvestmentsTimeframe: timeframe,
+              fundInvestments: nextRows,
+              fundInvestmentsPage: page,
+              fundInvestmentsSearch: search,
+              fundInvestmentsHasNextPage: hasNextPage,
+              fundInvestmentsLoading: false,
+              fundInvestmentsLoadingMore: false,
+              fundInvestmentsError: null,
+            },
+            cache: nextCache,
+          },
+        };
+      },
+    ),
+    on(FundsApiActions.loadFundInvestmentsPageFailure, (state, { error }) => ({
+      ...state,
+      funds: {
+        ...state.funds,
+        detail: {
+          ...state.funds.detail,
+          fundInvestmentsLoading: false,
+          fundInvestmentsLoadingMore: false,
+          fundInvestmentsError: error,
+        },
+      },
+    })),
+    on(
+      FundsApiActions.loadFundDistributionsPage,
+      (state, { fundKey, timeframe, page, search, replace, dateKey }) => {
+        const sameRequestInFlight =
+          replace &&
+          page === 1 &&
+          state.funds.detail.selectedKey === fundKey &&
+          state.funds.detail.fundDistributionsTimeframe === timeframe &&
+          state.funds.detail.fundDistributionsSearch === search &&
+          (state.funds.detail.fundDistributionsLoading || state.funds.detail.fundDistributionsLoadingMore);
+        if (sameRequestInFlight) {
+          return state;
+        }
+
+        const cached =
+          !search.trim() &&
+          readFundDistributionsPageCache(
+            state.funds.cache.distributionPages,
+            fundKey,
+            timeframe,
+            page,
+            dateKey,
+          );
+        if (cached) {
+          const nextRows = replace
+            ? [...cached.items]
+            : [...state.funds.detail.fundDistributions, ...cached.items];
+          return {
+            ...state,
+            funds: {
+              ...state.funds,
+              detail: {
+                ...state.funds.detail,
+                selectedKey: fundKey,
+                fundDistributionsTimeframe: timeframe,
+                fundDistributions: nextRows,
+                fundDistributionsPage: page,
+                fundDistributionsSearch: search,
+                fundDistributionsHasNextPage: cached.hasNextPage,
+                fundDistributionsLoading: false,
+                fundDistributionsLoadingMore: false,
+                fundDistributionsError: null,
+              },
+            },
+          };
+        }
+        return {
+          ...state,
+          funds: {
+            ...state.funds,
+            detail: {
+              ...state.funds.detail,
+              selectedKey: fundKey,
+              fundDistributionsTimeframe: timeframe,
+              fundDistributionsSearch: search,
+              fundDistributionsLoading: replace,
+              fundDistributionsLoadingMore: !replace,
+              fundDistributionsError: null,
+              ...(replace ? { fundDistributions: [], fundDistributionsHasNextPage: false } : {}),
+            },
+          },
+        };
+      },
+    ),
+    on(
+      FundsApiActions.loadFundDistributionsPageSuccess,
+      (state, { timeframe, page, items, hasNextPage, replace, search, dateKey }) => {
+        const fundKey = state.funds.detail.selectedKey;
+        const nextRows = replace ? [...items] : [...state.funds.detail.fundDistributions, ...items];
+        let nextCache = state.funds.cache;
+        if (fundKey != null && !search.trim()) {
+          nextCache = {
+            ...nextCache,
+            distributionPages: writeFundDistributionsPageCache(
+              nextCache.distributionPages,
+              fundKey,
+              timeframe,
+              page,
+              items,
+              hasNextPage,
+              dateKey,
+            ),
+          };
+        }
+        return {
+          ...state,
+          funds: {
+            ...state.funds,
+            detail: {
+              ...state.funds.detail,
+              fundDistributionsTimeframe: timeframe,
+              fundDistributions: nextRows,
+              fundDistributionsPage: page,
+              fundDistributionsSearch: search,
+              fundDistributionsHasNextPage: hasNextPage,
+              fundDistributionsLoading: false,
+              fundDistributionsLoadingMore: false,
+              fundDistributionsError: null,
+            },
+            cache: nextCache,
+          },
+        };
+      },
+    ),
+    on(FundsApiActions.loadFundDistributionsPageFailure, (state, { error }) => ({
+      ...state,
+      funds: {
+        ...state.funds,
+        detail: {
+          ...state.funds.detail,
+          fundDistributionsLoading: false,
+          fundDistributionsLoadingMore: false,
+          fundDistributionsError: error,
+        },
+      },
+    })),
+    on(FundsApiActions.loadFundNavPage, (state, { fundKey, timeframe, page, search, replace, dateKey }) => {
       const sameRequestInFlight =
         replace &&
         page === 1 &&
@@ -625,7 +1068,7 @@ export const capitalDashboardFeature = createFeature({
       }
 
       const cached =
-        !search.trim() && readFundNavPageCache(state.funds.cache.navPages, fundKey, timeframe, page, qy);
+        !search.trim() && readFundNavPageCache(state.funds.cache.navPages, fundKey, timeframe, page, dateKey);
       if (cached) {
         const nextNav = replace ? [...cached.items] : [...state.funds.detail.nav, ...cached.items];
         return {
@@ -666,7 +1109,7 @@ export const capitalDashboardFeature = createFeature({
     }),
     on(
       FundsApiActions.loadFundNavPageSuccess,
-      (state, { timeframe, page, items, hasNextPage, replace, search, quarterYear }) => {
+      (state, { timeframe, page, items, hasNextPage, replace, search, dateKey }) => {
         const fundKey = state.funds.detail.selectedKey;
         const nextNav = replace ? [...items] : [...state.funds.detail.nav, ...items];
         let nextCache = state.funds.cache;
@@ -680,7 +1123,7 @@ export const capitalDashboardFeature = createFeature({
               page,
               items,
               hasNextPage,
-              quarterYear,
+              dateKey,
             ),
           };
         }

@@ -6,6 +6,7 @@ import {
   FundDetailDto,
   FundInvestorDto,
   FundListItemDto,
+  FundPeriodDto,
   InvestorDetailDto,
   InvestorInvestmentDto,
   InvestorListItemDto,
@@ -14,6 +15,7 @@ import {
   PropertyInvestmentDto,
   PropertyListItemDto,
 } from '../shared/models/api.models';
+import { fundPeriodsCacheKey, FundPeriodSource } from '../investments/tabs/fund-period.util';
 import { PagedListState } from './capital-dashboard.state';
 
 export interface ListCacheEntry<T> {
@@ -35,13 +37,79 @@ export function capitalDashboardFundAssetsCacheKey(
   return `${fundKey}\u0000${fundCode}\u0000${page}`;
 }
 
+function fundGranularPageDateKeySegment(dateKey?: number): string {
+  return dateKey != null ? String(dateKey) : '';
+}
+
+export function capitalDashboardFundPeriodsCacheKey(
+  fundKey: number,
+  source: FundPeriodSource,
+  view: FundCommitmentTimeframe,
+): string {
+  return fundPeriodsCacheKey(fundKey, source, view);
+}
+
+export interface FundPeriodsCacheEntry {
+  items: FundPeriodDto[];
+}
+
+export function readFundPeriodsCache(
+  cache: Record<string, FundPeriodsCacheEntry>,
+  fundKey: number,
+  source: FundPeriodSource,
+  view: FundCommitmentTimeframe,
+): FundPeriodsCacheEntry | null {
+  return cache[capitalDashboardFundPeriodsCacheKey(fundKey, source, view)] ?? null;
+}
+
+export function writeFundPeriodsCache(
+  cache: Record<string, FundPeriodsCacheEntry>,
+  fundKey: number,
+  source: FundPeriodSource,
+  view: FundCommitmentTimeframe,
+  items: FundPeriodDto[],
+): Record<string, FundPeriodsCacheEntry> {
+  const key = capitalDashboardFundPeriodsCacheKey(fundKey, source, view);
+  return {
+    ...cache,
+    [key]: { items: [...items] },
+  };
+}
+
 export function capitalDashboardFundCommitmentsCacheKey(
   fundKey: number,
   timeframe: FundCommitmentTimeframe,
   page: number,
-  quarterYear: string,
+  dateKey?: number,
 ): string {
-  return `${fundKey}\u0000${timeframe}\u0000${page}\u0000${quarterYear}`;
+  return `${fundKey}\u0000${timeframe}\u0000${page}\u0000${fundGranularPageDateKeySegment(dateKey)}`;
+}
+
+export function capitalDashboardFundUnfundedCommitmentsCacheKey(
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  dateKey?: number,
+): string {
+  return `unfunded\u0000${fundKey}\u0000${timeframe}\u0000${page}\u0000${fundGranularPageDateKeySegment(dateKey)}`;
+}
+
+export function capitalDashboardFundInvestmentsCacheKey(
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  dateKey?: number,
+): string {
+  return `investments\u0000${fundKey}\u0000${timeframe}\u0000${page}\u0000${fundGranularPageDateKeySegment(dateKey)}`;
+}
+
+export function capitalDashboardFundDistributionsCacheKey(
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  dateKey?: number,
+): string {
+  return `distributions\u0000${fundKey}\u0000${timeframe}\u0000${page}\u0000${fundGranularPageDateKeySegment(dateKey)}`;
 }
 
 export interface FundCommitmentsPageCacheEntry {
@@ -54,9 +122,9 @@ export function readFundCommitmentsPageCache(
   fundKey: number,
   timeframe: FundCommitmentTimeframe,
   page: number,
-  quarterYear = '',
+  dateKey?: number,
 ): FundCommitmentsPageCacheEntry | null {
-  return cache[capitalDashboardFundCommitmentsCacheKey(fundKey, timeframe, page, quarterYear)] ?? null;
+  return cache[capitalDashboardFundCommitmentsCacheKey(fundKey, timeframe, page, dateKey)] ?? null;
 }
 
 export function writeFundCommitmentsPageCache(
@@ -66,9 +134,96 @@ export function writeFundCommitmentsPageCache(
   page: number,
   items: FundCommitmentTabRow[],
   hasNextPage: boolean,
-  quarterYear = '',
+  dateKey?: number,
 ): Record<string, FundCommitmentsPageCacheEntry> {
-  const key = capitalDashboardFundCommitmentsCacheKey(fundKey, timeframe, page, quarterYear);
+  const key = capitalDashboardFundCommitmentsCacheKey(fundKey, timeframe, page, dateKey);
+  return {
+    ...cache,
+    [key]: {
+      items: [...items],
+      hasNextPage,
+    },
+  };
+}
+
+export function readFundUnfundedCommitmentsPageCache(
+  cache: Record<string, FundCommitmentsPageCacheEntry>,
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  dateKey?: number,
+): FundCommitmentsPageCacheEntry | null {
+  return cache[capitalDashboardFundUnfundedCommitmentsCacheKey(fundKey, timeframe, page, dateKey)] ?? null;
+}
+
+export function writeFundUnfundedCommitmentsPageCache(
+  cache: Record<string, FundCommitmentsPageCacheEntry>,
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  items: FundCommitmentTabRow[],
+  hasNextPage: boolean,
+  dateKey?: number,
+): Record<string, FundCommitmentsPageCacheEntry> {
+  const key = capitalDashboardFundUnfundedCommitmentsCacheKey(fundKey, timeframe, page, dateKey);
+  return {
+    ...cache,
+    [key]: {
+      items: [...items],
+      hasNextPage,
+    },
+  };
+}
+
+export function readFundInvestmentsPageCache(
+  cache: Record<string, FundCommitmentsPageCacheEntry>,
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  dateKey?: number,
+): FundCommitmentsPageCacheEntry | null {
+  return cache[capitalDashboardFundInvestmentsCacheKey(fundKey, timeframe, page, dateKey)] ?? null;
+}
+
+export function writeFundInvestmentsPageCache(
+  cache: Record<string, FundCommitmentsPageCacheEntry>,
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  items: FundCommitmentTabRow[],
+  hasNextPage: boolean,
+  dateKey?: number,
+): Record<string, FundCommitmentsPageCacheEntry> {
+  const key = capitalDashboardFundInvestmentsCacheKey(fundKey, timeframe, page, dateKey);
+  return {
+    ...cache,
+    [key]: {
+      items: [...items],
+      hasNextPage,
+    },
+  };
+}
+
+export function readFundDistributionsPageCache(
+  cache: Record<string, FundCommitmentsPageCacheEntry>,
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  dateKey?: number,
+): FundCommitmentsPageCacheEntry | null {
+  return cache[capitalDashboardFundDistributionsCacheKey(fundKey, timeframe, page, dateKey)] ?? null;
+}
+
+export function writeFundDistributionsPageCache(
+  cache: Record<string, FundCommitmentsPageCacheEntry>,
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  items: FundCommitmentTabRow[],
+  hasNextPage: boolean,
+  dateKey?: number,
+): Record<string, FundCommitmentsPageCacheEntry> {
+  const key = capitalDashboardFundDistributionsCacheKey(fundKey, timeframe, page, dateKey);
   return {
     ...cache,
     [key]: {
@@ -82,9 +237,9 @@ export function capitalDashboardFundNavCacheKey(
   fundKey: number,
   timeframe: FundNavTimeframe,
   page: number,
-  quarterYear: string,
+  dateKey?: number,
 ): string {
-  return `nav\u0000${fundKey}\u0000${timeframe}\u0000${page}\u0000${quarterYear}`;
+  return `nav\u0000${fundKey}\u0000${timeframe}\u0000${page}\u0000${fundGranularPageDateKeySegment(dateKey)}`;
 }
 
 export interface FundNavPageCacheEntry {
@@ -97,9 +252,9 @@ export function readFundNavPageCache(
   fundKey: number,
   timeframe: FundNavTimeframe,
   page: number,
-  quarterYear = '',
+  dateKey?: number,
 ): FundNavPageCacheEntry | null {
-  return cache[capitalDashboardFundNavCacheKey(fundKey, timeframe, page, quarterYear)] ?? null;
+  return cache[capitalDashboardFundNavCacheKey(fundKey, timeframe, page, dateKey)] ?? null;
 }
 
 export function writeFundNavPageCache(
@@ -109,9 +264,9 @@ export function writeFundNavPageCache(
   page: number,
   items: FundNavTabRow[],
   hasNextPage: boolean,
-  quarterYear = '',
+  dateKey?: number,
 ): Record<string, FundNavPageCacheEntry> {
-  const key = capitalDashboardFundNavCacheKey(fundKey, timeframe, page, quarterYear);
+  const key = capitalDashboardFundNavCacheKey(fundKey, timeframe, page, dateKey);
   return {
     ...cache,
     [key]: {
