@@ -6,7 +6,11 @@ import {
   LoansApiCallOptions,
   LoansPagedApiResponse,
 } from '../interfaces/loans-api.interfaces';
-import { LoanApiRecord } from '../interfaces/loan.interfaces';
+import {
+  LoanApiRecord,
+  LoanBulkUpdateRequest,
+  LoanDto,
+} from '../interfaces/loan.interfaces';
 import {
   AssignLoansToAliasPayload,
   LoanTableQuery,
@@ -59,6 +63,33 @@ export class LoansApiService {
     return this.api
       .get<LoansPagedApiResponse>('api/Loans', { page: 1, pageSize: 500 })
       .pipe(map((response) => response.items ?? response.Items ?? []));
+  }
+
+  /** Typed loan list for Loan Alias Assignment and similar screens. */
+  getLoanDtos(options?: LoansApiCallOptions): Observable<LoanDto[]> {
+    return this.getLoans(options).pipe(map((records) => records.map((r) => this.mapToLoanDto(r))));
+  }
+
+  updateLoanAliasesBulk(
+    request: LoanBulkUpdateRequest,
+    options?: LoansApiCallOptions,
+  ): Observable<void> {
+    if (this.useExampleData(options)) {
+      for (const update of request.loans) {
+        const record = LOANS_RANKING_EXAMPLE_DATA.find(
+          (item) => Number(item['LoanKey'] ?? item['loanKey'] ?? 0) === update.loanKey,
+        );
+        if (!record) {
+          continue;
+        }
+        record['LoanAliasKey'] = update.loanAliasKey;
+        record['loanAliasKey'] = update.loanAliasKey;
+        record['userUpdatedBy'] = update.userUpdatedBy;
+        record['UserUpdatedBy'] = update.userUpdatedBy;
+      }
+      return of(undefined).pipe(delay(400));
+    }
+    return this.api.put<void>('api/Loans', request);
   }
 
   createLoan(payload: LoanApiRecord, options?: LoansApiCallOptions): Observable<LoanApiRecord> {
@@ -151,6 +182,56 @@ export class LoansApiService {
       return of(undefined).pipe(delay(400));
     }
     return this.api.post<void>('api/LoanAliases/assign', payload);
+  }
+
+  private readBoolean(record: LoanApiRecord, keys: string[]): boolean | null {
+    for (const key of keys) {
+      const value = record[key];
+      if (value === undefined || value === null) {
+        continue;
+      }
+      if (typeof value === 'boolean') {
+        return value;
+      }
+      if (value === 'true' || value === '1' || value === 1) {
+        return true;
+      }
+      if (value === 'false' || value === '0' || value === 0) {
+        return false;
+      }
+    }
+    return null;
+  }
+
+  private mapToLoanDto(record: LoanApiRecord): LoanDto {
+    const read = (keys: string[]): string | number | null => {
+      for (const key of keys) {
+        const value = record[key];
+        if (value !== undefined && value !== null && String(value).trim() !== '') {
+          return value as string | number;
+        }
+      }
+      return null;
+    };
+
+    const loanKey = Number(read(['LoanKey', 'loanKey']) ?? 0);
+    return {
+      loanKey,
+      loanCode: String(read(['LoanCode', 'loanCode']) ?? ''),
+      loanDesc: read(['LoanDesc', 'loanDesc']) as string | null,
+      loanAliasKey: read(['LoanAliasKey', 'loanAliasKey']) as number | null,
+      loanAliasName: read(['LoanAliasName', 'loanAliasName']) as string | null,
+      investorName: read(['InvestorName', 'investorName']) as string | null,
+      loanRanking: read(['LoanRanking', 'loanRanking']) as number | null,
+      dummyLoanLink: read(['DummyLoanLink', 'dummyLoanLink']) as string | null,
+      isLoanInterestApplicable: this.readBoolean(record, [
+        'IsLoanInterestApplicable',
+        'isLoanInterestApplicable',
+      ]),
+      lateInterestOffNote: read(['LateInterestOffNote', 'lateInterestOffNote']) as string | null,
+      userUpdatedBy: read(['UserUpdatedBy', 'userUpdatedBy']) as string | null,
+      userUpdatedDate: read(['UserUpdatedDate', 'userUpdatedDate']) as string | null,
+    };
   }
 
   private useExampleData(options?: LoansApiCallOptions): boolean {
