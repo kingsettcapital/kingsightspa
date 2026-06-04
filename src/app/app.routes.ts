@@ -73,6 +73,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'mortgage/default-date-capture',
+        loadComponent: () =>
+          import('./pages/default-date-capture/default-date-capture.component').then(
+            (m) => m.DefaultDateCaptureComponent
+          ),
+      },
+      {
         path: 'capital-reporting/fund',
         loadComponent: () =>
           import('./pages/fund/fund.component').then((m) => m.FundComponent),
