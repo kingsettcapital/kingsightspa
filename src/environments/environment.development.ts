@@ -7,8 +7,8 @@ export const environment: Environment = {
   azureConfig: {
     clientId: 'c505fbcc-5f64-4025-bae9-bccb863c4728',
     authority: 'https://login.microsoftonline.com/f6d94abc-5472-43af-ab66-95726e5ab0cc/',
-    redirectURL: 'http://localhost:4200',
-    postLogoutRedirectUri: 'http://localhost:4200/auth/login',  
+    redirectURL: 'http://kingsightdev.kingsettcapital.com',
+    postLogoutRedirectUri: 'http://kingsightdev.kingsettcapital.com/auth/login',  
     scopes: 'api://4092694a-0ad6-4257-8cc5-719335557535/Read',
   },
 };
