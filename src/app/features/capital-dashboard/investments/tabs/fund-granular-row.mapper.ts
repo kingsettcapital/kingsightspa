@@ -5,6 +5,23 @@ import {
   FundGranularRowDto,
 } from '../../shared/models/api.models';
 
+function readGranularAmount(dto: FundGranularRowDto): number {
+  const candidates = [dto.amount, dto.invested_amount, dto.distributed_amount];
+  for (const value of candidates) {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return 0;
+}
+
+function readGranularUnits(dto: FundGranularRowDto): number {
+  if (typeof dto.units === 'number' && Number.isFinite(dto.units)) {
+    return dto.units;
+  }
+  return 0;
+}
+
 function formatGranularDate(iso: string): string {
   const parsed = new Date(iso);
   if (Number.isNaN(parsed.getTime())) return iso;
@@ -24,14 +41,14 @@ export function mapFundGranularRowToAmountTabRow(
   if (timeframe === 'daily' && dto.date) {
     return {
       date: formatGranularDate(dto.date),
-      amount: dto.amount ?? 0,
+      amount: readGranularAmount(dto),
       description,
     };
   }
 
   return {
     period: dto.period ?? '',
-    amount: dto.amount ?? 0,
+    amount: readGranularAmount(dto),
     description,
   };
 }
@@ -42,7 +59,7 @@ export function mapFundGranularRowToTabRow(
 ): FundCommitmentTabRow {
   return {
     ...mapFundGranularRowToAmountTabRow(dto, timeframe),
-    units: String(dto.units ?? 0),
+    units: String(readGranularUnits(dto)),
   };
 }
 

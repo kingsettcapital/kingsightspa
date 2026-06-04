@@ -34,7 +34,6 @@
       subscriptSizing="dynamic"
       floatLabel="always"
     >
-      <mat-label>Period</mat-label>
       <mat-select
         [value]="period()"
         (valueChange)="onPeriodChange($event)"
@@ -70,15 +69,18 @@
     <div class="detail-table-wrap detail-table-wrap--sticky-toolbar tab-table-wrap" style="padding-left: 0; padding-right: 0">
       <div class="detail-table__scroll">
         <div class="tab-table-block">
+          <div class="tab-table-hsync">
           <table mat-table [dataSource]="rows()" class="detail-table" aria-label="NAV">
             <ng-container matColumnDef="period">
               <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell align-left">Period</th>
               <td mat-cell *matCellDef="let row" class="align-left">{{ row.period }}</td>
+              <td mat-footer-cell *matFooterCellDef></td>
             </ng-container>
 
             <ng-container matColumnDef="date">
               <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell align-left">Date</th>
               <td mat-cell *matCellDef="let row" class="align-left">{{ row.date }}</td>
+              <td mat-footer-cell *matFooterCellDef></td>
             </ng-container>
 
             <ng-container matColumnDef="amount">
@@ -86,15 +88,23 @@
               <td mat-cell *matCellDef="let row" class="align-right">
                 <span [class.ks-currency--negative]="row.amount < 0">{{ row.amount | ksCurrency }}</span>
               </td>
+              <td mat-footer-cell *matFooterCellDef class="align-right tab-table-footer-amount">
+                <span [class.ks-currency--negative]="totalAmount() < 0">{{ totalAmount() | ksCurrency }}</span>
+              </td>
             </ng-container>
             <ng-container matColumnDef="description">
               <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell align-left">Description</th>
               <td mat-cell *matCellDef="let row" class="align-left">{{ row.description }}</td>
+              <td mat-footer-cell *matFooterCellDef></td>
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="columns()"></tr>
             <tr mat-row *matRowDef="let row; columns: columns()"></tr>
+            @if (showSummaryFooter()) {
+              <tr mat-footer-row *matFooterRowDef="columns()"></tr>
+            }
           </table>
+          </div>
 
           @if (hasNextPage()) {
             <div class="list-load-more">
@@ -121,11 +131,6 @@
         </div>
       </div>
 
-      @if (showSummaryFooter()) {
-        <div class="tab-table-summary" aria-label="Table totals">
-          <span>Total: <span [class.ks-currency--negative]="totalAmount() < 0">{{ totalAmount() | ksCurrency }}</span></span>
-        </div>
-      }
     </div>
   }
 </div>

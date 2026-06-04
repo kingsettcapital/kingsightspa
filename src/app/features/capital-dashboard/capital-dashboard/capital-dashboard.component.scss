@@ -205,11 +205,8 @@ body[data-ks-capital-dashboard] {
 
   mat-tab-group.detail-tabs .mat-mdc-tab .mdc-tab__text-label {
     font-size: var(--ks-font-size-sm);
-    font-weight: var(--ks-font-weight-semibold);
+    font-weight: var(--ks-font-weight-bold);
     letter-spacing: 0.04em;
-    text-transform: uppercase;
-    font-weight: 500;
-    // font-size: 0.875rem;
     line-height: 1.25;
     text-transform: uppercase;
   }
@@ -223,6 +220,7 @@ body[data-ks-capital-dashboard] {
     --mat-tab-header-active-indicator-height: 2px;
     --mdc-tab-indicator-active-indicator-height: 2px;
     --mat-tab-active-indicator-height: 2px;
+    --mat-tab-header-label-text-weight: var(--ks-font-weight-bold);
   }
 
   mat-tab-group.detail-tabs .mat-mdc-tab.mdc-tab--active .mdc-tab-indicator__content--underline {
@@ -653,7 +651,7 @@ body[data-ks-capital-dashboard] {
     min-width: 0;
     width: 100%;
     box-sizing: border-box;
-    padding: 1.5rem;
+    padding: 0.6rem;
     background: var(--portal-paper);
   }
 
@@ -803,8 +801,7 @@ body[data-ks-capital-dashboard] {
     border-bottom: 2px solid #d1d1d1;
   }
 
-  .detail-table .ks-currency--negative,
-  .tab-table-summary .ks-currency--negative {
+  .detail-table .ks-currency--negative {
     color: rgb(176, 8, 8);
   }
   .detail-table .mat-mdc-cell div {
@@ -816,8 +813,10 @@ body[data-ks-capital-dashboard] {
   }
 
   .detail-table .mat-mdc-header-cell.align-right,
-  .detail-table .mat-mdc-cell.align-right {
+  .detail-table .mat-mdc-cell.align-right,
+  .detail-table .mat-mdc-footer-cell.align-right {
     text-align: right;
+    justify-content: flex-end;
   }
 
   .detail-table .mat-mdc-header-cell.align-left,

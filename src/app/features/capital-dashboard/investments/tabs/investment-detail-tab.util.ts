@@ -48,9 +48,16 @@ export function investmentAmountTableColumns(isDaily: boolean): string[] {
   return isDaily ? ['date', 'amount', 'description'] : ['period', 'amount', 'description'];
 }
 
+export function isUnitizedFundType(fundType: string): boolean {
+  return fundType.trim().toLowerCase() === 'unitized';
+}
+
 export function investmentDetailTableColumns(isDaily: boolean, fundType: string): string[] {
   const cols: string[] = isDaily ? ['date'] : ['period'];
-  cols.push(fundType === 'Unitized' ? 'units' : 'amount');
+  cols.push('amount');
+  if (isUnitizedFundType(fundType)) {
+    cols.push('units');
+  }
   cols.push('description');
   return cols;
 }

@@ -171,14 +171,19 @@ export interface FundInvestmentsQueryParams extends FundFundamentalQueryParams {
 
 export interface FundDistributionsQueryParams extends FundFundamentalQueryParams {}
 
-/** Granular row returned by commitments, unfunded-commitments, and nav endpoints. */
+/** Granular row returned by fund detail tabs (commitments, investments, distributions, etc.). */
 export interface FundGranularRowDto {
+  fund_code?: string | null;
   period?: string | null;
   date?: string | null;
   posted_date_key?: number | null;
   postedDateKey?: number | null;
-  amount: number;
-  units: number;
+  amount?: number | null;
+  /** Investments LTD/quarterly/daily rows */
+  invested_amount?: number | null;
+  /** Distributions rows */
+  distributed_amount?: number | null;
+  units?: number | null;
   description?: string | null;
 }
 

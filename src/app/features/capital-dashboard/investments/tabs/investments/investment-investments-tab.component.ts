@@ -32,6 +32,7 @@ import {
   filterInvestmentDetailTabRows,
   investmentDetailTableColumns,
   isNegativeTabUnits,
+  isUnitizedFundType,
   sumInvestmentDetailTabRows,
 } from '../investment-detail-tab.util';
 
@@ -59,6 +60,7 @@ export class InvestmentInvestmentsTabComponent {
   protected readonly isNegativeTabUnits = isNegativeTabUnits;
 
   readonly fundType = input('');
+  readonly isUnitized = computed(() => isUnitizedFundType(this.fundType()));
   private readonly excelService = inject(ExcelService);
   private readonly store = inject(Store);
 
