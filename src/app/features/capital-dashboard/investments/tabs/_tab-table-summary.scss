@@ -47,3 +47,9 @@
   font-weight: 700;
   color: var(--portal-text-primary);
 }
+
+/* Overrides .detail-table .mat-mdc-cell text color so negatives show in red. */
+:host ::ng-deep .detail-table .ks-currency--negative,
+:host .tab-table-summary .ks-currency--negative {
+  color: rgb(176, 8, 8);
+}

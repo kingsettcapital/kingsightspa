@@ -31,6 +31,7 @@ import {
 import {
   filterInvestmentDetailTabRows,
   investmentDetailTableColumns,
+  isNegativeTabUnits,
   sumInvestmentDetailTabRows,
 } from '../investment-detail-tab.util';
 
@@ -55,6 +56,8 @@ import {
   styleUrl: './investment-investments-tab.component.scss',
 })
 export class InvestmentInvestmentsTabComponent {
+  protected readonly isNegativeTabUnits = isNegativeTabUnits;
+
   readonly fundType = input('');
   private readonly excelService = inject(ExcelService);
   private readonly store = inject(Store);

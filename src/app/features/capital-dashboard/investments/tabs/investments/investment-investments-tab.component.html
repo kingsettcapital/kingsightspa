@@ -88,12 +88,16 @@
             @if (fundType() === 'Unitized') {
               <ng-container matColumnDef="units">
                 <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell align-right">Units</th>
-                <td mat-cell *matCellDef="let row" class="align-right">{{ row.units }}</td>
+                <td mat-cell *matCellDef="let row" class="align-right">
+                  <span [class.ks-currency--negative]="isNegativeTabUnits(row.units)">{{ row.units }}</span>
+                </td>
               </ng-container>
             } @else {
               <ng-container matColumnDef="amount">
                 <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell align-right">Amount</th>
-                <td mat-cell *matCellDef="let row" class="align-right">{{ row.amount | ksCurrency }}</td>
+                <td mat-cell *matCellDef="let row" class="align-right">
+                  <span [class.ks-currency--negative]="row.amount < 0">{{ row.amount | ksCurrency }}</span>
+                </td>
               </ng-container>
             }
             <ng-container matColumnDef="description">
@@ -132,10 +136,12 @@
 
       @if (showSummaryFooter()) {
         <div class="tab-table-summary" aria-label="Table totals">
-          <span>Total: {{ totalAmount() | ksCurrency }}</span>
+          <span>Total: <span [class.ks-currency--negative]="totalAmount() < 0">{{ totalAmount() | ksCurrency }}</span></span>
           @if (fundType() === 'Unitized') {
             <span class="tab-table-summary__sep" aria-hidden="true">|</span>
-            <span>Units: {{ totalUnits() | number: '1.0-0' }}</span>
+            <span [class.ks-currency--negative]="totalUnits() < 0"
+              >Units: {{ totalUnits() | number: '1.0-0' }}</span
+            >
           }
         </div>
       }

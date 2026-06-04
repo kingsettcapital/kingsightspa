@@ -7,7 +7,10 @@ import { LIST_PAGE_SIZE } from '../shared/list-pagination.constants';
 import { CapitalAssetsApiService } from '../shared/services/capital-assets-api.service';
 import { CapitalFundsApiService } from '../shared/services/capital-funds-api.service';
 import { CapitalInvestorsApiService } from '../shared/services/capital-investors-api.service';
-import { mapFundCommitmentsToTabRows } from '../investments/tabs/commitments/fund-commitment.mapper';
+import {
+  mapFundCommitmentsToAmountTabRows,
+  mapFundCommitmentsToTabRows,
+} from '../investments/tabs/commitments/fund-commitment.mapper';
 import { mapFundNavToTabRows } from '../investments/tabs/nav/fund-nav.mapper';
 import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
 import {
@@ -290,7 +293,7 @@ export class CapitalDashboardEffects {
           })
           .pipe(
             map((result) => {
-              const items = mapFundCommitmentsToTabRows(result.items, request.timeframe);
+              const items = mapFundCommitmentsToAmountTabRows(result.items, request.timeframe);
               return FundsApiActions.loadFundCommitmentsPageSuccess({
                 timeframe: request.timeframe,
                 page: result.page ?? request.page,
@@ -338,7 +341,7 @@ export class CapitalDashboardEffects {
           })
           .pipe(
             map((result) => {
-              const items = mapFundCommitmentsToTabRows(result.items, request.timeframe);
+              const items = mapFundCommitmentsToAmountTabRows(result.items, request.timeframe);
               return FundsApiActions.loadFundUnfundedCommitmentsPageSuccess({
                 timeframe: request.timeframe,
                 page: result.page ?? request.page,

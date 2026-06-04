@@ -202,12 +202,17 @@ export interface FundCommitmentDailyDto {
 
 export type FundCommitmentDto = FundCommitmentPeriodDto | FundCommitmentDailyDto | FundGranularRowDto;
 
-export interface FundCommitmentTabRow {
+/** Tab row for commitments, unfunded commitments, and NAV (amount only). */
+export interface FundAmountTabRow {
   period?: string;
   date?: string;
   amount: number;
-  units: string;
   description: string;
+}
+
+/** Tab row for investments and distributions (amount or units by fund type). */
+export interface FundCommitmentTabRow extends FundAmountTabRow {
+  units: string;
 }
 
 /** UI timeframe for fund NAV tab (same values as commitments). */
@@ -226,7 +231,7 @@ export type FundNavPeriodDto = FundCommitmentPeriodDto;
 export type FundNavDailyDto = FundCommitmentDailyDto;
 export type FundNavDto = FundCommitmentDto;
 
-export type FundNavTabRow = FundCommitmentTabRow;
+export type FundNavTabRow = FundAmountTabRow;
 
 export interface PropertyListItemDto {
   propertyKey: number;

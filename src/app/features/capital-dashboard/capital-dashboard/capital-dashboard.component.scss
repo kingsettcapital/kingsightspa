@@ -802,6 +802,11 @@ body[data-ks-capital-dashboard] {
     box-sizing: border-box;
     border-bottom: 2px solid #d1d1d1;
   }
+
+  .detail-table .ks-currency--negative,
+  .tab-table-summary .ks-currency--negative {
+    color: rgb(176, 8, 8);
+  }
   .detail-table .mat-mdc-cell div {
     align-items: start;
   }

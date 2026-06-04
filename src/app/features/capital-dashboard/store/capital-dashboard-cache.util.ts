@@ -1,4 +1,5 @@
 import {
+  FundAmountTabRow,
   FundCommitmentTabRow,
   FundCommitmentTimeframe,
   FundNavTabRow,
@@ -112,30 +113,35 @@ export function capitalDashboardFundDistributionsCacheKey(
   return `distributions\u0000${fundKey}\u0000${timeframe}\u0000${page}\u0000${fundGranularPageDateKeySegment(dateKey)}`;
 }
 
+export interface FundAmountPageCacheEntry {
+  items: FundAmountTabRow[];
+  hasNextPage: boolean;
+}
+
 export interface FundCommitmentsPageCacheEntry {
   items: FundCommitmentTabRow[];
   hasNextPage: boolean;
 }
 
 export function readFundCommitmentsPageCache(
-  cache: Record<string, FundCommitmentsPageCacheEntry>,
+  cache: Record<string, FundAmountPageCacheEntry>,
   fundKey: number,
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
-): FundCommitmentsPageCacheEntry | null {
+): FundAmountPageCacheEntry | null {
   return cache[capitalDashboardFundCommitmentsCacheKey(fundKey, timeframe, page, dateKey)] ?? null;
 }
 
 export function writeFundCommitmentsPageCache(
-  cache: Record<string, FundCommitmentsPageCacheEntry>,
+  cache: Record<string, FundAmountPageCacheEntry>,
   fundKey: number,
   timeframe: FundCommitmentTimeframe,
   page: number,
-  items: FundCommitmentTabRow[],
+  items: FundAmountTabRow[],
   hasNextPage: boolean,
   dateKey?: number,
-): Record<string, FundCommitmentsPageCacheEntry> {
+): Record<string, FundAmountPageCacheEntry> {
   const key = capitalDashboardFundCommitmentsCacheKey(fundKey, timeframe, page, dateKey);
   return {
     ...cache,
@@ -147,24 +153,24 @@ export function writeFundCommitmentsPageCache(
 }
 
 export function readFundUnfundedCommitmentsPageCache(
-  cache: Record<string, FundCommitmentsPageCacheEntry>,
+  cache: Record<string, FundAmountPageCacheEntry>,
   fundKey: number,
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
-): FundCommitmentsPageCacheEntry | null {
+): FundAmountPageCacheEntry | null {
   return cache[capitalDashboardFundUnfundedCommitmentsCacheKey(fundKey, timeframe, page, dateKey)] ?? null;
 }
 
 export function writeFundUnfundedCommitmentsPageCache(
-  cache: Record<string, FundCommitmentsPageCacheEntry>,
+  cache: Record<string, FundAmountPageCacheEntry>,
   fundKey: number,
   timeframe: FundCommitmentTimeframe,
   page: number,
-  items: FundCommitmentTabRow[],
+  items: FundAmountTabRow[],
   hasNextPage: boolean,
   dateKey?: number,
-): Record<string, FundCommitmentsPageCacheEntry> {
+): Record<string, FundAmountPageCacheEntry> {
   const key = capitalDashboardFundUnfundedCommitmentsCacheKey(fundKey, timeframe, page, dateKey);
   return {
     ...cache,

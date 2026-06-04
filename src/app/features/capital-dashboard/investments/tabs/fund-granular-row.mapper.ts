@@ -1,7 +1,8 @@
 import {
+  FundAmountTabRow,
+  FundCommitmentTabRow,
   FundCommitmentTimeframe,
   FundGranularRowDto,
-  FundCommitmentTabRow,
 } from '../../shared/models/api.models';
 
 function formatGranularDate(iso: string): string {
@@ -14,18 +15,16 @@ function formatGranularDate(iso: string): string {
   });
 }
 
-export function mapFundGranularRowToTabRow(
+export function mapFundGranularRowToAmountTabRow(
   dto: FundGranularRowDto,
   timeframe: FundCommitmentTimeframe,
-): FundCommitmentTabRow {
-  const units = String(dto.units ?? 0);
+): FundAmountTabRow {
   const description = dto.description ?? '';
 
   if (timeframe === 'daily' && dto.date) {
     return {
       date: formatGranularDate(dto.date),
       amount: dto.amount ?? 0,
-      units,
       description,
     };
   }
@@ -33,9 +32,25 @@ export function mapFundGranularRowToTabRow(
   return {
     period: dto.period ?? '',
     amount: dto.amount ?? 0,
-    units,
     description,
   };
+}
+
+export function mapFundGranularRowToTabRow(
+  dto: FundGranularRowDto,
+  timeframe: FundCommitmentTimeframe,
+): FundCommitmentTabRow {
+  return {
+    ...mapFundGranularRowToAmountTabRow(dto, timeframe),
+    units: String(dto.units ?? 0),
+  };
+}
+
+export function mapFundGranularRowsToAmountTabRows(
+  items: FundGranularRowDto[] | null | undefined,
+  timeframe: FundCommitmentTimeframe,
+): FundAmountTabRow[] {
+  return (items ?? []).map((item) => mapFundGranularRowToAmountTabRow(item, timeframe));
 }
 
 export function mapFundGranularRowsToTabRows(

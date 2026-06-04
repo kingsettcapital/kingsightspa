@@ -1,4 +1,5 @@
 import {
+  FundAmountTabRow,
   FundCommitmentTabRow,
   FundCommitmentTimeframe,
   FundNavTabRow,
@@ -16,6 +17,7 @@ import {
 import {
   AssetDetailCacheEntry,
   FundAssetsPageCacheEntry,
+  FundAmountPageCacheEntry,
   FundCommitmentsPageCacheEntry,
   FundNavPageCacheEntry,
   FundPeriodsCacheEntry,
@@ -59,7 +61,7 @@ export interface FundsDetailState {
   assetsLoading: boolean;
   assetsLoadingMore: boolean;
   commitmentsTimeframe: FundCommitmentTimeframe;
-  commitments: FundCommitmentTabRow[];
+  commitments: FundAmountTabRow[];
   commitmentsPage: number;
   commitmentsSearch: string;
   commitmentsHasNextPage: boolean;
@@ -67,7 +69,7 @@ export interface FundsDetailState {
   commitmentsLoadingMore: boolean;
   commitmentsError: string | null;
   unfundedCommitmentsTimeframe: FundCommitmentTimeframe;
-  unfundedCommitments: FundCommitmentTabRow[];
+  unfundedCommitments: FundAmountTabRow[];
   unfundedCommitmentsPage: number;
   unfundedCommitmentsSearch: string;
   unfundedCommitmentsHasNextPage: boolean;
@@ -120,8 +122,8 @@ export interface FundsCacheState {
   details: Record<number, FundDetailCacheEntry>;
   assetPages: Record<string, FundAssetsPageCacheEntry>;
   periodLists: Record<string, FundPeriodsCacheEntry>;
-  commitmentPages: Record<string, FundCommitmentsPageCacheEntry>;
-  unfundedCommitmentPages: Record<string, FundCommitmentsPageCacheEntry>;
+  commitmentPages: Record<string, FundAmountPageCacheEntry>;
+  unfundedCommitmentPages: Record<string, FundAmountPageCacheEntry>;
   investmentPages: Record<string, FundCommitmentsPageCacheEntry>;
   distributionPages: Record<string, FundCommitmentsPageCacheEntry>;
   navPages: Record<string, FundNavPageCacheEntry>;

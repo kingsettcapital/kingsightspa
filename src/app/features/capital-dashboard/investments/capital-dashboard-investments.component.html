@@ -415,16 +415,13 @@
 
           <mat-tab label="Commitments">
             <div class="detail-card__body detail-card__body--table">
-              <app-investment-commitments-tab [tabActive]="activeTabIndex === commitmentsTabIndex" [fundType]="summaryDisplay('fundType')" />
+              <app-investment-commitments-tab [tabActive]="activeTabIndex === commitmentsTabIndex" />
             </div>
           </mat-tab>
 
           <mat-tab label="Unfunded Commitment">
             <div class="detail-card__body">
-              <app-investment-unfunded-commitment-tab
-                [tabActive]="activeTabIndex === unfundedCommitmentsTabIndex"
-                [fundType]="summaryDisplay('fundType')"
-              />
+              <app-investment-unfunded-commitment-tab [tabActive]="activeTabIndex === unfundedCommitmentsTabIndex" />
             </div>
           </mat-tab>
 
@@ -448,7 +445,7 @@
 
           <mat-tab label="NAV">
             <div class="detail-card__body detail-card__body--table">
-              <app-investment-nav-tab [tabActive]="activeTabIndex === navTabIndex" [fundType]="summaryDisplay('fundType')"/>
+              <app-investment-nav-tab [tabActive]="activeTabIndex === navTabIndex" />
             </div>
           </mat-tab>
         </mat-tab-group>

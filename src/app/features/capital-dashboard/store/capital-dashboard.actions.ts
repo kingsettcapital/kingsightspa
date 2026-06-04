@@ -1,6 +1,7 @@
 import { createActionGroup, emptyProps, props } from '@ngrx/store';
 
 import {
+  FundAmountTabRow,
   FundCommitmentTabRow,
   FundCommitmentTimeframe,
   FundNavTabRow,
@@ -109,7 +110,7 @@ export const FundsApiActions = createActionGroup({
     'Load Fund Commitments Page Success': props<{
       timeframe: FundCommitmentTimeframe;
       page: number;
-      items: FundCommitmentTabRow[];
+      items: FundAmountTabRow[];
       hasNextPage: boolean;
       replace: boolean;
       search: string;
@@ -127,7 +128,7 @@ export const FundsApiActions = createActionGroup({
     'Load Fund Unfunded Commitments Page Success': props<{
       timeframe: FundCommitmentTimeframe;
       page: number;
-      items: FundCommitmentTabRow[];
+      items: FundAmountTabRow[];
       hasNextPage: boolean;
       replace: boolean;
       search: string;

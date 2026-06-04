@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -29,9 +28,9 @@ import {
   setPeriodForTimeframe,
 } from '../fund-period.util';
 import {
-  filterInvestmentDetailTabRows,
-  investmentDetailTableColumns,
-  sumInvestmentDetailTabRows,
+  filterInvestmentAmountTabRows,
+  investmentAmountTableColumns,
+  sumInvestmentAmountTabRows,
 } from '../investment-detail-tab.util';
 
 @Component({
@@ -47,7 +46,6 @@ import {
     MatProgressBarModule,
     MatSelectModule,
     MatTableModule,
-    DecimalPipe,
     KsCurrencyPipe,
     PortalSpinnerComponent,
   ],
@@ -57,8 +55,6 @@ import {
 export class InvestmentNavTabComponent {
   private readonly excelService = inject(ExcelService);
   private readonly store = inject(Store);
-  readonly fundType = input('');
-
   /** True when the NAV mat-tab is selected (lazy-load gate). */
   readonly tabActive = input(false);
 
@@ -84,18 +80,15 @@ export class InvestmentNavTabComponent {
     return mapFundPeriodsToSelectOptions(cached?.items);
   });
 
-  readonly columns = computed(() =>
-    investmentDetailTableColumns(this.isDaily(), this.fundType()),
-  );
+  readonly columns = computed(() => investmentAmountTableColumns(this.isDaily()));
 
-  readonly rows = computed(() => filterInvestmentDetailTabRows(this.fundsDetail().nav, this.searchQuery()));
+  readonly rows = computed(() => filterInvestmentAmountTabRows(this.fundsDetail().nav, this.searchQuery()));
   readonly loading = computed(() => this.fundsDetail().navLoading);
   readonly loadingMore = computed(() => this.fundsDetail().navLoadingMore);
   readonly hasNextPage = computed(() => this.fundsDetail().navHasNextPage);
   readonly error = computed(() => this.fundsDetail().navError);
 
-  readonly totalAmount = computed(() => sumInvestmentDetailTabRows(this.rows()).totalAmount);
-  readonly totalUnits = computed(() => sumInvestmentDetailTabRows(this.rows()).totalUnits);
+  readonly totalAmount = computed(() => sumInvestmentAmountTabRows(this.rows()).totalAmount);
 
   constructor() {
     effect(() => {
@@ -180,7 +173,6 @@ export class InvestmentNavTabComponent {
       columns: [
         periodColumn,
         { header: 'Amount', value: (r) => r.amount },
-        { header: 'Units', value: (r) => r.units },
         { header: 'Description', value: (r) => r.description },
       ],
       rows: exportRows,
