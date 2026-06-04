@@ -21,7 +21,6 @@
         />
       </mat-form-field>
     </div>
-
     @if (listLoading()) {
       <div class="list-state">
         <app-portal-spinner [size]="32" />
@@ -65,22 +64,17 @@
             [class.selected-row]="selectedInvestorKey() === investor.investorKey"
           ></tr>
         </table>
-
         @if (listLoadingMore()) {
           <div class="list-load-more">
             <app-portal-spinner [size]="24" />
           </div>
         }
-
         @if (investors().length === 0) {
           <div class="list-state">No investors found.</div>
-        } @else {
-          <!-- <div class="list-footer">Showing {{ investors().length }} of {{ totalCount() }} investors</div> -->
         }
       </div>
     }
   </aside>
-
   <section class="master-detail__panel">
     @if (detailLoading()) {
       <div class="detail-card master-detail__empty">
@@ -96,7 +90,6 @@
         <mat-icon>arrow_back</mat-icon>
         <span>Back to list</span>
       </button>
-
       <div class="detail-card">
         <div class="detail-card__header">
           <div class="detail-card__title-row">
@@ -119,7 +112,6 @@
               </div>
             </div>
           </div>
-
           <div class="detail-card__metrics">
             <div>
               <div class="detail-card__metric-label">Total Invested</div>
@@ -129,23 +121,22 @@
               <div class="detail-card__metric-label">Investments</div>
               <div class="detail-card__metric-value">{{ summaryNumber('investmentsCount') }}</div>
             </div>
-            <div>
+            <!-- <div>
               <div class="detail-card__metric-label">Documents</div>
               <div class="detail-card__metric-value">{{ summaryNumber('documentsCount') }}</div>
-            </div>
+            </div> -->
             <div>
               <div class="detail-card__metric-label">Join Date</div>
               <div class="detail-card__metric-value">{{ joinDateDisplay() }}</div>
             </div>
           </div>
         </div>
-
         <mat-tab-group
-          [(selectedIndex)]="activeTabIndex"
-          class="detail-tabs"
+          [selectedIndex]="activeTabIndex()"
+          (selectedIndexChange)="onDetailTabIndexChange($event)"
+          class="detail-tabs detail-tabs--split-body-scroll"
           mat-stretch-tabs="false"
           mat-align-tabs="start"
-          animationDuration="0ms"
         >
           <mat-tab label="Overview">
             <div class="detail-card__body">
@@ -154,132 +145,161 @@
               </div>
             </div>
           </mat-tab>
-
-          <mat-tab [label]="'Investments (' + investorInvestments().length + ')'">
-            <div class="detail-card__body detail-card__body--table">
-              <div class="detail-table-wrap">
-                <table
-                  mat-table
-                  [dataSource]="investorInvestments()"
-                  class="detail-table"
-                  aria-label="Investor investments"
-                >
-                  <ng-container matColumnDef="name">
-                    <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Investment Name</th>
-                    <td mat-cell *matCellDef="let row">
-                      <div class="detail-table__name-cell link-cell" (click)="goToInvestment(row.fundKey, row.fundName)">
-                        <div class="detail-table__primary">{{ row.fundName }}</div>
-                        @if (row.fundCategory) {
-                          <div class="detail-table__secondary">{{ row.fundCategory }}</div>
+          <mat-tab [label]="'Investments (' + summaryNumber('investmentsCount') + ')'">
+            <div class="detail-card__body detail-card__body--table investor-funds-tab">
+              @if (investorFundsLoading() && !fundsSearchQuery()) {
+                <div class="list-state">
+                  <app-portal-spinner [size]="32" />
+                </div>
+              } @else {
+                <div class="tab-shell investor-funds-tab__shell">
+                  <div class="tab-toolbar investor-funds-tab__toolbar">
+                    <div class="ks-investors-search investor-funds-tab__search">
+                      <mat-form-field
+                        appearance="outline"
+                        class="ks-investors-search__field"
+                        subscriptSizing="dynamic"
+                      >
+                        <mat-icon matPrefix class="ks-investors-search__icon" aria-hidden="true">search</mat-icon>
+                        <input
+                          matInput
+                          class="ks-investors-search__input"
+                          type="search"
+                          [ngModel]="fundsSearchQuery()"
+                          (ngModelChange)="fundsSearchQuery.set($event)"
+                          placeholder="Search funds..."
+                          aria-label="Search funds"
+                        />
+                        @if (fundsSearchQuery()) {
+                          <button
+                            mat-icon-button
+                            matSuffix
+                            type="button"
+                            (click)="clearFundsSearch()"
+                            aria-label="Clear fund search"
+                          >
+                            <mat-icon>close</mat-icon>
+                          </button>
                         }
+                      </mat-form-field>
+                    </div>
+                  </div>
+                  @if (investorFundsLoading() && fundsSearchQuery()) {
+                    <mat-progress-bar mode="indeterminate" />
+                  }
+                  <div class="detail-table-wrap tab-table-wrap investor-funds-tab__table">
+                    <div class="tab-table-block">
+                      <div class="tab-table-hsync tab-table-hsync--fund-list">
+                        <table
+                          mat-table
+                          [dataSource]="investorInvestments()"
+                          class="detail-table detail-table--investor-funds"
+                          aria-label="Investor funds"
+                        >
+                          <ng-container matColumnDef="name">
+                            <th mat-header-cell *matHeaderCellDef class="align-left inner-table-header-cell">Investment Name</th>
+                            <td mat-cell *matCellDef="let row" class="align-left">
+                              <div class="detail-table__name-cell link-cell" (click)="goToInvestment(row.fundKey, row.fundName)">
+                                <div class="detail-table__primary">{{ row.fundName }}</div>
+                                @if (row.fundCategory) {
+                                  <div class="detail-table__secondary">{{ row.fundCategory }}</div>
+                                }
+                              </div>
+                            </td>
+                          </ng-container>
+                          <ng-container matColumnDef="type">
+                            <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Type</th>
+                            <td mat-cell *matCellDef="let row">{{ row.fundType || '—' }}</td>
+                          </ng-container>
+                          <ng-container matColumnDef="status">
+                            <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Status</th>
+                            <td mat-cell *matCellDef="let row">
+                              <app-detail-status-badge [status]="row.status" />
+                            </td>
+                          </ng-container>
+                          <ng-container matColumnDef="value">
+                            <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Current Value</th>
+                            <td mat-cell *matCellDef="let row" class="align-right">
+                              <span [class.ks-currency--negative]="row.investedAmountFmv < 0">
+                                {{ row.investedAmountFmv | ksCurrency }}
+                              </span>
+                            </td>
+                          </ng-container>
+                          <ng-container matColumnDef="return">
+                            <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Return</th>
+                            <td
+                              mat-cell
+                              *matCellDef="let row"
+                              class="align-right"
+                              [class.return-positive]="(row.totalReturnPercent ?? 0) > 0"
+                              [class.return-negative]="(row.totalReturnPercent ?? 0) <= 0"
+                            >
+                              @if (row.totalReturnPercent != null) {
+                                {{ formatPercent(row.totalReturnPercent, true) }}
+                              } @else {
+                                —
+                              }
+                            </td>
+                          </ng-container>
+                          <tr mat-header-row *matHeaderRowDef="fundColumns"></tr>
+                          <tr mat-row *matRowDef="let row; columns: fundColumns"></tr>
+                        </table>
                       </div>
-                    </td>
-                  </ng-container>
-                  <ng-container matColumnDef="type">
-                    <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Type</th>
-                    <td mat-cell *matCellDef="let row">{{ row.fundType || '—' }}</td>
-                  </ng-container>
-                  <ng-container matColumnDef="status">
-                    <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Status</th>
-                    <td mat-cell *matCellDef="let row">
-                      <app-detail-status-badge [status]="row.status" />
-                    </td>
-                  </ng-container>
-                  <ng-container matColumnDef="value">
-                    <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Current Value</th>
-                    <td mat-cell *matCellDef="let row" class="align-right">
-                      <span [class.ks-currency--negative]="row.investedAmountFmv < 0">
-                        {{ row.investedAmountFmv | ksCurrency }}
-                      </span>
-                    </td>
-                  </ng-container>
-                  <ng-container matColumnDef="return">
-                    <th mat-header-cell *matHeaderCellDef class="align-right" class="inner-table-header-cell">Return</th>
-                    <td
-                      mat-cell
-                      *matCellDef="let row"
-                      class="align-right"
-                      [class.return-positive]="(row.totalReturnPercent ?? 0) > 0"
-                      [class.return-negative]="(row.totalReturnPercent ?? 0) <= 0"
-                    >
-                      @if (row.totalReturnPercent != null) {
-                        {{ formatPercent(row.totalReturnPercent, true) }}
-                      } @else {
-                        —
-                      }
-                    </td>
-                  </ng-container>
-                  <tr mat-header-row *matHeaderRowDef="['name', 'type', 'status', 'value', 'return']"></tr>
-                  <tr mat-row *matRowDef="let row; columns: ['name', 'type', 'status', 'value', 'return']"></tr>
-                </table>
 
-                @if (investorInvestments().length === 0) {
-                  <div class="list-state">No investments for this investor.</div>
-                }
-              </div>
+                      @if (investorFundsHasNextPage()) {
+                        <div class="tab-table-load-more">
+                          <button
+                            type="button"
+                            class="ks-load-more ks-load-more--compact"
+                            (click)="loadMoreInvestorFunds()"
+                            [disabled]="investorFundsLoadingMore()"
+                          >
+                            @if (investorFundsLoadingMore()) {
+                              <app-portal-spinner [size]="16" />
+                              <span>Loading…</span>
+                            } @else {
+                              Load more
+                            }
+                          </button>
+                        </div>
+                      }
+                      @if (investorInvestments().length === 0 && !investorFundsLoading()) {
+                        <div class="list-state">No funds found for this investor.</div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
             </div>
           </mat-tab>
-
-          <!-- <mat-tab [label]="'Documents (' + summaryNumber('documentsCount') + ')'">
+          <mat-tab label="Commitments">
             <div class="detail-card__body detail-card__body--table">
-              <div class="detail-table-wrap">
-                <table
-                  mat-table
-                  [dataSource]="investorDocuments()"
-                  class="detail-table"
-                  aria-label="Investor documents"
-                >
-                  <ng-container matColumnDef="name">
-                    <th mat-header-cell *matHeaderCellDef>Document</th>
-                    <td mat-cell *matCellDef="let row">
-                      <div class="detail-table__name-cell">
-                        <div class="detail-table__primary">{{ row.documentName }}</div>
-                        <div class="detail-table__secondary">{{ row.documentType }}</div>
-                      </div>
-                    </td>
-                  </ng-container>
-                  <ng-container matColumnDef="type">
-                    <th mat-header-cell *matHeaderCellDef>Type</th>
-                    <td mat-cell *matCellDef="let row">{{ row.documentType || '—' }}</td>
-                  </ng-container>
-                  <ng-container matColumnDef="date">
-                    <th mat-header-cell *matHeaderCellDef>Uploaded</th>
-                    <td mat-cell *matCellDef="let row">{{ row.uploadedOn || '—' }}</td>
-                  </ng-container>
-                  <ng-container matColumnDef="size">
-                    <th mat-header-cell *matHeaderCellDef class="align-right">Size</th>
-                    <td mat-cell *matCellDef="let row" class="align-right">{{ row.sizeLabel || '—' }}</td>
-                  </ng-container>
-                  <tr mat-header-row *matHeaderRowDef="documentColumns"></tr>
-                  <tr mat-row *matRowDef="let row; columns: documentColumns"></tr>
-                </table>
-
-                @if (documentsHasNextPage()) {
-                  <div class="list-load-more">
-                    <button
-                      mat-flat-button
-                      color="primary"
-                      class="ks-load-more"
-                      type="button"
-                      (click)="loadMoreDocuments()"
-                      [disabled]="documentsLoadingMore()"
-                    >
-                      @if (documentsLoadingMore()) {
-                        <app-portal-spinner [size]="18" />
-                        <span>Loading…</span>
-                      } @else {
-                        Load more
-                      }
-                    </button>
-                  </div>
-                }
-
-                @if (investorDocuments().length === 0) {
-                  <div class="list-state">No documents available.</div>
-                }
-              </div>
+              <app-investor-commitments-tab [tabActive]="activeTabIndex() === commitmentsTabIndex" />
             </div>
-          </mat-tab> -->
+          </mat-tab>
+          <mat-tab label="Unfunded Commitment">
+            <div class="detail-card__body detail-card__body--table">
+              <app-investor-unfunded-commitment-tab [tabActive]="activeTabIndex() === unfundedCommitmentsTabIndex" />
+            </div>
+          </mat-tab>
+          <mat-tab label="Investments">
+            <div class="detail-card__body detail-card__body--table">
+              <app-investor-capital-investments-tab [tabActive]="activeTabIndex() === capitalInvestmentsTabIndex" />
+            </div>
+          </mat-tab>
+          <mat-tab label="Distributions">
+            <div class="detail-card__body detail-card__body--table">
+              <app-investor-distributions-tab
+                [tabActive]="activeTabIndex() === distributionsTabIndex"
+                [fundType]="summaryDisplay('investorType')"
+              />
+            </div>
+          </mat-tab>
+          <mat-tab label="NAV">
+            <div class="detail-card__body detail-card__body--table">
+              <app-investor-nav-tab [tabActive]="activeTabIndex() === navTabIndex" />
+            </div>
+          </mat-tab>
         </mat-tab-group>
       </div>
     } @else {
@@ -290,4 +310,3 @@
     }
   </section>
 </div>
-

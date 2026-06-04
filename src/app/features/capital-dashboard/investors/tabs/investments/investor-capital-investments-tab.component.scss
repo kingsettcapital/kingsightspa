@@ -1,0 +1,105 @@
+@use '../../../shared/styles/list-search-field' as search;
+@use '../tab-table-summary';
+
+@include search.ks-list-search-field('investment-investments');
+
+.tab-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0 0.6rem;
+  position: relative;
+  z-index: 2;
+  flex-wrap: wrap;
+}
+
+.tab-toolbar__spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ks-investment-investments-search {
+  width: min(220px, 100%);
+  margin-bottom: 0;
+}
+
+$tab-period-blue: var(--portal-primary);
+
+.tab-period {
+  width: 200px;
+}
+
+/* Use Material tokens only — do not set fixed heights on internal nodes (breaks notched outline). */
+:host ::ng-deep .tab-period.mat-mdc-form-field {
+  --mat-form-field-container-height: 40px;
+  --mat-form-field-container-vertical-padding: 0;
+  --mdc-outlined-text-field-container-shape: 4px;
+  --mdc-outlined-text-field-outline-color: var(--portal-divider);
+  --mdc-outlined-text-field-hover-outline-color: #{$tab-period-blue};
+  --mdc-outlined-text-field-focus-outline-color: #{$tab-period-blue};
+  --mdc-outlined-text-field-focus-outline-width: 1px;
+  --mat-form-field-outlined-label-text-color: var(--portal-text-secondary);
+  --mat-select-enabled-trigger-text-color: var(--portal-text-primary);
+  --mat-select-enabled-arrow-color: var(--portal-text-secondary);
+  --mat-select-focused-arrow-color: #{$tab-period-blue};
+}
+
+:host ::ng-deep .tab-period .mat-mdc-form-field-infix {
+  padding-top: 0.5rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+:host ::ng-deep .tab-period .mat-mdc-select-trigger {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+:host ::ng-deep .tab-period .mat-mdc-select-value {
+  display: flex;
+  align-items: center;
+}
+
+:host ::ng-deep .tab-period .mat-mdc-form-field-subscript-wrapper {
+  display: none;
+}
+
+.tab-download {
+  height: 32px;
+  padding: 0 0.75rem;
+  border-radius: 3px;
+  box-shadow: none;
+
+  /* Match light-blue outlined style */
+  border-color: #4280d5;
+  color: #4280d5;
+  --mdc-outlined-button-outline-color: #4280d5;
+  --mdc-outlined-button-label-text-color: #4280d5;
+}
+
+.tab-download mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  margin-right: 0.375rem;
+  color: currentColor;
+  margin-top: 4px;
+}
+
+:host ::ng-deep .detail-table {
+  border: 1px solid var(--portal-divider);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+:host ::ng-deep .detail-table .mat-mdc-header-row,
+:host ::ng-deep .detail-table .mat-mdc-header-cell {
+  border-top: 1px solid var(--portal-divider);
+  background-color: #f3f4f6 !important;
+  font-weight: 700 !important;
+}
+
+:host ::ng-deep .detail-table .mat-mdc-cell {
+  border-bottom: 1px solid var(--portal-divider);
+}

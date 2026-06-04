@@ -1,4 +1,5 @@
 @use '../shared/styles/list-search-field' as search;
+@use './tabs/tab-table-summary';
 
 :host {
   display: block;
@@ -8,3 +9,119 @@
 }
 
 @include search.ks-list-search-field('investors');
+
+.link-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.investor-funds-tab__shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  height: 100%;
+}
+
+.investor-funds-tab__toolbar {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0 0 0.6rem 0;
+}
+
+.investor-funds-tab__search {
+  width: min(220px, 100%);
+  margin-bottom: 0;
+}
+
+.investor-funds-tab__shell > mat-progress-bar {
+  flex-shrink: 0;
+}
+
+:host .investor-funds-tab__table.detail-table-wrap.tab-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list {
+  flex: 0 1 auto;
+  max-height: min(calc(100vh - 420px), 100%);
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list .detail-table.mat-mdc-table {
+  display: table;
+  flex: none;
+  min-height: auto;
+  width: max-content;
+  min-width: 100%;
+}
+
+:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list .detail-table thead,
+:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list .detail-table tbody,
+:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list .detail-table tfoot {
+  display: table-row-group;
+  width: 100%;
+}
+
+:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list .detail-table tbody {
+  overflow: visible;
+  flex: none;
+  min-height: 0;
+}
+
+:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list .detail-table thead tr,
+:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list .detail-table tbody tr {
+  display: table-row;
+  width: 100%;
+}
+
+:host ::ng-deep .tab-table-hsync .detail-table .link-cell .detail-table__primary {
+  font-size: var(--ks-font-size-sm);
+  line-height: 1.3;
+}
+
+@mixin tab-table-column-width($column, $width) {
+  :host ::ng-deep .tab-table-hsync .detail-table .mat-mdc-header-cell.mat-column-#{$column},
+  :host ::ng-deep .tab-table-hsync .detail-table .mat-mdc-cell.mat-column-#{$column},
+  :host ::ng-deep .tab-table-hsync .detail-table .mat-mdc-footer-cell.mat-column-#{$column} {
+    width: $width;
+    min-width: $width;
+    max-width: $width;
+    box-sizing: border-box;
+  }
+}
+
+@include tab-table-column-width(name, 16rem);
+@include tab-table-column-width(type, 9rem);
+@include tab-table-column-width(status, 8rem);
+@include tab-table-column-width(value, 10rem);
+@include tab-table-column-width(return, 8rem);
+
+:host ::ng-deep .tab-table-hsync .detail-table.detail-table--investor-funds thead tr,
+:host ::ng-deep .tab-table-hsync .detail-table.detail-table--investor-funds tbody tr {
+  width: 51rem;
+  min-width: 51rem;
+}
+
+:host ::ng-deep .detail-table--investor-funds .return-positive {
+  color: var(--portal-success);
+  font-weight: 600;
+}
+
+:host ::ng-deep .detail-table--investor-funds .return-negative {
+  color: var(--portal-error);
+  font-weight: 600;
+}
+
+.list-table__secondary.return-neutral {
+  color: var(--portal-text-secondary);
+  font-weight: 500;
+}

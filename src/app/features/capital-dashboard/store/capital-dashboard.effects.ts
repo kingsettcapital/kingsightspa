@@ -23,6 +23,12 @@ import {
   readFundDistributionsPageCache,
   readFundInvestmentsPageCache,
   readFundUnfundedCommitmentsPageCache,
+  readInvestorCapitalInvestmentsPageCache,
+  readInvestorCommitmentsPageCache,
+  readInvestorDistributionsPageCache,
+  readInvestorNavPageCache,
+  readInvestorPeriodsCache,
+  readInvestorUnfundedCommitmentsPageCache,
   readListCacheEntry,
   extractPagedItems,
 } from './capital-dashboard-cache.util';
@@ -86,13 +92,14 @@ export class CapitalDashboardEffects {
         }
         return forkJoin({
           detail: this.investorsApi.getInvestor(request.investorKey),
-          funds: this.investorsApi.getInvestorFunds(request.investorKey, { page: 1 }),
+          funds: this.investorsApi.getInvestorFundsPage(request.investorKey, { page: 1 }),
         }).pipe(
           map(({ detail, funds }) =>
             InvestorsApiActions.loadDetailSuccess({
               investorKey: request.investorKey,
               detail,
               investments: extractPagedItems(funds),
+              investmentsHasNextPage: !!funds.hasNextPage,
             }),
           ),
           catchError(() =>
@@ -100,6 +107,25 @@ export class CapitalDashboardEffects {
           ),
         );
       }),
+    ),
+  );
+
+  readonly loadInvestorFundsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorFundsPage),
+      switchMap(({ investorKey, page, search }) =>
+        this.investorsApi.getInvestorFundsPage(investorKey, { page, search }).pipe(
+          map((result) =>
+            InvestorsApiActions.loadInvestorFundsPageSuccess({
+              page,
+              items: extractPagedItems(result),
+              hasNextPage: !!result.hasNextPage,
+              append: page > 1,
+            }),
+          ),
+          catchError(() => of(InvestorsApiActions.loadInvestorFundsPageFailure())),
+        ),
+      ),
     ),
   );
 
@@ -496,6 +522,293 @@ export class CapitalDashboardEffects {
             catchError(() =>
               of(
                 FundsApiActions.loadFundNavPageFailure({
+                  error: 'Unable to load NAV. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+
+  readonly loadInvestorPeriods$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorPeriods),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        if (readInvestorPeriodsCache(investors.cache.periodLists, request.investorKey, request.source, request.view)) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorPeriodsPage(request.investorKey, {
+            view: request.view,
+            source: request.source,
+            page: 1,
+          })
+          .pipe(
+            map((result) =>
+              InvestorsApiActions.loadInvestorPeriodsSuccess({
+                investorKey: request.investorKey,
+                source: request.source,
+                view: request.view,
+                items: extractPagedItems(result),
+              }),
+            ),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorPeriodsFailure({
+                  investorKey: request.investorKey,
+                  source: request.source,
+                  view: request.view,
+                  error: 'Unable to load periods.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorCommitmentsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorCommitmentsPage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          readInvestorCommitmentsPageCache(
+            investors.cache.commitmentPages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorCommitmentsPage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundCommitmentsToAmountTabRows(extractPagedItems(result), request.timeframe);
+              return InvestorsApiActions.loadInvestorCommitmentsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorCommitmentsPageFailure({
+                  error: 'Unable to load commitments. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorUnfundedCommitmentsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorUnfundedCommitmentsPage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          readInvestorUnfundedCommitmentsPageCache(
+            investors.cache.unfundedCommitmentPages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorUnfundedCommitmentsPage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundCommitmentsToAmountTabRows(extractPagedItems(result), request.timeframe);
+              return InvestorsApiActions.loadInvestorUnfundedCommitmentsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorUnfundedCommitmentsPageFailure({
+                  error: 'Unable to load unfunded commitments. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorCapitalInvestmentsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorCapitalInvestmentsPage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          readInvestorCapitalInvestmentsPageCache(
+            investors.cache.capitalInvestmentPages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorInvestmentsPage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundCommitmentsToTabRows(extractPagedItems(result), request.timeframe);
+              return InvestorsApiActions.loadInvestorCapitalInvestmentsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorCapitalInvestmentsPageFailure({
+                  error: 'Unable to load investments. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorDistributionsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorDistributionsPage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          readInvestorDistributionsPageCache(
+            investors.cache.distributionPages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorDistributionsPage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+          })
+          .pipe(
+            map((result) => {
+              const startIndex =
+                request.replace || investors.detail.selectedKey !== request.investorKey
+                  ? 0
+                  : investors.detail.investorDistributions.length;
+              const items = mapFundDistributionGroupsToTabRows(
+                extractPagedItems(result),
+                request.timeframe,
+                startIndex,
+              );
+              return InvestorsApiActions.loadInvestorDistributionsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorDistributionsPageFailure({
+                  error: 'Unable to load distributions. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorNavPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorNavPage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          readInvestorNavPageCache(
+            investors.cache.navPages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorNavPage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundNavToTabRows(extractPagedItems(result), request.timeframe);
+              return InvestorsApiActions.loadInvestorNavPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorNavPageFailure({
                   error: 'Unable to load NAV. Please try again.',
                 }),
               ),
