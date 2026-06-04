@@ -1,0 +1,278 @@
+.subjective-page {
+  min-height: 100%;
+  padding: 1.5rem 1.35rem;
+  background: #ffffff;
+}
+
+h1 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 2rem;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.subtitle {
+  margin: 0.25rem 0 1.35rem;
+  color: #2563eb;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filter-panel {
+  border: 1px solid #e5e7eb;
+  background: #fffbeb;
+  padding: 0.95rem 1rem;
+}
+
+.alias-panel {
+  flex: 1 1 20rem;
+}
+
+.status-panel {
+  flex: 0 1 auto;
+  min-width: 12rem;
+}
+
+.filter-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #111827;
+}
+
+.search-input-wrap input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  height: 2.1rem;
+  padding: 0 0.5rem;
+  font-size: 0.92rem;
+}
+
+.search-results {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  max-height: 8rem;
+  overflow: auto;
+}
+
+.search-results li button {
+  width: 100%;
+  border: none;
+  background: #ffffff;
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.search-results li button:hover {
+  background: #f9fafb;
+}
+
+.selected-alias-tags {
+  margin-top: 0.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.alias-tag {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #111827;
+  background: #111827;
+  color: #ffffff;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.tag-close {
+  margin-left: 0.4rem;
+}
+
+.link-clear {
+  margin-top: 0.5rem;
+  border: none;
+  background: none;
+  color: #2563eb;
+  font-size: 0.86rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.status-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.status-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.meta-message,
+.status-message {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+  color: #1f2937;
+}
+
+.status-message {
+  color: #1d4ed8;
+}
+
+.error-message {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+  color: #b91c1c;
+}
+
+.table-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  text-transform: none;
+}
+
+.table-wrap {
+  border: 1px solid #e5e7eb;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 72rem;
+}
+
+thead th {
+  background: #1e3a5f;
+  color: #ffffff;
+  text-align: left;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 0.7rem 0.75rem;
+}
+
+tbody td {
+  font-size: 0.88rem;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+}
+
+.hidden-column {
+  display: none;
+}
+
+.date-readonly {
+  white-space: nowrap;
+  color: #374151;
+}
+
+.select-input,
+.date-input,
+.text-input {
+  border: 1px solid #d1d5db;
+  height: 2rem;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.88rem;
+  max-width: 100%;
+}
+
+.select-input {
+  min-width: 9.5rem;
+}
+
+.date-input {
+  min-width: 9.5rem;
+}
+
+.text-input {
+  min-width: 10rem;
+  width: 100%;
+}
+
+.empty-row {
+  text-align: center;
+  color: #6b7280;
+  padding: 1rem;
+}
+
+.pagination {
+  margin-top: 0.7rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pagination-left,
+.pagination-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-left select,
+.pager-btn {
+  border: 1px solid #d1d5db;
+  height: 1.9rem;
+  background: #ffffff;
+}
+
+.pager-btn {
+  padding: 0 0.65rem;
+  cursor: pointer;
+}
+
+.pager-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-save {
+  border: 1px solid #005b9f;
+  background: #005b9f;
+  color: #ffffff;
+  height: 2rem;
+  padding: 0 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-save:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.footnote {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}

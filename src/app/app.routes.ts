@@ -80,6 +80,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'mortgage/default-subjective-analytics',
+        loadComponent: () =>
+          import('./pages/default-subjective-analytics/default-subjective-analytics.component').then(
+            (m) => m.DefaultSubjectiveAnalyticsComponent
+          ),
+      },
+      {
         path: 'capital-reporting/fund',
         loadComponent: () =>
           import('./pages/fund/fund.component').then((m) => m.FundComponent),
