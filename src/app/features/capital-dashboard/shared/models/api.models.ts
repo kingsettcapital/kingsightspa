@@ -100,7 +100,10 @@ export interface FundDetailDto {
 export interface FundInvestorDto {
   investorKey: number;
   investorName: string | null;
+  relationship_name?: string | null;
   investorType: string | null;
+  contact_first_name?: string | null;
+  contact_last_name?: string | null;
   totalInvested: number;
   totalInvestedFmv: number;
   totalReturnPercent?: number | null;
@@ -171,14 +174,21 @@ export interface FundInvestmentsQueryParams extends FundFundamentalQueryParams {
 
 export interface FundDistributionsQueryParams extends FundFundamentalQueryParams {}
 
-/** Granular row returned by commitments, unfunded-commitments, and nav endpoints. */
+/** Granular row returned by fund detail tabs (commitments, investments, distributions, etc.). */
 export interface FundGranularRowDto {
+  fund_code?: string | null;
   period?: string | null;
   date?: string | null;
   posted_date_key?: number | null;
   postedDateKey?: number | null;
-  amount: number;
-  units: number;
+  amount?: number | null;
+  /** Commitments rows */
+  commitment_amount?: number | null;
+  /** Investments LTD/quarterly/daily rows */
+  invested_amount?: number | null;
+  /** Distributions rows */
+  distributed_amount?: number | null;
+  units?: number | null;
   description?: string | null;
 }
 
@@ -202,12 +212,84 @@ export interface FundCommitmentDailyDto {
 
 export type FundCommitmentDto = FundCommitmentPeriodDto | FundCommitmentDailyDto | FundGranularRowDto;
 
-export interface FundCommitmentTabRow {
+/** GET api/Funds/{fundKey}/assets */
+export interface FundAssetDto {
+  propertyKey?: number;
+  property_name?: string | null;
+  city?: string | null;
+  province?: string | null;
+  geography?: string | null;
+  asset_type?: string | null;
+  investment_type?: string | null;
+  property_status?: string | null;
+  property_acquisition?: string | null;
+  property_disposition?: string | null;
+}
+
+/** Fund assets tab row (mapped from FundAssetDto). */
+export interface FundAssetTabRow {
+  propertyKey: number | null;
+  assetName: string;
+  city: string;
+  province: string;
+  geography: string;
+  assetType: string;
+  investmentType: string;
+  propertyStatus: string;
+  propertyAcquisition: string;
+  propertyDisposedDate: string;
+}
+
+/** Tab row for commitments, unfunded commitments, and NAV (amount only). */
+export interface FundAmountTabRow {
+  fundCode?: string;
+  period?: string;
+  date?: string;
+  amount: number;
+  description: string;
+}
+
+/** Tab row for investments and distributions (amount or units by fund type). */
+export interface FundCommitmentTabRow extends FundAmountTabRow {
+  units: string;
+}
+
+/** Period line inside a fund distributions transaction-type group. */
+export interface FundDistributionPeriodRowDto {
+  period?: string | null;
+  date?: string | null;
+  posted_date_key?: number | null;
+  amount?: number | null;
+  units?: number | null;
+  description?: string | null;
+}
+
+/** GET api/Funds/{fundKey}/distributions — grouped by transaction_type. */
+export interface FundDistributionGroupDto {
+  fund_code?: string | null;
+  investor_code?: string | null;
+  transaction_type?: string | null;
+  periods?: FundDistributionPeriodRowDto[] | null;
+  total_amount?: number | null;
+  total_units?: number | null;
+}
+
+/** Mapped period row for distributions tab detail rows. */
+export interface FundDistributionPeriodTabRow {
   period?: string;
   date?: string;
   amount: number;
   units: string;
   description: string;
+}
+
+/** Mapped group row for distributions tab. */
+export interface FundDistributionGroupTabRow {
+  groupKey: string;
+  transactionType: string;
+  totalAmount: number;
+  totalUnits: string;
+  periods: FundDistributionPeriodTabRow[];
 }
 
 /** UI timeframe for fund NAV tab (same values as commitments). */
@@ -226,7 +308,7 @@ export type FundNavPeriodDto = FundCommitmentPeriodDto;
 export type FundNavDailyDto = FundCommitmentDailyDto;
 export type FundNavDto = FundCommitmentDto;
 
-export type FundNavTabRow = FundCommitmentTabRow;
+export type FundNavTabRow = FundAmountTabRow;
 
 export interface PropertyListItemDto {
   propertyKey: number;

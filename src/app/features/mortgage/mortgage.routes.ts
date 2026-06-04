@@ -12,6 +12,13 @@ export const MORTGAGE_ROUTES: Routes = [
       import('./loan-alias/loan-alias.component').then((m) => m.LoanAliasComponent),
   },
   {
+    path: 'loan-alias-assignment',
+    loadComponent: () =>
+      import('../../pages/loan-alias-assignment/loan-alias-assignment.component').then(
+        (m) => m.LoanAliasAssignmentComponent,
+      ),
+  },
+  {
     path: 'loans-ranking',
     loadComponent: () =>
       import('./loans-ranking/loans-ranking.component').then(
@@ -33,9 +40,23 @@ export const MORTGAGE_ROUTES: Routes = [
       ),
   },
   {
+    path: 'cmhc-upload',
+    loadComponent: () =>
+      import('../../pages/cmhc-upload/cmhc-upload.component').then(
+        (m) => m.CmhcUploadComponent,
+      ),
+  },
+  {
     path: 'other-cost',
     loadComponent: () =>
       import('./other-cost/other-cost.component').then((m) => m.OtherCostComponent),
+  },
+  {
+    path: 'other-cost-capture',
+    loadComponent: () =>
+      import('../../pages/other-cost-capture/other-cost-capture.component').then(
+        (m) => m.OtherCostCaptureComponent,
+      ),
   },
   {
     path: 'default-date',

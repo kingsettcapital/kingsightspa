@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -30,8 +29,8 @@ import {
 } from '../fund-period.util';
 import {
   filterInvestmentDetailTabRows,
-  investmentDetailTableColumns,
-  sumInvestmentDetailTabRows,
+  investmentFundInvestmentsTableColumns,
+  sumInvestmentAmountTabRows,
 } from '../investment-detail-tab.util';
 
 @Component({
@@ -47,7 +46,6 @@ import {
     MatProgressBarModule,
     MatSelectModule,
     MatTableModule,
-    DecimalPipe,
     KsCurrencyPipe,
     PortalSpinnerComponent,
   ],
@@ -88,9 +86,7 @@ export class InvestmentInvestmentsTabComponent {
     return mapFundPeriodsToSelectOptions(cached?.items);
   });
 
-  readonly columns = computed(() =>
-    investmentDetailTableColumns(this.isDaily(), this.fundType()),
-  );
+  readonly columns = computed(() => investmentFundInvestmentsTableColumns(this.isDaily()));
 
   readonly rows = computed(() =>
     filterInvestmentDetailTabRows(this.fundsDetail().fundInvestments, this.searchQuery()),
@@ -100,8 +96,7 @@ export class InvestmentInvestmentsTabComponent {
   readonly hasNextPage = computed(() => this.fundsDetail().fundInvestmentsHasNextPage);
   readonly error = computed(() => this.fundsDetail().fundInvestmentsError);
 
-  readonly totalAmount = computed(() => sumInvestmentDetailTabRows(this.rows()).totalAmount);
-  readonly totalUnits = computed(() => sumInvestmentDetailTabRows(this.rows()).totalUnits);
+  readonly totalAmount = computed(() => sumInvestmentAmountTabRows(this.rows()).totalAmount);
 
   constructor() {
     effect(() => {
@@ -188,9 +183,9 @@ export class InvestmentInvestmentsTabComponent {
       filename: 'investments.xlsx',
       sheetName: 'Investments',
       columns: [
+        { header: 'Fund Code', value: (r) => r.fundCode ?? '' },
         periodColumn,
-        { header: 'Amount', value: (r) => r.amount },
-        { header: 'Units', value: (r) => r.units },
+        { header: 'Invested Amount', value: (r) => r.amount },
         { header: 'Description', value: (r) => r.description },
       ],
       rows: exportRows,

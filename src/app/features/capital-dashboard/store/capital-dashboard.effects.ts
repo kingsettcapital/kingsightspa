@@ -7,7 +7,13 @@ import { LIST_PAGE_SIZE } from '../shared/list-pagination.constants';
 import { CapitalAssetsApiService } from '../shared/services/capital-assets-api.service';
 import { CapitalFundsApiService } from '../shared/services/capital-funds-api.service';
 import { CapitalInvestorsApiService } from '../shared/services/capital-investors-api.service';
-import { mapFundCommitmentsToTabRows } from '../investments/tabs/commitments/fund-commitment.mapper';
+import {
+  mapFundCommitmentsToAmountTabRows,
+  mapFundCommitmentsToTabRows,
+} from '../investments/tabs/commitments/fund-commitment.mapper';
+import { mapFundAssetsToTabRows } from '../investments/tabs/fund-asset.mapper';
+import { mapFundInvestorsToTabRows } from '../investments/tabs/fund-investor.mapper';
+import { mapFundDistributionGroupsToTabRows } from '../investments/tabs/distributions/fund-distribution.mapper';
 import { mapFundNavToTabRows } from '../investments/tabs/nav/fund-nav.mapper';
 import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
 import {
@@ -17,7 +23,14 @@ import {
   readFundDistributionsPageCache,
   readFundInvestmentsPageCache,
   readFundUnfundedCommitmentsPageCache,
+  readInvestorCapitalInvestmentsPageCache,
+  readInvestorCommitmentsPageCache,
+  readInvestorDistributionsPageCache,
+  readInvestorNavPageCache,
+  readInvestorPeriodsCache,
+  readInvestorUnfundedCommitmentsPageCache,
   readListCacheEntry,
+  extractPagedItems,
 } from './capital-dashboard-cache.util';
 import { selectAssets, selectFunds, selectInvestors } from './capital-dashboard.reducer';
 import { selectAssetsList, selectFundsList, selectInvestorsList } from './capital-dashboard.selectors';
@@ -79,13 +92,14 @@ export class CapitalDashboardEffects {
         }
         return forkJoin({
           detail: this.investorsApi.getInvestor(request.investorKey),
-          investments: this.investorsApi.getInvestorInvestments(request.investorKey),
+          funds: this.investorsApi.getInvestorFundsPage(request.investorKey, { page: 1 }),
         }).pipe(
-          map(({ detail, investments }) =>
+          map(({ detail, funds }) =>
             InvestorsApiActions.loadDetailSuccess({
               investorKey: request.investorKey,
               detail,
-              investments,
+              investments: extractPagedItems(funds),
+              investmentsHasNextPage: !!funds.hasNextPage,
             }),
           ),
           catchError(() =>
@@ -93,6 +107,25 @@ export class CapitalDashboardEffects {
           ),
         );
       }),
+    ),
+  );
+
+  readonly loadInvestorFundsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorFundsPage),
+      switchMap(({ investorKey, page, search }) =>
+        this.investorsApi.getInvestorFundsPage(investorKey, { page, search }).pipe(
+          map((result) =>
+            InvestorsApiActions.loadInvestorFundsPageSuccess({
+              page,
+              items: extractPagedItems(result),
+              hasNextPage: !!result.hasNextPage,
+              append: page > 1,
+            }),
+          ),
+          catchError(() => of(InvestorsApiActions.loadInvestorFundsPageFailure())),
+        ),
+      ),
     ),
   );
 
@@ -143,33 +176,15 @@ export class CapitalDashboardEffects {
         if (funds.cache.details[request.fundKey]) {
           return EMPTY;
         }
-        return forkJoin({
-          detail: this.fundsApi.getFund(request.fundKey),
-          investors: this.fundsApi.getFundInvestors(request.fundKey),
-        }).pipe(
-          switchMap(({ detail, investors }) => {
-            const fundCode = detail.summary.fundCode?.trim() || null;
-            if (!fundCode) {
-              return of(
-                FundsApiActions.loadDetailSuccess({
-                  fundKey: request.fundKey,
-                  detail,
-                  investors,
-                  assets: [],
-                  assetsHasNextPage: false,
-                  assetsFundCode: null,
-                }),
-              );
-            }
-            return this.assetsApi.getAssetsForFundPage(request.fundKey, fundCode, 1, undefined).pipe(
+        return this.fundsApi.getFund(request.fundKey).pipe(
+          switchMap((detail) =>
+            this.fundsApi.getFundAssetsPage(request.fundKey, { page: 1 }).pipe(
               map((assetsPage) =>
                 FundsApiActions.loadDetailSuccess({
                   fundKey: request.fundKey,
                   detail,
-                  investors,
-                  assets: assetsPage.items ?? [],
+                  assets: mapFundAssetsToTabRows(extractPagedItems(assetsPage)),
                   assetsHasNextPage: assetsPage.hasNextPage,
-                  assetsFundCode: fundCode,
                 }),
               ),
               catchError(() =>
@@ -177,15 +192,13 @@ export class CapitalDashboardEffects {
                   FundsApiActions.loadDetailSuccess({
                     fundKey: request.fundKey,
                     detail,
-                    investors,
                     assets: [],
                     assetsHasNextPage: false,
-                    assetsFundCode: fundCode,
                   }),
                 ),
               ),
-            );
-          }),
+            ),
+          ),
           catchError(() =>
             of(FundsApiActions.loadDetailFailure({ error: 'Unable to load investment details.' })),
           ),
@@ -194,34 +207,39 @@ export class CapitalDashboardEffects {
     ),
   );
 
-  readonly loadFundInvestors$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(FundsApiActions.loadFundInvestors),
-      switchMap(({ fundKey, search }) =>
-        this.fundsApi.getFundInvestors(fundKey, { search: search.trim() || undefined }).pipe(
-          map((investors) => FundsApiActions.loadFundInvestorsSuccess({ investors })),
-          catchError(() =>
-            of(FundsApiActions.loadFundInvestorsFailure({ error: 'Unable to load fund investors.' })),
-          ),
-        ),
-      ),
-    ),
-  );
-
   readonly loadFundAssetsPage$ = createEffect(() =>
     this.actions$.pipe(
       ofType(FundsApiActions.loadFundAssetsPage),
-      switchMap(({ fundKey, fundCode, page, search }) =>
-        this.assetsApi.getAssetsForFundPage(fundKey, fundCode, page, search.trim() || undefined).pipe(
+      switchMap(({ fundKey, page, search }) =>
+        this.fundsApi.getFundAssetsPage(fundKey, { page, search }).pipe(
           map((result) =>
             FundsApiActions.loadFundAssetsPageSuccess({
               page,
-              items: result.items ?? [],
+              items: mapFundAssetsToTabRows(extractPagedItems(result)),
               hasNextPage: result.hasNextPage,
               append: page > 1,
             }),
           ),
           catchError(() => of(FundsApiActions.loadFundAssetsPageFailure())),
+        ),
+      ),
+    ),
+  );
+
+  readonly loadFundInvestorsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FundsApiActions.loadFundInvestorsPage),
+      switchMap(({ fundKey, page, search }) =>
+        this.fundsApi.getFundInvestorsPage(fundKey, { page, search }).pipe(
+          map((result) =>
+            FundsApiActions.loadFundInvestorsPageSuccess({
+              page,
+              items: mapFundInvestorsToTabRows(extractPagedItems(result)),
+              hasNextPage: !!result.hasNextPage,
+              append: page > 1,
+            }),
+          ),
+          catchError(() => of(FundsApiActions.loadFundInvestorsPageFailure())),
         ),
       ),
     ),
@@ -290,7 +308,7 @@ export class CapitalDashboardEffects {
           })
           .pipe(
             map((result) => {
-              const items = mapFundCommitmentsToTabRows(result.items, request.timeframe);
+              const items = mapFundCommitmentsToAmountTabRows(result.items, request.timeframe);
               return FundsApiActions.loadFundCommitmentsPageSuccess({
                 timeframe: request.timeframe,
                 page: result.page ?? request.page,
@@ -338,7 +356,7 @@ export class CapitalDashboardEffects {
           })
           .pipe(
             map((result) => {
-              const items = mapFundCommitmentsToTabRows(result.items, request.timeframe);
+              const items = mapFundCommitmentsToAmountTabRows(result.items, request.timeframe);
               return FundsApiActions.loadFundUnfundedCommitmentsPageSuccess({
                 timeframe: request.timeframe,
                 page: result.page ?? request.page,
@@ -434,7 +452,15 @@ export class CapitalDashboardEffects {
           })
           .pipe(
             map((result) => {
-              const items = mapFundCommitmentsToTabRows(result.items, request.timeframe);
+              const startIndex =
+                request.replace || funds.detail.selectedKey !== request.fundKey
+                  ? 0
+                  : funds.detail.fundDistributions.length;
+              const items = mapFundDistributionGroupsToTabRows(
+                result.items,
+                request.timeframe,
+                startIndex,
+              );
               return FundsApiActions.loadFundDistributionsPageSuccess({
                 timeframe: request.timeframe,
                 page: result.page ?? request.page,
@@ -496,6 +522,293 @@ export class CapitalDashboardEffects {
             catchError(() =>
               of(
                 FundsApiActions.loadFundNavPageFailure({
+                  error: 'Unable to load NAV. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+
+  readonly loadInvestorPeriods$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorPeriods),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        if (readInvestorPeriodsCache(investors.cache.periodLists, request.investorKey, request.source, request.view)) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorPeriodsPage(request.investorKey, {
+            view: request.view,
+            source: request.source,
+            page: 1,
+          })
+          .pipe(
+            map((result) =>
+              InvestorsApiActions.loadInvestorPeriodsSuccess({
+                investorKey: request.investorKey,
+                source: request.source,
+                view: request.view,
+                items: extractPagedItems(result),
+              }),
+            ),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorPeriodsFailure({
+                  investorKey: request.investorKey,
+                  source: request.source,
+                  view: request.view,
+                  error: 'Unable to load periods.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorCommitmentsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorCommitmentsPage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          readInvestorCommitmentsPageCache(
+            investors.cache.commitmentPages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorCommitmentsPage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundCommitmentsToAmountTabRows(extractPagedItems(result), request.timeframe);
+              return InvestorsApiActions.loadInvestorCommitmentsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorCommitmentsPageFailure({
+                  error: 'Unable to load commitments. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorUnfundedCommitmentsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorUnfundedCommitmentsPage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          readInvestorUnfundedCommitmentsPageCache(
+            investors.cache.unfundedCommitmentPages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorUnfundedCommitmentsPage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundCommitmentsToAmountTabRows(extractPagedItems(result), request.timeframe);
+              return InvestorsApiActions.loadInvestorUnfundedCommitmentsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorUnfundedCommitmentsPageFailure({
+                  error: 'Unable to load unfunded commitments. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorCapitalInvestmentsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorCapitalInvestmentsPage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          readInvestorCapitalInvestmentsPageCache(
+            investors.cache.capitalInvestmentPages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorInvestmentsPage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundCommitmentsToTabRows(extractPagedItems(result), request.timeframe);
+              return InvestorsApiActions.loadInvestorCapitalInvestmentsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorCapitalInvestmentsPageFailure({
+                  error: 'Unable to load investments. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorDistributionsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorDistributionsPage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          readInvestorDistributionsPageCache(
+            investors.cache.distributionPages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorDistributionsPage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+          })
+          .pipe(
+            map((result) => {
+              const startIndex =
+                request.replace || investors.detail.selectedKey !== request.investorKey
+                  ? 0
+                  : investors.detail.investorDistributions.length;
+              const items = mapFundDistributionGroupsToTabRows(
+                extractPagedItems(result),
+                request.timeframe,
+                startIndex,
+              );
+              return InvestorsApiActions.loadInvestorDistributionsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorDistributionsPageFailure({
+                  error: 'Unable to load distributions. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorNavPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorNavPage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          readInvestorNavPageCache(
+            investors.cache.navPages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorNavPage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundNavToTabRows(extractPagedItems(result), request.timeframe);
+              return InvestorsApiActions.loadInvestorNavPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorNavPageFailure({
                   error: 'Unable to load NAV. Please try again.',
                 }),
               ),

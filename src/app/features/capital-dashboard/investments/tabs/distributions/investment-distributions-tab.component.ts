@@ -15,7 +15,10 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { KsCurrencyPipe } from '../../../../../shared/pipes/ks-currency.pipe';
 import { ExcelService } from '../../../../../core/services/excel.service';
-import { FundCommitmentTabRow, FundCommitmentTimeframe } from '../../../shared/models/api.models';
+import {
+  FundCommitmentTimeframe,
+  FundDistributionPeriodTabRow,
+} from '../../../shared/models/api.models';
 import { readFundPeriodsCache } from '../../../store/capital-dashboard-cache.util';
 import { FundsApiActions } from '../../../store';
 import { selectFunds, selectFundsDetail, selectFundsDetailSelectedKey } from '../../../store/capital-dashboard.selectors';
@@ -29,10 +32,28 @@ import {
   setPeriodForTimeframe,
 } from '../fund-period.util';
 import {
-  filterInvestmentDetailTabRows,
+  filterFundDistributionGroups,
+  flattenFundDistributionGroupsForExport,
+  sumFundDistributionGroups,
+} from './fund-distribution.mapper';
+import {
   investmentDetailTableColumns,
-  sumInvestmentDetailTabRows,
+  isNegativeTabUnits,
+  isUnitizedFundType,
 } from '../investment-detail-tab.util';
+
+export type DistributionTableRow =
+  | {
+      kind: 'group';
+      groupKey: string;
+      transactionType: string;
+      totalAmount: number;
+      totalUnits: string;
+    }
+  | ({
+      kind: 'detail';
+      groupKey: string;
+    } & FundDistributionPeriodTabRow);
 
 @Component({
   selector: 'app-investment-distributions-tab',
@@ -55,7 +76,10 @@ import {
   styleUrl: './investment-distributions-tab.component.scss',
 })
 export class InvestmentDistributionsTabComponent {
+  protected readonly isNegativeTabUnits = isNegativeTabUnits;
+
   readonly fundType = input('');
+  readonly isUnitized = computed(() => isUnitizedFundType(this.fundType()));
   private readonly excelService = inject(ExcelService);
   private readonly store = inject(Store);
 
@@ -69,6 +93,8 @@ export class InvestmentDistributionsTabComponent {
   private periodsLoadKey: string | null = null;
 
   private readonly periodByTimeframe = signal<FundPeriodByTimeframe>({});
+  private readonly collapsedGroupKeys = signal<ReadonlySet<string>>(new Set());
+
   readonly period = computed(() => periodForTimeframe(this.periodByTimeframe(), this.timeframe()));
   readonly searchQuery = signal('');
 
@@ -88,20 +114,49 @@ export class InvestmentDistributionsTabComponent {
     return mapFundPeriodsToSelectOptions(cached?.items);
   });
 
-  readonly columns = computed(() =>
-    investmentDetailTableColumns(this.isDaily(), this.fundType()),
+  readonly columns = computed(() => {
+    const base = investmentDetailTableColumns(this.isDaily(), this.fundType());
+    return ['expand', ...base];
+  });
+
+  readonly groups = computed(() =>
+    filterFundDistributionGroups(this.fundsDetail().fundDistributions, this.searchQuery()),
   );
 
-  readonly rows = computed(() =>
-    filterInvestmentDetailTabRows(this.fundsDetail().fundDistributions, this.searchQuery()),
-  );
+  readonly displayRows = computed((): DistributionTableRow[] => {
+    const collapsed = this.collapsedGroupKeys();
+    const rows: DistributionTableRow[] = [];
+
+    for (const group of this.groups()) {
+      rows.push({
+        kind: 'group',
+        groupKey: group.groupKey,
+        transactionType: group.transactionType,
+        totalAmount: group.totalAmount,
+        totalUnits: group.totalUnits,
+      });
+
+      if (!collapsed.has(group.groupKey)) {
+        for (const period of group.periods) {
+          rows.push({
+            kind: 'detail',
+            groupKey: group.groupKey,
+            ...period,
+          });
+        }
+      }
+    }
+
+    return rows;
+  });
+
   readonly loading = computed(() => this.fundsDetail().fundDistributionsLoading);
   readonly loadingMore = computed(() => this.fundsDetail().fundDistributionsLoadingMore);
   readonly hasNextPage = computed(() => this.fundsDetail().fundDistributionsHasNextPage);
   readonly error = computed(() => this.fundsDetail().fundDistributionsError);
 
-  readonly totalAmount = computed(() => sumInvestmentDetailTabRows(this.rows()).totalAmount);
-  readonly totalUnits = computed(() => sumInvestmentDetailTabRows(this.rows()).totalUnits);
+  readonly totalAmount = computed(() => sumFundDistributionGroups(this.groups()).totalAmount);
+  readonly totalUnits = computed(() => sumFundDistributionGroups(this.groups()).totalUnits);
 
   constructor() {
     effect(() => {
@@ -141,12 +196,38 @@ export class InvestmentDistributionsTabComponent {
       });
   }
 
+  isGroupRow(row: DistributionTableRow): row is Extract<DistributionTableRow, { kind: 'group' }> {
+    return row.kind === 'group';
+  }
+
+  isDetailRow(row: DistributionTableRow): row is Extract<DistributionTableRow, { kind: 'detail' }> {
+    return row.kind === 'detail';
+  }
+
+  isGroupExpanded(groupKey: string): boolean {
+    return !this.collapsedGroupKeys().has(groupKey);
+  }
+
+  toggleGroup(groupKey: string, event?: Event): void {
+    event?.stopPropagation();
+    this.collapsedGroupKeys.update((collapsed) => {
+      const next = new Set(collapsed);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
+      return next;
+    });
+  }
+
   onTimeframeChange(value: FundCommitmentTimeframe): void {
     if (!this.tabActive()) return;
     const fundKey = this.selectedFundKey();
     if (!fundKey) return;
     this.distributionsAutoLoadKey = null;
     this.periodsLoadKey = null;
+    this.resetCollapsedGroups();
     this.store.dispatch(
       FundsApiActions.loadFundDistributionsPage({
         fundKey,
@@ -165,6 +246,7 @@ export class InvestmentDistributionsTabComponent {
     const fundKey = this.selectedFundKey();
     if (!fundKey) return;
     this.distributionsAutoLoadKey = null;
+    this.resetCollapsedGroups();
     untracked(() => this.dispatchPage(1, true));
   }
 
@@ -183,15 +265,16 @@ export class InvestmentDistributionsTabComponent {
   }
 
   downloadExcel(): void {
-    const exportRows = this.rows();
+    const exportRows = flattenFundDistributionGroupsForExport(this.groups());
     const periodColumn = this.isDaily()
-      ? { header: 'Date', value: (r: FundCommitmentTabRow) => r.date ?? '' }
-      : { header: 'Period', value: (r: FundCommitmentTabRow) => r.period ?? '' };
+      ? { header: 'Date', value: (r: (typeof exportRows)[number]) => r.date ?? '' }
+      : { header: 'Period', value: (r: (typeof exportRows)[number]) => r.period ?? '' };
 
-    this.excelService.export<FundCommitmentTabRow>({
+    this.excelService.export({
       filename: 'distributions.xlsx',
       sheetName: 'Distributions',
       columns: [
+        { header: 'Transaction Type', value: (r) => r.transactionType },
         periodColumn,
         { header: 'Amount', value: (r) => r.amount },
         { header: 'Units', value: (r) => r.units },
@@ -201,10 +284,18 @@ export class InvestmentDistributionsTabComponent {
     });
   }
 
+  private resetCollapsedGroups(): void {
+    this.collapsedGroupKeys.set(new Set());
+  }
+
   private dispatchPage(page: number, replace: boolean): void {
     const detail = this.fundsDetail();
     const fundKey = detail.selectedKey;
     if (!fundKey) return;
+
+    if (replace) {
+      this.resetCollapsedGroups();
+    }
 
     this.store.dispatch(
       FundsApiActions.loadFundDistributionsPage({

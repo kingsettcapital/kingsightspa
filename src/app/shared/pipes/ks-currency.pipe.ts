@@ -22,7 +22,7 @@ export class KsCurrencyPipe implements PipeTransform {
       ...(compact ? { notation: 'compact', compactDisplay: 'short' } : {}),
     }).format(abs);
 
-    return value < 0 ? `(-${formatted})` : formatted;
+    return value < 0 ? `(${formatted})` : formatted;
   }
 }
 

@@ -1,4 +1,5 @@
 @use '../shared/styles/list-search-field' as search;
+@use './tabs/tab-table-summary';
 
 :host {
   display: block;
@@ -20,7 +21,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: 0.75rem;
-  padding: 0.5rem 0;
+  padding: 0 0 0.6rem 0;
 }
 
 .ks-investments-search--inline {
@@ -28,8 +29,65 @@
   width: min(340px, 100%);
 }
 
-:host ::ng-deep .detail-table .mat-mdc-header-cell {
-  border-top: 1px solid var(--portal-divider);
+:host .detail-table-wrap.tab-table-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:host .detail-table-wrap.tab-table-wrap .detail-table__scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:host ::ng-deep .tab-table-hsync .detail-table .link-cell .detail-table__primary {
+  font-size: var(--ks-font-size-sm);
+  line-height: 1.3;
+}
+
+/* Split thead/tbody scroll — fixed column widths keep header and body aligned. */
+@mixin tab-table-column-width($column, $width) {
+  :host ::ng-deep .tab-table-hsync .detail-table .mat-mdc-header-cell.mat-column-#{$column},
+  :host ::ng-deep .tab-table-hsync .detail-table .mat-mdc-cell.mat-column-#{$column},
+  :host ::ng-deep .tab-table-hsync .detail-table .mat-mdc-footer-cell.mat-column-#{$column} {
+    width: $width;
+    min-width: $width;
+    max-width: $width;
+    box-sizing: border-box;
+  }
+}
+
+@include tab-table-column-width(assetName, 14rem);
+@include tab-table-column-width(city, 8rem);
+@include tab-table-column-width(province, 5rem);
+@include tab-table-column-width(geography, 10rem);
+@include tab-table-column-width(assetType, 9rem);
+@include tab-table-column-width(investmentType, 9rem);
+@include tab-table-column-width(propertyStatus, 8rem);
+@include tab-table-column-width(propertyAcquisition, 9rem);
+@include tab-table-column-width(propertyDisposedDate, 9rem);
+
+@include tab-table-column-width(investorName, 14rem);
+@include tab-table-column-width(relationshipName, 12rem);
+@include tab-table-column-width(investorTypeName, 11rem);
+@include tab-table-column-width(contactFirstName, 9rem);
+@include tab-table-column-width(contactLastName, 9rem);
+
+:host ::ng-deep .tab-table-hsync .detail-table.detail-table--fund-assets thead tr,
+:host ::ng-deep .tab-table-hsync .detail-table.detail-table--fund-assets tbody tr {
+  width: 81rem;
+  min-width: 81rem;
+}
+
+:host ::ng-deep .tab-table-hsync .detail-table.detail-table--fund-investors thead tr,
+:host ::ng-deep .tab-table-hsync .detail-table.detail-table--fund-investors tbody tr {
+  width: 55rem;
+  min-width: 55rem;
 }
 
 /* Capital dashboard list styles define `.list-table__secondary { color: ... }`.

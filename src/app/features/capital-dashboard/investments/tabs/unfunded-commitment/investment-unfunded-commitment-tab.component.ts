@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -15,7 +14,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { KsCurrencyPipe } from '../../../../../shared/pipes/ks-currency.pipe';
 import { ExcelService } from '../../../../../core/services/excel.service';
-import { FundCommitmentTabRow, FundCommitmentTimeframe } from '../../../shared/models/api.models';
+import { FundAmountTabRow, FundCommitmentTimeframe } from '../../../shared/models/api.models';
 import { readFundPeriodsCache } from '../../../store/capital-dashboard-cache.util';
 import { FundsApiActions } from '../../../store';
 import { selectFunds, selectFundsDetail, selectFundsDetailSelectedKey } from '../../../store/capital-dashboard.selectors';
@@ -29,9 +28,9 @@ import {
   setPeriodForTimeframe,
 } from '../fund-period.util';
 import {
-  filterInvestmentDetailTabRows,
-  investmentDetailTableColumns,
-  sumInvestmentDetailTabRows,
+  filterInvestmentAmountTabRows,
+  investmentAmountTableColumns,
+  sumInvestmentAmountTabRows,
 } from '../investment-detail-tab.util';
 
 @Component({
@@ -47,7 +46,6 @@ import {
     MatProgressBarModule,
     MatSelectModule,
     MatTableModule,
-    DecimalPipe,
     KsCurrencyPipe,
     PortalSpinnerComponent,
   ],
@@ -57,8 +55,6 @@ import {
 export class InvestmentUnfundedCommitmentTabComponent {
   private readonly excelService = inject(ExcelService);
   private readonly store = inject(Store);
-  readonly fundType = input('');
-
   readonly tabActive = input(false);
 
   private readonly funds = this.store.selectSignal(selectFunds);
@@ -88,20 +84,17 @@ export class InvestmentUnfundedCommitmentTabComponent {
     return mapFundPeriodsToSelectOptions(cached?.items);
   });
 
-  readonly columns = computed(() =>
-    investmentDetailTableColumns(this.isDaily(), this.fundType()),
-  );
+  readonly columns = computed(() => investmentAmountTableColumns(this.isDaily()));
 
   readonly rows = computed(() =>
-    filterInvestmentDetailTabRows(this.fundsDetail().unfundedCommitments, this.searchQuery()),
+    filterInvestmentAmountTabRows(this.fundsDetail().unfundedCommitments, this.searchQuery()),
   );
   readonly loading = computed(() => this.fundsDetail().unfundedCommitmentsLoading);
   readonly loadingMore = computed(() => this.fundsDetail().unfundedCommitmentsLoadingMore);
   readonly hasNextPage = computed(() => this.fundsDetail().unfundedCommitmentsHasNextPage);
   readonly error = computed(() => this.fundsDetail().unfundedCommitmentsError);
 
-  readonly totalAmount = computed(() => sumInvestmentDetailTabRows(this.rows()).totalAmount);
-  readonly totalUnits = computed(() => sumInvestmentDetailTabRows(this.rows()).totalUnits);
+  readonly totalAmount = computed(() => sumInvestmentAmountTabRows(this.rows()).totalAmount);
 
   constructor() {
     effect(() => {
@@ -185,16 +178,15 @@ export class InvestmentUnfundedCommitmentTabComponent {
   downloadExcel(): void {
     const exportRows = this.rows();
     const periodColumn = this.isDaily()
-      ? { header: 'Date', value: (r: FundCommitmentTabRow) => r.date ?? '' }
-      : { header: 'Period', value: (r: FundCommitmentTabRow) => r.period ?? '' };
+      ? { header: 'Date', value: (r: FundAmountTabRow) => r.date ?? '' }
+      : { header: 'Period', value: (r: FundAmountTabRow) => r.period ?? '' };
 
-    this.excelService.export<FundCommitmentTabRow>({
+    this.excelService.export<FundAmountTabRow>({
       filename: 'unfunded-commitment.xlsx',
       sheetName: 'Unfunded Commitment',
       columns: [
         periodColumn,
         { header: 'Amount', value: (r) => r.amount },
-        { header: 'Units', value: (r) => r.units },
         { header: 'Description', value: (r) => r.description },
       ],
       rows: exportRows,
