@@ -24,13 +24,13 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
 import { FundsApiActions } from '../store';
+import { extractPagedItems } from '../store/capital-dashboard-cache.util';
 import { selectFundsDetail, selectFundsList } from '../store/capital-dashboard.selectors';
 import { ListInfiniteScrollDirective } from '../shared/list-infinite-scroll.directive';
 import { DetailStatusBadgeComponent } from '../shared/components/detail-status-badge/detail-status-badge.component';
 import { OverviewSectionCardsComponent } from '../shared/components/overview-section-cards/overview-section-cards.component';
 import { PortalSpinnerComponent } from '../shared/components/portal-spinner/portal-spinner.component';
-import { FundInvestorDto, FundListItemDto } from '../shared/models/api.models';
-import { propertyListName, propertyLocation } from '../shared/utils/property-display.util';
+import { FundAssetTabRow, FundInvestorDto, FundListItemDto } from '../shared/models/api.models';
 import { formatCurrency, formatPercent } from '../shared/utils/format-currency.util';
 import { scrollListItemIntoView } from '../shared/utils/list-scroll.util';
 import { shouldRequestDetail } from '../shared/utils/should-request-detail.util';
@@ -57,7 +57,6 @@ import { InvestmentNavTabComponent } from './tabs/nav/investment-nav-tab.compone
     MatTableModule,
     MatTabsModule,
     ListInfiniteScrollDirective,
-    DetailStatusBadgeComponent,
     OverviewSectionCardsComponent,
     PortalSpinnerComponent,
     KsCurrencyPipe,
@@ -80,12 +79,10 @@ export class CapitalDashboardInvestmentsComponent {
 
   readonly formatCurrency = formatCurrency;
   readonly formatPercent = formatPercent;
-  readonly propertyListName = propertyListName;
-  readonly propertyLocation = propertyLocation;
   readonly overviewCards = computed(() => sectionCardsFromSections(this.fundDetail()?.sections ?? null));
 
   readonly searchQuery = signal('');
-  readonly funds = computed(() => this.fundsListState().items);
+  readonly funds = computed(() => extractPagedItems(this.fundsListState().items));
   readonly listLoading = computed(() => this.fundsListState().loading);
   readonly listLoadingMore = computed(() => this.fundsListState().loadingMore);
   readonly listError = computed(() => this.fundsListState().error);
@@ -94,20 +91,40 @@ export class CapitalDashboardInvestmentsComponent {
 
   readonly selectedFundKey = computed(() => this.fundsDetailState().selectedKey);
   readonly fundDetail = computed(() => this.fundsDetailState().detail);
-  readonly fundInvestors = computed(() => this.fundsDetailState().investors);
   readonly fundAssets = computed(() => this.fundsDetailState().assets);
   readonly assetSearchQuery = signal('');
+  readonly investorSearchQuery = signal('');
   readonly fundAssetsLoading = computed(() => this.fundsDetailState().assetsLoading);
   readonly fundAssetsLoadingMore = computed(() => this.fundsDetailState().assetsLoadingMore);
   readonly fundAssetsHasNextPage = computed(() => this.fundsDetailState().assetsHasNextPage);
+  readonly fundInvestors = computed(() => this.fundsDetailState().fundInvestors);
+  readonly fundInvestorsLoading = computed(() => this.fundsDetailState().fundInvestorsLoading);
+  readonly fundInvestorsLoadingMore = computed(() => this.fundsDetailState().fundInvestorsLoadingMore);
+  readonly fundInvestorsHasNextPage = computed(() => this.fundsDetailState().fundInvestorsHasNextPage);
   readonly detailLoading = computed(() => this.fundsDetailState().loading);
   readonly detailError = computed(() => this.fundsDetailState().error);
 
-  readonly focusInvestorKey = signal<number | null>(null);
-  private readonly fundInvestorsWrap = viewChild<ElementRef<HTMLElement>>('fundInvestorsWrap');
-
   activeTabIndex = 0;
   /** Overview=0, Assets=1, Investors=2, Commitments=3, Unfunded=4, Investments=5, Distributions=6, NAV=7 */
+  readonly fundInvestorsTabIndex = 2;
+  readonly fundAssetColumns = [
+    'assetName',
+    'city',
+    'province',
+    'geography',
+    'assetType',
+    'investmentType',
+    'propertyStatus',
+    'propertyAcquisition',
+    'propertyDisposedDate',
+  ];
+  readonly fundInvestorColumns = [
+    'investorName',
+    'relationshipName',
+    'investorTypeName',
+    'contactFirstName',
+    'contactLastName',
+  ];
   readonly commitmentsTabIndex = 3;
   readonly unfundedCommitmentsTabIndex = 4;
   readonly fundInvestmentsTabIndex = 5;
@@ -116,10 +133,6 @@ export class CapitalDashboardInvestmentsComponent {
   readonly listColumns = ['investment', 'value'];
 
   readonly selectedInvestment = computed(() => this.fundDetail());
-
-  readonly investorSearchQuery = signal('');
-  readonly fundInvestorsLoading = computed(() => this.fundsDetailState().investorsLoading);
-  readonly fundInvestorsError = computed(() => this.fundsDetailState().investorsError);
 
   private pendingScrollKey: number | null = null;
   private pendingSelectName: string | null = null;
@@ -133,12 +146,8 @@ export class CapitalDashboardInvestmentsComponent {
     this.route.queryParamMap
       .pipe(takeUntilDestroyed())
       .subscribe((params) => {
-        const focusRaw = params.get('focusInvestor');
-        const focusParsed = focusRaw ? Number(focusRaw) : NaN;
-        this.focusInvestorKey.set(Number.isFinite(focusParsed) ? focusParsed : null);
-
         const detailTab = params.get('detailTab');
-        if (detailTab === 'investors') this.activeTabIndex = 2;
+        if (detailTab === 'periods' || detailTab === 'investors') this.activeTabIndex = this.fundInvestorsTabIndex;
         if (detailTab === 'assets') this.activeTabIndex = 1;
         if (detailTab === 'overview') this.activeTabIndex = 0;
 
@@ -163,25 +172,28 @@ export class CapitalDashboardInvestmentsComponent {
         this.store.dispatch(FundsApiActions.loadList({ search, page: 1, replace: true }));
       });
 
-    toObservable(this.investorSearchQuery)
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
-      .subscribe((search) => {
-        const fundKey = this.selectedFundKey();
-        if (!fundKey) return;
-        this.store.dispatch(FundsApiActions.loadFundInvestors({ fundKey, search }));
-      });
-
     toObservable(this.assetSearchQuery)
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
       .subscribe((search) => {
-        const detail = this.fundsDetailState();
-        const fundKey = detail.selectedKey;
-        const fundCode = detail.assetsFundCode;
-        if (!fundKey || !fundCode?.trim()) return;
+        const fundKey = this.fundsDetailState().selectedKey;
+        if (!fundKey) return;
         this.store.dispatch(
           FundsApiActions.loadFundAssetsPage({
             fundKey,
-            fundCode: fundCode.trim(),
+            page: 1,
+            search,
+          }),
+        );
+      });
+
+    toObservable(this.investorSearchQuery)
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe((search) => {
+        const fundKey = this.fundsDetailState().selectedKey;
+        if (!fundKey) return;
+        this.store.dispatch(
+          FundsApiActions.loadFundInvestorsPage({
+            fundKey,
             page: 1,
             search,
           }),
@@ -203,16 +215,23 @@ export class CapitalDashboardInvestmentsComponent {
     effect(() => {
       const detail = this.fundsDetailState();
       if (!detail.loading && detail.detail) {
-        this.scrollFocusedInvestorIntoView();
         this.cleanupDeepLinkQueryParams();
       }
     });
 
     effect(() => {
+      if (this.activeTabIndex !== this.fundInvestorsTabIndex) return;
       const fundKey = this.selectedFundKey();
-      const search = this.investorSearchQuery().trim();
-      if (!fundKey || !search) return;
-      this.store.dispatch(FundsApiActions.loadFundInvestors({ fundKey, search }));
+      if (!fundKey) return;
+      const detail = this.fundsDetailState();
+      if (detail.fundInvestors.length > 0 || detail.fundInvestorsLoading) return;
+      this.store.dispatch(
+        FundsApiActions.loadFundInvestorsPage({
+          fundKey,
+          page: 1,
+          search: this.investorSearchQuery(),
+        }),
+      );
     });
   }
 
@@ -220,15 +239,30 @@ export class CapitalDashboardInvestmentsComponent {
     const detail = this.fundsDetailState();
     if (detail.assetsLoading || detail.assetsLoadingMore || !detail.assetsHasNextPage) return;
     const fundKey = detail.selectedKey;
-    const fundCode = detail.assetsFundCode;
-    if (!fundKey || !fundCode?.trim()) return;
+    if (!fundKey) return;
 
     this.store.dispatch(
       FundsApiActions.loadFundAssetsPage({
         fundKey,
-        fundCode: fundCode.trim(),
         page: detail.assetsPage + 1,
         search: detail.assetsSearch,
+      }),
+    );
+  }
+
+  loadMoreFundInvestors(): void {
+    const detail = this.fundsDetailState();
+    if (detail.fundInvestorsLoading || detail.fundInvestorsLoadingMore || !detail.fundInvestorsHasNextPage) {
+      return;
+    }
+    const fundKey = detail.selectedKey;
+    if (!fundKey) return;
+
+    this.store.dispatch(
+      FundsApiActions.loadFundInvestorsPage({
+        fundKey,
+        page: detail.fundInvestorsPage + 1,
+        search: detail.fundInvestorsSearch,
       }),
     );
   }
@@ -236,7 +270,7 @@ export class CapitalDashboardInvestmentsComponent {
   private cleanupDeepLinkQueryParams(): void {
     const params = this.route.snapshot.queryParamMap;
     const hasDeepLinkParams =
-      params.has('selected') || params.has('search') || params.has('detailTab') || params.has('focusInvestor');
+      params.has('selected') || params.has('search') || params.has('detailTab');
     if (!hasDeepLinkParams) return;
 
     void this.router.navigate([], {
@@ -245,24 +279,9 @@ export class CapitalDashboardInvestmentsComponent {
         selected: null,
         search: null,
         detailTab: null,
-        focusInvestor: null,
       },
       queryParamsHandling: 'merge',
       replaceUrl: true,
-    });
-  }
-
-  private scrollFocusedInvestorIntoView(): void {
-    const key = this.focusInvestorKey();
-    if (key == null) return;
-    // Ensure the Investors tab is visible
-    this.activeTabIndex = 2;
-
-    queueMicrotask(() => {
-      const host = this.fundInvestorsWrap()?.nativeElement;
-      if (!host) return;
-      const target = host.querySelector<HTMLElement>(`[data-investor-key="${key}"]`);
-      target?.scrollIntoView({ block: 'center' });
     });
   }
 
@@ -308,39 +327,29 @@ export class CapitalDashboardInvestmentsComponent {
     return 0;
   }
 
-  investorIcon(type: string | null | undefined): string {
-    if (type === 'Institution') return 'business';
-    if (type === 'Family Office' || type === 'Trust') return 'account_balance';
-    return 'person';
-  }
-
-  goToInvestor(investorKey: number, investorName: string | null | undefined): void {
-    void this.router.navigate(['../investor'], {
-      relativeTo: this.route,
-      queryParams: {
-        selected: investorKey,
-        search: investorName?.trim() || undefined,
-      },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
-    });
-  }
-
-  goToAsset(propertyKey: number, assetName: string | null | undefined): void {
+  goToAsset(row: FundAssetTabRow): void {
+    if (row.propertyKey == null) return;
     void this.router.navigate(['../asset'], {
       relativeTo: this.route,
       queryParams: {
-        selected: propertyKey,
-        search: assetName?.trim() || undefined,
+        selected: row.propertyKey,
+        search: row.assetName !== '—' ? row.assetName : undefined,
       },
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });
   }
 
-  clearInvestorSearch(): void {
-    if (!this.investorSearchQuery()) return;
-    this.investorSearchQuery.set('');
+  goToInvestor(investor: FundInvestorDto): void {
+    void this.router.navigate(['../investor'], {
+      relativeTo: this.route,
+      queryParams: {
+        selected: investor.investorKey,
+        search: investor.investorName?.trim() || undefined,
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   clearAssetSearch(): void {
@@ -348,12 +357,14 @@ export class CapitalDashboardInvestmentsComponent {
     this.assetSearchQuery.set('');
   }
 
-  memberSinceDisplay(row: FundInvestorDto): string {
-    const year = row.joinYear;
-    if (typeof year === 'number' && Number.isFinite(year) && year > 0) {
-      return `Member since ${Math.trunc(year)}`;
-    }
-    return 'Member since —';
+  clearInvestorSearch(): void {
+    if (!this.investorSearchQuery()) return;
+    this.investorSearchQuery.set('');
+  }
+
+  fundInvestorField(value: string | null | undefined): string {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : '—';
   }
 
   private readonly selectedIdFromRoute = () => {

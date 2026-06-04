@@ -2,10 +2,12 @@ import {
   FundAmountTabRow,
   FundCommitmentTabRow,
   FundCommitmentTimeframe,
+  FundAssetTabRow,
+  FundDistributionGroupTabRow,
+  FundInvestorDto,
   FundNavTabRow,
   FundNavTimeframe,
   FundDetailDto,
-  FundInvestorDto,
   FundListItemDto,
   FundPeriodDto,
   InvestorDetailDto,
@@ -18,6 +20,24 @@ import {
 } from '../shared/models/api.models';
 import { fundPeriodsCacheKey, FundPeriodSource } from '../investments/tabs/fund-period.util';
 import { PagedListState } from './capital-dashboard.state';
+
+/** MatTable and list UIs require a plain array; APIs may return a paged wrapper. */
+export function extractPagedItems<T>(value: T[] | PagedResult<T> | null | undefined): T[] {
+  if (value == null) {
+    return [];
+  }
+  if (Array.isArray(value)) {
+    return value;
+  }
+  const nested = value.items;
+  if (Array.isArray(nested)) {
+    return nested;
+  }
+  if (nested != null && typeof nested === 'object' && 'items' in nested) {
+    return extractPagedItems(nested as PagedResult<T>);
+  }
+  return [];
+}
 
 export interface ListCacheEntry<T> {
   items: T[];
@@ -32,10 +52,18 @@ export function capitalDashboardListCacheKey(search: string, page: number): stri
 
 export function capitalDashboardFundAssetsCacheKey(
   fundKey: number,
-  fundCode: string,
   page: number,
+  search: string,
 ): string {
-  return `${fundKey}\u0000${fundCode}\u0000${page}`;
+  return `assets\u0000${fundKey}\u0000${page}\u0000${search.trim().toLowerCase()}`;
+}
+
+export function capitalDashboardFundInvestorsCacheKey(
+  fundKey: number,
+  page: number,
+  search: string,
+): string {
+  return `investors\u0000${fundKey}\u0000${page}\u0000${search.trim().toLowerCase()}`;
 }
 
 function fundGranularPageDateKeySegment(dateKey?: number): string {
@@ -120,6 +148,11 @@ export interface FundAmountPageCacheEntry {
 
 export interface FundCommitmentsPageCacheEntry {
   items: FundCommitmentTabRow[];
+  hasNextPage: boolean;
+}
+
+export interface FundDistributionsPageCacheEntry {
+  items: FundDistributionGroupTabRow[];
   hasNextPage: boolean;
 }
 
@@ -211,24 +244,24 @@ export function writeFundInvestmentsPageCache(
 }
 
 export function readFundDistributionsPageCache(
-  cache: Record<string, FundCommitmentsPageCacheEntry>,
+  cache: Record<string, FundDistributionsPageCacheEntry>,
   fundKey: number,
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
-): FundCommitmentsPageCacheEntry | null {
+): FundDistributionsPageCacheEntry | null {
   return cache[capitalDashboardFundDistributionsCacheKey(fundKey, timeframe, page, dateKey)] ?? null;
 }
 
 export function writeFundDistributionsPageCache(
-  cache: Record<string, FundCommitmentsPageCacheEntry>,
+  cache: Record<string, FundDistributionsPageCacheEntry>,
   fundKey: number,
   timeframe: FundCommitmentTimeframe,
   page: number,
-  items: FundCommitmentTabRow[],
+  items: FundDistributionGroupTabRow[],
   hasNextPage: boolean,
   dateKey?: number,
-): Record<string, FundCommitmentsPageCacheEntry> {
+): Record<string, FundDistributionsPageCacheEntry> {
   const key = capitalDashboardFundDistributionsCacheKey(fundKey, timeframe, page, dateKey);
   return {
     ...cache,
@@ -300,7 +333,7 @@ export function writeListCacheEntry<T>(
   return {
     ...cache,
     [key]: {
-      items: [...(result.items ?? [])],
+      items: [...extractPagedItems(result)],
       page: result.page ?? page,
       totalCount: result.totalCount ?? 0,
       hasNextPage: !!result.hasNextPage,
@@ -331,15 +364,21 @@ export interface InvestorDetailCacheEntry {
 
 export interface FundDetailCacheEntry {
   detail: FundDetailDto;
-  investors: FundInvestorDto[];
-  assets: PropertyListItemDto[];
+  assets: FundAssetTabRow[];
   assetsPage: number;
-  assetsFundCode: string | null;
   assetsHasNextPage: boolean;
+  fundInvestors: FundInvestorDto[];
+  fundInvestorsPage: number;
+  fundInvestorsHasNextPage: boolean;
 }
 
 export interface FundAssetsPageCacheEntry {
-  items: PropertyListItemDto[];
+  items: FundAssetTabRow[];
+  hasNextPage: boolean;
+}
+
+export interface FundInvestorsPageCacheEntry {
+  items: FundInvestorDto[];
   hasNextPage: boolean;
 }
 

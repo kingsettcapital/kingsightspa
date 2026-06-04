@@ -19,8 +19,6 @@
   min-height: 0;
   overflow: hidden;
   height: 100%;
-  padding-left: 24px;
-  padding-right: 24px;
 }
 
 .tab-toolbar {
@@ -53,7 +51,7 @@
 :host .detail-table-wrap.tab-table-wrap .detail-table__scroll {
   overflow-x: auto;
   overflow-y: auto;
-  max-height: calc(100vh - 600px);
+  max-height: calc(100vh - 500px);
 }
 
 .tab-toolbar__spacer {

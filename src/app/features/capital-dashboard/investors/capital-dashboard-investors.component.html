@@ -37,24 +37,31 @@
       >
         <table mat-table [dataSource]="investors()" class="list-table">
           <ng-container matColumnDef="investor">
-            <th mat-header-cell *matHeaderCellDef class="list-table__header-cell">Investor</th>
+            <th mat-header-cell *matHeaderCellDef class="list-table__header-cell">Investor Name</th>
             <td mat-cell *matCellDef="let investor">
               <div class="list-table__primary">
                 <mat-icon>{{ investorIcon(investor.investorType) }}</mat-icon>
                 <div>
                   <div class="list-table__primary-text">{{ investor.investorName }}</div>
-                  <div class="list-table__secondary">{{ investor.investorType }}</div>
                 </div>
               </div>
             </td>
           </ng-container>
-          <ng-container matColumnDef="invested">
-            <th mat-header-cell *matHeaderCellDef class="align-right list-table__header-cell">Total Invested</th>
-            <td mat-cell *matCellDef="let investor" class="align-right">
-              <span [class.ks-currency--negative]="investor.totalInvested < 0">
-                {{ investor.totalInvested | ksCurrency }}
-              </span>
-            </td>
+          <ng-container matColumnDef="investorType">
+            <th mat-header-cell *matHeaderCellDef class="list-table__header-cell">Investor Type Name</th>
+            <td mat-cell *matCellDef="let investor">{{ investor.investorType || '—' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="relationship">
+            <th mat-header-cell *matHeaderCellDef class="list-table__header-cell">Relationship Name</th>
+            <td mat-cell *matCellDef="let investor">—</td>
+          </ng-container>
+          <ng-container matColumnDef="contactFirst">
+            <th mat-header-cell *matHeaderCellDef class="list-table__header-cell">Contact First Name</th>
+            <td mat-cell *matCellDef="let investor">—</td>
+          </ng-container>
+          <ng-container matColumnDef="contactLast">
+            <th mat-header-cell *matHeaderCellDef class="list-table__header-cell">Contact Last Name</th>
+            <td mat-cell *matCellDef="let investor">—</td>
           </ng-container>
           <tr mat-header-row *matHeaderRowDef="listColumns"></tr>
           <tr

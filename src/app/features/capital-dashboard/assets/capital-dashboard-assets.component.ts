@@ -21,6 +21,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
 import { AssetsApiActions } from '../store';
+import { extractPagedItems } from '../store/capital-dashboard-cache.util';
 import { selectAssetsDetail, selectAssetsList } from '../store/capital-dashboard.selectors';
 import { ListInfiniteScrollDirective } from '../shared/list-infinite-scroll.directive';
 import { DetailStatusBadgeComponent } from '../shared/components/detail-status-badge/detail-status-badge.component';
@@ -88,7 +89,7 @@ export class CapitalDashboardAssetsComponent {
   });
 
   readonly searchQuery = signal('');
-  readonly assets = computed(() => this.assetsListState().items);
+  readonly assets = computed(() => extractPagedItems(this.assetsListState().items));
   readonly listLoading = computed(() => this.assetsListState().loading);
   readonly listLoadingMore = computed(() => this.assetsListState().loadingMore);
   readonly listError = computed(() => this.assetsListState().error);
@@ -97,7 +98,7 @@ export class CapitalDashboardAssetsComponent {
 
   readonly selectedPropertyKey = computed(() => this.assetsDetailState().selectedKey);
   readonly assetDetail = computed(() => this.assetsDetailState().detail);
-  readonly assetInvestments = computed(() => this.assetsDetailState().investments);
+  readonly assetInvestments = computed(() => extractPagedItems(this.assetsDetailState().investments));
   readonly detailLoading = computed(() => this.assetsDetailState().loading);
   readonly detailError = computed(() => this.assetsDetailState().error);
 

@@ -29,7 +29,7 @@ import {
 } from '../fund-period.util';
 import {
   filterInvestmentAmountTabRows,
-  investmentAmountTableColumns,
+  investmentCommitmentTableColumns,
   sumInvestmentAmountTabRows,
 } from '../investment-detail-tab.util';
 
@@ -86,7 +86,7 @@ export class InvestmentCommitmentsTabComponent {
     return mapFundPeriodsToSelectOptions(cached?.items);
   });
 
-  readonly columns = computed(() => investmentAmountTableColumns(this.isDaily()));
+  readonly columns = computed(() => investmentCommitmentTableColumns(this.isDaily()));
 
   readonly rows = computed(() =>
     filterInvestmentAmountTabRows(this.fundsDetail().commitments, this.searchQuery()),
@@ -181,8 +181,9 @@ export class InvestmentCommitmentsTabComponent {
       filename: 'commitments.xlsx',
       sheetName: 'Commitments',
       columns: [
+        { header: 'Fund Code', value: (r) => r.fundCode ?? '' },
         periodColumn,
-        { header: 'Amount', value: (r) => r.amount },
+        { header: 'Commitment Amount', value: (r) => r.amount },
         { header: 'Description', value: (r) => r.description },
       ],
       rows: exportRows,

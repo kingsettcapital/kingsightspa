@@ -8,12 +8,14 @@ import {
   fundTimeGranularityFromTimeframe,
   FundDetailDto,
   FundGranularRowDto,
-  FundInvestorDto,
   FundListItemDto,
   FundNavQueryParams,
   FundNavTimeframe,
   FundPeriodDto,
+  FundAssetDto,
+  FundDistributionGroupDto,
   FundDistributionsQueryParams,
+  FundInvestorDto,
   FundInvestmentsQueryParams,
   FundPeriodsQueryParams,
   FundUnfundedCommitmentsQueryParams,
@@ -34,8 +36,30 @@ export class CapitalFundsApiService {
     return this.api.get<FundDetailDto>(`api/Funds/${fundKey}`);
   }
 
-  getFundInvestors(fundKey: number, params: { search?: string } = {}): Observable<FundInvestorDto[]> {
-    return this.api.get<FundInvestorDto[]>(`api/Funds/${fundKey}/investors`, params as any);
+  getFundAssetsPage(
+    fundKey: number,
+    params: { page?: number; pageSize?: number; search?: string } = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<FundAssetDto>> {
+    const query = {
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? pageSize,
+      ...(params.search?.trim() ? { search: params.search.trim() } : {}),
+    };
+    return this.api.get<PagedResult<FundAssetDto>>(`api/Funds/${fundKey}/assets`, query as any);
+  }
+
+  getFundInvestorsPage(
+    fundKey: number,
+    params: { page?: number; pageSize?: number; search?: string } = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<FundInvestorDto>> {
+    const query = {
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? pageSize,
+      ...(params.search?.trim() ? { search: params.search.trim() } : {}),
+    };
+    return this.api.get<PagedResult<FundInvestorDto>>(`api/Funds/${fundKey}/investors`, query as any);
   }
 
   getFundPeriodsPage(
@@ -120,13 +144,16 @@ export class CapitalFundsApiService {
     timeframe: FundCommitmentTimeframe,
     params: Omit<FundDistributionsQueryParams, 'view'> = {},
     pageSize = LIST_PAGE_SIZE,
-  ): Observable<PagedResult<FundGranularRowDto>> {
+  ): Observable<PagedResult<FundDistributionGroupDto>> {
     const query: FundDistributionsQueryParams = {
       view: fundTimeGranularityFromTimeframe(timeframe),
       page: params.page ?? 1,
       pageSize: params.pageSize ?? pageSize,
       ...(params.dateKey != null ? { dateKey: params.dateKey } : {}),
     };
-    return this.api.get<PagedResult<FundGranularRowDto>>(`api/Funds/${fundKey}/distributions`, query as any);
+    return this.api.get<PagedResult<FundDistributionGroupDto>>(
+      `api/Funds/${fundKey}/distributions`,
+      query as any,
+    );
   }
 }

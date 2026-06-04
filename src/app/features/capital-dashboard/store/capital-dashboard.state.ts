@@ -2,10 +2,12 @@ import {
   FundAmountTabRow,
   FundCommitmentTabRow,
   FundCommitmentTimeframe,
+  FundAssetTabRow,
+  FundDistributionGroupTabRow,
+  FundInvestorDto,
   FundNavTabRow,
   FundNavTimeframe,
   FundDetailDto,
-  FundInvestorDto,
   FundListItemDto,
   InvestorDetailDto,
   InvestorInvestmentDto,
@@ -19,6 +21,8 @@ import {
   FundAssetsPageCacheEntry,
   FundAmountPageCacheEntry,
   FundCommitmentsPageCacheEntry,
+  FundDistributionsPageCacheEntry,
+  FundInvestorsPageCacheEntry,
   FundNavPageCacheEntry,
   FundPeriodsCacheEntry,
   FundDetailCacheEntry,
@@ -50,16 +54,18 @@ export interface InvestorsDetailState {
 export interface FundsDetailState {
   selectedKey: number | null;
   detail: FundDetailDto | null;
-  investors: FundInvestorDto[];
-  investorsLoading: boolean;
-  investorsError: string | null;
-  assets: PropertyListItemDto[];
+  assets: FundAssetTabRow[];
   assetsPage: number;
   assetsSearch: string;
-  assetsFundCode: string | null;
   assetsHasNextPage: boolean;
   assetsLoading: boolean;
   assetsLoadingMore: boolean;
+  fundInvestors: FundInvestorDto[];
+  fundInvestorsPage: number;
+  fundInvestorsSearch: string;
+  fundInvestorsHasNextPage: boolean;
+  fundInvestorsLoading: boolean;
+  fundInvestorsLoadingMore: boolean;
   commitmentsTimeframe: FundCommitmentTimeframe;
   commitments: FundAmountTabRow[];
   commitmentsPage: number;
@@ -85,7 +91,7 @@ export interface FundsDetailState {
   fundInvestmentsLoadingMore: boolean;
   fundInvestmentsError: string | null;
   fundDistributionsTimeframe: FundCommitmentTimeframe;
-  fundDistributions: FundCommitmentTabRow[];
+  fundDistributions: FundDistributionGroupTabRow[];
   fundDistributionsPage: number;
   fundDistributionsSearch: string;
   fundDistributionsHasNextPage: boolean;
@@ -125,7 +131,8 @@ export interface FundsCacheState {
   commitmentPages: Record<string, FundAmountPageCacheEntry>;
   unfundedCommitmentPages: Record<string, FundAmountPageCacheEntry>;
   investmentPages: Record<string, FundCommitmentsPageCacheEntry>;
-  distributionPages: Record<string, FundCommitmentsPageCacheEntry>;
+  distributionPages: Record<string, FundDistributionsPageCacheEntry>;
+  investorPages: Record<string, FundInvestorsPageCacheEntry>;
   navPages: Record<string, FundNavPageCacheEntry>;
 }
 
@@ -180,16 +187,18 @@ function emptyFundsDetail(): FundsDetailState {
   return {
     selectedKey: null,
     detail: null,
-    investors: [],
-    investorsLoading: false,
-    investorsError: null,
     assets: [],
     assetsPage: 1,
     assetsSearch: '',
-    assetsFundCode: null,
     assetsHasNextPage: false,
     assetsLoading: false,
     assetsLoadingMore: false,
+    fundInvestors: [],
+    fundInvestorsPage: 1,
+    fundInvestorsSearch: '',
+    fundInvestorsHasNextPage: false,
+    fundInvestorsLoading: false,
+    fundInvestorsLoadingMore: false,
     commitmentsTimeframe: 'ltd',
     commitments: [],
     commitmentsPage: 1,
@@ -259,6 +268,7 @@ function emptyFundsCache(): FundsCacheState {
     unfundedCommitmentPages: {},
     investmentPages: {},
     distributionPages: {},
+    investorPages: {},
     navPages: {},
   };
 }

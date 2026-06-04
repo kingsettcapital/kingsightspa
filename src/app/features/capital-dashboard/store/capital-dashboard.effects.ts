@@ -11,6 +11,8 @@ import {
   mapFundCommitmentsToAmountTabRows,
   mapFundCommitmentsToTabRows,
 } from '../investments/tabs/commitments/fund-commitment.mapper';
+import { mapFundAssetsToTabRows } from '../investments/tabs/fund-asset.mapper';
+import { mapFundDistributionGroupsToTabRows } from '../investments/tabs/distributions/fund-distribution.mapper';
 import { mapFundNavToTabRows } from '../investments/tabs/nav/fund-nav.mapper';
 import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
 import {
@@ -21,6 +23,7 @@ import {
   readFundInvestmentsPageCache,
   readFundUnfundedCommitmentsPageCache,
   readListCacheEntry,
+  extractPagedItems,
 } from './capital-dashboard-cache.util';
 import { selectAssets, selectFunds, selectInvestors } from './capital-dashboard.reducer';
 import { selectAssetsList, selectFundsList, selectInvestorsList } from './capital-dashboard.selectors';
@@ -82,13 +85,13 @@ export class CapitalDashboardEffects {
         }
         return forkJoin({
           detail: this.investorsApi.getInvestor(request.investorKey),
-          investments: this.investorsApi.getInvestorInvestments(request.investorKey),
+          funds: this.investorsApi.getInvestorFunds(request.investorKey, { page: 1 }),
         }).pipe(
-          map(({ detail, investments }) =>
+          map(({ detail, funds }) =>
             InvestorsApiActions.loadDetailSuccess({
               investorKey: request.investorKey,
               detail,
-              investments,
+              investments: extractPagedItems(funds),
             }),
           ),
           catchError(() =>
@@ -146,33 +149,15 @@ export class CapitalDashboardEffects {
         if (funds.cache.details[request.fundKey]) {
           return EMPTY;
         }
-        return forkJoin({
-          detail: this.fundsApi.getFund(request.fundKey),
-          investors: this.fundsApi.getFundInvestors(request.fundKey),
-        }).pipe(
-          switchMap(({ detail, investors }) => {
-            const fundCode = detail.summary.fundCode?.trim() || null;
-            if (!fundCode) {
-              return of(
-                FundsApiActions.loadDetailSuccess({
-                  fundKey: request.fundKey,
-                  detail,
-                  investors,
-                  assets: [],
-                  assetsHasNextPage: false,
-                  assetsFundCode: null,
-                }),
-              );
-            }
-            return this.assetsApi.getAssetsForFundPage(request.fundKey, fundCode, 1, undefined).pipe(
+        return this.fundsApi.getFund(request.fundKey).pipe(
+          switchMap((detail) =>
+            this.fundsApi.getFundAssetsPage(request.fundKey, { page: 1 }).pipe(
               map((assetsPage) =>
                 FundsApiActions.loadDetailSuccess({
                   fundKey: request.fundKey,
                   detail,
-                  investors,
-                  assets: assetsPage.items ?? [],
+                  assets: mapFundAssetsToTabRows(extractPagedItems(assetsPage)),
                   assetsHasNextPage: assetsPage.hasNextPage,
-                  assetsFundCode: fundCode,
                 }),
               ),
               catchError(() =>
@@ -180,15 +165,13 @@ export class CapitalDashboardEffects {
                   FundsApiActions.loadDetailSuccess({
                     fundKey: request.fundKey,
                     detail,
-                    investors,
                     assets: [],
                     assetsHasNextPage: false,
-                    assetsFundCode: fundCode,
                   }),
                 ),
               ),
-            );
-          }),
+            ),
+          ),
           catchError(() =>
             of(FundsApiActions.loadDetailFailure({ error: 'Unable to load investment details.' })),
           ),
@@ -197,34 +180,39 @@ export class CapitalDashboardEffects {
     ),
   );
 
-  readonly loadFundInvestors$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(FundsApiActions.loadFundInvestors),
-      switchMap(({ fundKey, search }) =>
-        this.fundsApi.getFundInvestors(fundKey, { search: search.trim() || undefined }).pipe(
-          map((investors) => FundsApiActions.loadFundInvestorsSuccess({ investors })),
-          catchError(() =>
-            of(FundsApiActions.loadFundInvestorsFailure({ error: 'Unable to load fund investors.' })),
-          ),
-        ),
-      ),
-    ),
-  );
-
   readonly loadFundAssetsPage$ = createEffect(() =>
     this.actions$.pipe(
       ofType(FundsApiActions.loadFundAssetsPage),
-      switchMap(({ fundKey, fundCode, page, search }) =>
-        this.assetsApi.getAssetsForFundPage(fundKey, fundCode, page, search.trim() || undefined).pipe(
+      switchMap(({ fundKey, page, search }) =>
+        this.fundsApi.getFundAssetsPage(fundKey, { page, search }).pipe(
           map((result) =>
             FundsApiActions.loadFundAssetsPageSuccess({
               page,
-              items: result.items ?? [],
+              items: mapFundAssetsToTabRows(result.items),
               hasNextPage: result.hasNextPage,
               append: page > 1,
             }),
           ),
           catchError(() => of(FundsApiActions.loadFundAssetsPageFailure())),
+        ),
+      ),
+    ),
+  );
+
+  readonly loadFundInvestorsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FundsApiActions.loadFundInvestorsPage),
+      switchMap(({ fundKey, page, search }) =>
+        this.fundsApi.getFundInvestorsPage(fundKey, { page, search }).pipe(
+          map((result) =>
+            FundsApiActions.loadFundInvestorsPageSuccess({
+              page,
+              items: extractPagedItems(result),
+              hasNextPage: result.hasNextPage,
+              append: page > 1,
+            }),
+          ),
+          catchError(() => of(FundsApiActions.loadFundInvestorsPageFailure())),
         ),
       ),
     ),
@@ -437,7 +425,15 @@ export class CapitalDashboardEffects {
           })
           .pipe(
             map((result) => {
-              const items = mapFundCommitmentsToTabRows(result.items, request.timeframe);
+              const startIndex =
+                request.replace || funds.detail.selectedKey !== request.fundKey
+                  ? 0
+                  : funds.detail.fundDistributions.length;
+              const items = mapFundDistributionGroupsToTabRows(
+                result.items,
+                request.timeframe,
+                startIndex,
+              );
               return FundsApiActions.loadFundDistributionsPageSuccess({
                 timeframe: request.timeframe,
                 page: result.page ?? request.page,

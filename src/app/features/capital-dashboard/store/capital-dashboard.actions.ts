@@ -4,10 +4,12 @@ import {
   FundAmountTabRow,
   FundCommitmentTabRow,
   FundCommitmentTimeframe,
+  FundAssetTabRow,
+  FundDistributionGroupTabRow,
+  FundInvestorDto,
   FundNavTabRow,
   FundNavTimeframe,
   FundDetailDto,
-  FundInvestorDto,
   FundListItemDto,
   FundPeriodDto,
   InvestorDetailDto,
@@ -65,23 +67,26 @@ export const FundsApiActions = createActionGroup({
     'Load Detail Success': props<{
       fundKey: number;
       detail: FundDetailDto;
-      investors: FundInvestorDto[];
-      assets: PropertyListItemDto[];
+      assets: FundAssetTabRow[];
       assetsHasNextPage: boolean;
-      assetsFundCode: string | null;
     }>(),
     'Load Detail Failure': props<{ error: string }>(),
-    'Load Fund Investors': props<{ fundKey: number; search: string }>(),
-    'Load Fund Investors Success': props<{ investors: FundInvestorDto[] }>(),
-    'Load Fund Investors Failure': props<{ error: string }>(),
-    'Load Fund Assets Page': props<{ fundKey: number; fundCode: string; page: number; search: string }>(),
+    'Load Fund Assets Page': props<{ fundKey: number; page: number; search: string }>(),
     'Load Fund Assets Page Success': props<{
       page: number;
-      items: PropertyListItemDto[];
+      items: FundAssetTabRow[];
       hasNextPage: boolean;
       append: boolean;
     }>(),
     'Load Fund Assets Page Failure': emptyProps(),
+    'Load Fund Investors Page': props<{ fundKey: number; page: number; search: string }>(),
+    'Load Fund Investors Page Success': props<{
+      page: number;
+      items: FundInvestorDto[];
+      hasNextPage: boolean;
+      append: boolean;
+    }>(),
+    'Load Fund Investors Page Failure': emptyProps(),
     'Load Fund Periods': props<{
       fundKey: number;
       source: FundPeriodSource;
@@ -164,7 +169,7 @@ export const FundsApiActions = createActionGroup({
     'Load Fund Distributions Page Success': props<{
       timeframe: FundCommitmentTimeframe;
       page: number;
-      items: FundCommitmentTabRow[];
+      items: FundDistributionGroupTabRow[];
       hasNextPage: boolean;
       replace: boolean;
       search: string;

@@ -17,11 +17,11 @@ export function isNegativeTabUnits(units: string): boolean {
   return parseTabUnits(units) < 0;
 }
 
-export function sumInvestmentDetailTabRows(rows: InvestmentDetailTabRow[]): {
+export function sumInvestmentDetailTabRows(rows: InvestmentDetailTabRow[] | null | undefined): {
   totalAmount: number;
   totalUnits: number;
 } {
-  return rows.reduce(
+  return coerceTabTableRows(rows).reduce(
     (acc, row) => ({
       totalAmount: acc.totalAmount + row.amount,
       totalUnits: acc.totalUnits + parseTabUnits(row.units),
@@ -30,22 +30,40 @@ export function sumInvestmentDetailTabRows(rows: InvestmentDetailTabRow[]): {
   );
 }
 
+export function coerceTabTableRows<T>(rows: T[] | null | undefined): T[] {
+  return Array.isArray(rows) ? rows : [];
+}
+
 export function filterInvestmentDetailTabRows(
-  rows: InvestmentDetailTabRow[],
+  rows: InvestmentDetailTabRow[] | null | undefined,
   searchQuery: string,
 ): InvestmentDetailTabRow[] {
+  const source = coerceTabTableRows(rows);
   const q = searchQuery.trim().toLowerCase();
-  if (!q) return rows;
-  return rows.filter((row) => investmentDetailTabRowSearchText(row).toLowerCase().includes(q));
+  if (!q) return source;
+  return source.filter((row) => investmentDetailTabRowSearchText(row).toLowerCase().includes(q));
 }
 
 export function investmentDetailTabRowSearchText(row: InvestmentDetailTabRow): string {
   const periodOrDate = row.date ?? row.period ?? '';
-  return `${periodOrDate} ${row.amount} ${row.units} ${row.description}`;
+  const fundCode = 'fundCode' in row ? String((row as { fundCode?: string }).fundCode ?? '') : '';
+  return `${fundCode} ${periodOrDate} ${row.amount} ${row.units} ${row.description}`;
 }
 
 export function investmentAmountTableColumns(isDaily: boolean): string[] {
   return isDaily ? ['date', 'amount', 'description'] : ['period', 'amount', 'description'];
+}
+
+export function investmentCommitmentTableColumns(isDaily: boolean): string[] {
+  return isDaily
+    ? ['fundCode', 'date', 'amount', 'description']
+    : ['fundCode', 'period', 'amount', 'description'];
+}
+
+export function investmentFundInvestmentsTableColumns(isDaily: boolean): string[] {
+  return isDaily
+    ? ['fundCode', 'date', 'amount', 'description']
+    : ['fundCode', 'period', 'amount', 'description'];
 }
 
 export function isUnitizedFundType(fundType: string): boolean {
@@ -62,23 +80,31 @@ export function investmentDetailTableColumns(isDaily: boolean, fundType: string)
   return cols;
 }
 
-export type InvestmentAmountTabRow = Omit<InvestmentDetailTabRow, 'units'>;
+export type InvestmentAmountTabRow = Omit<InvestmentDetailTabRow, 'units'> & {
+  fundCode?: string;
+};
 
 export function filterInvestmentAmountTabRows(
-  rows: InvestmentAmountTabRow[],
+  rows: InvestmentAmountTabRow[] | null | undefined,
   searchQuery: string,
 ): InvestmentAmountTabRow[] {
+  const source = coerceTabTableRows(rows);
   const q = searchQuery.trim().toLowerCase();
-  if (!q) return rows;
-  return rows.filter((row) => {
+  if (!q) return source;
+  return source.filter((row) => {
     const periodOrDate = row.date ?? row.period ?? '';
-    const text = `${periodOrDate} ${row.amount} ${row.description}`;
+    const text = `${row.fundCode ?? ''} ${periodOrDate} ${row.amount} ${row.description}`;
     return text.toLowerCase().includes(q);
   });
 }
 
-export function sumInvestmentAmountTabRows(rows: InvestmentAmountTabRow[]): { totalAmount: number } {
-  return rows.reduce((acc, row) => ({ totalAmount: acc.totalAmount + row.amount }), { totalAmount: 0 });
+export function sumInvestmentAmountTabRows(
+  rows: InvestmentAmountTabRow[] | null | undefined,
+): { totalAmount: number } {
+  return coerceTabTableRows(rows).reduce(
+    (acc, row) => ({ totalAmount: acc.totalAmount + row.amount }),
+    { totalAmount: 0 },
+  );
 }
 
 export function rowsForInvestmentDetailTimeframe(

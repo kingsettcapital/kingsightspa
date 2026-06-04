@@ -21,6 +21,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
 import { InvestorsApiActions } from '../store';
+import { extractPagedItems } from '../store/capital-dashboard-cache.util';
 import { selectInvestorsDetail, selectInvestorsList } from '../store/capital-dashboard.selectors';
 import { ListInfiniteScrollDirective } from '../shared/list-infinite-scroll.directive';
 import { DetailStatusBadgeComponent } from '../shared/components/detail-status-badge/detail-status-badge.component';
@@ -77,7 +78,7 @@ export class CapitalDashboardInvestorsComponent {
   );
 
   readonly searchQuery = signal('');
-  readonly investors = computed(() => this.investorsListState().items);
+  readonly investors = computed(() => extractPagedItems(this.investorsListState().items));
   readonly listLoading = computed(() => this.investorsListState().loading);
   readonly listLoadingMore = computed(() => this.investorsListState().loadingMore);
   readonly listError = computed(() => this.investorsListState().error);
@@ -86,7 +87,9 @@ export class CapitalDashboardInvestorsComponent {
 
   readonly selectedInvestorKey = computed(() => this.investorsDetailState().selectedKey);
   readonly investorDetail = computed(() => this.investorsDetailState().detail);
-  readonly investorInvestments = computed(() => this.investorsDetailState().investments);
+  readonly investorInvestments = computed(() =>
+    extractPagedItems(this.investorsDetailState().investments),
+  );
   readonly investorDocuments = signal<InvestorDocumentRow[]>([]);
   readonly documentsLoadingMore = signal(false);
   readonly documentsHasNextPage = signal(false);
@@ -94,7 +97,7 @@ export class CapitalDashboardInvestorsComponent {
   readonly detailError = computed(() => this.investorsDetailState().error);
 
   activeTabIndex = 0;
-  readonly listColumns = ['investor', 'invested'];
+  readonly listColumns = ['investor', 'investorType', 'relationship', 'contactFirst', 'contactLast'];
   readonly documentColumns = ['name', 'type', 'date', 'size'];
 
   readonly selectedInvestor = computed(() => this.investorDetail());
@@ -260,8 +263,7 @@ export class CapitalDashboardInvestorsComponent {
       queryParams: {
         selected: _fundKey,
         search: fundName?.trim() || undefined,
-        detailTab: 'investors',
-        focusInvestor: investorKey ?? undefined,
+        detailTab: 'periods',
       },
       queryParamsHandling: 'merge',
       replaceUrl: true,

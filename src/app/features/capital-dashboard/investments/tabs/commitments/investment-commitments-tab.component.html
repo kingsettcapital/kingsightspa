@@ -65,11 +65,17 @@
       <mat-progress-bar mode="indeterminate" />
     }
 
-    <div class="detail-table-wrap detail-table-wrap--sticky-toolbar tab-table-wrap" style="padding-left: 0; padding-right: 0">
+    <div class="detail-table-wrap detail-table-wrap--sticky-toolbar tab-table-wrap">
       <div class="detail-table__scroll">
         <div class="tab-table-block">
           <div class="tab-table-hsync">
           <table mat-table [dataSource]="rows()" class="detail-table" aria-label="Commitments">
+            <ng-container matColumnDef="fundCode">
+              <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell align-left">Fund Code</th>
+              <td mat-cell *matCellDef="let row" class="align-left">{{ row.fundCode || '—' }}</td>
+              <td mat-footer-cell *matFooterCellDef></td>
+            </ng-container>
+
             <ng-container matColumnDef="period">
               <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell align-left">Period</th>
               <td mat-cell *matCellDef="let row" class="align-left">{{ row.period }}</td>
@@ -83,7 +89,7 @@
             </ng-container>
 
             <ng-container matColumnDef="amount">
-              <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell align-right">Amount</th>
+              <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell align-right">Commitment Amount</th>
               <td mat-cell *matCellDef="let row" class="align-right">
                 <span [class.ks-currency--negative]="row.amount < 0">{{ row.amount | ksCurrency }}</span>
               </td>
