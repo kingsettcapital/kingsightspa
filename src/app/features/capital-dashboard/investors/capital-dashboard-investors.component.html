@@ -145,7 +145,7 @@
               </div>
             </div>
           </mat-tab>
-          <mat-tab [label]="'Investments (' + summaryNumber('investmentsCount') + ')'">
+          <!-- <mat-tab [label]="'Investments (' + summaryNumber('investmentsCount') + ')'">
             <div class="detail-card__body detail-card__body--table investor-funds-tab">
               @if (investorFundsLoading() && !fundsSearchQuery()) {
                 <div class="list-state">
@@ -271,7 +271,7 @@
                 </div>
               }
             </div>
-          </mat-tab>
+          </mat-tab> -->
           <mat-tab label="Commitments">
             <div class="detail-card__body detail-card__body--table">
               <app-investor-commitments-tab [tabActive]="activeTabIndex() === commitmentsTabIndex" />
