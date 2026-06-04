@@ -4,7 +4,6 @@ import {
   FundCommitmentTimeframe,
   FundAssetTabRow,
   FundDistributionGroupTabRow,
-  FundInvestorDto,
   FundNavTabRow,
   FundNavTimeframe,
   FundDetailDto,
@@ -16,6 +15,7 @@ import {
   PropertyInvestmentDto,
   PropertyListItemDto,
 } from '../shared/models/api.models';
+import { FundInvestorTabRow } from '../investments/tabs/fund-investor.mapper';
 import {
   AssetDetailCacheEntry,
   FundAssetsPageCacheEntry,
@@ -60,7 +60,7 @@ export interface FundsDetailState {
   assetsHasNextPage: boolean;
   assetsLoading: boolean;
   assetsLoadingMore: boolean;
-  fundInvestors: FundInvestorDto[];
+  fundInvestors: FundInvestorTabRow[];
   fundInvestorsPage: number;
   fundInvestorsSearch: string;
   fundInvestorsHasNextPage: boolean;

@@ -97,7 +97,7 @@ export class CapitalDashboardInvestorsComponent {
   readonly detailError = computed(() => this.investorsDetailState().error);
 
   activeTabIndex = 0;
-  readonly listColumns = ['investor', 'investorType', 'relationship', 'contactFirst', 'contactLast'];
+  readonly listColumns = ['investor', 'invested'];
   readonly documentColumns = ['name', 'type', 'date', 'size'];
 
   readonly selectedInvestor = computed(() => this.investorDetail());

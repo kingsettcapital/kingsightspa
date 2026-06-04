@@ -12,6 +12,7 @@ import {
   mapFundCommitmentsToTabRows,
 } from '../investments/tabs/commitments/fund-commitment.mapper';
 import { mapFundAssetsToTabRows } from '../investments/tabs/fund-asset.mapper';
+import { mapFundInvestorsToTabRows } from '../investments/tabs/fund-investor.mapper';
 import { mapFundDistributionGroupsToTabRows } from '../investments/tabs/distributions/fund-distribution.mapper';
 import { mapFundNavToTabRows } from '../investments/tabs/nav/fund-nav.mapper';
 import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
@@ -188,7 +189,7 @@ export class CapitalDashboardEffects {
           map((result) =>
             FundsApiActions.loadFundAssetsPageSuccess({
               page,
-              items: mapFundAssetsToTabRows(result.items),
+              items: mapFundAssetsToTabRows(extractPagedItems(result)),
               hasNextPage: result.hasNextPage,
               append: page > 1,
             }),
@@ -207,8 +208,8 @@ export class CapitalDashboardEffects {
           map((result) =>
             FundsApiActions.loadFundInvestorsPageSuccess({
               page,
-              items: extractPagedItems(result),
-              hasNextPage: result.hasNextPage,
+              items: mapFundInvestorsToTabRows(extractPagedItems(result)),
+              hasNextPage: !!result.hasNextPage,
               append: page > 1,
             }),
           ),

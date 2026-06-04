@@ -4,7 +4,6 @@ import {
   FundCommitmentTimeframe,
   FundAssetTabRow,
   FundDistributionGroupTabRow,
-  FundInvestorDto,
   FundNavTabRow,
   FundNavTimeframe,
   FundDetailDto,
@@ -18,8 +17,11 @@ import {
   PropertyInvestmentDto,
   PropertyListItemDto,
 } from '../shared/models/api.models';
+import { FundInvestorTabRow } from '../investments/tabs/fund-investor.mapper';
 import { fundPeriodsCacheKey, FundPeriodSource } from '../investments/tabs/fund-period.util';
 import { PagedListState } from './capital-dashboard.state';
+
+type PagedItemsSource<T> = PagedResult<T> & { Items?: T[] | PagedResult<T> | null };
 
 /** MatTable and list UIs require a plain array; APIs may return a paged wrapper. */
 export function extractPagedItems<T>(value: T[] | PagedResult<T> | null | undefined): T[] {
@@ -29,11 +31,12 @@ export function extractPagedItems<T>(value: T[] | PagedResult<T> | null | undefi
   if (Array.isArray(value)) {
     return value;
   }
-  const nested = value.items;
+  const record = value as PagedItemsSource<T>;
+  const nested = record.items ?? record.Items;
   if (Array.isArray(nested)) {
     return nested;
   }
-  if (nested != null && typeof nested === 'object' && 'items' in nested) {
+  if (nested != null && typeof nested === 'object') {
     return extractPagedItems(nested as PagedResult<T>);
   }
   return [];
@@ -367,7 +370,7 @@ export interface FundDetailCacheEntry {
   assets: FundAssetTabRow[];
   assetsPage: number;
   assetsHasNextPage: boolean;
-  fundInvestors: FundInvestorDto[];
+  fundInvestors: FundInvestorTabRow[];
   fundInvestorsPage: number;
   fundInvestorsHasNextPage: boolean;
 }
@@ -378,7 +381,7 @@ export interface FundAssetsPageCacheEntry {
 }
 
 export interface FundInvestorsPageCacheEntry {
-  items: FundInvestorDto[];
+  items: FundInvestorTabRow[];
   hasNextPage: boolean;
 }
 

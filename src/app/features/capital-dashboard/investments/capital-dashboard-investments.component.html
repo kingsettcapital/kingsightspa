@@ -178,7 +178,8 @@
         </div>
 
         <mat-tab-group
-          [(selectedIndex)]="activeTabIndex"
+          [selectedIndex]="activeTabIndex()"
+          (selectedIndexChange)="onDetailTabIndexChange($event)"
           class="detail-tabs detail-tabs--split-body-scroll"
           mat-stretch-tabs="false"
           mat-align-tabs="start"
@@ -241,7 +242,7 @@
                   <table
                     mat-table
                     [dataSource]="fundAssets()"
-                    class="detail-table"
+                    class="detail-table detail-table--fund-assets"
                     aria-label="Fund assets"
                   >
                     <ng-container matColumnDef="assetName">
@@ -371,32 +372,32 @@
                     <table
                       mat-table
                       [dataSource]="fundInvestors()"
-                      class="detail-table"
+                      class="detail-table detail-table--fund-investors"
                       aria-label="Fund investors"
                     >
                       <ng-container matColumnDef="investorName">
                         <th mat-header-cell *matHeaderCellDef class="align-left inner-table-header-cell">Investor Name</th>
                         <td mat-cell *matCellDef="let row" class="align-left">
                           <div class="detail-table__name-cell link-cell" (click)="goToInvestor(row)">
-                            <div class="detail-table__primary">{{ fundInvestorField(row.investorName) }}</div>
+                            <div class="detail-table__primary">{{ row.investorName }}</div>
                           </div>
                         </td>
                       </ng-container>
                       <ng-container matColumnDef="relationshipName">
                         <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Relationship Name</th>
-                        <td mat-cell *matCellDef="let row">{{ fundInvestorField(row.relationship_name) }}</td>
+                        <td mat-cell *matCellDef="let row">{{ row.relationshipName }}</td>
                       </ng-container>
                       <ng-container matColumnDef="investorTypeName">
                         <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Investor Type Name</th>
-                        <td mat-cell *matCellDef="let row">{{ fundInvestorField(row.investorType) }}</td>
+                        <td mat-cell *matCellDef="let row">{{ row.investorTypeName }}</td>
                       </ng-container>
                       <ng-container matColumnDef="contactFirstName">
                         <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Contact First Name</th>
-                        <td mat-cell *matCellDef="let row">{{ fundInvestorField(row.contact_first_name) }}</td>
+                        <td mat-cell *matCellDef="let row">{{ row.contactFirstName }}</td>
                       </ng-container>
                       <ng-container matColumnDef="contactLastName">
                         <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Contact Last Name</th>
-                        <td mat-cell *matCellDef="let row">{{ fundInvestorField(row.contact_last_name) }}</td>
+                        <td mat-cell *matCellDef="let row">{{ row.contactLastName }}</td>
                       </ng-container>
                       <tr mat-header-row *matHeaderRowDef="fundInvestorColumns"></tr>
                       <tr mat-row *matRowDef="let row; columns: fundInvestorColumns"></tr>
@@ -434,26 +435,26 @@
 
           <mat-tab label="Commitments">
             <div class="detail-card__body detail-card__body--table">
-              <app-investment-commitments-tab [tabActive]="activeTabIndex === commitmentsTabIndex" />
+              <app-investment-commitments-tab [tabActive]="activeTabIndex() === commitmentsTabIndex" />
             </div>
           </mat-tab>
 
           <mat-tab label="Unfunded Commitment">
             <div class="detail-card__body">
-              <app-investment-unfunded-commitment-tab [tabActive]="activeTabIndex === unfundedCommitmentsTabIndex" />
+              <app-investment-unfunded-commitment-tab [tabActive]="activeTabIndex() === unfundedCommitmentsTabIndex" />
             </div>
           </mat-tab>
 
           <mat-tab label="Investments">
             <div class="detail-card__body detail-card__body--table">
-              <app-investment-investments-tab [tabActive]="activeTabIndex === fundInvestmentsTabIndex" />
+              <app-investment-investments-tab [tabActive]="activeTabIndex() === fundInvestmentsTabIndex" />
             </div>
           </mat-tab>
 
           <mat-tab label="Distributions">
             <div class="detail-card__body detail-card__body--table">
               <app-investment-distributions-tab
-                [tabActive]="activeTabIndex === fundDistributionsTabIndex"
+                [tabActive]="activeTabIndex() === fundDistributionsTabIndex"
                 [fundType]="summaryDisplay('fundType')"
               />
             </div>
@@ -461,7 +462,7 @@
 
           <mat-tab label="NAV">
             <div class="detail-card__body detail-card__body--table">
-              <app-investment-nav-tab [tabActive]="activeTabIndex === navTabIndex" />
+              <app-investment-nav-tab [tabActive]="activeTabIndex() === navTabIndex" />
             </div>
           </mat-tab>
         </mat-tab-group>

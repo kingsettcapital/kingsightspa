@@ -6,7 +6,6 @@ import {
   FundCommitmentTimeframe,
   FundAssetTabRow,
   FundDistributionGroupTabRow,
-  FundInvestorDto,
   FundNavTabRow,
   FundNavTimeframe,
   FundDetailDto,
@@ -20,6 +19,7 @@ import {
   PropertyInvestmentDto,
   PropertyListItemDto,
 } from '../shared/models/api.models';
+import { FundInvestorTabRow } from '../investments/tabs/fund-investor.mapper';
 import { FundPeriodSource } from '../investments/tabs/fund-period.util';
 import { CapitalDashboardTab } from './capital-dashboard.state';
 
@@ -82,7 +82,7 @@ export const FundsApiActions = createActionGroup({
     'Load Fund Investors Page': props<{ fundKey: number; page: number; search: string }>(),
     'Load Fund Investors Page Success': props<{
       page: number;
-      items: FundInvestorDto[];
+      items: FundInvestorTabRow[];
       hasNextPage: boolean;
       append: boolean;
     }>(),
