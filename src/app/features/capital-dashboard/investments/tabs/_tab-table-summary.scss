@@ -1,0 +1,49 @@
+/* Table + totals footer: horizontal scroll on table area; vertical scroll via detail-table__scroll. */
+
+.tab-table-block {
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  min-width: 100%;
+  max-height: calc(100vh - 600px);
+}
+
+.tab-table-scroll {
+  flex-shrink: 0;
+}
+
+:host .tab-table-block:has(.tab-table-summary) ::ng-deep .detail-table,
+:host .detail-table-wrap:has(.tab-table-summary) .tab-table-block ::ng-deep .detail-table {
+  border-radius: 4px 4px 0 0;
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+:host .tab-table-block:has(.tab-table-summary) ::ng-deep .detail-table .mat-mdc-row:last-child .mat-mdc-cell,
+:host .detail-table-wrap:has(.tab-table-summary) .tab-table-block ::ng-deep .detail-table .mat-mdc-row:last-child .mat-mdc-cell {
+  border-bottom: none !important;
+}
+
+.tab-table-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  align-self: stretch;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.625rem 1rem;
+  background: #f3f4f6;
+  border: 1px solid var(--portal-divider);
+  border-top: 1px solid var(--portal-divider);
+  border-radius: 0 0 4px 4px;
+  font-size: var(--ks-font-size-sm);
+  font-weight: 700;
+  color: var(--portal-text-primary);
+}
+
+.tab-table-summary__sep {
+  font-weight: 700;
+  color: var(--portal-text-primary);
+}

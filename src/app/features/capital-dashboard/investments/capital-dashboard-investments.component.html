@@ -179,7 +179,7 @@
 
         <mat-tab-group
           [(selectedIndex)]="activeTabIndex"
-          class="detail-tabs"
+          class="detail-tabs detail-tabs--split-body-scroll"
           mat-stretch-tabs="false"
           mat-align-tabs="start"
         >
@@ -198,7 +198,7 @@
                   <app-portal-spinner [size]="32" />
                 </div>
               } @else {
-                <div class="detail-table-wrap">
+                <div class="detail-table-wrap detail-table-wrap--sticky-toolbar">
                   <div class="detail-table__toolbar">
                     <div class="ks-investments-search ks-investments-search--inline">
                       <mat-form-field
@@ -235,6 +235,7 @@
                     <mat-progress-bar mode="indeterminate" />
                   }
 
+                  <div class="detail-table__scroll">
                   <table
                     mat-table
                     [dataSource]="fundAssets()"
@@ -314,6 +315,7 @@
                   @if (fundAssets().length === 0) {
                     <div class="list-state">No assets found for this investment.</div>
                   }
+                  </div>
                 </div>
               }
             </div>
@@ -321,7 +323,7 @@
 
           <mat-tab [label]="'Investors (' + summaryNumber('investors') + ')'">
             <div class="detail-card__body detail-card__body--table">
-              <div #fundInvestorsWrap class="detail-table-wrap">
+              <div #fundInvestorsWrap class="detail-table-wrap detail-table-wrap--sticky-toolbar">
                 <div class="detail-table__toolbar">
                   <div class="ks-investments-search ks-investments-search--inline">
                     <mat-form-field
@@ -360,6 +362,7 @@
                   <div class="list-state list-state--error">{{ fundInvestorsError() }}</div>
                 }
 
+                <div class="detail-table__scroll">
                 <table mat-table [dataSource]="fundInvestors()" class="detail-table" aria-label="Fund investors">
                   <ng-container matColumnDef="name">
                     <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Investor Name</th>
@@ -405,37 +408,47 @@
                 @if (fundInvestors().length === 0) {
                   <div class="list-state">No investors in this fund.</div>
                 }
+                </div>
               </div>
             </div>
           </mat-tab>
 
           <mat-tab label="Commitments">
-            <div class="detail-card__body">
-              <app-investment-commitments-tab />
+            <div class="detail-card__body detail-card__body--table">
+              <app-investment-commitments-tab [tabActive]="activeTabIndex === commitmentsTabIndex" [fundType]="summaryDisplay('fundType')" />
             </div>
           </mat-tab>
 
           <mat-tab label="Unfunded Commitment">
             <div class="detail-card__body">
-              <app-investment-unfunded-commitment-tab />
+              <app-investment-unfunded-commitment-tab
+                [tabActive]="activeTabIndex === unfundedCommitmentsTabIndex"
+                [fundType]="summaryDisplay('fundType')"
+              />
             </div>
           </mat-tab>
 
           <mat-tab label="Investments">
-            <div class="detail-card__body">
-              <app-investment-investments-tab />
+            <div class="detail-card__body detail-card__body--table">
+              <app-investment-investments-tab
+                [tabActive]="activeTabIndex === fundInvestmentsTabIndex"
+                [fundType]="summaryDisplay('fundType')"
+              />
             </div>
           </mat-tab>
 
           <mat-tab label="Distributions">
-            <div class="detail-card__body">
-              <app-investment-distributions-tab />
+            <div class="detail-card__body detail-card__body--table">
+              <app-investment-distributions-tab
+                [tabActive]="activeTabIndex === fundDistributionsTabIndex"
+                [fundType]="summaryDisplay('fundType')"
+              />
             </div>
           </mat-tab>
 
           <mat-tab label="NAV">
-            <div class="detail-card__body">
-              <app-investment-nav-tab />
+            <div class="detail-card__body detail-card__body--table">
+              <app-investment-nav-tab [tabActive]="activeTabIndex === navTabIndex" [fundType]="summaryDisplay('fundType')"/>
             </div>
           </mat-tab>
         </mat-tab-group>

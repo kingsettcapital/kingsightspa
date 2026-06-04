@@ -9,8 +9,9 @@ export const selectInvestorsDetail = createSelector(selectInvestors, (s) => s.de
 
 export const selectFundsList = createSelector(selectFunds, (s) => s.list);
 export const selectFundsDetail = createSelector(selectFunds, (s) => s.detail);
+export const selectFundsDetailSelectedKey = createSelector(selectFundsDetail, (d) => d.selectedKey);
 
 export const selectAssetsList = createSelector(selectAssets, (s) => s.list);
 export const selectAssetsDetail = createSelector(selectAssets, (s) => s.detail);
 
-export { selectActiveTab };
+export { selectActiveTab, selectFunds };

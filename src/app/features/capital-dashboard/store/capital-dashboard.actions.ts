@@ -1,9 +1,14 @@
 import { createActionGroup, emptyProps, props } from '@ngrx/store';
 
 import {
+  FundCommitmentTabRow,
+  FundCommitmentTimeframe,
+  FundNavTabRow,
+  FundNavTimeframe,
   FundDetailDto,
   FundInvestorDto,
   FundListItemDto,
+  FundPeriodDto,
   InvestorDetailDto,
   InvestorInvestmentDto,
   InvestorListItemDto,
@@ -12,6 +17,7 @@ import {
   PropertyInvestmentDto,
   PropertyListItemDto,
 } from '../shared/models/api.models';
+import { FundPeriodSource } from '../investments/tabs/fund-period.util';
 import { CapitalDashboardTab } from './capital-dashboard.state';
 
 export const CapitalDashboardShellActions = createActionGroup({
@@ -75,6 +81,113 @@ export const FundsApiActions = createActionGroup({
       append: boolean;
     }>(),
     'Load Fund Assets Page Failure': emptyProps(),
+    'Load Fund Periods': props<{
+      fundKey: number;
+      source: FundPeriodSource;
+      view: FundCommitmentTimeframe;
+    }>(),
+    'Load Fund Periods Success': props<{
+      fundKey: number;
+      source: FundPeriodSource;
+      view: FundCommitmentTimeframe;
+      items: FundPeriodDto[];
+    }>(),
+    'Load Fund Periods Failure': props<{
+      fundKey: number;
+      source: FundPeriodSource;
+      view: FundCommitmentTimeframe;
+      error: string;
+    }>(),
+    'Load Fund Commitments Page': props<{
+      fundKey: number;
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      search: string;
+      replace: boolean;
+      dateKey?: number;
+    }>(),
+    'Load Fund Commitments Page Success': props<{
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      items: FundCommitmentTabRow[];
+      hasNextPage: boolean;
+      replace: boolean;
+      search: string;
+      dateKey?: number;
+    }>(),
+    'Load Fund Commitments Page Failure': props<{ error: string }>(),
+    'Load Fund Unfunded Commitments Page': props<{
+      fundKey: number;
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      search: string;
+      replace: boolean;
+      dateKey?: number;
+    }>(),
+    'Load Fund Unfunded Commitments Page Success': props<{
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      items: FundCommitmentTabRow[];
+      hasNextPage: boolean;
+      replace: boolean;
+      search: string;
+      dateKey?: number;
+    }>(),
+    'Load Fund Unfunded Commitments Page Failure': props<{ error: string }>(),
+    'Load Fund Investments Page': props<{
+      fundKey: number;
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      search: string;
+      replace: boolean;
+      dateKey?: number;
+    }>(),
+    'Load Fund Investments Page Success': props<{
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      items: FundCommitmentTabRow[];
+      hasNextPage: boolean;
+      replace: boolean;
+      search: string;
+      dateKey?: number;
+    }>(),
+    'Load Fund Investments Page Failure': props<{ error: string }>(),
+    'Load Fund Distributions Page': props<{
+      fundKey: number;
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      search: string;
+      replace: boolean;
+      dateKey?: number;
+    }>(),
+    'Load Fund Distributions Page Success': props<{
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      items: FundCommitmentTabRow[];
+      hasNextPage: boolean;
+      replace: boolean;
+      search: string;
+      dateKey?: number;
+    }>(),
+    'Load Fund Distributions Page Failure': props<{ error: string }>(),
+    'Load Fund Nav Page': props<{
+      fundKey: number;
+      timeframe: FundNavTimeframe;
+      page: number;
+      search: string;
+      replace: boolean;
+      dateKey?: number;
+    }>(),
+    'Load Fund Nav Page Success': props<{
+      timeframe: FundNavTimeframe;
+      page: number;
+      items: FundNavTabRow[];
+      hasNextPage: boolean;
+      replace: boolean;
+      search: string;
+      dateKey?: number;
+    }>(),
+    'Load Fund Nav Page Failure': props<{ error: string }>(),
     'Clear Detail': emptyProps(),
   },
 });
