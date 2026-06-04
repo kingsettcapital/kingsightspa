@@ -5,10 +5,10 @@ export const environment: Environment = {
   requireLogin: true,
   apiUrl: 'https://kingsightdevapi.kingsettcapital.com/',
   azureConfig: {
-     clientId: 'c505fbcc-5f64-4025-bae9-bccb863c4728',
-    authority: 'https://login.microsoftonline.com/f6d94abc-5472-43af-ab66-95726e5ab0cc/',
+        clientId: 'cfb0f697-501d-4f4e-a200-04187704a1af',
+   authority: 'https://login.microsoftonline.com/f6d94abc-5472-43af-ab66-95726e5ab0cc/',
     redirectURL: 'http://kingsightdev.kingsettcapital.com',
     postLogoutRedirectUri: 'http://kingsightdev.kingsettcapital.com/auth/login',  
-    scopes: 'api://4092694a-0ad6-4257-8cc5-719335557535/Read',
+    scopes: "api://444a5811-9469-445c-b83d-6f3c53328b10/Read"
   },
 };
