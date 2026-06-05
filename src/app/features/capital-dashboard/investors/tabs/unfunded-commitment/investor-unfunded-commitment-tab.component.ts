@@ -185,6 +185,7 @@ export class InvestorUnfundedCommitmentTabComponent {
       filename: 'unfunded-commitment.xlsx',
       sheetName: 'Unfunded Commitment',
       columns: [
+        { header: 'Fund Code', value: (r) => r.fundCode ?? '' },
         periodColumn,
         { header: 'Amount', value: (r) => r.amount },
         { header: 'Description', value: (r) => r.description },

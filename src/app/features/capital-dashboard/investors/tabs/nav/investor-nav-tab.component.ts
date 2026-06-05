@@ -171,6 +171,7 @@ export class InvestorNavTabComponent {
       filename: 'nav.xlsx',
       sheetName: 'NAV',
       columns: [
+        { header: 'Fund Code', value: (r) => r.fundCode ?? '' },
         periodColumn,
         { header: 'Amount', value: (r) => r.amount },
         { header: 'Description', value: (r) => r.description },

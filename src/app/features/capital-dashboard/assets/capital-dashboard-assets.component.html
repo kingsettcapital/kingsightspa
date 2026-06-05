@@ -123,10 +123,8 @@
                       </mat-chip>
                     }
                   }
-                  @if (isPortfolioDisplay(); as isPortfolio) {
-                    @if (isPortfolio !== '—') {
-                      <mat-chip class="portal-chip portal-chip--gold">{{ isPortfolio }}</mat-chip>
-                    }
+                  @if (isPortfolio()) {
+                    <mat-chip class="portal-chip portal-chip--gold">Portfolio</mat-chip>
                   }
                 </mat-chip-set>
               </div>

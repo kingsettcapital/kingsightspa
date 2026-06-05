@@ -286,6 +286,7 @@ export interface FundDistributionPeriodTabRow {
 /** Mapped group row for distributions tab. */
 export interface FundDistributionGroupTabRow {
   groupKey: string;
+  fundCode: string;
   transactionType: string;
   totalAmount: number;
   totalUnits: string;

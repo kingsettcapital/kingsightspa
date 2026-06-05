@@ -72,6 +72,7 @@ export function mapFundDistributionGroupToTabRow(
 
   return {
     groupKey,
+    fundCode,
     transactionType,
     totalAmount,
     totalUnits: String(totalUnits),
@@ -103,6 +104,9 @@ export function filterFundDistributionGroups(
     if (group.transactionType.toLowerCase().includes(q)) {
       return true;
     }
+    if (group.fundCode.toLowerCase().includes(q)) {
+      return true;
+    }
     return group.periods.some((period) =>
       investmentDetailTabRowSearchText(period).toLowerCase().includes(q),
     );
@@ -124,11 +128,11 @@ export function sumFundDistributionGroups(groups: FundDistributionGroupTabRow[] 
 
 export function flattenFundDistributionGroupsForExport(
   groups: FundDistributionGroupTabRow[],
-): Array<FundDistributionPeriodTabRow & { transactionType: string }> {
-  const rows: Array<FundDistributionPeriodTabRow & { transactionType: string }> = [];
+): Array<FundDistributionPeriodTabRow & { fundCode: string; transactionType: string }> {
+  const rows: Array<FundDistributionPeriodTabRow & { fundCode: string; transactionType: string }> = [];
   for (const group of groups) {
     for (const period of group.periods) {
-      rows.push({ transactionType: group.transactionType, ...period });
+      rows.push({ fundCode: group.fundCode, transactionType: group.transactionType, ...period });
     }
   }
   return rows;

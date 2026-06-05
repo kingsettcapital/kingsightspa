@@ -46,6 +46,7 @@ export type DistributionTableRow =
   | {
       kind: 'group';
       groupKey: string;
+      fundCode: string;
       transactionType: string;
       totalAmount: number;
       totalUnits: string;
@@ -53,6 +54,7 @@ export type DistributionTableRow =
   | ({
       kind: 'detail';
       groupKey: string;
+      fundCode: string;
     } & FundDistributionPeriodTabRow);
 
 @Component({
@@ -131,6 +133,7 @@ export class InvestorDistributionsTabComponent {
       rows.push({
         kind: 'group',
         groupKey: group.groupKey,
+        fundCode: group.fundCode,
         transactionType: group.transactionType,
         totalAmount: group.totalAmount,
         totalUnits: group.totalUnits,
@@ -141,6 +144,7 @@ export class InvestorDistributionsTabComponent {
           rows.push({
             kind: 'detail',
             groupKey: group.groupKey,
+            fundCode: group.fundCode,
             ...period,
           });
         }
@@ -274,6 +278,7 @@ export class InvestorDistributionsTabComponent {
       filename: 'distributions.xlsx',
       sheetName: 'Distributions',
       columns: [
+        { header: 'Fund Code', value: (r) => r.fundCode },
         { header: 'Transaction Type', value: (r) => r.transactionType },
         periodColumn,
         { header: 'Amount', value: (r) => r.amount },

@@ -72,6 +72,7 @@ export function mapFundDistributionGroupToTabRow(
 
   return {
     groupKey,
+    fundCode,
     transactionType,
     totalAmount,
     totalUnits: String(totalUnits),

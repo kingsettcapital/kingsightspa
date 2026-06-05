@@ -280,10 +280,15 @@ export class CapitalDashboardAssetsComponent {
     return formatByFormatType(raw, 'boolean') ?? '—';
   }
 
-  isPortfolioDisplay(): string {
+  isPortfolio(): boolean {
     const raw = propertyFieldValue(this.assetDetail(), 'isPortfolio');
-    if (raw == null) return '—';
-    return formatByFormatType(raw, 'boolean') ?? '—';
+    if (raw == null) return false;
+    if (typeof raw === 'boolean') return raw;
+    if (typeof raw === 'string') {
+      const v = raw.trim().toLowerCase();
+      return v === 'true' || v === 'yes' || v === '1';
+    }
+    return false;
   }
 
   assetSizeDisplay(): string {
