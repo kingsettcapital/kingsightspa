@@ -1,0 +1,191 @@
+<section class="subjective-page">
+  <h1>Capture Default Subjective Analytics</h1>
+  <p class="subtitle">
+    All loan aliases load by default. Search to narrow the grid, or select tags to filter. Update default
+    status, exit plan, exit date, and maturity detail for each loan.
+  </p>
+
+  <div class="filters-row">
+    <div class="filter-panel alias-panel">
+      <span class="filter-label">Loan Alias</span>
+      <div class="search-input-wrap">
+        <input
+          type="text"
+          [value]="searchText()"
+          (input)="updateSearch($any($event.target).value)"
+          placeholder="Search and add loan aliases"
+        />
+      </div>
+
+      @if (searchedAliasOptions().length > 0) {
+        <ul class="search-results">
+          @for (alias of searchedAliasOptions(); track alias.loanAliasId) {
+            <li>
+              <button type="button" (click)="selectAlias(alias)">{{ alias.loanAliasName }}</button>
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="selected-alias-tags">
+        @for (selected of selectedAliases(); track selected.loanAliasId) {
+          <button type="button" class="alias-tag" (click)="removeSelectedAlias(selected.loanAliasId)">
+            <span>{{ selected.loanAliasName }}</span>
+            <span class="tag-close">x</span>
+          </button>
+        }
+      </div>
+
+      @if (selectedAliases().length > 0) {
+        <button type="button" class="link-clear" (click)="clearAliasSelection()">Clear aliases</button>
+      }
+    </div>
+
+    <div class="filter-panel status-panel">
+      <span class="filter-label">Status</span>
+      <div class="status-options">
+        @for (status of statusOptions(); track status.value) {
+          <label class="status-option">
+            <input
+              type="checkbox"
+              [checked]="isStatusSelected(status.value)"
+              (change)="toggleStatus(status.value)"
+            />
+            <span>{{ status.displayLabel }}</span>
+          </label>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (isLoadingFilters()) {
+    <p class="meta-message">Loading filters...</p>
+  }
+  @if (errorMessage() && !isSaving()) {
+    <p class="error-message">{{ errorMessage() }}</p>
+  }
+  @if (isLoadingGrid()) {
+    <p class="meta-message">Loading loan syndicate details...</p>
+  } @else if (statusMessage() && !errorMessage()) {
+    <p class="status-message">{{ statusMessage() }}</p>
+  }
+
+  <h2 class="table-title">Loan Syndicate Details</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="hidden-column">Loan Key</th>
+          <th>Loan ID</th>
+          <th>Description</th>
+          <th>Loan Alias</th>
+          <th>Maturity Date</th>
+          <th>Default Status</th>
+          <th>Exit Plan</th>
+          <th>Exit Date</th>
+          <th>Maturity - Additional Detail</th>
+          <th>Date of DWH Update</th>
+          <th>Updated By</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of paginatedRows(); track row.loanKey) {
+          <tr>
+            <td class="hidden-column">{{ row.loanKey }}</td>
+            <td>{{ row.loanId }}</td>
+            <td>{{ row.description }}</td>
+            <td>{{ row.loanAliasName }}</td>
+            <td class="date-readonly">{{ formatDisplayDate(row.maturityDate) }}</td>
+            <td>
+              <select
+                class="select-input"
+                (change)="updateDefaultStatus(row.loanKey, $any($event.target).value)"
+              >
+                <option value="" [selected]="!row.defaultStatus">—</option>
+                @for (opt of defaultStatusOptions(); track opt) {
+                  <option [value]="opt" [selected]="row.defaultStatus === opt">{{ opt }}</option>
+                }
+              </select>
+            </td>
+            <td>
+              <select
+                class="select-input"
+                (change)="updateExitPlan(row.loanKey, $any($event.target).value)"
+              >
+                <option value="" [selected]="!row.exitPlan">—</option>
+                @for (opt of exitPlanOptions(); track opt) {
+                  <option [value]="opt" [selected]="row.exitPlan === opt">{{ opt }}</option>
+                }
+              </select>
+            </td>
+            <td>
+              <input
+                type="date"
+                class="date-input"
+                [value]="row.exitDate"
+                (input)="updateExitDate(row.loanKey, $any($event.target).value)"
+              />
+            </td>
+            <td>
+              <input
+                type="text"
+                class="text-input"
+                [value]="row.maturityAdditionalDetail"
+                (input)="updateMaturityDetail(row.loanKey, $any($event.target).value)"
+                placeholder="Additional detail"
+              />
+            </td>
+            <td class="date-readonly">{{ formatDisplayDate(row.userUpdatedDate) }}</td>
+            <td>{{ row.userUpdatedBy }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="11" class="empty-row">No loans loaded for the selected filters.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <div class="pagination-left">
+      <label for="subjectivePageSize">Rows per page</label>
+      <select
+        id="subjectivePageSize"
+        [value]="pageSize()"
+        (change)="updatePageSize($any($event.target).value)"
+      >
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+    <div class="pagination-right">
+      <span class="page-range">{{ pageRangeLabel() }}</span>
+      <button type="button" class="pager-btn" (click)="goToPreviousPage()" [disabled]="currentPage() <= 1">
+        Prev
+      </button>
+      <span class="page-index">Page {{ currentPage() }} / {{ totalPages() }}</span>
+      <button
+        type="button"
+        class="pager-btn"
+        (click)="goToNextPage()"
+        [disabled]="currentPage() >= totalPages()"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
+      @if (isSaving()) { Saving… } @else { Save Changes }
+    </button>
+  </div>
+
+  <p class="footnote">
+    Information provided in this table is stored in the data warehouse and used in calculations and loan reporting.
+  </p>
+</section>
