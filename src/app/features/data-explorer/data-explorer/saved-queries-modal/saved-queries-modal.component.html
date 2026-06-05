@@ -1,0 +1,87 @@
+@if (isOpen()) {
+  <div class="ks-modal-backdrop" (click)="onBackdropClick($event)">
+    <div
+      class="ks-modal de-saved-modal"
+      role="dialog"
+      aria-labelledby="savedQueriesTitle"
+    >
+      <header class="ks-modal__header de-saved-modal__header">
+        <div class="de-saved-modal__header-content">
+          <span class="de-saved-modal__icon" aria-hidden="true">
+            <lucide-icon [img]="bookIcon" [size]="18" color="currentColor"></lucide-icon>
+          </span>
+          <div>
+            <h2 id="savedQueriesTitle" class="de-saved-modal__title">Saved Queries</h2>
+            <p class="de-saved-modal__subtitle">{{ queries().length }} saved querys</p>
+          </div>
+        </div>
+        <button type="button" class="de-saved-modal__close" (click)="close()" aria-label="Close">
+          <lucide-icon [img]="closeIcon" [size]="20" color="currentColor"></lucide-icon>
+        </button>
+      </header>
+
+      <div class="ks-modal__body de-saved-modal__body">
+        @if (queries().length === 0) {
+          <p class="de-saved-modal__empty">No saved queries yet.</p>
+        } @else {
+          <ul class="de-saved-modal__list">
+            @for (query of queries(); track query.id) {
+              <li class="de-saved-modal__item">
+                <span class="de-saved-modal__item-icon" aria-hidden="true">
+                  <lucide-icon [img]="bookIcon" [size]="16" color="currentColor"></lucide-icon>
+                </span>
+
+                <div class="de-saved-modal__item-content">
+                  <span class="de-saved-modal__item-name">{{ query.name }}</span>
+                  @if (query.description) {
+                    <span class="de-saved-modal__item-desc">{{ query.description }}</span>
+                  }
+                  <div class="de-saved-modal__item-meta">
+                    <span class="de-saved-modal__meta-date">
+                      <lucide-icon [img]="clockIcon" [size]="12" color="currentColor"></lucide-icon>
+                      {{ query.savedAt | date: 'MMM d, y, h:mm a' }}
+                    </span>
+                    <span class="de-saved-modal__tag">{{ query.selectedFieldIds.length }} cols</span>
+                    @if (filterCount(query) > 0) {
+                      <span class="de-saved-modal__tag de-saved-modal__tag--filter">
+                        {{ filterCount(query) }} {{ filterCount(query) === 1 ? 'filter' : 'filters' }}
+                      </span>
+                    }
+                  </div>
+                  @if (query.groupByFieldId) {
+                    <div class="de-saved-modal__item-tags">
+                      <span class="de-saved-modal__tag de-saved-modal__tag--grouped">grouped</span>
+                    </div>
+                  }
+                </div>
+
+                <div class="de-saved-modal__item-actions">
+                  <button
+                    type="button"
+                    class="de-saved-modal__run-btn"
+                    (click)="runQuery(query)"
+                  >
+                    <lucide-icon [img]="playIcon" [size]="12" color="currentColor"></lucide-icon>
+                    Run
+                  </button>
+                  <button
+                    type="button"
+                    class="de-saved-modal__delete-btn"
+                    aria-label="Delete saved query"
+                    (click)="deleteQuery(query)"
+                  >
+                    <lucide-icon [img]="trashIcon" [size]="16" color="currentColor"></lucide-icon>
+                  </button>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      <footer class="ks-modal__footer de-saved-modal__footer">
+        <button type="button" class="de-saved-modal__footer-close" (click)="close()">Close</button>
+      </footer>
+    </div>
+  </div>
+}

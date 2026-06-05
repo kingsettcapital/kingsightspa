@@ -317,6 +317,7 @@ export interface PropertyListItemDto {
   province: string | null;
   assetType: string | null;
   status: string | null;
+  ownership?: boolean | null;
   currentValue: number;
   yieldPercent: number | null;
 }

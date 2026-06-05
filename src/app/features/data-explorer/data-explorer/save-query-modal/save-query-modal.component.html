@@ -1,0 +1,64 @@
+@if (isOpen()) {
+  <div class="ks-modal-backdrop" (click)="onBackdropClick($event)">
+    <div
+      class="ks-modal de-save-modal"
+      role="dialog"
+      aria-labelledby="saveQueryTitle"
+    >
+      <header class="ks-modal__header de-save-modal__header">
+        <div class="de-save-modal__header-content">
+          <span class="de-save-modal__icon" aria-hidden="true">
+            <lucide-icon [img]="saveIcon" [size]="18" color="currentColor"></lucide-icon>
+          </span>
+          <h2 id="saveQueryTitle" class="de-save-modal__title">Save Query</h2>
+        </div>
+        <button type="button" class="de-save-modal__close" (click)="close()" aria-label="Close">
+          <lucide-icon [img]="closeIcon" [size]="20" color="currentColor"></lucide-icon>
+        </button>
+      </header>
+
+      <div class="ks-modal__body de-save-modal__body">
+        <div class="de-save-modal__field">
+          <label class="de-save-modal__label" for="queryName">
+            Query Name <span class="de-save-modal__required">*</span>
+          </label>
+          <input
+            id="queryName"
+            type="text"
+            class="ks-input de-save-modal__input"
+            placeholder="e.g. Toronto Office Properties Q1"
+            [ngModel]="name()"
+            (ngModelChange)="name.set($event)"
+          />
+        </div>
+
+        <div class="de-save-modal__field">
+          <label class="de-save-modal__label" for="queryDescription">
+            Description <span class="de-save-modal__optional">(optional)</span>
+          </label>
+          <textarea
+            id="queryDescription"
+            class="ks-input de-save-modal__textarea"
+            rows="4"
+            placeholder="Brief description of what this query shows..."
+            [ngModel]="description()"
+            (ngModelChange)="description.set($event)"
+          ></textarea>
+        </div>
+      </div>
+
+      <footer class="ks-modal__footer de-save-modal__footer">
+        <button type="button" class="de-save-modal__cancel-btn" (click)="close()">Cancel</button>
+        <button
+          type="button"
+          class="de-save-modal__submit-btn"
+          [disabled]="!isValid()"
+          (click)="submit()"
+        >
+          <lucide-icon [img]="saveIcon" [size]="16" color="currentColor"></lucide-icon>
+          Save Query
+        </button>
+      </footer>
+    </div>
+  </div>
+}

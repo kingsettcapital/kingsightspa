@@ -15,6 +15,7 @@ import {
   MessageSquare,
   User,
   ChevronDown,
+  Database,
   Landmark,
 } from 'lucide-angular';
 import { AIChatSidebarComponent } from '../../shared/components/ai-chat-sidebar/ai-chat-sidebar.component';
@@ -45,6 +46,7 @@ import { ToastContainerComponent } from '../../shared/components/toast/toast-con
         MessageSquare,
         User,
         ChevronDown,
+        Database,
         Landmark,
       }),
       multi: true,
@@ -91,6 +93,7 @@ export class MainLayoutComponent implements OnInit {
   userIcon = User;
   chevronDownIcon = ChevronDown;
   landmarkIcon = Landmark;
+  databaseIcon = Database;
 
   toggleMobileNav(): void {
     this.isMobileNavOpen.update((v) => !v);

@@ -46,6 +46,43 @@ function summaryRecord(detail: PropertyDetailDto | null): Record<string, unknown
   return summary ? (summary as unknown as Record<string, unknown>) : null;
 }
 
+export function propertyFieldValue(detail: PropertyDetailDto | null, key: string): unknown | null {
+  const normalizedKey = key.toLowerCase();
+
+  const value = detail?.fields?.[key];
+  if (value != null) return value;
+
+  const summary = summaryRecord(detail);
+  if (summary) {
+    const v = summary[key] ?? summary[normalizedKey];
+    if (v != null) return v;
+  }
+
+  const sections = detail?.sections ?? null;
+  if (Array.isArray(sections)) {
+    for (const sec of sections) {
+      for (const row of sec?.fields ?? []) {
+        const rowKey = String(row?.key ?? '').trim().toLowerCase();
+        if (rowKey && rowKey === normalizedKey) {
+          return row?.value ?? null;
+        }
+      }
+    }
+  }
+
+  const summaryArray = (detail?.fields as Record<string, unknown> | null | undefined)?.['summary'];
+  if (Array.isArray(summaryArray)) {
+    const found = summaryArray.find((row) => {
+      if (!isSummaryItem(row)) return false;
+      const rowKey = String(row.key ?? '').trim();
+      return rowKey.toLowerCase() === key.toLowerCase();
+    }) as SummaryItem | undefined;
+    if (found) return found.value ?? null;
+  }
+
+  return null;
+}
+
 export function propertyFieldString(detail: PropertyDetailDto | null, key: string): string | null {
   const normalizedKey = key.toLowerCase();
 

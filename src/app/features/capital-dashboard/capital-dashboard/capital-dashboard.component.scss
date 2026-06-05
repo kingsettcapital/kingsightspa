@@ -655,11 +655,12 @@ body[data-ks-capital-dashboard] {
     background: var(--portal-paper);
   }
 
-  /* Horizontal overflow helper (used for overview cards on small widths) */
-  .detail-scroll-x {
+  /* Overview tab scroll area (vertical + horizontal when cards overflow). */
+  mat-tab-group.detail-tabs .detail-card__body:not(.detail-card__body--table) .detail-scroll-x {
+    flex: 1 1 auto;
+    min-height: 0;
     width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: auto;
     -webkit-overflow-scrolling: touch;
     @include portal-scrollbar;
   }
@@ -751,9 +752,7 @@ body[data-ks-capital-dashboard] {
     }
 
     .detail-card__body:not(.detail-card__body--table) {
-      overflow: auto;
-      -webkit-overflow-scrolling: touch;
-      @include portal-scrollbar;
+      overflow: hidden;
     }
   }
 
@@ -1155,7 +1154,13 @@ body[data-ks-capital-dashboard] {
       --mat-chip-label-text-color: #ffffff;
     }
 
-    &:not(.portal-chip--outlined):not(.portal-chip--success):not(.portal-chip--warning) {
+    &.portal-chip--gold {
+      --mat-chip-outline-width: 0;
+      --mat-chip-elevated-container-color: var(--ks-color-gold);
+      --mat-chip-label-text-color: #ffffff;
+    }
+
+    &:not(.portal-chip--outlined):not(.portal-chip--success):not(.portal-chip--warning):not(.portal-chip--gold) {
       --mat-chip-outline-width: 0;
       --mat-chip-elevated-container-color: var(--portal-text-secondary);
       --mat-chip-label-text-color: #ffffff;

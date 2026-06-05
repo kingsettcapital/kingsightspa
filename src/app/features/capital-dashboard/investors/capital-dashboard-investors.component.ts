@@ -203,19 +203,17 @@ export class CapitalDashboardInvestorsComponent {
 
   readonly activeTabIndex = signal(0);
 
-  /** Overview=0, Funds=1, Commitments=2, Unfunded=3, Investments=4, Distributions=5, NAV=6 */
+  /** Overview=0, Commitments=1, Unfunded=2, Investments=3, Distributions=4, NAV=5 */
 
-  readonly fundsTabIndex = 1;
+  readonly commitmentsTabIndex = 1;
 
-  readonly commitmentsTabIndex = 2;
+  readonly unfundedCommitmentsTabIndex = 2;
 
-  readonly unfundedCommitmentsTabIndex = 3;
+  readonly capitalInvestmentsTabIndex = 3;
 
-  readonly capitalInvestmentsTabIndex = 4;
+  readonly distributionsTabIndex = 4;
 
-  readonly distributionsTabIndex = 5;
-
-  readonly navTabIndex = 6;
+  readonly navTabIndex = 5;
 
 
 
@@ -255,21 +253,17 @@ export class CapitalDashboardInvestorsComponent {
 
         const detailTab = params.get('detailTab');
 
-        if (detailTab === 'funds' || detailTab === 'investments') {
-
-          this.activeTabIndex.set(this.fundsTabIndex);
-
+        if (
+          detailTab === 'funds' ||
+          detailTab === 'investments' ||
+          detailTab === 'capital-investments'
+        ) {
+          this.activeTabIndex.set(this.capitalInvestmentsTabIndex);
         }
 
         if (detailTab === 'commitments') this.activeTabIndex.set(this.commitmentsTabIndex);
 
         if (detailTab === 'unfunded') this.activeTabIndex.set(this.unfundedCommitmentsTabIndex);
-
-        if (detailTab === 'capital-investments') {
-
-          this.activeTabIndex.set(this.capitalInvestmentsTabIndex);
-
-        }
 
         if (detailTab === 'distributions') this.activeTabIndex.set(this.distributionsTabIndex);
 
@@ -382,37 +376,12 @@ export class CapitalDashboardInvestorsComponent {
 
 
     effect(() => {
-
       const detail = this.investorsDetailState();
 
       if (!detail.loading && detail.detail) {
-
         this.cleanupDeepLinkQueryParams();
-
       }
-
     });
-
-
-
-    effect(() => {
-
-      if (this.activeTabIndex() !== this.fundsTabIndex) return;
-
-      this.selectedInvestorKey();
-
-      this.detailLoading();
-
-      this.investorInvestments();
-
-      this.investorFundsLoading();
-
-      this.fundsSearchQuery();
-
-      this.loadInvestorFundsPageIfNeeded();
-
-    });
-
   }
 
 

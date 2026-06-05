@@ -72,22 +72,34 @@
 @include tab-table-column-width(propertyAcquisition, 9rem);
 @include tab-table-column-width(propertyDisposedDate, 9rem);
 
-@include tab-table-column-width(investorName, 14rem);
-@include tab-table-column-width(relationshipName, 12rem);
-@include tab-table-column-width(investorTypeName, 11rem);
-@include tab-table-column-width(contactFirstName, 9rem);
-@include tab-table-column-width(contactLastName, 9rem);
+@mixin fund-investor-column-min($column, $min-width) {
+  :host ::ng-deep .tab-table-hsync .detail-table.detail-table--fund-investors .mat-mdc-header-cell.mat-column-#{$column},
+  :host ::ng-deep .tab-table-hsync .detail-table.detail-table--fund-investors .mat-mdc-cell.mat-column-#{$column},
+  :host ::ng-deep .tab-table-hsync .detail-table.detail-table--fund-investors .mat-mdc-footer-cell.mat-column-#{$column} {
+    min-width: $min-width;
+    max-width: none;
+    box-sizing: border-box;
+  }
+}
+
+@include fund-investor-column-min(investorName, 12rem);
+@include fund-investor-column-min(investorTypeName, 10rem);
+@include fund-investor-column-min(contactFirstName, 9rem);
+@include fund-investor-column-min(contactLastName, 9rem);
+
+:host ::ng-deep .tab-table-hsync .detail-table.detail-table--fund-investors .mat-mdc-header-cell.mat-column-relationshipName,
+:host ::ng-deep .tab-table-hsync .detail-table.detail-table--fund-investors .mat-mdc-cell.mat-column-relationshipName,
+:host ::ng-deep .tab-table-hsync .detail-table.detail-table--fund-investors .mat-mdc-footer-cell.mat-column-relationshipName {
+  width: auto;
+  min-width: 11rem;
+  max-width: none;
+  box-sizing: border-box;
+}
 
 :host ::ng-deep .tab-table-hsync .detail-table.detail-table--fund-assets thead tr,
 :host ::ng-deep .tab-table-hsync .detail-table.detail-table--fund-assets tbody tr {
   width: 81rem;
   min-width: 81rem;
-}
-
-:host ::ng-deep .tab-table-hsync .detail-table.detail-table--fund-investors thead tr,
-:host ::ng-deep .tab-table-hsync .detail-table.detail-table--fund-investors tbody tr {
-  width: 55rem;
-  min-width: 55rem;
 }
 
 /* Capital dashboard list styles define `.list-table__secondary { color: ... }`.

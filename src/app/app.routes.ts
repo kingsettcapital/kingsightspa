@@ -55,6 +55,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'data-explorer',
+        loadChildren: () =>
+          import('./features/data-explorer/data-explorer.routes').then(
+            (m) => m.DATA_EXPLORER_ROUTES
+          ),
+      },
+      {
         path: '**',
         loadComponent: () =>
           import('./shared/components/not-found/not-found.component').then(

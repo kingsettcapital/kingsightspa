@@ -1,0 +1,215 @@
+.de-saved-modal {
+  max-width: 36rem;
+}
+
+.de-saved-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--ks-color-navy);
+  border-bottom: none;
+}
+
+.de-saved-modal__header-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.de-saved-modal__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  background: var(--ks-color-gold);
+  color: var(--ks-color-navy);
+}
+
+.de-saved-modal__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: var(--ks-font-weight-semibold);
+  color: var(--ks-color-text-inverse);
+}
+
+.de-saved-modal__subtitle {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  color: color-mix(in srgb, var(--ks-color-white) 65%, transparent);
+}
+
+.de-saved-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border: none;
+  background: transparent;
+  color: color-mix(in srgb, var(--ks-color-white) 70%, transparent);
+  cursor: pointer;
+}
+
+.de-saved-modal__close:hover {
+  color: var(--ks-color-text-inverse);
+}
+
+.de-saved-modal__body {
+  padding: 0;
+}
+
+.de-saved-modal__empty {
+  padding: 2rem 1.5rem;
+  margin: 0;
+  text-align: center;
+  color: var(--ks-color-text-muted);
+}
+
+.de-saved-modal__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.de-saved-modal__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1.125rem 1.5rem;
+  border-bottom: 1px solid var(--ks-color-border);
+  background: var(--ks-color-surface);
+}
+
+.de-saved-modal__item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border: 1px solid var(--ks-color-border);
+  background: var(--ks-color-surface);
+  color: var(--ks-color-text-muted);
+}
+
+.de-saved-modal__item-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.de-saved-modal__item-name {
+  font-weight: var(--ks-font-weight-semibold);
+  color: var(--ks-color-navy);
+}
+
+.de-saved-modal__item-desc {
+  font-size: 0.875rem;
+  color: var(--ks-color-text-muted);
+}
+
+.de-saved-modal__item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.de-saved-modal__item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.125rem;
+}
+
+.de-saved-modal__meta-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--ks-color-text-muted);
+}
+
+.de-saved-modal__tag {
+  display: inline-flex;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: var(--ks-font-weight-medium);
+  border: 1px solid var(--ks-color-border);
+  background: var(--ks-color-surface);
+  color: var(--ks-color-text-muted);
+}
+
+.de-saved-modal__tag--filter {
+  border-color: color-mix(in srgb, var(--ks-color-gold) 50%, var(--ks-color-border));
+  background: var(--ks-color-warning-subtle);
+  color: var(--ks-color-navy);
+}
+
+.de-saved-modal__tag--grouped {
+  border-color: color-mix(in srgb, #7c3aed 35%, var(--ks-color-border));
+  background: color-mix(in srgb, #7c3aed 12%, var(--ks-color-white));
+  color: #5b21b6;
+}
+
+.de-saved-modal__item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.de-saved-modal__run-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4375rem 0.875rem;
+  border: 1px solid var(--ks-color-navy);
+  background: var(--ks-color-navy);
+  color: var(--ks-color-text-inverse);
+  font-size: 0.75rem;
+  font-weight: var(--ks-font-weight-semibold);
+  cursor: pointer;
+}
+
+.de-saved-modal__run-btn:hover {
+  background: color-mix(in srgb, var(--ks-color-navy) 88%, var(--ks-color-white));
+}
+
+.de-saved-modal__delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem;
+  border: none;
+  background: transparent;
+  color: var(--ks-color-text-muted);
+  cursor: pointer;
+}
+
+.de-saved-modal__delete-btn:hover {
+  color: var(--ks-color-navy);
+}
+
+.de-saved-modal__footer {
+  justify-content: flex-end;
+}
+
+.de-saved-modal__footer-close {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--ks-color-text-muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.de-saved-modal__footer-close:hover {
+  color: var(--ks-color-navy);
+}

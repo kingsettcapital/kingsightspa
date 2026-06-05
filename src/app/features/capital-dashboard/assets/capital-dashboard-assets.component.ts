@@ -31,14 +31,14 @@ import { PropertyListItemDto } from '../shared/models/api.models';
 import { formatCurrency, formatPercent } from '../shared/utils/format-currency.util';
 import { scrollListItemIntoView } from '../shared/utils/list-scroll.util';
 import { KsCurrencyPipe } from '../../../shared/pipes/ks-currency.pipe';
+import { formatByFormatType } from '../shared/utils/dynamic-sections.util';
 import {
   propertyDetailAcquisitionYear,
-  propertyDetailCurrentValue,
   propertyDetailInvestmentsCount,
   propertyDetailLocation,
   propertyDetailName,
-  propertyDetailYield,
   propertyFieldString,
+  propertyFieldValue,
   propertyListName,
   propertyListSubtitle,
 } from '../shared/utils/property-display.util';
@@ -104,6 +104,14 @@ export class CapitalDashboardAssetsComponent {
 
   activeTabIndex = 0;
   readonly listColumns = ['asset', 'value'];
+  readonly assetInvestmentColumns = [
+    'name',
+    'type',
+    'strategy',
+    'status',
+    'value',
+    'return',
+  ] as const;
 
   readonly selectedAsset = computed(() => this.assetDetail());
 
@@ -197,6 +205,11 @@ export class CapitalDashboardAssetsComponent {
     this.activeTabIndex = 0;
   }
 
+  listOwnershipDisplay(item: PropertyListItemDto): string {
+    if (item.ownership == null) return '—';
+    return formatByFormatType(item.ownership, 'boolean') ?? '—';
+  }
+
   assetIcon(type: string | null | undefined): string {
     switch (type) {
       case 'Real Estate':
@@ -252,15 +265,37 @@ export class CapitalDashboardAssetsComponent {
   }
 
   summaryMoney(key: string): string {
-    if (key === 'currentValue') {
-      const value = propertyDetailCurrentValue(this.assetDetail());
-      if (value != null) return formatCurrency(value);
-    }
     const raw = propertyFieldString(this.assetDetail(), key);
     if (raw) {
       const parsed = Number(raw.replace(/[^0-9.-]/g, ''));
       if (Number.isFinite(parsed)) return formatCurrency(parsed);
       return raw;
+    }
+    return '—';
+  }
+
+  ownershipDisplay(): string {
+    const raw = propertyFieldValue(this.assetDetail(), 'ownership');
+    if (raw == null) return '—';
+    return formatByFormatType(raw, 'boolean') ?? '—';
+  }
+
+  isPortfolioDisplay(): string {
+    const raw = propertyFieldValue(this.assetDetail(), 'isPortfolio');
+    if (raw == null) return '—';
+    return formatByFormatType(raw, 'boolean') ?? '—';
+  }
+
+  assetSizeDisplay(): string {
+    const raw = propertyFieldValue(this.assetDetail(), 'assetSize');
+    if (raw == null) return '—';
+    if (typeof raw === 'number' && Number.isFinite(raw)) return String(raw);
+    if (typeof raw === 'string') {
+      const trimmed = raw.trim();
+      if (!trimmed) return '—';
+      const parsed = Number(trimmed);
+      if (Number.isFinite(parsed)) return String(parsed);
+      return trimmed;
     }
     return '—';
   }
@@ -276,16 +311,6 @@ export class CapitalDashboardAssetsComponent {
       if (Number.isFinite(parsed)) return parsed;
     }
     return this.assetInvestments().length;
-  }
-
-  yieldDisplay(): string {
-    const yieldValue = propertyDetailYield(this.assetDetail());
-    if (yieldValue == null) {
-      const listItem = this.selectedListAsset();
-      if (listItem?.yieldPercent != null) return formatPercent(listItem.yieldPercent);
-      return '—';
-    }
-    return formatPercent(yieldValue);
   }
 
   acquisitionDateDisplay(): string {

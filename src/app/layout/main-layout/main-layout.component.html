@@ -37,7 +37,7 @@
         class="ks-sidebar__link"
       >
         <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
-        <span class="ks-sidebar__link-label">Dashboard</span>
+        <span class="ks-sidebar__link-label">Home</span>
       </a>
       <a
         routerLink="/capital-dashboard/investor"
@@ -46,7 +46,7 @@
         class="ks-sidebar__link"
       >
         <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
-        <span class="ks-sidebar__link-label">Capital Dashboard</span>
+        <span class="ks-sidebar__link-label">Capital</span>
       </a>
 
       <div
@@ -60,7 +60,7 @@
           (click)="toggleDropdown('Loans')"
         >
           <lucide-icon [img]="landmarkIcon" color="currentColor" [size]="22"></lucide-icon>
-          <span class="ks-sidebar__link-label">Loans Alias</span>
+          <span class="ks-sidebar__link-label">MORTGAGE</span>
           @if (isSidebarExpanded()) {
             <lucide-icon
               class="ks-sidebar__chevron"
@@ -143,7 +143,16 @@
         }
       </div>
 
-      <div
+      <a
+        routerLink="/data-explorer"
+        routerLinkActive="ks-sidebar__link--active"
+        class="ks-sidebar__link"
+      >
+        <lucide-icon [img]="databaseIcon" color="currentColor" [size]="22"></lucide-icon>
+        <span class="ks-sidebar__link-label">Data Explorer</span>
+      </a>
+
+      <!-- <div
         class="ks-sidebar__group"
         [class.ks-sidebar__group--expanded]="openDropdown() === 'Stats'"
       >
@@ -185,7 +194,7 @@
             >Investor</a>
           </div>
         }
-      </div>
+      </div> -->
     </nav>
 
     <div class="ks-sidebar__footer">

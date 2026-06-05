@@ -48,16 +48,9 @@
             </td>
           </ng-container>
           <ng-container matColumnDef="value">
-            <th mat-header-cell *matHeaderCellDef class="align-right list-table__header-cell">Value</th>
+            <th mat-header-cell *matHeaderCellDef class="align-right list-table__header-cell">Ownership</th>
             <td mat-cell *matCellDef="let row" class="align-right">
-              <div [class.ks-currency--negative]="row.currentValue < 0">
-                {{ row.currentValue | ksCurrency }}
-              </div>
-              @if (row.yieldPercent != null && row.yieldPercent > 0) {
-                <div class="list-table__secondary return-positive">
-                  {{ formatPercent(row.yieldPercent) }} yield
-                </div>
-              }
+              <div class="list-table__primary-text">{{ listOwnershipDisplay(row) }}</div>
             </td>
           </ng-container>
           <tr mat-header-row *matHeaderRowDef="listColumns"></tr>
@@ -130,6 +123,11 @@
                       </mat-chip>
                     }
                   }
+                  @if (isPortfolioDisplay(); as isPortfolio) {
+                    @if (isPortfolio !== '—') {
+                      <mat-chip class="portal-chip portal-chip--gold">{{ isPortfolio }}</mat-chip>
+                    }
+                  }
                 </mat-chip-set>
               </div>
             </div>
@@ -137,12 +135,12 @@
 
           <div class="detail-card__metrics">
             <div>
-              <div class="detail-card__metric-label">Current Value</div>
-              <div class="detail-card__metric-value">{{ summaryMoney('currentValue') }}</div>
+              <div class="detail-card__metric-label">Ownership</div>
+              <div class="detail-card__metric-value">{{ ownershipDisplay() }}</div>
             </div>
             <div>
-              <div class="detail-card__metric-label">Yield</div>
-              <div class="detail-card__metric-value">{{ yieldDisplay() }}</div>
+              <div class="detail-card__metric-label">Asset Size</div>
+              <div class="detail-card__metric-value">{{ assetSizeDisplay() }}</div>
             </div>
             <div>
               <div class="detail-card__metric-label">Acquisition Date</div>
@@ -157,7 +155,7 @@
 
         <mat-tab-group
           [(selectedIndex)]="activeTabIndex"
-          class="detail-tabs"
+          class="detail-tabs detail-tabs--split-body-scroll"
           mat-stretch-tabs="false"
           mat-align-tabs="start"
         >
@@ -170,75 +168,83 @@
           </mat-tab>
 
           <mat-tab [label]="'Associated Investments (' + summaryNumber('investments') + ')'">
-            <div class="detail-card__body detail-card__body--table">
-              <div class="detail-table-wrap">
-                <table
-                  mat-table
-                  [dataSource]="assetInvestments()"
-                  class="detail-table"
-                  aria-label="Asset investments"
-                >
-                  <ng-container matColumnDef="name">
-                    <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Investment Name</th>
-                    <td mat-cell *matCellDef="let row">
-                      <div class="detail-table__name-cell link-cell" (click)="goToInvestment(row.fundKey, row.fundName)">
-                        <div class="detail-table__primary">{{ row.fundName }}</div>
-                        @if (row.fundStrategy) {
-                          <div class="detail-table__secondary">{{ row.fundStrategy }}</div>
-                        }
-                      </div>
-                    </td>
-                  </ng-container>
-                  <ng-container matColumnDef="type">
-                    <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Type</th>
-                    <td mat-cell *matCellDef="let row">{{ row.fundType || '—' }}</td>
-                  </ng-container>
-                  <ng-container matColumnDef="strategy">
-                    <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Strategy</th>
-                    <td mat-cell *matCellDef="let row">{{ row.fundStrategy || '—' }}</td>
-                  </ng-container>
-                  <ng-container matColumnDef="status">
-                    <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Status</th>
-                    <td mat-cell *matCellDef="let row">
-                      <app-detail-status-badge [status]="row.status" />
-                    </td>
-                  </ng-container>
-                  <ng-container matColumnDef="value">
-                    <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Total Value</th>
-                    <td mat-cell *matCellDef="let row" class="align-right">
-                      <span [class.ks-currency--negative]="row.totalValue < 0">
-                        {{ row.totalValue | ksCurrency }}
-                      </span>
-                    </td>
-                  </ng-container>
-                  <ng-container matColumnDef="return">
-                    <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Return</th>
-                    <td
-                      mat-cell
-                      *matCellDef="let row"
-                      class="align-right"
-                      [class.return-positive]="(row.totalReturnPercent ?? 0) > 0"
-                      [class.return-negative]="(row.totalReturnPercent ?? 0) <= 0"
-                    >
-                      @if (row.totalReturnPercent != null) {
-                        {{ formatPercent(row.totalReturnPercent, true) }}
-                      } @else {
-                        —
-                      }
-                    </td>
-                  </ng-container>
-                  <tr
-                    mat-header-row
-                    *matHeaderRowDef="['name', 'type', 'strategy', 'status', 'value', 'return']"
-                  ></tr>
-                  <tr
-                    mat-row
-                    *matRowDef="let row; columns: ['name', 'type', 'strategy', 'status', 'value', 'return']"
-                  ></tr>
-                </table>
-                @if (assetInvestments().length === 0) {
-                  <div class="list-state">No associated investments.</div>
-                }
+            <div class="detail-card__body detail-card__body--table asset-investments-tab">
+              <div class="detail-table-wrap tab-table-wrap">
+                <div class="detail-table__scroll">
+                  <div class="tab-table-block">
+                    <div class="tab-table-hsync">
+                      <table
+                        mat-table
+                        [dataSource]="assetInvestments()"
+                        class="detail-table detail-table--asset-investments"
+                        aria-label="Asset investments"
+                      >
+                        <ng-container matColumnDef="name">
+                          <th mat-header-cell *matHeaderCellDef class="align-left inner-table-header-cell">
+                            Investment Name
+                          </th>
+                          <td mat-cell *matCellDef="let row" class="align-left">
+                            <div
+                              class="detail-table__name-cell link-cell"
+                              (click)="goToInvestment(row.fundKey, row.fundName)"
+                            >
+                              <div class="detail-table__primary">{{ row.fundName }}</div>
+                              @if (row.fundStrategy) {
+                                <div class="detail-table__secondary">{{ row.fundStrategy }}</div>
+                              }
+                            </div>
+                          </td>
+                        </ng-container>
+                        <ng-container matColumnDef="type">
+                          <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Type</th>
+                          <td mat-cell *matCellDef="let row">{{ row.fundType || '—' }}</td>
+                        </ng-container>
+                        <ng-container matColumnDef="strategy">
+                          <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Strategy</th>
+                          <td mat-cell *matCellDef="let row">{{ row.fundStrategy || '—' }}</td>
+                        </ng-container>
+                        <ng-container matColumnDef="status">
+                          <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Status</th>
+                          <td mat-cell *matCellDef="let row">
+                            <app-detail-status-badge [status]="row.status" />
+                          </td>
+                        </ng-container>
+                        <ng-container matColumnDef="value">
+                          <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">
+                            Total Value
+                          </th>
+                          <td mat-cell *matCellDef="let row" class="align-right">
+                            <span [class.ks-currency--negative]="row.totalValue < 0">
+                              {{ row.totalValue | ksCurrency }}
+                            </span>
+                          </td>
+                        </ng-container>
+                        <ng-container matColumnDef="return">
+                          <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Return</th>
+                          <td
+                            mat-cell
+                            *matCellDef="let row"
+                            class="align-right"
+                            [class.return-positive]="(row.totalReturnPercent ?? 0) > 0"
+                            [class.return-negative]="(row.totalReturnPercent ?? 0) <= 0"
+                          >
+                            @if (row.totalReturnPercent != null) {
+                              {{ formatPercent(row.totalReturnPercent, true) }}
+                            } @else {
+                              —
+                            }
+                          </td>
+                        </ng-container>
+                        <tr mat-header-row *matHeaderRowDef="assetInvestmentColumns"></tr>
+                        <tr mat-row *matRowDef="let row; columns: assetInvestmentColumns"></tr>
+                      </table>
+                    </div>
+
+                    @if (assetInvestments().length === 0) {
+                      <div class="list-state">No associated investments.</div>
+                    }
+                  </div>
+                </div>
               </div>
             </div>
           </mat-tab>
