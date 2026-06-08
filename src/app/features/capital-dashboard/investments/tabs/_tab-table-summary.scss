@@ -51,9 +51,9 @@
   min-width: auto;
   height: 1.625rem;
   padding: 0 0.625rem;
-  border: 1px solid var(--portal-primary, #0f284a);
+  border: 1px solid var(--ks-capital-load-more-bg, #888888);
   border-radius: 0;
-  background: var(--portal-primary, #0f284a);
+  background: var(--ks-capital-load-more-bg, #888888);
   color: #fff;
   font-size: var(--ks-font-size-sm);
   font-weight: var(--ks-font-weight-medium);
@@ -67,7 +67,9 @@
 }
 
 .tab-table-load-more .ks-load-more--compact:hover:not(:disabled) {
-  filter: brightness(1.05);
+  background: var(--ks-capital-load-more-hover, #5f687d);
+  border-color: var(--ks-capital-load-more-hover, #5f687d);
+  filter: none;
 }
 
 .tab-table-load-more .ks-load-more--compact:disabled {
@@ -132,7 +134,7 @@
 :host ::ng-deep .tab-table-hsync .detail-table .mat-mdc-header-row {
   min-height: 0;
   height: auto;
-  background-color: #f3f4f6;
+  background-color: var(--ks-color-table-head-bg);
 }
 
 :host ::ng-deep .tab-table-hsync .detail-table .mat-mdc-header-cell {
@@ -143,7 +145,7 @@
   min-height: 0;
   border-top: 1px solid var(--portal-divider);
   border-bottom: 1px solid var(--portal-divider);
-  background-color: #f3f4f6;
+  background-color: var(--ks-color-table-head-bg);
   color: var(--portal-text-primary);
   box-sizing: border-box;
 }
@@ -214,7 +216,7 @@
 }
 
 :host ::ng-deep .tab-table-hsync .detail-table .mat-mdc-footer-row {
-  background-color: #f3f4f6;
+  background-color: var(--ks-color-subheader-bg);
 }
 
 :host ::ng-deep .tab-table-hsync .detail-table .mat-mdc-footer-cell {

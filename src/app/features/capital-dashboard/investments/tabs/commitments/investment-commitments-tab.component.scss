@@ -147,7 +147,7 @@ $tab-period-blue: var(--portal-primary);
   top: 0;
   z-index: 2;
   border-top: 1px solid var(--portal-divider);
-  background-color: #f3f4f6 !important;
+  background-color: var(--ks-color-table-head-bg) !important;
   font-weight: 700 !important;
   box-shadow: 0 1px 0 var(--portal-divider);
 }

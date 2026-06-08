@@ -96,7 +96,7 @@ $tab-period-blue: var(--portal-primary);
 :host ::ng-deep .detail-table .mat-mdc-header-row,
 :host ::ng-deep .detail-table .mat-mdc-header-cell {
   border-top: 1px solid var(--portal-divider);
-  background-color: #f3f4f6 !important;
+  background-color: var(--ks-color-table-head-bg) !important;
   font-weight: 700 !important;
 }
 

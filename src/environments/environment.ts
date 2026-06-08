@@ -3,9 +3,9 @@ import type { Environment } from '../app/core/interfaces/environment.interfaces'
 
 export const environment: Environment = {
   production: false,
-  requireLogin: true,
-  // apiUrl: 'http://localhost:7140/',
-  apiUrl: 'https://kingsightdevapi.kingsettcapital.com/',
+  requireLogin: false,
+  // apiUrl: 'https://kingsightdevapi.kingsettcapital.com/',
+  apiUrl: 'https://721e-38-183-10-85.ngrok-free.app',
   mockUserRole: UserRole.Administrator,
   azureConfig: {
       clientId: 'cfb0f697-501d-4f4e-a200-04187704a1af',

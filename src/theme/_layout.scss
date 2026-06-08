@@ -131,13 +131,13 @@
 
 .ks-sidebar__link:hover,
 .ks-sidebar__group-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--ks-color-sidebar-link-highlight);
   color: var(--ks-color-text-inverse);
 }
 
 .ks-sidebar__link--active,
 .ks-sidebar__group-btn--active {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--ks-color-sidebar-link-highlight);
   color: var(--ks-color-text-inverse);
 }
 
@@ -170,7 +170,7 @@
 }
 
 .ks-sidebar__group-btn--expanded {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--ks-color-sidebar-link-highlight);
   color: var(--ks-color-text-inverse);
 }
 
@@ -233,7 +233,7 @@
 }
 
 .ks-sidebar__sublink:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--ks-color-sidebar-link-highlight);
   color: var(--ks-color-text-inverse);
 }
 
@@ -242,7 +242,7 @@
   margin-right: 0;
   padding-left: calc(1.25rem + 0.75rem);
   padding-right: 0.75rem;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--ks-color-sidebar-link-highlight);
   color: var(--ks-color-text-inverse);
   font-weight: 600;
 }

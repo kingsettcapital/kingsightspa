@@ -80,6 +80,12 @@
     color: var(--ks-color-blue-dark);
   }
 
+  .ks-sidebar a:hover,
+  .ks-sidebar a.ks-sidebar__link--active,
+  .ks-sidebar a.ks-sidebar__sublink--active {
+    color: var(--ks-color-text-inverse);
+  }
+
   label {
     font-size: var(--ks-font-size-base);
     font-weight: var(--ks-font-weight-medium);
