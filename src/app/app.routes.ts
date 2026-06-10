@@ -87,6 +87,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'mortgage/tax-arrears-capture',
+        loadComponent: () =>
+          import('./pages/tax-arrears-capture/tax-arrears-capture.component').then(
+            (m) => m.TaxArrearsCaptureComponent
+          ),
+      },
+      {
         path: 'capital-reporting/fund',
         loadComponent: () =>
           import('./pages/fund/fund.component').then((m) => m.FundComponent),
