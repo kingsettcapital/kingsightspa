@@ -94,6 +94,20 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'mortgage/ltv-validation',
+        loadComponent: () =>
+          import('./pages/ltv-validation/ltv-validation.component').then(
+            (m) => m.LtvValidationComponent
+          ),
+      },
+      {
+        path: 'mortgage/non-ks-serviced-loans',
+        loadComponent: () =>
+          import('./pages/non-ks-serviced-loans/non-ks-serviced-loans.component').then(
+            (m) => m.NonKsServicedLoansComponent
+          ),
+      },
+      {
         path: 'capital-reporting/fund',
         loadComponent: () =>
           import('./pages/fund/fund.component').then((m) => m.FundComponent),
