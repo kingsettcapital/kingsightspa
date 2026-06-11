@@ -1,0 +1,195 @@
+@use 'capital-data-tool';
+
+body[data-ks-capital-dashboard] {
+  app-capital-dashboard-investments {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .cdt-investments {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.5rem 2rem 1.25rem;
+    min-height: 0;
+    flex: 1 1 0;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #c1c1c1 #f1f1f1;
+    background: var(--cdt-page-bg);
+    font-family: var(--cdt-font-sans);
+
+    &::-webkit-scrollbar {
+      width: 0.5rem;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: #c1c1c1;
+      border-radius: 0.25rem;
+    }
+  }
+
+  .cdt-investments__header,
+  .cdt-investments .cdt-kpi-row,
+  .cdt-investments .cdt-filters-panel,
+  .cdt-investments .cdt-table-card {
+    flex-shrink: 0;
+  }
+
+  .cdt-investments__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    min-height: 2.75rem;
+  }
+
+  .cdt-investments__heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  h1.cdt-investments__title {
+    margin: 0;
+    font-family: 'Rufina', Georgia, serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--cdt-title-color);
+    line-height: 1.2;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  p.cdt-investments__subtitle {
+    margin: 0;
+    font-family: var(--cdt-font-sans);
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--cdt-subtitle-color);
+    line-height: 1.4;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .cdt-investments__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    flex-wrap: wrap;
+  }
+
+  .cdt-fund-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 12rem;
+  }
+
+  .cdt-fund-cell__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 6px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .cdt-fund-cell__name {
+    display: block;
+    font-family: var(--cdt-font-serif);
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--cdt-text);
+    line-height: 1.3;
+  }
+
+  .cdt-fund-cell__type {
+    display: block;
+    margin-top: 0.125rem;
+    font-family: var(--cdt-font-sans);
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--cdt-link);
+  }
+
+  .cdt-strategy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+  }
+
+  .cdt-strategy__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cdt-strategy__label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--cdt-text);
+  }
+
+  .cdt-commitment-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    min-width: 5.5rem;
+  }
+
+  .cdt-commitment-cell__amount {
+    // font-weight: 700;
+    color: var(--cdt-text);
+    line-height: 1.25;
+  }
+
+  .cdt-commitment-cell__bar {
+    width: 100%;
+    max-width: 5.75rem;
+    height: 4px;
+    border-radius: 999px;
+    background: #e8edf2;
+    overflow: hidden;
+  }
+
+  .cdt-commitment-cell__bar-fill {
+    display: block;
+    height: 100%;
+    min-width: 0;
+    border-radius: 999px;
+    background: #00529b99;
+  }
+
+  .cdt-commitment-cell__meta {
+    font-size: 0.6875rem;
+    font-weight: 400;
+    color: #94a3b8;
+    line-height: 1.2;
+  }
+
+  @media (max-width: 768px) {
+    .cdt-investments {
+      padding: 1rem;
+    }
+  }
+}

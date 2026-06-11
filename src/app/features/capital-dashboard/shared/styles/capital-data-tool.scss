@@ -1,0 +1,58 @@
+/* KingSight Data Tool — Figma design tokens (Capital Dashboard) */
+
+body[data-ks-capital-dashboard] {
+  --cdt-font-sans: 'Open Sans', Arial, sans-serif;
+  --cdt-font-serif: 'Libre Baskerville', Georgia, serif;
+  --cdt-font-amount: 'Rufina', Georgia, serif;
+  --cdt-header-bg: #004a99;
+  --cdt-header-search-bg: rgba(255, 255, 255, 0.12);
+  --cdt-header-search-border: rgba(255, 255, 255, 0.28);
+  --cdt-gold: #c5a048;
+  --cdt-gold-card: #c9a44c;
+  --cdt-navy: #1a1f36;
+  --cdt-blue-mid: #004a99;
+  --cdt-blue-light: #1e73be;
+  --cdt-slate: #244b8f;
+  --cdt-filter-bg: #ffffff;
+  --cdt-page-bg: #f4f5f7;
+  --cdt-surface: #ffffff;
+  --cdt-border: #e2e8f0;
+  --cdt-text: #1a1a1a;
+  --cdt-text-muted: #64748b;
+  --cdt-text-subtle: #94a3b8;
+  --cdt-success: #16a34a;
+  --cdt-warning: #d97706;
+  --cdt-link: #0d6efd;
+  --cdt-radius: 8px;
+  --cdt-radius-control: 6px;
+  --cdt-radius-pill: 999px;
+  --cdt-title-color: #1a202c;
+  --cdt-control-border: #d8dee6;
+  --cdt-subtitle-color: #718096;
+  --cdt-table-scroll-height: 28rem;
+
+  --ks-capital-dashboard-font-family: var(--cdt-font-sans);
+  font-family: var(--cdt-font-sans);
+
+  /* Hide app chrome — Figma uses its own top bar */
+  .ks-header {
+    display: none;
+  }
+
+  .ks-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+    background: var(--cdt-page-bg);
+
+    > app-capital-dashboard {
+      display: flex;
+      flex: 1 1 0;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+  }
+}

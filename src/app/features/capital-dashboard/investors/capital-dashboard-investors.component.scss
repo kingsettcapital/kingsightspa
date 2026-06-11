@@ -1,127 +1,87 @@
-@use '../shared/styles/list-search-field' as search;
-@use './tabs/tab-table-summary';
-
-:host {
+.cdt-table-card--empty {
+  position: relative;
   display: block;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
+  min-height: 36rem;
 }
 
-@include search.ks-list-search-field('investors');
-
-.link-cell {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.investor-funds-tab__shell {
+.cdt-table-card__state {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-  height: 100%;
-}
-
-.investor-funds-tab__toolbar {
-  display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+.cdt-table-card__spinner {
+  --ks-spinner-size: 2.75rem;
+  width: var(--ks-spinner-size);
+  height: var(--ks-spinner-size);
+  margin-bottom: 0.25rem;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 74, 153, 0.15);
+  border-top-color: #004a99;
+  animation: cdt-investors-state-spin 0.75s linear infinite;
   flex-shrink: 0;
-  padding: 0 0 0.6rem 0;
 }
 
-.investor-funds-tab__search {
-  width: min(220px, 100%);
-  margin-bottom: 0;
-}
-
-.investor-funds-tab__shell > mat-progress-bar {
-  flex-shrink: 0;
-}
-
-:host .investor-funds-tab__table.detail-table-wrap.tab-table-wrap {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-  padding-left: 0;
-  padding-right: 0;
-}
-
-:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list {
-  flex: 0 1 auto;
-  max-height: min(calc(100vh - 420px), 100%);
-  overflow-y: auto;
-  overflow-x: auto;
-}
-
-:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list .detail-table.mat-mdc-table {
-  display: table;
-  flex: none;
-  min-height: auto;
-  width: max-content;
-  min-width: 100%;
-}
-
-:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list .detail-table thead,
-:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list .detail-table tbody,
-:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list .detail-table tfoot {
-  display: table-row-group;
-  width: 100%;
-}
-
-:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list .detail-table tbody {
-  overflow: visible;
-  flex: none;
-  min-height: 0;
-}
-
-:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list .detail-table thead tr,
-:host ::ng-deep .tab-table-hsync.tab-table-hsync--fund-list .detail-table tbody tr {
-  display: table-row;
-  width: 100%;
-}
-
-:host ::ng-deep .tab-table-hsync .detail-table .link-cell .detail-table__primary {
-  font-size: var(--ks-font-size-sm);
-  line-height: 1.3;
-}
-
-@mixin tab-table-column-width($column, $width) {
-  :host ::ng-deep .tab-table-hsync .detail-table .mat-mdc-header-cell.mat-column-#{$column},
-  :host ::ng-deep .tab-table-hsync .detail-table .mat-mdc-cell.mat-column-#{$column},
-  :host ::ng-deep .tab-table-hsync .detail-table .mat-mdc-footer-cell.mat-column-#{$column} {
-    width: $width;
-    min-width: $width;
-    max-width: $width;
-    box-sizing: border-box;
+@keyframes cdt-investors-state-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
-@include tab-table-column-width(name, 16rem);
-@include tab-table-column-width(type, 9rem);
-@include tab-table-column-width(status, 8rem);
-@include tab-table-column-width(value, 10rem);
-@include tab-table-column-width(return, 8rem);
-
-:host ::ng-deep .tab-table-hsync .detail-table.detail-table--investor-funds thead tr,
-:host ::ng-deep .tab-table-hsync .detail-table.detail-table--investor-funds tbody tr {
-  width: 51rem;
-  min-width: 51rem;
+.cdt-table-card__state-icon {
+  width: 3rem;
+  height: 3rem;
+  font-size: 3rem;
+  margin-bottom: 0.125rem;
+  color: #dc2626;
 }
 
-:host ::ng-deep .detail-table--investor-funds .return-positive {
-  color: var(--portal-success);
+.cdt-table-card__state-title {
+  margin: 0;
+  font-family: 'Open Sans', Arial, sans-serif;
+  font-size: 1.25rem;
   font-weight: 600;
+  color: #1a202c;
+  line-height: 1.35;
 }
 
-:host ::ng-deep .detail-table--investor-funds .return-negative {
-  color: var(--portal-error);
+.cdt-table-card__state-message {
+  margin: 0;
+  max-width: 24rem;
+  font-family: 'Open Sans', Arial, sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.cdt-table-card__error .cdt-table-card__state-title {
+  color: #991b1b;
+}
+
+.cdt-table-card__retry {
+  margin-top: 0.625rem;
+  padding: 0.5625rem 1.25rem;
+  border: 1px solid #004a99;
+  border-radius: 6px;
+  background: #004a99;
+  color: #fff;
+  font-family: 'Open Sans', Arial, sans-serif;
+  font-size: 0.875rem;
   font-weight: 600;
-}
+  line-height: 1.25;
+  cursor: pointer;
+  text-decoration: none;
 
-.list-table__secondary.return-neutral {
-  color: var(--portal-text-secondary);
-  font-weight: 500;
+  &:hover {
+    background: #003d80;
+    border-color: #003d80;
+    color: #fff;
+  }
 }

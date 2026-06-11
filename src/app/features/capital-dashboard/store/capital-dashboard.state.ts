@@ -11,11 +11,14 @@ import {
   InvestorDetailDto,
   InvestorInvestmentDto,
   InvestorListItemDto,
+  InvestorsListSummaryDto,
+  FundsListSummaryDto,
   PropertyDetailDto,
   PropertyInvestmentDto,
+  AssetsListSummaryDto,
   PropertyListItemDto,
 } from '../shared/models/api.models';
-import { FundInvestorTabRow } from '../investments/tabs/fund-investor.mapper';
+import { FundInvestorTabRow } from '../shared/mappers/fund-investor.mapper';
 import {
   AssetDetailCacheEntry,
   FundAssetsPageCacheEntry,
@@ -47,6 +50,15 @@ export interface PagedListState<T> {
   loading: boolean;
   loadingMore: boolean;
   error: string | null;
+  listScope: string;
+}
+
+export interface InvestorsPagedListState extends PagedListState<InvestorListItemDto> {
+  summary: InvestorsListSummaryDto | null;
+}
+
+export interface FundsPagedListState extends PagedListState<FundListItemDto> {
+  summary: FundsListSummaryDto | null;
 }
 
 export interface InvestorsDetailState {
@@ -170,8 +182,12 @@ export interface AssetsDetailState {
   error: string | null;
 }
 
+export interface InvestorsListCacheEntry extends ListCacheEntry<InvestorListItemDto> {
+  summary: InvestorsListSummaryDto | null;
+}
+
 export interface InvestorsCacheState {
-  lists: Record<string, ListCacheEntry<InvestorListItemDto>>;
+  lists: Record<string, InvestorsListCacheEntry>;
   details: Record<number, InvestorDetailCacheEntry>;
   fundsPages: Record<string, InvestorFundsPageCacheEntry>;
   periodLists: Record<string, InvestorPeriodsCacheEntry>;
@@ -182,8 +198,12 @@ export interface InvestorsCacheState {
   navPages: Record<string, InvestorNavPageCacheEntry>;
 }
 
+export interface FundsListCacheEntry extends ListCacheEntry<FundListItemDto> {
+  summary: FundsListSummaryDto | null;
+}
+
 export interface FundsCacheState {
-  lists: Record<string, ListCacheEntry<FundListItemDto>>;
+  lists: Record<string, FundsListCacheEntry>;
   details: Record<number, FundDetailCacheEntry>;
   assetPages: Record<string, FundAssetsPageCacheEntry>;
   periodLists: Record<string, FundPeriodsCacheEntry>;
@@ -195,25 +215,33 @@ export interface FundsCacheState {
   navPages: Record<string, FundNavPageCacheEntry>;
 }
 
+export interface AssetsListCacheEntry extends ListCacheEntry<PropertyListItemDto> {
+  summary: AssetsListSummaryDto | null;
+}
+
+export interface AssetsPagedListState extends PagedListState<PropertyListItemDto> {
+  summary: AssetsListSummaryDto | null;
+}
+
 export interface AssetsCacheState {
-  lists: Record<string, ListCacheEntry<PropertyListItemDto>>;
+  lists: Record<string, AssetsListCacheEntry>;
   details: Record<number, AssetDetailCacheEntry>;
 }
 
 export interface CapitalDashboardState {
   activeTab: CapitalDashboardTab;
   investors: {
-    list: PagedListState<InvestorListItemDto>;
+    list: InvestorsPagedListState;
     detail: InvestorsDetailState;
     cache: InvestorsCacheState;
   };
   funds: {
-    list: PagedListState<FundListItemDto>;
+    list: FundsPagedListState;
     detail: FundsDetailState;
     cache: FundsCacheState;
   };
   assets: {
-    list: PagedListState<PropertyListItemDto>;
+    list: AssetsPagedListState;
     detail: AssetsDetailState;
     cache: AssetsCacheState;
   };
@@ -226,9 +254,31 @@ function emptyListState<T>(): PagedListState<T> {
     page: 1,
     totalCount: 0,
     hasNextPage: false,
-    loading: false,
+    loading: true,
     loadingMore: false,
     error: null,
+    listScope: '',
+  };
+}
+
+function emptyInvestorsListState(): InvestorsPagedListState {
+  return {
+    ...emptyListState<InvestorListItemDto>(),
+    summary: null,
+  };
+}
+
+function emptyFundsListState(): FundsPagedListState {
+  return {
+    ...emptyListState<FundListItemDto>(),
+    summary: null,
+  };
+}
+
+function emptyAssetsListState(): AssetsPagedListState {
+  return {
+    ...emptyListState<PropertyListItemDto>(),
+    summary: null,
   };
 }
 
@@ -395,17 +445,17 @@ function emptyAssetsCache(): AssetsCacheState {
 export const initialCapitalDashboardState: CapitalDashboardState = {
   activeTab: 'investor',
   investors: {
-    list: { ...emptyListState(), loading: true },
+    list: { ...emptyInvestorsListState(), loading: true },
     detail: emptyInvestorsDetail(),
     cache: emptyInvestorsCache(),
   },
   funds: {
-    list: { ...emptyListState(), loading: true },
+    list: { ...emptyFundsListState(), loading: true },
     detail: emptyFundsDetail(),
     cache: emptyFundsCache(),
   },
   assets: {
-    list: { ...emptyListState(), loading: true },
+    list: { ...emptyAssetsListState(), loading: true },
     detail: emptyAssetsDetail(),
     cache: emptyAssetsCache(),
   },

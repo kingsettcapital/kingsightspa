@@ -1,312 +1,401 @@
-<div
-  class="master-detail"
-  [class.master-detail--detail-open]="selectedInvestorKey() != null || detailLoading()"
->
-  <aside class="master-detail__list">
-    <div class="ks-investors-search">
-      <mat-form-field
-        appearance="outline"
-        class="ks-investors-search__field"
-        subscriptSizing="dynamic"
-      >
-        <mat-icon matPrefix class="ks-investors-search__icon" aria-hidden="true">search</mat-icon>
-        <input
-          matInput
-          class="ks-investors-search__input"
-          type="search"
-          [ngModel]="searchQuery()"
-          (ngModelChange)="searchQuery.set($event)"
-          placeholder="Search investors..."
-          aria-label="Search investors"
-        />
-      </mat-form-field>
+<section class="cdt-investors" aria-label="Investors">
+  <header class="cdt-investors__header">
+    <div class="cdt-investors__heading">
+      <h1 class="cdt-investors__title">Investors</h1>
+      <p class="cdt-investors__subtitle">{{ subtitleText() }}</p>
     </div>
+
+    <div class="cdt-investors__actions">
+      <div class="cdt-toggle" role="group" aria-label="Reporting period">
+        <button
+          type="button"
+          class="cdt-toggle__btn"
+          [class.cdt-toggle__btn--active]="timeframe() === 'ltd'"
+          (click)="setTimeframe('ltd')"
+        >
+          LTD
+        </button>
+        <button
+          type="button"
+          class="cdt-toggle__btn"
+          [class.cdt-toggle__btn--active]="timeframe() === 'quarterly'"
+          (click)="setTimeframe('quarterly')"
+        >
+          Quarterly
+        </button>
+      </div>
+
+      @if (timeframe() === 'quarterly') {
+        <div class="cdt-period-select">
+          <mat-icon class="cdt-period-select__calendar" aria-hidden="true">calendar_today</mat-icon>
+          <label class="cdt-period-select__field">
+            <select
+              [ngModel]="quarter()"
+              (ngModelChange)="setQuarter(+$event)"
+              aria-label="Quarter"
+            >
+              @for (option of availableQuarters(); track option) {
+                <option [ngValue]="option">Q{{ option }}</option>
+              }
+            </select>
+            <mat-icon class="cdt-period-select__chevron" aria-hidden="true">expand_more</mat-icon>
+          </label>
+          <label class="cdt-period-select__field">
+            <select
+              [ngModel]="year()"
+              (ngModelChange)="setYear(+$event)"
+              aria-label="Year"
+            >
+              @for (option of availableYears(); track option) {
+                <option [ngValue]="option">{{ option }}</option>
+              }
+            </select>
+            <mat-icon class="cdt-period-select__chevron" aria-hidden="true">expand_more</mat-icon>
+          </label>
+        </div>
+      }
+
+      <button
+        type="button"
+        class="cdt-btn cdt-btn--filters"
+        (click)="toggleFiltersPanel()"
+        [attr.aria-expanded]="filtersPanelVisible()"
+      >
+        <mat-icon aria-hidden="true">filter_list</mat-icon>
+        Filters
+        @if (activeFilterCount() > 0) {
+          <span class="cdt-btn__badge">{{ activeFilterCount() }}</span>
+        }
+      </button>
+
+      <button type="button" class="cdt-btn cdt-btn--download" (click)="downloadTable()">
+        <mat-icon aria-hidden="true">download</mat-icon>
+        Download
+      </button>
+    </div>
+  </header>
+
+  <div class="cdt-kpi-row">
+    <article class="cdt-kpi cdt-kpi--navy">
+      <p class="cdt-kpi__label">Total Investors</p>
+      <p class="cdt-kpi__value">{{ kpiCards().totalInvestors }}</p>
+      <p class="cdt-kpi__hint">Active</p>
+    </article>
+    <article class="cdt-kpi cdt-kpi--blue">
+      <p class="cdt-kpi__label">Total Commitment</p>
+      <p class="cdt-kpi__value">{{ kpiCards().totalCommitment | ksCurrency: 'USD' : 3 : true }}</p>
+      <p class="cdt-kpi__hint">{{ periodLabel() }}</p>
+    </article>
+    <article class="cdt-kpi cdt-kpi--blue-light">
+      <p class="cdt-kpi__label">Net Invested Capital</p>
+      <p class="cdt-kpi__value">{{ kpiCards().netInvestedCapital | ksCurrency: 'USD' : 3 : true }}</p>
+      <p class="cdt-kpi__hint">{{ timeframe() === 'ltd' ? 'LTD deployed' : periodLabel() }}</p>
+    </article>
+    <article class="cdt-kpi cdt-kpi--gold">
+      <p class="cdt-kpi__label">{{ distributedColumnLabel() }}</p>
+      <p class="cdt-kpi__value">{{ kpiCards().netDistributed | ksCurrency: 'USD' : 3 : true }}</p>
+      <p class="cdt-kpi__hint">Cash returned</p>
+    </article>
+    <article class="cdt-kpi cdt-kpi--slate">
+      <p class="cdt-kpi__label">Reserved / Uncalled</p>
+      <p class="cdt-kpi__value">{{ kpiCards().reservedUncalled | ksCurrency: 'USD' : 3 : true }}</p>
+      <p class="cdt-kpi__hint">Unfunded</p>
+    </article>
+  </div>
+
+  @if (filtersPanelVisible()) {
+    <div class="cdt-filters-panel">
+      <div class="cdt-filters-bar">
+        <label class="cdt-filters-bar__field cdt-filters-bar__field--search">
+          <span class="cdt-filters-bar__label">SEARCH</span>
+          <div class="cdt-filters-bar__search">
+            <mat-icon aria-hidden="true">search</mat-icon>
+            <input
+              type="search"
+              placeholder="Name, relationship, contact..."
+              [ngModel]="tableSearch()"
+              (ngModelChange)="tableSearch.set($event)"
+              aria-label="Search investors"
+            />
+          </div>
+        </label>
+
+        <label class="cdt-filters-bar__field">
+          <span class="cdt-filters-bar__label">INVESTOR TYPE</span>
+          <div class="cdt-filters-bar__select">
+            <select
+              [ngModel]="investorTypeFilter()"
+              (ngModelChange)="investorTypeFilter.set($event); currentPage.set(1)"
+              aria-label="Investor type"
+            >
+              <option value="all">All Types</option>
+              @for (option of investorTypeOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+            <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+          </div>
+        </label>
+
+        <label class="cdt-filters-bar__field">
+          <span class="cdt-filters-bar__label">RELATIONSHIP</span>
+          <div class="cdt-filters-bar__select">
+            <select
+              [ngModel]="relationshipFilter()"
+              (ngModelChange)="relationshipFilter.set($event); currentPage.set(1)"
+              aria-label="Relationship"
+            >
+              <option value="all">All Relationships</option>
+              @for (option of relationshipOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+            <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+          </div>
+        </label>
+
+        @if (activeFilterCount() > 0) {
+          <button type="button" class="cdt-filters-bar__clear" (click)="clearAllFilters()">
+            <mat-icon aria-hidden="true">close</mat-icon>
+            Clear all
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <div class="cdt-table-card" [class.cdt-table-card--empty]="listLoading() || listError()">
     @if (listLoading()) {
-      <div class="list-state">
-        <app-portal-spinner [size]="32" />
+      <div class="cdt-table-card__state cdt-table-card__loading" role="status" aria-live="polite">
+        <div class="cdt-table-card__spinner" aria-hidden="true"></div>
+        <p class="cdt-table-card__state-title">Loading investors</p>
+        <p class="cdt-table-card__state-message">Fetching the latest investor data…</p>
       </div>
     } @else if (listError()) {
-      <div class="list-state list-state--error">{{ listError() }}</div>
+      <div class="cdt-table-card__state cdt-table-card__error" role="alert">
+        <mat-icon class="cdt-table-card__state-icon" aria-hidden="true">error_outline</mat-icon>
+        <p class="cdt-table-card__state-title">Unable to load investors</p>
+        <p class="cdt-table-card__state-message">Please check your connection and try again.</p>
+        <button type="button" class="cdt-table-card__retry" (click)="retryLoad()">
+          Try again
+        </button>
+      </div>
     } @else {
-      <div
-        #listScrollContainer
-        class="list-table-wrap"
-        appListInfiniteScroll
-        (scrolledToEnd)="loadMore()"
-      >
-        <table mat-table [dataSource]="investors()" class="list-table">
-          <ng-container matColumnDef="investor">
-            <th mat-header-cell *matHeaderCellDef class="list-table__header-cell">Investor</th>
-            <td mat-cell *matCellDef="let investor">
-              <div class="list-table__primary">
-                <mat-icon>{{ investorIcon(investor.investorType) }}</mat-icon>
-                <div>
-                  <div class="list-table__primary-text">{{ investor.investorName }}</div>
-                  <div class="list-table__secondary">{{ investor.investorType }}</div>
-                </div>
-              </div>
-            </td>
-          </ng-container>
-          <ng-container matColumnDef="invested">
-            <th mat-header-cell *matHeaderCellDef class="align-right list-table__header-cell">Total Invested</th>
-            <td mat-cell *matCellDef="let investor" class="align-right">
-              <span [class.ks-currency--negative]="investor.totalInvested < 0">
-                {{ investor.totalInvested | ksCurrency }}
-              </span>
-            </td>
-          </ng-container>
-          <tr mat-header-row *matHeaderRowDef="listColumns"></tr>
-          <tr
-            mat-row
-            *matRowDef="let investor; columns: listColumns"
-            [attr.data-list-key]="investor.investorKey"
-            (click)="selectInvestor(investor)"
-            [class.selected-row]="selectedInvestorKey() === investor.investorKey"
-          ></tr>
-        </table>
-        @if (listLoadingMore()) {
-          <div class="list-load-more">
-            <app-portal-spinner [size]="24" />
-          </div>
-        }
-        @if (investors().length === 0) {
-          <div class="list-state">No investors found.</div>
-        }
-      </div>
-    }
-  </aside>
-  <section class="master-detail__panel">
-    @if (detailLoading()) {
-      <div class="detail-card master-detail__empty">
-        <app-portal-spinner [size]="40" />
-      </div>
-    } @else if (detailError()) {
-      <div class="detail-card master-detail__empty">
-        <mat-icon>error_outline</mat-icon>
-        <h3>{{ detailError() }}</h3>
-      </div>
-    } @else if (selectedInvestor(); as investor) {
-      <button type="button" class="master-detail__back" (click)="clearSelection()">
-        <mat-icon>arrow_back</mat-icon>
-        <span>Back to list</span>
-      </button>
-      <div class="detail-card">
-        <div class="detail-card__header">
-          <div class="detail-card__title-row">
-            <div class="detail-card__hero" aria-hidden="true">
-              <mat-icon>{{ investorIcon(summaryDisplay('investorType')) }}</mat-icon>
-            </div>
-            <div class="detail-card__title-block">
-              <h2>{{ summaryDisplay('investorName') }}</h2>
-              <div class="detail-card__chips">
-                <mat-chip-set>
-                  <mat-chip class="portal-chip portal-chip--outlined">{{ summaryDisplay('investorType') }}</mat-chip>
-                  <mat-chip
-                    class="portal-chip"
-                    [class.portal-chip--success]="summaryDisplay('status') === 'Active'"
-                    [class.portal-chip--warning]="summaryDisplay('status') === 'In Progress'"
-                  >
-                    {{ summaryDisplay('status') }}
-                  </mat-chip>
-                </mat-chip-set>
-              </div>
-            </div>
-          </div>
-          <div class="detail-card__metrics">
-            <div>
-              <div class="detail-card__metric-label">Total Invested</div>
-              <div class="detail-card__metric-value">{{ summaryMoney('totalInvested') }}</div>
-            </div>
-            <div>
-              <div class="detail-card__metric-label">Investments</div>
-              <div class="detail-card__metric-value">{{ summaryNumber('investmentsCount') }}</div>
-            </div>
-            <!-- <div>
-              <div class="detail-card__metric-label">Documents</div>
-              <div class="detail-card__metric-value">{{ summaryNumber('documentsCount') }}</div>
-            </div> -->
-            <div>
-              <div class="detail-card__metric-label">Join Date</div>
-              <div class="detail-card__metric-value">{{ joinDateDisplay() }}</div>
-            </div>
-          </div>
-        </div>
-        <mat-tab-group
-          [selectedIndex]="activeTabIndex()"
-          (selectedIndexChange)="onDetailTabIndexChange($event)"
-          class="detail-tabs detail-tabs--split-body-scroll"
-          mat-stretch-tabs="false"
-          mat-align-tabs="start"
-        >
-          <mat-tab label="Overview">
-            <div class="detail-card__body">
-              <div class="detail-scroll-x">
-                <app-overview-section-cards [cards]="overviewCards()" />
-              </div>
-            </div>
-          </mat-tab>
-          <!-- <mat-tab [label]="'Investments (' + summaryNumber('investmentsCount') + ')'">
-            <div class="detail-card__body detail-card__body--table investor-funds-tab">
-              @if (investorFundsLoading() && !fundsSearchQuery()) {
-                <div class="list-state">
-                  <app-portal-spinner [size]="32" />
-                </div>
-              } @else {
-                <div class="tab-shell investor-funds-tab__shell">
-                  <div class="tab-toolbar investor-funds-tab__toolbar">
-                    <div class="ks-investors-search investor-funds-tab__search">
-                      <mat-form-field
-                        appearance="outline"
-                        class="ks-investors-search__field"
-                        subscriptSizing="dynamic"
-                      >
-                        <mat-icon matPrefix class="ks-investors-search__icon" aria-hidden="true">search</mat-icon>
-                        <input
-                          matInput
-                          class="ks-investors-search__input"
-                          type="search"
-                          [ngModel]="fundsSearchQuery()"
-                          (ngModelChange)="fundsSearchQuery.set($event)"
-                          placeholder="Search funds..."
-                          aria-label="Search funds"
-                        />
-                        @if (fundsSearchQuery()) {
-                          <button
-                            mat-icon-button
-                            matSuffix
-                            type="button"
-                            (click)="clearFundsSearch()"
-                            aria-label="Clear fund search"
-                          >
-                            <mat-icon>close</mat-icon>
-                          </button>
-                        }
-                      </mat-form-field>
-                    </div>
+      <div class="cdt-table-card__body">
+      <div class="cdt-table-wrap">
+        <table class="cdt-table">
+          <thead>
+            <tr>
+              <th>
+                <button
+                  type="button"
+                  class="cdt-table__sort"
+                  [class.cdt-table__sort--active]="isSortActive('investorName')"
+                  (click)="toggleSort('investorName')"
+                >
+                  Investor Name
+                  <mat-icon aria-hidden="true">{{ sortIcon('investorName') }}</mat-icon>
+                </button>
+              </th>
+              <th>
+                <button
+                  type="button"
+                  class="cdt-table__sort"
+                  [class.cdt-table__sort--active]="isSortActive('relationship')"
+                  (click)="toggleSort('relationship')"
+                >
+                  Relationship
+                  <mat-icon aria-hidden="true">{{ sortIcon('relationship') }}</mat-icon>
+                </button>
+              </th>
+              <th>
+                <button
+                  type="button"
+                  class="cdt-table__sort"
+                  [class.cdt-table__sort--active]="isSortActive('fundsCount')"
+                  (click)="toggleSort('fundsCount')"
+                >
+                  Funds
+                  <mat-icon aria-hidden="true">{{ sortIcon('fundsCount') }}</mat-icon>
+                </button>
+              </th>
+              <th>
+                <button
+                  type="button"
+                  class="cdt-table__sort"
+                  [class.cdt-table__sort--active]="isSortActive('commitment')"
+                  (click)="toggleSort('commitment')"
+                >
+                  Commitment
+                  <mat-icon aria-hidden="true">{{ sortIcon('commitment') }}</mat-icon>
+                </button>
+              </th>
+              <th>
+                <button
+                  type="button"
+                  class="cdt-table__sort"
+                  [class.cdt-table__sort--active]="isSortActive('netInvestedCapital')"
+                  (click)="toggleSort('netInvestedCapital')"
+                >
+                  Net Invested Capital
+                  <mat-icon aria-hidden="true">{{ sortIcon('netInvestedCapital') }}</mat-icon>
+                </button>
+              </th>
+              <th>
+                <button
+                  type="button"
+                  class="cdt-table__sort"
+                  [class.cdt-table__sort--active]="isSortActive('netDistributed')"
+                  (click)="toggleSort('netDistributed')"
+                >
+                  {{ distributedColumnLabel() }}
+                  <mat-icon aria-hidden="true">{{ sortIcon('netDistributed') }}</mat-icon>
+                </button>
+              </th>
+              <th>
+                <button
+                  type="button"
+                  class="cdt-table__sort"
+                  [class.cdt-table__sort--active]="isSortActive('reservedUncalled')"
+                  (click)="toggleSort('reservedUncalled')"
+                >
+                  Reserved / Uncalled
+                  <mat-icon aria-hidden="true">{{ sortIcon('reservedUncalled') }}</mat-icon>
+                </button>
+              </th>
+              <th>
+                <button
+                  type="button"
+                  class="cdt-table__sort"
+                  [class.cdt-table__sort--active]="isSortActive('releasedCapital')"
+                  (click)="toggleSort('releasedCapital')"
+                >
+                  Released Capital
+                  <mat-icon aria-hidden="true">{{ sortIcon('releasedCapital') }}</mat-icon>
+                </button>
+              </th>
+              <th>Contact</th>
+              <th class="cdt-table__chevron-col" aria-hidden="true"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.investorKey) {
+              <tr class="cdt-table__row">
+                <td>
+                  <div class="cdt-investor-cell">
+                    <span
+                      class="cdt-investor-cell__avatar"
+                      [style.background-color]="'hsl(' + row.avatarHue + ' 58% 88%)'"
+                      [style.color]="'hsl(' + row.avatarHue + ' 48% 34%)'"
+                    >
+                      {{ row.initials }}
+                    </span>
+                    <span>
+                      <span class="cdt-investor-cell__name">{{ row.name }}</span>
+                      <span class="cdt-investor-cell__type">{{ row.investorType }}</span>
+                    </span>
                   </div>
-                  @if (investorFundsLoading() && fundsSearchQuery()) {
-                    <mat-progress-bar mode="indeterminate" />
+                </td>
+                <td>{{ row.relationship }}</td>
+                <td>{{ row.fundsCount }}</td>
+                <td class="cdt-table__num">{{ row.commitment | ksCurrency: 'USD' : 2 : true }}</td>
+                <td class="cdt-table__num">{{ row.netInvestedCapital | ksCurrency: 'USD' : 2 : true }}</td>
+                <td
+                  class="cdt-table__num"
+                  [class.cdt-table__num--positive]="row.netDistributed > 0"
+                  [class.cdt-table__num--negative]="row.netDistributed < 0"
+                >
+                  @if (row.netDistributed > 0) {
+                    <mat-icon aria-hidden="true">north_east</mat-icon>
+                  } @else if (row.netDistributed < 0) {
+                    <mat-icon aria-hidden="true">south_east</mat-icon>
                   }
-                  <div class="detail-table-wrap tab-table-wrap investor-funds-tab__table">
-                    <div class="tab-table-block">
-                      <div class="tab-table-hsync tab-table-hsync--fund-list">
-                        <table
-                          mat-table
-                          [dataSource]="investorInvestments()"
-                          class="detail-table detail-table--investor-funds"
-                          aria-label="Investor funds"
-                        >
-                          <ng-container matColumnDef="name">
-                            <th mat-header-cell *matHeaderCellDef class="align-left inner-table-header-cell">Investment Name</th>
-                            <td mat-cell *matCellDef="let row" class="align-left">
-                              <div class="detail-table__name-cell link-cell" (click)="goToInvestment(row.fundKey, row.fundName)">
-                                <div class="detail-table__primary">{{ row.fundName }}</div>
-                                @if (row.fundCategory) {
-                                  <div class="detail-table__secondary">{{ row.fundCategory }}</div>
-                                }
-                              </div>
-                            </td>
-                          </ng-container>
-                          <ng-container matColumnDef="type">
-                            <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Type</th>
-                            <td mat-cell *matCellDef="let row">{{ row.fundType || '—' }}</td>
-                          </ng-container>
-                          <ng-container matColumnDef="status">
-                            <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Status</th>
-                            <td mat-cell *matCellDef="let row">
-                              <app-detail-status-badge [status]="row.status" />
-                            </td>
-                          </ng-container>
-                          <ng-container matColumnDef="value">
-                            <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Current Value</th>
-                            <td mat-cell *matCellDef="let row" class="align-right">
-                              <span [class.ks-currency--negative]="row.investedAmountFmv < 0">
-                                {{ row.investedAmountFmv | ksCurrency }}
-                              </span>
-                            </td>
-                          </ng-container>
-                          <ng-container matColumnDef="return">
-                            <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Return</th>
-                            <td
-                              mat-cell
-                              *matCellDef="let row"
-                              class="align-right"
-                              [class.return-positive]="(row.totalReturnPercent ?? 0) > 0"
-                              [class.return-negative]="(row.totalReturnPercent ?? 0) <= 0"
-                            >
-                              @if (row.totalReturnPercent != null) {
-                                {{ formatPercent(row.totalReturnPercent, true) }}
-                              } @else {
-                                —
-                              }
-                            </td>
-                          </ng-container>
-                          <tr mat-header-row *matHeaderRowDef="fundColumns"></tr>
-                          <tr mat-row *matRowDef="let row; columns: fundColumns"></tr>
-                        </table>
-                      </div>
-
-                      @if (investorFundsHasNextPage()) {
-                        <div class="tab-table-load-more">
-                          <button
-                            type="button"
-                            class="ks-load-more ks-load-more--compact"
-                            (click)="loadMoreInvestorFunds()"
-                            [disabled]="investorFundsLoadingMore()"
-                          >
-                            @if (investorFundsLoadingMore()) {
-                              <app-portal-spinner [size]="16" />
-                              <span>Loading…</span>
-                            } @else {
-                              Load more
-                            }
-                          </button>
-                        </div>
-                      }
-                      @if (investorInvestments().length === 0 && !investorFundsLoading()) {
-                        <div class="list-state">No funds found for this investor.</div>
-                      }
-                    </div>
-                  </div>
-                </div>
-              }
-            </div>
-          </mat-tab> -->
-          <mat-tab label="Commitments">
-            <div class="detail-card__body detail-card__body--table">
-              <app-investor-commitments-tab [tabActive]="activeTabIndex() === commitmentsTabIndex" />
-            </div>
-          </mat-tab>
-          <mat-tab label="Unfunded Commitment">
-            <div class="detail-card__body detail-card__body--table">
-              <app-investor-unfunded-commitment-tab [tabActive]="activeTabIndex() === unfundedCommitmentsTabIndex" />
-            </div>
-          </mat-tab>
-          <mat-tab label="Investments">
-            <div class="detail-card__body detail-card__body--table">
-              <app-investor-capital-investments-tab [tabActive]="activeTabIndex() === capitalInvestmentsTabIndex" />
-            </div>
-          </mat-tab>
-          <mat-tab label="Distributions">
-            <div class="detail-card__body detail-card__body--table">
-              <app-investor-distributions-tab
-                [tabActive]="activeTabIndex() === distributionsTabIndex"
-                [fundType]="summaryDisplay('investorType')"
-              />
-            </div>
-          </mat-tab>
-          <mat-tab label="NAV">
-            <div class="detail-card__body detail-card__body--table">
-              <app-investor-nav-tab [tabActive]="activeTabIndex() === navTabIndex" />
-            </div>
-          </mat-tab>
-        </mat-tab-group>
+                  {{ row.netDistributed | ksCurrency: 'USD' : 2 : true }}
+                </td>
+                <td class="cdt-table__num cdt-table__num--warning">
+                  {{ row.reservedUncalled | ksCurrency: 'USD' : 2 : true }}
+                </td>
+                <td class="cdt-table__num cdt-table__muted">
+                  @if (row.releasedCapital != null) {
+                    {{ row.releasedCapital | ksCurrency: 'USD' : 2 : true }}
+                  } @else {
+                    —
+                  }
+                </td>
+                <td class="cdt-table__muted">{{ row.contactName }}</td>
+                <td class="cdt-table__chevron-col">
+                  <mat-icon aria-hidden="true">chevron_right</mat-icon>
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="cdt-table__total-row">
+              <td colspan="3">TOTAL · {{ totalCount() }} INVESTORS</td>
+              <td class="cdt-table__num">{{ pageTotals().commitment | ksCurrency: 'USD' : 2 : true }}</td>
+              <td class="cdt-table__num">{{ pageTotals().netInvestedCapital | ksCurrency: 'USD' : 2 : true }}</td>
+              <td
+                class="cdt-table__num"
+                [class.cdt-table__num--positive]="pageTotals().netDistributed > 0"
+                [class.cdt-table__num--negative]="pageTotals().netDistributed < 0"
+              >
+                @if (pageTotals().netDistributed > 0) {
+                  <mat-icon aria-hidden="true">north_east</mat-icon>
+                } @else if (pageTotals().netDistributed < 0) {
+                  <mat-icon aria-hidden="true">south_east</mat-icon>
+                }
+                {{ pageTotals().netDistributed | ksCurrency: 'USD' : 2 : true }}
+              </td>
+              <td class="cdt-table__num cdt-table__num--warning">
+                {{ pageTotals().reservedUncalled | ksCurrency: 'USD' : 2 : true }}
+              </td>
+              <td></td>
+              <td></td>
+              <td class="cdt-table__chevron-col" aria-hidden="true"></td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
-    } @else {
-      <div class="detail-card master-detail__empty">
-        <mat-icon>person</mat-icon>
-        <h3>Select an investor to view details</h3>
+
+      <footer class="cdt-pagination">
+        <p class="cdt-pagination__summary">
+          Showing
+          <strong>{{ showingFrom() }}-{{ showingTo() }}</strong>
+          of
+          <strong>{{ totalCount() }}</strong>
+        </p>
+        <nav class="cdt-pagination__nav" aria-label="Investors pagination">
+          <button
+            type="button"
+            class="cdt-pagination__arrow"
+            [disabled]="currentPage() <= 1"
+            (click)="goToPage(currentPage() - 1)"
+            aria-label="Previous page"
+          >
+            <mat-icon aria-hidden="true">chevron_left</mat-icon>
+          </button>
+          @for (page of pageNumbers(); track page) {
+            <button
+              type="button"
+              class="cdt-pagination__page"
+              [class.cdt-pagination__page--active]="page === currentPage()"
+              (click)="goToPage(page)"
+            >
+              {{ page }}
+            </button>
+          }
+          <button
+            type="button"
+            class="cdt-pagination__arrow"
+            [disabled]="currentPage() >= totalPages()"
+            (click)="goToPage(currentPage() + 1)"
+            aria-label="Next page"
+          >
+            <mat-icon aria-hidden="true">chevron_right</mat-icon>
+          </button>
+        </nav>
+      </footer>
       </div>
     }
-  </section>
-</div>
+  </div>
+</section>

@@ -3,18 +3,23 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { catchError, EMPTY, exhaustMap, forkJoin, map, of, switchMap, withLatestFrom } from 'rxjs';
 
-import { LIST_PAGE_SIZE } from '../shared/list-pagination.constants';
+import {
+  ASSETS_LIST_PAGE_SIZE,
+  FUNDS_LIST_PAGE_SIZE,
+  INVESTORS_LIST_PAGE_SIZE,
+  LIST_PAGE_SIZE,
+} from '../shared/list-pagination.constants';
 import { CapitalAssetsApiService } from '../shared/services/capital-assets-api.service';
 import { CapitalFundsApiService } from '../shared/services/capital-funds-api.service';
 import { CapitalInvestorsApiService } from '../shared/services/capital-investors-api.service';
 import {
   mapFundCommitmentsToAmountTabRows,
   mapFundCommitmentsToTabRows,
-} from '../investments/tabs/commitments/fund-commitment.mapper';
-import { mapFundAssetsToTabRows } from '../investments/tabs/fund-asset.mapper';
-import { mapFundInvestorsToTabRows } from '../investments/tabs/fund-investor.mapper';
-import { mapFundDistributionGroupsToTabRows } from '../investments/tabs/distributions/fund-distribution.mapper';
-import { mapFundNavToTabRows } from '../investments/tabs/nav/fund-nav.mapper';
+} from '../shared/mappers/fund-commitment.mapper';
+import { mapFundAssetsToTabRows } from '../shared/mappers/fund-asset.mapper';
+import { mapFundInvestorsToTabRows } from '../shared/mappers/fund-investor.mapper';
+import { mapFundDistributionGroupsToTabRows } from '../shared/mappers/fund-distribution.mapper';
+import { mapFundNavToTabRows } from '../shared/mappers/fund-nav.mapper';
 import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
 import {
   readFundCommitmentsPageCache,
@@ -29,6 +34,9 @@ import {
   readInvestorNavPageCache,
   readInvestorPeriodsCache,
   readInvestorUnfundedCommitmentsPageCache,
+  readAssetsListCacheEntry,
+  readFundsListCacheEntry,
+  readInvestorsListCacheEntry,
   readListCacheEntry,
   extractPagedItems,
 } from './capital-dashboard-cache.util';
@@ -48,11 +56,17 @@ export class CapitalDashboardEffects {
       ofType(InvestorsApiActions.loadList),
       withLatestFrom(this.store.select(selectInvestors)),
       switchMap(([request, investors]) => {
-        if (readListCacheEntry(investors.cache.lists, request.search, request.page)) {
+        const scope = request.cacheKey ?? '';
+        if (readInvestorsListCacheEntry(investors.cache.lists, request.search, request.page, scope)) {
           return EMPTY;
         }
+        const apiParams = request.apiParams ?? {
+          search: request.search || undefined,
+          page: request.page,
+          pageSize: INVESTORS_LIST_PAGE_SIZE,
+        };
         return this.investorsApi
-          .getInvestors({ search: request.search || undefined, page: request.page, pageSize: LIST_PAGE_SIZE })
+          .getInvestors(apiParams)
           .pipe(
             map((result) => InvestorsApiActions.loadListSuccess({ result, replace: request.replace })),
             catchError(() =>
@@ -134,11 +148,17 @@ export class CapitalDashboardEffects {
       ofType(FundsApiActions.loadList),
       withLatestFrom(this.store.select(selectFunds)),
       switchMap(([request, funds]) => {
-        if (readListCacheEntry(funds.cache.lists, request.search, request.page)) {
+        const scope = request.cacheKey ?? '';
+        if (readFundsListCacheEntry(funds.cache.lists, request.search, request.page, scope)) {
           return EMPTY;
         }
+        const apiParams = request.apiParams ?? {
+          search: request.search || undefined,
+          page: request.page,
+          pageSize: FUNDS_LIST_PAGE_SIZE,
+        };
         return this.fundsApi
-          .getFunds({ search: request.search || undefined, page: request.page, pageSize: LIST_PAGE_SIZE })
+          .getFunds(apiParams)
           .pipe(
             map((result) => FundsApiActions.loadListSuccess({ result, replace: request.replace })),
             catchError(() =>
@@ -823,11 +843,17 @@ export class CapitalDashboardEffects {
       ofType(AssetsApiActions.loadList),
       withLatestFrom(this.store.select(selectAssets)),
       switchMap(([request, assets]) => {
-        if (readListCacheEntry(assets.cache.lists, request.search, request.page)) {
+        const scope = request.cacheKey ?? '';
+        if (readAssetsListCacheEntry(assets.cache.lists, request.search, request.page, scope)) {
           return EMPTY;
         }
+        const apiParams = request.apiParams ?? {
+          search: request.search || undefined,
+          page: request.page,
+          pageSize: ASSETS_LIST_PAGE_SIZE,
+        };
         return this.assetsApi
-          .getAssets({ search: request.search || undefined, page: request.page, pageSize: LIST_PAGE_SIZE })
+          .getAssets(apiParams)
           .pipe(
             map((result) => AssetsApiActions.loadListSuccess({ result, replace: request.replace })),
             catchError(() =>

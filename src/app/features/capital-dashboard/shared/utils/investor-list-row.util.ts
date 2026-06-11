@@ -1,0 +1,235 @@
+import { InvestorListItemDto, InvestorsListSummaryDto } from '../models/api.models';
+
+export interface InvestorTableRow {
+  investorKey: number;
+  name: string;
+  initials: string;
+  avatarHue: number;
+  investorType: string;
+  relationship: string;
+  fundsCount: number;
+  commitment: number;
+  netInvestedCapital: number;
+  netDistributed: number;
+  reservedUncalled: number;
+  releasedCapital: number | null;
+  contactName: string;
+}
+
+const AVATAR_HUES = [210, 250, 170, 30, 340, 190, 280, 15];
+
+function readRecord(dto: InvestorListItemDto): Record<string, unknown> {
+  return dto as unknown as Record<string, unknown>;
+}
+
+function readString(record: Record<string, unknown>, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return '';
+}
+
+function readNumber(record: Record<string, unknown>, ...keys: string[]): number {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return 0;
+}
+
+function readNullableNumber(record: Record<string, unknown>, ...keys: string[]): number | null {
+  for (const key of keys) {
+    const value = record[key];
+    if (value == null) {
+      continue;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return null;
+}
+
+export function investorInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) {
+    return '?';
+  }
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
+}
+
+export function mapInvestorListItemToRow(dto: InvestorListItemDto, index: number): InvestorTableRow {
+  const record = readRecord(dto);
+  const name = readString(record, 'investorName', 'InvestorName') || '—';
+  const investorType = readString(record, 'investorType', 'InvestorType') || '—';
+  const relationship = readString(
+    record,
+    'relationship_name',
+    'relationshipName',
+    'RelationshipName',
+    'relationship',
+    'Relationship',
+  );
+  const fundsCount = readNumber(record, 'fund_count', 'fundsCount', 'FundsCount', 'funds', 'Funds');
+  const commitment = readNumber(
+    record,
+    'commitment_amount',
+    'commitment',
+    'Commitment',
+    'totalCommitment',
+    'TotalCommitment',
+  );
+  const netInvestedCapital = readNumber(
+    record,
+    'net_invested_capital_amount',
+    'netInvestedCapital',
+    'NetInvestedCapital',
+    'totalInvested',
+    'TotalInvested',
+  );
+  const netDistributed = readNumber(
+    record,
+    'net_distributed_amount',
+    'netDistributed',
+    'NetDistributed',
+    'netDistributedLtd',
+    'NetDistributedLtd',
+  );
+  const reservedUncalled = readNumber(
+    record,
+    'reserved_amount',
+    'reservedUncalled',
+    'ReservedUncalled',
+    'unfunded',
+    'Unfunded',
+  );
+  const releasedCapital = readNullableNumber(
+    record,
+    'released_capital_amount',
+    'releasedCapital',
+    'ReleasedCapital',
+  );
+  const contactFirst = readString(record, 'contact_first_name', 'contactFirstName', 'ContactFirstName');
+  const contactLast = readString(record, 'contact_last_name', 'contactLastName', 'ContactLastName');
+  const contactName =
+    readString(record, 'contactName', 'ContactName', 'contact', 'Contact') ||
+    [contactFirst, contactLast].filter(Boolean).join(' ').trim();
+
+  return {
+    investorKey: dto.investorKey,
+    name,
+    initials: investorInitials(name),
+    avatarHue: AVATAR_HUES[index % AVATAR_HUES.length],
+    investorType,
+    relationship: relationship || '—',
+    fundsCount,
+    commitment: commitment || netInvestedCapital,
+    netInvestedCapital,
+    netDistributed,
+    reservedUncalled,
+    releasedCapital,
+    contactName: contactName || '—',
+  };
+}
+
+export function extractInvestorsListSummary(result: unknown): InvestorsListSummaryDto | null {
+  if (!result || typeof result !== 'object') {
+    return null;
+  }
+
+  const record = result as Record<string, unknown>;
+  const summary = record['summary'] ?? record['Summary'];
+  if (!summary || typeof summary !== 'object') {
+    return null;
+  }
+
+  const s = summary as Record<string, unknown>;
+  const totalInvestors = readNumber(s, 'total_investors', 'totalInvestors', 'TotalInvestors');
+  const totalCommitment = readNumber(s, 'total_commitment', 'totalCommitment', 'TotalCommitment');
+  const netInvestedCapital = readNumber(
+    s,
+    'net_invested_capital',
+    'netInvestedCapital',
+    'NetInvestedCapital',
+  );
+  const netDistributed = readNumber(s, 'net_distributed', 'netDistributed', 'NetDistributed');
+  const reservedUncalled = readNumber(
+    s,
+    'reserved_uncalled',
+    'reservedUncalled',
+    'ReservedUncalled',
+  );
+
+  return {
+    ...(totalInvestors > 0 ? { totalInvestors } : {}),
+    totalCommitment,
+    netInvestedCapital,
+    netDistributed,
+    reservedUncalled,
+  };
+}
+
+export type InvestorsTableSortColumn =
+  | 'investorName'
+  | 'relationship'
+  | 'fundsCount'
+  | 'commitment'
+  | 'netInvestedCapital'
+  | 'netDistributed'
+  | 'reservedUncalled'
+  | 'releasedCapital';
+
+export type InvestorsTableSortDirection = 'asc' | 'desc';
+
+/** API `sortBy` values for `GET /api/CapitalInvestors` — must match response property names. */
+export const INVESTORS_TABLE_SORT_API_FIELDS: Record<InvestorsTableSortColumn, string> = {
+  investorName: 'investorName',
+  relationship: 'relationship_name',
+  fundsCount: 'fund_count',
+  commitment: 'commitment_amount',
+  netInvestedCapital: 'net_invested_capital_amount',
+  netDistributed: 'net_distributed_amount',
+  reservedUncalled: 'reserved_amount',
+  releasedCapital: 'released_capital_amount',
+};
+
+const NUMERIC_INVESTORS_SORT_COLUMNS = new Set<InvestorsTableSortColumn>([
+  'fundsCount',
+  'commitment',
+  'netInvestedCapital',
+  'netDistributed',
+  'reservedUncalled',
+  'releasedCapital',
+]);
+
+export function defaultInvestorsSortDirection(
+  column: InvestorsTableSortColumn,
+): InvestorsTableSortDirection {
+  return NUMERIC_INVESTORS_SORT_COLUMNS.has(column) ? 'desc' : 'asc';
+}
+
+export function buildInvestorsListCacheKey(filters: {
+  view: string;
+  dateKey: number | null;
+  investorType: string;
+  relationship: string;
+  sortBy: string | null;
+  sortDir: InvestorsTableSortDirection | null;
+}): string {
+  return [
+    filters.view,
+    filters.dateKey ?? '',
+    filters.investorType,
+    filters.relationship,
+    filters.sortBy ?? '',
+    filters.sortDir ?? '',
+  ].join('|');
+}

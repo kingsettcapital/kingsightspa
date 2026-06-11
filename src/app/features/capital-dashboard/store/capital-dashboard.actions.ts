@@ -10,17 +10,22 @@ import {
   FundNavTimeframe,
   FundDetailDto,
   FundListItemDto,
+  FundsListQueryParams,
+  FundsPagedResult,
   FundPeriodDto,
   FundPeriodSource,
   InvestorDetailDto,
   InvestorInvestmentDto,
   InvestorListItemDto,
+  InvestorsListQueryParams,
   PagedResult,
   PropertyDetailDto,
   PropertyInvestmentDto,
+  AssetsQueryParams,
+  AssetsPagedResult,
   PropertyListItemDto,
 } from '../shared/models/api.models';
-import { FundInvestorTabRow } from '../investments/tabs/fund-investor.mapper';
+import { FundInvestorTabRow } from '../shared/mappers/fund-investor.mapper';
 import { CapitalDashboardTab } from './capital-dashboard.state';
 
 export const CapitalDashboardShellActions = createActionGroup({
@@ -41,7 +46,13 @@ export const CapitalDashboardCacheActions = createActionGroup({
 export const InvestorsApiActions = createActionGroup({
   source: 'Capital Dashboard Investors API',
   events: {
-    'Load List': props<{ search: string; page: number; replace: boolean }>(),
+    'Load List': props<{
+      search: string;
+      page: number;
+      replace: boolean;
+      cacheKey?: string;
+      apiParams?: InvestorsListQueryParams;
+    }>(),
     'Load List Success': props<{ result: PagedResult<InvestorListItemDto>; replace: boolean }>(),
     'Load List Failure': props<{ error: string }>(),
     'Load List More': emptyProps(),
@@ -175,8 +186,14 @@ export const InvestorsApiActions = createActionGroup({
 export const FundsApiActions = createActionGroup({
   source: 'Capital Dashboard Funds API',
   events: {
-    'Load List': props<{ search: string; page: number; replace: boolean }>(),
-    'Load List Success': props<{ result: PagedResult<FundListItemDto>; replace: boolean }>(),
+    'Load List': props<{
+      search: string;
+      page: number;
+      replace: boolean;
+      cacheKey?: string;
+      apiParams?: FundsListQueryParams;
+    }>(),
+    'Load List Success': props<{ result: FundsPagedResult; replace: boolean }>(),
     'Load List Failure': props<{ error: string }>(),
     'Load List More': emptyProps(),
     'Load Detail': props<{ fundKey: number }>(),
@@ -317,8 +334,14 @@ export const FundsApiActions = createActionGroup({
 export const AssetsApiActions = createActionGroup({
   source: 'Capital Dashboard Assets API',
   events: {
-    'Load List': props<{ search: string; page: number; replace: boolean }>(),
-    'Load List Success': props<{ result: PagedResult<PropertyListItemDto>; replace: boolean }>(),
+    'Load List': props<{
+      search: string;
+      page: number;
+      replace: boolean;
+      cacheKey?: string;
+      apiParams?: AssetsQueryParams;
+    }>(),
+    'Load List Success': props<{ result: AssetsPagedResult; replace: boolean }>(),
     'Load List Failure': props<{ error: string }>(),
     'Load List More': emptyProps(),
     'Load Detail': props<{ propertyKey: number }>(),

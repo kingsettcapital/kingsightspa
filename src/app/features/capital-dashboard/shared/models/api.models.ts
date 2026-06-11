@@ -14,11 +14,81 @@ export interface ListQueryParams {
   pageSize?: number;
 }
 
+export interface InvestorsFilterOptionDto {
+  value: string;
+  label: string;
+}
+
+export interface InvestorsQuarterlyPeriodDto {
+  date_key?: number;
+  dateKey?: number;
+  calendar_year?: number;
+  calendarYear?: number;
+  quarter: number;
+  label: string;
+  quarter_year?: string;
+  quarterYear?: string;
+}
+
+export interface InvestorsFilterOptionsDto {
+  investor_types?: InvestorsFilterOptionDto[] | null;
+  investorTypes?: InvestorsFilterOptionDto[] | null;
+  relationships?: InvestorsFilterOptionDto[] | null;
+  calendar_years?: InvestorsFilterOptionDto[] | null;
+  calendarYears?: InvestorsFilterOptionDto[] | null;
+  quarterly_periods?: InvestorsQuarterlyPeriodDto[] | null;
+  quarterlyPeriods?: InvestorsQuarterlyPeriodDto[] | null;
+}
+
+export interface InvestorsListQueryParams extends ListQueryParams {
+  view?: 'ltd' | 'quarterly' | 'daily';
+  dateKey?: number;
+  investorType?: string;
+  relationship?: string;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+}
+
+export interface InvestorsListSummaryDto {
+  totalInvestors?: number;
+  totalCommitment?: number;
+  netInvestedCapital?: number;
+  netDistributed?: number;
+  reservedUncalled?: number;
+}
+
+export interface AssetsFilterOptionDto {
+  value: string;
+  label: string;
+}
+
+export interface AssetsFilterOptionsDto {
+  asset_types?: AssetsFilterOptionDto[] | null;
+  assetTypes?: AssetsFilterOptionDto[] | null;
+  investment_types?: AssetsFilterOptionDto[] | null;
+  investmentTypes?: AssetsFilterOptionDto[] | null;
+  geographies?: AssetsFilterOptionDto[] | null;
+  statuses?: AssetsFilterOptionDto[] | null;
+}
+
 export interface AssetsQueryParams extends ListQueryParams {
   fundKey?: number;
   investorKey?: number;
-  /** Filter assets by fund code (Kingsight API query param). */
   fundCode?: string;
+  assetType?: string;
+  investmentType?: string;
+  geography?: string;
+  status?: string;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+}
+
+export interface AssetsListSummaryDto {
+  totalGla?: number;
+  activeProperties?: number;
+  totalProperties?: number;
+  totalCommittedArea?: number;
+  totalVacantArea?: number;
 }
 
 export interface DynamicFieldDto {
@@ -37,6 +107,18 @@ export interface InvestorListItemDto {
   investorName: string | null;
   investorType: string | null;
   totalInvested: number;
+  relationshipName?: string | null;
+  fundsCount?: number | null;
+  commitment?: number | null;
+  netInvestedCapital?: number | null;
+  netDistributed?: number | null;
+  reservedUncalled?: number | null;
+  releasedCapital?: number | null;
+  contactName?: string | null;
+}
+
+export interface InvestorsPagedResult extends PagedResult<InvestorListItemDto> {
+  summary?: InvestorsListSummaryDto | null;
 }
 
 export interface InvestorSummaryDto {
@@ -69,12 +151,69 @@ export interface InvestorInvestmentDto {
   totalReturnPercent: number | null;
 }
 
+export interface FundsFilterOptionDto {
+  value: string;
+  label: string;
+}
+
+export interface FundsQuarterlyPeriodDto {
+  date_key?: number;
+  dateKey?: number;
+  calendar_year?: number;
+  calendarYear?: number;
+  quarter: number;
+  label: string;
+  quarter_year?: string;
+  quarterYear?: string;
+}
+
+export interface FundsFilterOptionsDto {
+  fund_types?: FundsFilterOptionDto[] | null;
+  fundTypes?: FundsFilterOptionDto[] | null;
+  strategies?: FundsFilterOptionDto[] | null;
+  calendar_years?: FundsFilterOptionDto[] | null;
+  calendarYears?: FundsFilterOptionDto[] | null;
+  quarterly_periods?: FundsQuarterlyPeriodDto[] | null;
+  quarterlyPeriods?: FundsQuarterlyPeriodDto[] | null;
+}
+
+export interface FundsListQueryParams extends ListQueryParams {
+  view?: 'ltd' | 'quarterly' | 'daily';
+  dateKey?: number;
+  fundType?: string;
+  strategy?: string;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+}
+
+export interface FundsListSummaryDto {
+  totalFunds?: number;
+  totalCommitment?: number;
+  netInvestedCapital?: number;
+  netDistributed?: number;
+  reservedUncalled?: number;
+}
+
 export interface FundListItemDto {
   fundKey: number;
   fundName: string | null;
   category: string | null;
   currentValue: number;
   totalReturnPercent: number | null;
+  fundType?: string | null;
+  strategy?: string | null;
+  fundStrategyName?: string | null;
+  commitment?: number | null;
+  commitmentAmount?: number | null;
+  investedPercent?: number | null;
+  netInvestedCapital?: number | null;
+  netDistributed?: number | null;
+  reservedUncalled?: number | null;
+  releasedCapital?: number | null;
+}
+
+export interface FundsPagedResult extends PagedResult<FundListItemDto> {
+  summary?: FundsListSummaryDto | null;
 }
 
 export interface FundSummaryDto {
@@ -321,6 +460,18 @@ export interface PropertyListItemDto {
   ownership?: boolean | null;
   currentValue: number;
   yieldPercent: number | null;
+  propertyCode?: string | null;
+  investmentType?: string | null;
+  developmentType?: string | null;
+  geography?: string | null;
+  glaSf?: number | null;
+  committedSf?: number | null;
+  vacantSf?: number | null;
+  occupiedPercent?: number | null;
+}
+
+export interface AssetsPagedResult extends PagedResult<PropertyListItemDto> {
+  summary?: AssetsListSummaryDto | null;
 }
 
 export interface PropertySummaryDto {

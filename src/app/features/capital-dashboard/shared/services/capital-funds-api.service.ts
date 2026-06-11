@@ -9,6 +9,9 @@ import {
   FundDetailDto,
   FundGranularRowDto,
   FundListItemDto,
+  FundsFilterOptionsDto,
+  FundsListQueryParams,
+  FundsPagedResult,
   FundNavQueryParams,
   FundNavTimeframe,
   FundPeriodDto,
@@ -28,8 +31,12 @@ import { LIST_PAGE_SIZE } from '../list-pagination.constants';
 export class CapitalFundsApiService {
   private readonly api = inject(ApiService);
 
-  getFunds(params: ListQueryParams = {}): Observable<PagedResult<FundListItemDto>> {
-    return this.api.get<PagedResult<FundListItemDto>>('api/Funds', params as any);
+  getFunds(params: FundsListQueryParams = {}): Observable<FundsPagedResult> {
+    return this.api.get<FundsPagedResult>('api/Funds', params as any);
+  }
+
+  getFilterOptions(): Observable<FundsFilterOptionsDto> {
+    return this.api.get<FundsFilterOptionsDto>('api/Funds/filter-options');
   }
 
   getFund(fundKey: number): Observable<FundDetailDto> {

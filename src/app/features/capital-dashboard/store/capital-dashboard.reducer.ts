@@ -3,6 +3,9 @@ import { createFeature, createReducer, on } from '@ngrx/store';
 import {
   FundDetailCacheEntry,
   InvestorDetailCacheEntry,
+  assetsListStateFromCacheEntry,
+  fundsListStateFromCacheEntry,
+  investorsListStateFromCacheEntry,
   listStateFromCacheEntry,
   readFundCommitmentsPageCache,
   readFundNavPageCache,
@@ -16,6 +19,9 @@ import {
   readInvestorNavPageCache,
   readInvestorPeriodsCache,
   readInvestorUnfundedCommitmentsPageCache,
+  readAssetsListCacheEntry,
+  readFundsListCacheEntry,
+  readInvestorsListCacheEntry,
   readListCacheEntry,
   writeFundCommitmentsPageCache,
   writeFundDistributionsPageCache,
@@ -29,13 +35,25 @@ import {
   writeInvestorNavPageCache,
   writeInvestorPeriodsCache,
   writeInvestorUnfundedCommitmentsPageCache,
+  writeAssetsListCacheEntry,
+  writeFundsListCacheEntry,
+  writeInvestorsListCacheEntry,
   writeListCacheEntry,
   extractPagedItems,
 } from './capital-dashboard-cache.util';
+import { extractAssetsListSummary } from '../shared/utils/asset-list-row.util';
+import { extractFundsListSummary } from '../shared/utils/fund-list-row.util';
+import { extractInvestorsListSummary } from '../shared/utils/investor-list-row.util';
 import {
+  AssetsListCacheEntry,
+  AssetsPagedListState,
   CapitalDashboardState,
   FundsDetailState,
+  FundsListCacheEntry,
+  FundsPagedListState,
   InvestorsDetailState,
+  InvestorsListCacheEntry,
+  InvestorsPagedListState,
   initialCapitalDashboardState,
   PagedListState,
 } from './capital-dashboard.state';
@@ -46,7 +64,15 @@ import {
   FundsApiActions,
   InvestorsApiActions,
 } from './capital-dashboard.actions';
-import { PagedResult } from '../shared/models/api.models';
+import {
+  AssetsListSummaryDto,
+  AssetsPagedResult,
+  FundsListSummaryDto,
+  FundsPagedResult,
+  InvestorsListSummaryDto,
+  InvestorsPagedResult,
+  PagedResult,
+} from '../shared/models/api.models';
 
 function applyPagedList<T>(
   state: PagedListState<T>,
@@ -310,14 +336,115 @@ function listLoadingState<T>(
   state: PagedListState<T>,
   search: string,
   replace: boolean,
+  listScope = state.listScope,
 ): PagedListState<T> {
   return {
     ...state,
     search,
+    listScope,
     loading: replace,
     loadingMore: !replace,
     error: null,
     ...(replace ? { hasNextPage: false } : {}),
+  };
+}
+
+function investorsListLoadingState(
+  state: InvestorsPagedListState,
+  search: string,
+  replace: boolean,
+  listScope = state.listScope,
+): InvestorsPagedListState {
+  return {
+    ...listLoadingState(state, search, replace, listScope),
+    summary: replace ? null : state.summary,
+  };
+}
+
+function readInvestorsListSummary(
+  result: InvestorsPagedResult | InvestorsListCacheEntry,
+): InvestorsListSummaryDto | null {
+  return (
+    extractInvestorsListSummary(result) ??
+    ('summary' in result ? (result.summary ?? null) : null)
+  );
+}
+
+function applyInvestorsPagedList(
+  state: InvestorsPagedListState,
+  result: InvestorsPagedResult | InvestorsListCacheEntry,
+  replace: boolean,
+): InvestorsPagedListState {
+  const summary = readInvestorsListSummary(result);
+  return {
+    ...applyPagedList(state, result, replace),
+    summary: summary ?? (replace ? null : state.summary),
+  };
+}
+
+function fundsListLoadingState(
+  state: FundsPagedListState,
+  search: string,
+  replace: boolean,
+  listScope = state.listScope,
+): FundsPagedListState {
+  return {
+    ...listLoadingState(state, search, replace, listScope),
+    summary: replace ? null : state.summary,
+  };
+}
+
+function readFundsListSummary(
+  result: FundsPagedResult | FundsListCacheEntry,
+): FundsListSummaryDto | null {
+  return (
+    extractFundsListSummary(result) ??
+    ('summary' in result ? (result.summary ?? null) : null)
+  );
+}
+
+function applyFundsPagedList(
+  state: FundsPagedListState,
+  result: FundsPagedResult | FundsListCacheEntry,
+  replace: boolean,
+): FundsPagedListState {
+  const summary = readFundsListSummary(result);
+  return {
+    ...applyPagedList(state, result, replace),
+    summary: summary ?? (replace ? null : state.summary),
+  };
+}
+
+function assetsListLoadingState(
+  state: AssetsPagedListState,
+  search: string,
+  replace: boolean,
+  listScope = state.listScope,
+): AssetsPagedListState {
+  return {
+    ...listLoadingState(state, search, replace, listScope),
+    summary: replace ? null : state.summary,
+  };
+}
+
+function readAssetsListSummary(
+  result: AssetsPagedResult | AssetsListCacheEntry,
+): AssetsListSummaryDto | null {
+  return (
+    extractAssetsListSummary(result) ??
+    ('summary' in result ? (result.summary ?? null) : null)
+  );
+}
+
+function applyAssetsPagedList(
+  state: AssetsPagedListState,
+  result: AssetsPagedResult | AssetsListCacheEntry,
+  replace: boolean,
+): AssetsPagedListState {
+  const summary = readAssetsListSummary(result);
+  return {
+    ...applyPagedList(state, result, replace),
+    summary: summary ?? (replace ? null : state.summary),
   };
 }
 
@@ -334,15 +461,16 @@ export const capitalDashboardFeature = createFeature({
     })),
 
     // Investors list
-    on(InvestorsApiActions.loadList, (state, { search, page, replace }) => {
-      const cached = readListCacheEntry(state.investors.cache.lists, search, page);
+    on(InvestorsApiActions.loadList, (state, { search, page, replace, cacheKey }) => {
+      const scope = cacheKey ?? '';
+      const cached = readInvestorsListCacheEntry(state.investors.cache.lists, search, page, scope);
       if (cached) {
-        const list = listStateFromCacheEntry(search, cached);
+        const list = investorsListStateFromCacheEntry(search, cached, scope);
         return {
           ...state,
           investors: {
             ...state.investors,
-            list: replace ? list : applyPagedList(state.investors.list, cached, false),
+            list: replace ? list : applyInvestorsPagedList(state.investors.list, cached, false),
           },
         };
       }
@@ -350,21 +478,22 @@ export const capitalDashboardFeature = createFeature({
         ...state,
         investors: {
           ...state.investors,
-          list: listLoadingState(state.investors.list, search, replace),
+          list: investorsListLoadingState(state.investors.list, search, replace, scope),
         },
       };
     }),
     on(InvestorsApiActions.loadListSuccess, (state, { result, replace }) => {
       const search = state.investors.list.search;
+      const scope = state.investors.list.listScope;
       const page = result.page ?? state.investors.list.page;
       return {
         ...state,
         investors: {
           ...state.investors,
-          list: applyPagedList(state.investors.list, result, replace),
+          list: applyInvestorsPagedList(state.investors.list, result, replace),
           cache: {
             ...state.investors.cache,
-            lists: writeListCacheEntry(state.investors.cache.lists, search, result, page),
+            lists: writeInvestorsListCacheEntry(state.investors.cache.lists, search, result, page, scope),
           },
         },
       };
@@ -1129,15 +1258,16 @@ export const capitalDashboardFeature = createFeature({
     })),
 
     // Funds list
-    on(FundsApiActions.loadList, (state, { search, page, replace }) => {
-      const cached = readListCacheEntry(state.funds.cache.lists, search, page);
+    on(FundsApiActions.loadList, (state, { search, page, replace, cacheKey }) => {
+      const scope = cacheKey ?? '';
+      const cached = readFundsListCacheEntry(state.funds.cache.lists, search, page, scope);
       if (cached) {
-        const list = listStateFromCacheEntry(search, cached);
+        const list = fundsListStateFromCacheEntry(search, cached, scope);
         return {
           ...state,
           funds: {
             ...state.funds,
-            list: replace ? list : applyPagedList(state.funds.list, cached, false),
+            list: replace ? list : applyFundsPagedList(state.funds.list, cached, false),
           },
         };
       }
@@ -1145,21 +1275,22 @@ export const capitalDashboardFeature = createFeature({
         ...state,
         funds: {
           ...state.funds,
-          list: listLoadingState(state.funds.list, search, replace),
+          list: fundsListLoadingState(state.funds.list, search, replace, scope),
         },
       };
     }),
     on(FundsApiActions.loadListSuccess, (state, { result, replace }) => {
       const search = state.funds.list.search;
+      const scope = state.funds.list.listScope;
       const page = result.page ?? state.funds.list.page;
       return {
         ...state,
         funds: {
           ...state.funds,
-          list: applyPagedList(state.funds.list, result, replace),
+          list: applyFundsPagedList(state.funds.list, result, replace),
           cache: {
             ...state.funds.cache,
-            lists: writeListCacheEntry(state.funds.cache.lists, search, result, page),
+            lists: writeFundsListCacheEntry(state.funds.cache.lists, search, result, page, scope),
           },
         },
       };
@@ -2001,15 +2132,16 @@ export const capitalDashboardFeature = createFeature({
     })),
 
     // Assets list
-    on(AssetsApiActions.loadList, (state, { search, page, replace }) => {
-      const cached = readListCacheEntry(state.assets.cache.lists, search, page);
+    on(AssetsApiActions.loadList, (state, { search, page, replace, cacheKey }) => {
+      const scope = cacheKey ?? '';
+      const cached = readAssetsListCacheEntry(state.assets.cache.lists, search, page, scope);
       if (cached) {
-        const list = listStateFromCacheEntry(search, cached);
+        const list = assetsListStateFromCacheEntry(search, cached, scope);
         return {
           ...state,
           assets: {
             ...state.assets,
-            list: replace ? list : applyPagedList(state.assets.list, cached, false),
+            list: replace ? list : applyAssetsPagedList(state.assets.list, cached, false),
           },
         };
       }
@@ -2017,21 +2149,22 @@ export const capitalDashboardFeature = createFeature({
         ...state,
         assets: {
           ...state.assets,
-          list: listLoadingState(state.assets.list, search, replace),
+          list: assetsListLoadingState(state.assets.list, search, replace, scope),
         },
       };
     }),
     on(AssetsApiActions.loadListSuccess, (state, { result, replace }) => {
       const search = state.assets.list.search;
+      const scope = state.assets.list.listScope;
       const page = result.page ?? state.assets.list.page;
       return {
         ...state,
         assets: {
           ...state.assets,
-          list: applyPagedList(state.assets.list, result, replace),
+          list: applyAssetsPagedList(state.assets.list, result, replace),
           cache: {
             ...state.assets.cache,
-            lists: writeListCacheEntry(state.assets.cache.lists, search, result, page),
+            lists: writeAssetsListCacheEntry(state.assets.cache.lists, search, result, page, scope),
           },
         },
       };

@@ -4,8 +4,9 @@ import { forkJoin, map, Observable, of, switchMap } from 'rxjs';
 import { ApiService } from '../../../../core/services/api.service';
 import { LIST_PAGE_SIZE } from '../list-pagination.constants';
 import {
+  AssetsFilterOptionsDto,
+  AssetsPagedResult,
   AssetsQueryParams,
-  PagedResult,
   PropertyDetailDto,
   PropertyInvestmentDto,
   PropertyListItemDto,
@@ -17,8 +18,12 @@ export class CapitalAssetsApiService {
   private readonly api = inject(ApiService);
   private readonly fundsApi = inject(CapitalFundsApiService);
 
-  getAssets(params: AssetsQueryParams = {}): Observable<PagedResult<PropertyListItemDto>> {
-    return this.api.get<PagedResult<PropertyListItemDto>>('api/Assets', params as any);
+  getAssets(params: AssetsQueryParams = {}): Observable<AssetsPagedResult> {
+    return this.api.get<AssetsPagedResult>('api/Assets', params as any);
+  }
+
+  getFilterOptions(): Observable<AssetsFilterOptionsDto> {
+    return this.api.get<AssetsFilterOptionsDto>('api/Assets/filter-options');
   }
 
   getAllAssets(params: AssetsQueryParams = {}): Observable<PropertyListItemDto[]> {
@@ -27,7 +32,7 @@ export class CapitalAssetsApiService {
       switchMap((first) => {
         const items = [...(first.items ?? [])];
         if (!first.hasNextPage) return of(items);
-        const pages: Observable<PagedResult<PropertyListItemDto>>[] = [];
+        const pages: Observable<AssetsPagedResult>[] = [];
         for (let page = 2; page <= first.totalPages; page++) {
           pages.push(this.getAssets({ ...params, page, pageSize }));
         }
@@ -51,7 +56,7 @@ export class CapitalAssetsApiService {
     page: number,
     search: string | undefined,
     pageSize = LIST_PAGE_SIZE,
-  ): Observable<PagedResult<PropertyListItemDto>> {
+  ): Observable<AssetsPagedResult> {
     if (!fundCode?.trim()) {
       return of({
         items: [],

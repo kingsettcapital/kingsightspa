@@ -1,491 +1,411 @@
-import { DecimalPipe } from '@angular/common';
-import {
-  Component,
-  computed,
-  effect,
-  ElementRef,
-  inject,
-  signal,
-  viewChild,
-} from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { Store } from '@ngrx/store';
-import { ActivatedRoute } from '@angular/router';
-import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatTableModule } from '@angular/material/table';
-import { MatTabsModule } from '@angular/material/tabs';
-import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { catchError, debounceTime, distinctUntilChanged, of } from 'rxjs';
 
-import { FundsApiActions } from '../store';
-import { extractPagedItems } from '../store/capital-dashboard-cache.util';
-import { selectFundsDetail, selectFundsList } from '../store/capital-dashboard.selectors';
-import { ListInfiniteScrollDirective } from '../shared/list-infinite-scroll.directive';
-import { DetailStatusBadgeComponent } from '../shared/components/detail-status-badge/detail-status-badge.component';
-import { OverviewSectionCardsComponent } from '../shared/components/overview-section-cards/overview-section-cards.component';
-import { PortalSpinnerComponent } from '../shared/components/portal-spinner/portal-spinner.component';
-import { FundAssetTabRow, FundListItemDto } from '../shared/models/api.models';
-import { FundInvestorTabRow } from './tabs/fund-investor.mapper';
-import { formatCurrency, formatPercent } from '../shared/utils/format-currency.util';
-import { scrollListItemIntoView } from '../shared/utils/list-scroll.util';
-import { shouldRequestDetail } from '../shared/utils/should-request-detail.util';
-import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util';
+import { ExcelService } from '../../../core/services/excel.service';
 import { KsCurrencyPipe } from '../../../shared/pipes/ks-currency.pipe';
-import { InvestmentCommitmentsTabComponent } from './tabs/commitments/investment-commitments-tab.component';
-import { InvestmentUnfundedCommitmentTabComponent } from './tabs/unfunded-commitment/investment-unfunded-commitment-tab.component';
-import { InvestmentInvestmentsTabComponent } from './tabs/investments/investment-investments-tab.component';
-import { InvestmentDistributionsTabComponent } from './tabs/distributions/investment-distributions-tab.component';
-import { InvestmentNavTabComponent } from './tabs/nav/investment-nav-tab.component';
+import { FUNDS_LIST_PAGE_SIZE } from '../shared/list-pagination.constants';
+import { FundsListQueryParams } from '../shared/models/api.models';
+import { CapitalFundsApiService } from '../shared/services/capital-funds-api.service';
+import { CapitalDashboardRouteSearchSync } from '../shared/utils/capital-dashboard-route-search.util';
+import {
+  EMPTY_FUNDS_FILTER_OPTIONS,
+  FundsFilterOptions,
+  normalizeFundsFilterOptions,
+} from '../shared/utils/fund-filter-options.util';
+import {
+  buildFundsListCacheKey,
+  defaultFundsSortDirection,
+  formatInvestedPercent,
+  FUNDS_TABLE_SORT_API_FIELDS,
+  FundTableRow,
+  FundsTableSortColumn,
+  FundsTableSortDirection,
+  mapFundListItemToRow,
+} from '../shared/utils/fund-list-row.util';
+import { FundsApiActions } from '../store';
+import { selectFundsList } from '../store/capital-dashboard.selectors';
+
+type TimeframeView = 'ltd' | 'quarterly';
+
+const VISIBLE_PAGE_BUTTON_COUNT = 3;
 
 @Component({
   selector: 'app-capital-dashboard-investments',
   standalone: true,
-  imports: [
-    FormsModule,
-    DecimalPipe,
-    MatButtonModule,
-    MatChipsModule,
-    MatFormFieldModule,
-    MatIconModule,
-    MatInputModule,
-    MatProgressBarModule,
-    MatTableModule,
-    MatTabsModule,
-    ListInfiniteScrollDirective,
-    OverviewSectionCardsComponent,
-    PortalSpinnerComponent,
-    KsCurrencyPipe,
-    InvestmentCommitmentsTabComponent,
-    InvestmentUnfundedCommitmentTabComponent,
-    InvestmentInvestmentsTabComponent,
-    InvestmentDistributionsTabComponent,
-    InvestmentNavTabComponent,
-  ],
+  imports: [FormsModule, MatIconModule, KsCurrencyPipe],
   templateUrl: './capital-dashboard-investments.component.html',
   styleUrl: './capital-dashboard-investments.component.scss',
 })
 export class CapitalDashboardInvestmentsComponent {
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly store = inject(Store);
+  private readonly excel = inject(ExcelService);
+  private readonly fundsApi = inject(CapitalFundsApiService);
+  private readonly routeSearchSync = inject(CapitalDashboardRouteSearchSync);
 
-  private readonly fundsListState = this.store.selectSignal(selectFundsList);
-  private readonly fundsDetailState = this.store.selectSignal(selectFundsDetail);
+  private readonly listState = this.store.selectSignal(selectFundsList);
 
-  readonly formatCurrency = formatCurrency;
-  readonly formatPercent = formatPercent;
-  readonly overviewCards = computed(() => sectionCardsFromSections(this.fundDetail()?.sections ?? null));
+  readonly tableSearch = signal('');
+  readonly timeframe = signal<TimeframeView>('ltd');
+  readonly quarter = signal<number | null>(null);
+  readonly year = signal<number | null>(null);
+  readonly filterOptions = signal<FundsFilterOptions>(EMPTY_FUNDS_FILTER_OPTIONS);
+  readonly fundTypeFilter = signal('all');
+  readonly strategyFilter = signal('all');
+  readonly filtersPanelVisible = signal(true);
+  readonly sortColumn = signal<FundsTableSortColumn | null>(null);
+  readonly sortDir = signal<FundsTableSortDirection>('desc');
+  readonly currentPage = signal(1);
 
-  readonly searchQuery = signal('');
-  readonly funds = computed(() => extractPagedItems(this.fundsListState().items));
-  readonly listLoading = computed(() => this.fundsListState().loading);
-  readonly listLoadingMore = computed(() => this.fundsListState().loadingMore);
-  readonly listError = computed(() => this.fundsListState().error);
-  readonly totalCount = computed(() => this.fundsListState().totalCount);
-  readonly hasNextPage = computed(() => this.fundsListState().hasNextPage);
+  readonly listLoading = computed(() => this.listState().loading);
+  readonly listError = computed(() => this.listState().error);
+  readonly totalCount = computed(() => this.listState().totalCount);
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.totalCount() / FUNDS_LIST_PAGE_SIZE)),
+  );
 
-  readonly selectedFundKey = computed(() => this.fundsDetailState().selectedKey);
-  readonly fundDetail = computed(() => this.fundsDetailState().detail);
-  readonly fundAssets = computed(() => this.fundsDetailState().assets);
-  readonly assetSearchQuery = signal('');
-  readonly investorSearchQuery = signal('');
-  readonly fundAssetsLoading = computed(() => this.fundsDetailState().assetsLoading);
-  readonly fundAssetsLoadingMore = computed(() => this.fundsDetailState().assetsLoadingMore);
-  readonly fundAssetsHasNextPage = computed(() => this.fundsDetailState().assetsHasNextPage);
-  readonly fundInvestors = computed(() => this.fundsDetailState().fundInvestors);
-  readonly fundInvestorsLoading = computed(() => this.fundsDetailState().fundInvestorsLoading);
-  readonly fundInvestorsLoadingMore = computed(() => this.fundsDetailState().fundInvestorsLoadingMore);
-  readonly fundInvestorsHasNextPage = computed(() => this.fundsDetailState().fundInvestorsHasNextPage);
-  readonly detailLoading = computed(() => this.fundsDetailState().loading);
-  readonly detailError = computed(() => this.fundsDetailState().error);
+  readonly quarterlyPeriodOptions = computed(() => this.filterOptions().quarterlyPeriods);
 
-  readonly activeTabIndex = signal(0);
-  /** Overview=0, Assets=1, Investors=2, Commitments=3, Unfunded=4, Investments=5, Distributions=6, NAV=7 */
-  readonly fundInvestorsTabIndex = 2;
-  readonly fundAssetColumns = [
-    'assetName',
-    'city',
-    'province',
-    'geography',
-    'assetType',
-    'investmentType',
-    'propertyStatus',
-    'propertyAcquisition',
-    'propertyDisposedDate',
-  ];
-  readonly fundInvestorColumns = [
-    'investorName',
-    'relationshipName',
-    'investorTypeName',
-    'contactFirstName',
-    'contactLastName',
-  ];
-  readonly commitmentsTabIndex = 3;
-  readonly unfundedCommitmentsTabIndex = 4;
-  readonly fundInvestmentsTabIndex = 5;
-  readonly fundDistributionsTabIndex = 6;
-  readonly navTabIndex = 7;
-  readonly listColumns = ['investment', 'value'];
+  readonly dateKey = computed(() => {
+    const quarter = this.quarter();
+    const year = this.year();
+    if (quarter == null || year == null) {
+      return null;
+    }
 
-  readonly selectedInvestment = computed(() => this.fundDetail());
+    return (
+      this.quarterlyPeriodOptions().find(
+        (period) => period.quarter === quarter && period.calendarYear === year,
+      )?.dateKey ?? null
+    );
+  });
 
-  private pendingScrollKey: number | null = null;
-  private pendingSelectName: string | null = null;
-  private pendingAutoOpenFirst = false;
-  private loadingMoreForScroll = false;
+  readonly availableQuarters = computed(() => {
+    const periods = this.quarterlyPeriodOptions();
+    return [...new Set(periods.map((period) => period.quarter))].sort((a, b) => a - b);
+  });
 
-  private readonly listScrollContainer = viewChild<ElementRef<HTMLElement>>('listScrollContainer');
-  private readonly loadDetail$ = new Subject<number>();
+  readonly availableYears = computed(() => {
+    const periods = this.quarterlyPeriodOptions();
+    const selectedQuarter = this.quarter();
+    const scoped = selectedQuarter != null
+      ? periods.filter((period) => period.quarter === selectedQuarter)
+      : periods;
+
+    return [...new Set(scoped.map((period) => period.calendarYear))].sort((a, b) => b - a);
+  });
+
+  readonly periodLabel = computed(() => {
+    if (this.timeframe() !== 'quarterly') {
+      return 'LTD';
+    }
+
+    const quarter = this.quarter();
+    const year = this.year();
+    if (quarter == null || year == null) {
+      return 'Quarterly';
+    }
+
+    const period = this.quarterlyPeriodOptions().find(
+      (item) => item.quarter === quarter && item.calendarYear === year,
+    );
+    return period?.label ?? period?.quarterYear ?? `Q${quarter} ${year}`;
+  });
+
+  readonly subtitleText = computed(
+    () => `${this.totalCount()} fund${this.totalCount() === 1 ? '' : 's'} · ${this.periodLabel()}`,
+  );
+
+  readonly activeFilterCount = computed(() => {
+    let count = 0;
+    if (this.tableSearch().trim()) {
+      count += 1;
+    }
+    if (this.fundTypeFilter() !== 'all') {
+      count += 1;
+    }
+    if (this.strategyFilter() !== 'all') {
+      count += 1;
+    }
+    return count;
+  });
+
+  readonly distributedColumnLabel = computed(() =>
+    this.timeframe() === 'quarterly'
+      ? `Net Distributed (${this.periodLabel()})`
+      : 'Net Distributed (LTD)',
+  );
+
+  readonly rows = computed(() =>
+    this.listState().items.map((item, index) => mapFundListItemToRow(item, index)),
+  );
+
+  readonly fundTypeOptions = computed(() => this.filterOptions().fundTypes);
+  readonly strategyOptions = computed(() => this.filterOptions().strategies);
+
+  readonly pageTotals = computed(() => {
+    const rows = this.rows();
+    return {
+      commitment: rows.reduce((sum, row) => sum + row.commitment, 0),
+      netInvestedCapital: rows.reduce((sum, row) => sum + row.netInvestedCapital, 0),
+      netDistributed: rows.reduce((sum, row) => sum + row.netDistributed, 0),
+      reservedUncalled: rows.reduce((sum, row) => sum + row.reservedUncalled, 0),
+    };
+  });
+
+  readonly kpiCards = computed(() => {
+    const summary = this.listState().summary;
+    const total = this.totalCount();
+
+    if (summary) {
+      return {
+        totalFunds: summary.totalFunds ?? total,
+        totalCommitment: summary.totalCommitment ?? 0,
+        netInvestedCapital: summary.netInvestedCapital ?? 0,
+        netDistributed: summary.netDistributed ?? 0,
+        reservedUncalled: summary.reservedUncalled ?? 0,
+      };
+    }
+
+    const rows = this.rows();
+    return {
+      totalFunds: total,
+      totalCommitment: rows.reduce((sum, row) => sum + row.commitment, 0),
+      netInvestedCapital: rows.reduce((sum, row) => sum + row.netInvestedCapital, 0),
+      netDistributed: rows.reduce((sum, row) => sum + row.netDistributed, 0),
+      reservedUncalled: rows.reduce((sum, row) => sum + row.reservedUncalled, 0),
+    };
+  });
+
+  readonly pageNumbers = computed(() => {
+    const totalPages = this.totalPages();
+    const currentPage = this.currentPage();
+
+    if (totalPages <= VISIBLE_PAGE_BUTTON_COUNT) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    let start = Math.max(1, currentPage - 1);
+    if (start + VISIBLE_PAGE_BUTTON_COUNT - 1 > totalPages) {
+      start = totalPages - VISIBLE_PAGE_BUTTON_COUNT + 1;
+    }
+
+    return Array.from(
+      { length: VISIBLE_PAGE_BUTTON_COUNT },
+      (_, index) => start + index,
+    );
+  });
+
+  readonly showingFrom = computed(() =>
+    this.totalCount() === 0 ? 0 : (this.currentPage() - 1) * FUNDS_LIST_PAGE_SIZE + 1,
+  );
+
+  readonly showingTo = computed(() =>
+    Math.min(this.currentPage() * FUNDS_LIST_PAGE_SIZE, this.totalCount()),
+  );
+
+  readonly formatInvestedPercent = formatInvestedPercent;
 
   constructor() {
-    this.route.queryParamMap
-      .pipe(takeUntilDestroyed())
-      .subscribe((params) => {
-        const detailTab = params.get('detailTab');
-        if (detailTab === 'periods' || detailTab === 'investors') {
-          this.activeTabIndex.set(this.fundInvestorsTabIndex);
-        }
-        if (detailTab === 'assets') this.activeTabIndex.set(1);
-        if (detailTab === 'overview') this.activeTabIndex.set(0);
+    this.routeSearchSync.bindTableSearch(this.tableSearch, () => this.currentPage.set(1));
 
-        const selectedRaw = params.get('selected');
-        const selectedParsed = selectedRaw ? Number(selectedRaw) : NaN;
-        this.pendingScrollKey = Number.isFinite(selectedParsed) ? selectedParsed : null;
-
-        const search = (params.get('search') ?? '').trim();
-        this.pendingSelectName = search || null;
-        // If we arrive via deep-link search, auto-open a result once the list loads.
-        // This flag is cleared after the first successful auto-open.
-        this.pendingAutoOpenFirst = !!search;
-        if (search && this.searchQuery() !== search) {
-          this.searchQuery.set(search);
-        }
+    this.fundsApi
+      .getFilterOptions()
+      .pipe(
+        catchError(() => of(null)),
+        takeUntilDestroyed(),
+      )
+      .subscribe((response) => {
+        const options = normalizeFundsFilterOptions(response);
+        this.filterOptions.set(options);
+        this.ensureQuarterlySelection(options);
       });
-
-    toObservable(this.searchQuery)
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
-      .subscribe((search) => {
-        this.pendingScrollKey = this.pendingScrollKey ?? this.selectedIdFromRoute();
-        this.store.dispatch(FundsApiActions.loadList({ search, page: 1, replace: true }));
-      });
-
-    toObservable(this.assetSearchQuery)
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
-      .subscribe((search) => {
-        const fundKey = this.fundsDetailState().selectedKey;
-        if (!fundKey) return;
-        this.store.dispatch(
-          FundsApiActions.loadFundAssetsPage({
-            fundKey,
-            page: 1,
-            search,
-          }),
-        );
-      });
-
-    toObservable(this.investorSearchQuery)
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
-      .subscribe((search) => {
-        const fundKey = this.fundsDetailState().selectedKey;
-        if (!fundKey) return;
-        this.store.dispatch(
-          FundsApiActions.loadFundInvestorsPage({
-            fundKey,
-            page: 1,
-            search,
-          }),
-        );
-      });
-
-    this.loadDetail$.pipe(takeUntilDestroyed()).subscribe((fundKey) => {
-      this.activeTabIndex.set(0);
-      this.store.dispatch(FundsApiActions.loadDetail({ fundKey }));
-    });
 
     effect(() => {
-      const list = this.fundsListState();
-      if (!list.loading && !list.loadingMore) {
-        this.ensureSelectedInListAndScroll();
+      this.timeframe();
+      this.quarter();
+      this.year();
+      this.fundTypeFilter();
+      this.strategyFilter();
+      this.sortColumn();
+      this.sortDir();
+      this.currentPage();
+      if (this.timeframe() === 'quarterly' && this.dateKey() == null) {
+        return;
       }
+      this.dispatchLoad(true);
     });
 
-    effect(() => {
-      const detail = this.fundsDetailState();
-      if (!detail.loading && detail.detail) {
-        this.cleanupDeepLinkQueryParams();
-      }
-    });
+    toObservable(this.tableSearch)
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe(() => {
+        this.currentPage.set(1);
+        this.dispatchLoad(true);
+      });
+  }
 
-    effect(() => {
-      if (this.activeTabIndex() !== this.fundInvestorsTabIndex) return;
-      // Read signals so this effect re-runs when fund selection or investor list state changes.
-      this.selectedFundKey();
-      this.detailLoading();
-      this.fundInvestors();
-      this.fundInvestorsLoading();
-      this.investorSearchQuery();
-      this.loadFundInvestorsPageIfNeeded();
+  setTimeframe(view: TimeframeView): void {
+    this.timeframe.set(view);
+    if (view === 'quarterly') {
+      this.ensureQuarterlySelection(this.filterOptions());
+    }
+    this.currentPage.set(1);
+  }
+
+  setQuarter(quarter: number): void {
+    this.quarter.set(quarter);
+    this.alignYearToQuarter();
+    this.currentPage.set(1);
+  }
+
+  setYear(year: number): void {
+    this.year.set(year);
+    this.alignQuarterToYear();
+    this.currentPage.set(1);
+  }
+
+  toggleFiltersPanel(): void {
+    this.filtersPanelVisible.update((value) => !value);
+  }
+
+  clearAllFilters(): void {
+    this.tableSearch.set('');
+    this.fundTypeFilter.set('all');
+    this.strategyFilter.set('all');
+    this.currentPage.set(1);
+  }
+
+  toggleSort(column: FundsTableSortColumn): void {
+    if (this.sortColumn() === column) {
+      this.sortDir.update((dir) => (dir === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDir.set(defaultFundsSortDirection(column));
+    }
+    this.currentPage.set(1);
+  }
+
+  isSortActive(column: FundsTableSortColumn): boolean {
+    return this.sortColumn() === column;
+  }
+
+  sortIcon(column: FundsTableSortColumn): string {
+    if (!this.isSortActive(column)) {
+      return 'unfold_more';
+    }
+    return this.sortDir() === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages()) {
+      return;
+    }
+    this.currentPage.set(page);
+  }
+
+  retryLoad(): void {
+    this.dispatchLoad(true);
+  }
+
+  downloadTable(): void {
+    const rows = this.rows();
+    if (!rows.length) {
+      return;
+    }
+
+    this.excel.export<FundTableRow>({
+      filename: 'investments',
+      sheetName: 'Investments',
+      columns: [
+        { header: 'Fund Name', value: (row) => row.name },
+        { header: 'Type', value: (row) => row.fundType },
+        { header: 'Strategy', value: (row) => row.strategy },
+        { header: 'Commitment', value: (row) => row.commitment },
+        { header: 'Net Invested Capital', value: (row) => row.netInvestedCapital },
+        { header: this.distributedColumnLabel(), value: (row) => row.netDistributed },
+        { header: 'Reserved / Uncalled', value: (row) => row.reservedUncalled },
+        { header: 'Released Capital', value: (row) => row.releasedCapital ?? '—' },
+      ],
+      rows,
     });
   }
 
-  onDetailTabIndexChange(index: number): void {
-    this.activeTabIndex.set(index);
+  private dispatchLoad(replace: boolean): void {
+    const activeSortColumn = this.sortColumn();
+    const sortBy = activeSortColumn ? FUNDS_TABLE_SORT_API_FIELDS[activeSortColumn] : undefined;
+    const sortDir = activeSortColumn ? this.sortDir() : undefined;
+    const activeDateKey = this.timeframe() === 'quarterly' ? this.dateKey() : null;
+
+    const cacheKey = buildFundsListCacheKey({
+      view: this.timeframe(),
+      dateKey: activeDateKey,
+      fundType: this.fundTypeFilter(),
+      strategy: this.strategyFilter(),
+      sortBy: sortBy ?? null,
+      sortDir: sortDir ?? null,
+    });
+
+    const apiParams: FundsListQueryParams = {
+      view: this.timeframe(),
+      page: this.currentPage(),
+      pageSize: FUNDS_LIST_PAGE_SIZE,
+      search: this.tableSearch().trim() || undefined,
+      ...(sortBy && sortDir ? { sortBy, sortDir } : {}),
+      ...(activeDateKey != null ? { dateKey: activeDateKey } : {}),
+      ...(this.fundTypeFilter() !== 'all' ? { fundType: this.fundTypeFilter() } : {}),
+      ...(this.strategyFilter() !== 'all' ? { strategy: this.strategyFilter() } : {}),
+    };
+
+    this.store.dispatch(
+      FundsApiActions.loadList({
+        search: this.tableSearch().trim(),
+        page: this.currentPage(),
+        replace,
+        cacheKey,
+        apiParams,
+      }),
+    );
   }
 
-  private loadFundInvestorsPageIfNeeded(): void {
-    const fundKey = this.selectedFundKey();
-    if (!fundKey || this.detailLoading()) return;
+  private ensureQuarterlySelection(options: FundsFilterOptions): void {
+    const periods = options.quarterlyPeriods;
+    if (!periods.length) {
+      this.quarter.set(null);
+      this.year.set(null);
+      return;
+    }
 
-    const detail = this.fundsDetailState();
-    const search = this.investorSearchQuery().trim();
-    if (detail.fundInvestorsLoading || detail.fundInvestorsLoadingMore) return;
+    const quarter = this.quarter();
+    const year = this.year();
     if (
-      detail.fundInvestors.length > 0 &&
-      detail.fundInvestorsSearch.trim() === search
+      quarter != null &&
+      year != null &&
+      periods.some((period) => period.quarter === quarter && period.calendarYear === year)
     ) {
       return;
     }
 
-    this.store.dispatch(
-      FundsApiActions.loadFundInvestorsPage({
-        fundKey,
-        page: 1,
-        search,
-      }),
-    );
+    const first = periods[0];
+    this.quarter.set(first.quarter);
+    this.year.set(first.calendarYear);
   }
 
-  loadMoreFundAssets(): void {
-    const detail = this.fundsDetailState();
-    if (detail.assetsLoading || detail.assetsLoadingMore || !detail.assetsHasNextPage) return;
-    const fundKey = detail.selectedKey;
-    if (!fundKey) return;
-
-    this.store.dispatch(
-      FundsApiActions.loadFundAssetsPage({
-        fundKey,
-        page: detail.assetsPage + 1,
-        search: detail.assetsSearch,
-      }),
-    );
-  }
-
-  loadMoreFundInvestors(): void {
-    const detail = this.fundsDetailState();
-    if (detail.fundInvestorsLoading || detail.fundInvestorsLoadingMore || !detail.fundInvestorsHasNextPage) {
-      return;
-    }
-    const fundKey = detail.selectedKey;
-    if (!fundKey) return;
-
-    this.store.dispatch(
-      FundsApiActions.loadFundInvestorsPage({
-        fundKey,
-        page: detail.fundInvestorsPage + 1,
-        search: detail.fundInvestorsSearch,
-      }),
-    );
-  }
-
-  private cleanupDeepLinkQueryParams(): void {
-    const params = this.route.snapshot.queryParamMap;
-    const hasDeepLinkParams =
-      params.has('selected') || params.has('search') || params.has('detailTab');
-    if (!hasDeepLinkParams) return;
-
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        selected: null,
-        search: null,
-        detailTab: null,
-      },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
-    });
-  }
-
-  loadMore(): void {
-    this.store.dispatch(FundsApiActions.loadListMore());
-  }
-
-  selectInvestment(fund: FundListItemDto): void {
-    this.requestDetail(fund.fundKey);
-  }
-
-  clearSelection(): void {
-    this.store.dispatch(FundsApiActions.clearDetail());
-    this.activeTabIndex.set(0);
-  }
-
-  deploymentPercent(): number {
-    return this.summaryNumber('capitalDeployed');
-  }
-
-  summaryDisplay(key: string): string {
-    const summary = this.fundDetail()?.summary as unknown as Record<string, unknown> | undefined;
-    const raw = summary?.[key] ?? null;
-    return String(raw).trim() || '—';
-    // if (raw == null) return '—';
-    // if (typeof raw === 'number') {
-    //   if (key.toLowerCase().includes('percent')) return formatPercent(raw, true);
-    //   return formatCurrency(raw);
-    // }
-    // if (typeof raw === 'string') return raw.trim() || '—';
-    // if (typeof raw === 'boolean') return String(raw);
-    // return String(raw).trim() || '—';
-  }
-
-  summaryNumber(key: string): number {
-    const summary = this.fundDetail()?.summary as unknown as Record<string, unknown> | undefined;
-    const raw = summary?.[key] ?? null;
-    if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
-    if (typeof raw === 'string') {
-      const parsed = Number(raw.trim());
-      if (Number.isFinite(parsed)) return parsed;
-    }
-    return 0;
-  }
-
-  goToAsset(row: FundAssetTabRow): void {
-    if (row.propertyKey == null) return;
-    void this.router.navigate(['../asset'], {
-      relativeTo: this.route,
-      queryParams: {
-        selected: row.propertyKey,
-        search: row.assetName !== '—' ? row.assetName : undefined,
-      },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
-    });
-  }
-
-  goToInvestor(investor: FundInvestorTabRow): void {
-    if (!investor.investorKey) return;
-    void this.router.navigate(['../investor'], {
-      relativeTo: this.route,
-      queryParams: {
-        selected: investor.investorKey,
-        search: investor.investorName !== '—' ? investor.investorName : undefined,
-      },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
-    });
-  }
-
-  clearAssetSearch(): void {
-    if (!this.assetSearchQuery()) return;
-    this.assetSearchQuery.set('');
-  }
-
-  clearInvestorSearch(): void {
-    if (!this.investorSearchQuery()) return;
-    this.investorSearchQuery.set('');
-  }
-
-  private readonly selectedIdFromRoute = () => {
-    const value = this.route.snapshot.queryParamMap.get('selected');
-    if (!value) return null;
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  };
-
-  private ensureSelectedInListAndScroll(): void {
-    let key = this.pendingScrollKey ?? this.selectedFundKey();
-    if (key == null && this.pendingSelectName) {
-      key = this.matchFundKeyByName(this.pendingSelectName);
-      if (key != null) this.pendingScrollKey = key;
-    }
-    if (key == null) {
-      if (this.pendingAutoOpenFirst) {
-        const first = this.funds()[0] ?? null;
-        if (first) {
-          this.pendingAutoOpenFirst = false;
-          this.pendingScrollKey = first.fundKey;
-          this.requestDetail(first.fundKey);
-          this.scrollToSelected(first.fundKey);
-        }
-      }
-      return;
-    }
-
-    const selectedFund = this.funds().find((fund) => fund.fundKey === key) ?? null;
-    if (selectedFund) {
-      this.requestDetail(key);
-      this.scrollToSelected(key);
-      return;
-    }
-
-    // If the requested key isn't in the search results, fall back to an unambiguous name match.
-    if (!this.hasNextPage() && this.pendingSelectName) {
-      const byName = this.matchFundKeyByName(this.pendingSelectName);
-      if (byName != null && byName !== key) {
-        this.pendingScrollKey = byName;
-        this.requestDetail(byName);
-        this.scrollToSelected(byName);
-        return;
-      }
-    }
-
-    // If we reached the end and still didn't find the key, auto-open the first result from the deep-link search.
-    if (!this.hasNextPage() && this.pendingAutoOpenFirst) {
-      const first = this.funds()[0] ?? null;
-      if (first) {
-        this.pendingAutoOpenFirst = false;
-        this.pendingScrollKey = first.fundKey;
-        this.requestDetail(first.fundKey);
-        this.scrollToSelected(first.fundKey);
-        return;
-      }
-    }
-
-    if (this.hasNextPage() && !this.listLoadingMore() && !this.loadingMoreForScroll) {
-      this.loadingMoreForScroll = true;
-      this.store.dispatch(FundsApiActions.loadListMore());
-      queueMicrotask(() => {
-        this.loadingMoreForScroll = false;
-      });
+  private alignYearToQuarter(): void {
+    const years = this.availableYears();
+    const currentYear = this.year();
+    if (currentYear == null || !years.includes(currentYear)) {
+      this.year.set(years[0] ?? null);
     }
   }
 
-  private matchFundKeyByName(name: string): number | null {
-    const needle = name.trim().toLowerCase();
-    if (!needle) return null;
-
-    const matches = this.funds().filter((fund) => {
-      const hay = (fund.fundName ?? '').trim().toLowerCase();
-      return hay === needle || hay.includes(needle);
-    });
-
-    if (matches.length === 1) return matches[0].fundKey;
-    return null;
-  }
-
-  private requestDetail(fundKey: number): void {
-    const detail = this.fundsDetailState();
-    if (
-      !shouldRequestDetail(detail.selectedKey, detail.loading, detail.detail != null, fundKey)
-    ) {
-      return;
+  private alignQuarterToYear(): void {
+    const quarters = this.availableQuarters();
+    const currentQuarter = this.quarter();
+    if (currentQuarter == null || !quarters.includes(currentQuarter)) {
+      this.quarter.set(quarters[0] ?? null);
     }
-    this.loadDetail$.next(fundKey);
   }
-
-  private scrollToSelected(key: number): void {
-    const rowIndex = this.funds().findIndex((fund) => fund.fundKey === key);
-    scrollListItemIntoView(() => this.listScrollContainer()?.nativeElement, key, {
-      rowIndex,
-      onSuccess: () => {
-        this.pendingScrollKey = null;
-      },
-    });
-  }
-
 }
-

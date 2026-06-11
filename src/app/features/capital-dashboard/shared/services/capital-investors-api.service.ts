@@ -20,6 +20,9 @@ import {
   InvestorDetailDto,
   InvestorInvestmentDto,
   InvestorListItemDto,
+  InvestorsFilterOptionsDto,
+  InvestorsListQueryParams,
+  InvestorsPagedResult,
   ListQueryParams,
   PagedResult,
 } from '../models/api.models';
@@ -29,8 +32,12 @@ import { LIST_PAGE_SIZE } from '../list-pagination.constants';
 export class CapitalInvestorsApiService {
   private readonly api = inject(ApiService);
 
-  getInvestors(params: ListQueryParams = {}): Observable<PagedResult<InvestorListItemDto>> {
-    return this.api.get<PagedResult<InvestorListItemDto>>('api/CapitalInvestors', params as any);
+  getInvestors(params: InvestorsListQueryParams = {}): Observable<InvestorsPagedResult> {
+    return this.api.get<InvestorsPagedResult>('api/CapitalInvestors', params as any);
+  }
+
+  getFilterOptions(): Observable<InvestorsFilterOptionsDto> {
+    return this.api.get<InvestorsFilterOptionsDto>('api/CapitalInvestors/filter-options');
   }
 
   getInvestor(investorKey: number): Observable<InvestorDetailDto> {

@@ -12,14 +12,28 @@ import {
   InvestorDetailDto,
   InvestorInvestmentDto,
   InvestorListItemDto,
+  AssetsPagedResult,
+  FundsPagedResult,
+  InvestorsPagedResult,
   PagedResult,
   PropertyDetailDto,
   PropertyInvestmentDto,
   PropertyListItemDto,
 } from '../shared/models/api.models';
-import { FundInvestorTabRow } from '../investments/tabs/fund-investor.mapper';
-import { fundPeriodsCacheKey, FundPeriodSource } from '../investments/tabs/fund-period.util';
-import { PagedListState } from './capital-dashboard.state';
+import { FundInvestorTabRow } from '../shared/mappers/fund-investor.mapper';
+import { fundPeriodsCacheKey, FundPeriodSource } from '../shared/utils/fund-period.util';
+import {
+  AssetsListCacheEntry,
+  AssetsPagedListState,
+  FundsListCacheEntry,
+  FundsPagedListState,
+  InvestorsListCacheEntry,
+  InvestorsPagedListState,
+  PagedListState,
+} from './capital-dashboard.state';
+import { extractAssetsListSummary } from '../shared/utils/asset-list-row.util';
+import { extractFundsListSummary } from '../shared/utils/fund-list-row.util';
+import { extractInvestorsListSummary } from '../shared/utils/investor-list-row.util';
 
 type PagedItemsSource<T> = PagedResult<T> & { Items?: T[] | PagedResult<T> | null };
 
@@ -551,8 +565,24 @@ export function readListCacheEntry<T>(
   cache: Record<string, ListCacheEntry<T>>,
   search: string,
   page: number,
+  scope = '',
 ): ListCacheEntry<T> | null {
-  return cache[capitalDashboardListCacheKey(search, page)] ?? null;
+  const key = scope
+    ? capitalDashboardListCacheKey(`${scope}\u0001${search}`, page)
+    : capitalDashboardListCacheKey(search, page);
+  return cache[key] ?? null;
+}
+
+export function readInvestorsListCacheEntry(
+  cache: Record<string, InvestorsListCacheEntry>,
+  search: string,
+  page: number,
+  scope = '',
+): InvestorsListCacheEntry | null {
+  const key = scope
+    ? capitalDashboardListCacheKey(`${scope}\u0001${search}`, page)
+    : capitalDashboardListCacheKey(search, page);
+  return cache[key] ?? null;
 }
 
 export function writeListCacheEntry<T>(
@@ -560,8 +590,11 @@ export function writeListCacheEntry<T>(
   search: string,
   result: PagedResult<T>,
   page: number,
+  scope = '',
 ): Record<string, ListCacheEntry<T>> {
-  const key = capitalDashboardListCacheKey(search, page);
+  const key = scope
+    ? capitalDashboardListCacheKey(`${scope}\u0001${search}`, page)
+    : capitalDashboardListCacheKey(search, page);
   return {
     ...cache,
     [key]: {
@@ -573,9 +606,32 @@ export function writeListCacheEntry<T>(
   };
 }
 
+export function writeInvestorsListCacheEntry(
+  cache: Record<string, InvestorsListCacheEntry>,
+  search: string,
+  result: InvestorsPagedResult,
+  page: number,
+  scope = '',
+): Record<string, InvestorsListCacheEntry> {
+  const key = scope
+    ? capitalDashboardListCacheKey(`${scope}\u0001${search}`, page)
+    : capitalDashboardListCacheKey(search, page);
+  return {
+    ...cache,
+    [key]: {
+      items: [...extractPagedItems(result)],
+      page: result.page ?? page,
+      totalCount: result.totalCount ?? 0,
+      hasNextPage: !!result.hasNextPage,
+      summary: extractInvestorsListSummary(result),
+    },
+  };
+}
+
 export function listStateFromCacheEntry<T>(
   search: string,
   entry: ListCacheEntry<T>,
+  listScope = '',
 ): PagedListState<T> {
   return {
     items: [...entry.items],
@@ -586,6 +642,108 @@ export function listStateFromCacheEntry<T>(
     loading: false,
     loadingMore: false,
     error: null,
+    listScope,
+  };
+}
+
+export function investorsListStateFromCacheEntry(
+  search: string,
+  entry: InvestorsListCacheEntry,
+  listScope = '',
+): InvestorsPagedListState {
+  return {
+    ...listStateFromCacheEntry(search, entry, listScope),
+    summary: entry.summary,
+  };
+}
+
+export function readFundsListCacheEntry(
+  cache: Record<string, FundsListCacheEntry>,
+  search: string,
+  page: number,
+  scope = '',
+): FundsListCacheEntry | null {
+  const key = scope
+    ? capitalDashboardListCacheKey(`${scope}\u0001${search}`, page)
+    : capitalDashboardListCacheKey(search, page);
+  return cache[key] ?? null;
+}
+
+export function writeFundsListCacheEntry(
+  cache: Record<string, FundsListCacheEntry>,
+  search: string,
+  result: FundsPagedResult,
+  page: number,
+  scope = '',
+): Record<string, FundsListCacheEntry> {
+  const key = scope
+    ? capitalDashboardListCacheKey(`${scope}\u0001${search}`, page)
+    : capitalDashboardListCacheKey(search, page);
+  return {
+    ...cache,
+    [key]: {
+      items: [...extractPagedItems(result)],
+      page: result.page ?? page,
+      totalCount: result.totalCount ?? 0,
+      hasNextPage: !!result.hasNextPage,
+      summary: extractFundsListSummary(result),
+    },
+  };
+}
+
+export function fundsListStateFromCacheEntry(
+  search: string,
+  entry: FundsListCacheEntry,
+  listScope = '',
+): FundsPagedListState {
+  return {
+    ...listStateFromCacheEntry(search, entry, listScope),
+    summary: entry.summary,
+  };
+}
+
+export function readAssetsListCacheEntry(
+  cache: Record<string, AssetsListCacheEntry>,
+  search: string,
+  page: number,
+  scope = '',
+): AssetsListCacheEntry | null {
+  const key = scope
+    ? capitalDashboardListCacheKey(`${scope}\u0001${search}`, page)
+    : capitalDashboardListCacheKey(search, page);
+  return cache[key] ?? null;
+}
+
+export function writeAssetsListCacheEntry(
+  cache: Record<string, AssetsListCacheEntry>,
+  search: string,
+  result: AssetsPagedResult,
+  page: number,
+  scope = '',
+): Record<string, AssetsListCacheEntry> {
+  const key = scope
+    ? capitalDashboardListCacheKey(`${scope}\u0001${search}`, page)
+    : capitalDashboardListCacheKey(search, page);
+  return {
+    ...cache,
+    [key]: {
+      items: [...extractPagedItems(result)],
+      page: result.page ?? page,
+      totalCount: result.totalCount ?? 0,
+      hasNextPage: !!result.hasNextPage,
+      summary: extractAssetsListSummary(result),
+    },
+  };
+}
+
+export function assetsListStateFromCacheEntry(
+  search: string,
+  entry: AssetsListCacheEntry,
+  listScope = '',
+): AssetsPagedListState {
+  return {
+    ...listStateFromCacheEntry(search, entry, listScope),
+    summary: entry.summary,
   };
 }
 

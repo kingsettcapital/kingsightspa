@@ -1,10 +1,78 @@
 /* Capital Dashboard styles are scoped by `body[data-ks-capital-dashboard]` */
 
+@use '../shared/styles/capital-data-tool';
+@use '../shared/styles/capital-data-tool-chrome';
+@use '../shared/styles/capital-data-tool-investors';
+@use '../shared/styles/capital-data-tool-investments';
+@use '../shared/styles/capital-data-tool-assets';
+
 body[data-ks-capital-dashboard] {
   /* Capital Dashboard typography */
-  // font-family: var(--ks-font-family);
-  --ks-capital-dashboard-font-family: "Arial", sans-serif;
+  --ks-capital-dashboard-font-family: var(--cdt-font-sans);
   font-family: var(--ks-capital-dashboard-font-family);
+
+  .cdt-shell,
+  .cdt-investors,
+  .cdt-investments,
+  .cdt-assets {
+    text-transform: none;
+
+    h1,
+    h2,
+    h3,
+    p,
+    button,
+    input,
+    select,
+    label,
+    span,
+    th,
+    td {
+      text-transform: none;
+    }
+
+    .cdt-kpi__label,
+    .cdt-filters-bar__label,
+    .cdt-table thead th,
+    .cdt-table__total-row td {
+      text-transform: uppercase;
+    }
+
+    .cdt-kpi__label,
+    .cdt-kpi__value,
+    .cdt-kpi__hint {
+      color: #fff;
+    }
+
+    h1.cdt-investors__title,
+    h1.cdt-investments__title {
+      font-family: 'Rufina', Georgia, serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--cdt-title-color);
+      letter-spacing: 0;
+      text-transform: none;
+      line-height: 1.2;
+    }
+
+    p.cdt-investors__subtitle,
+    p.cdt-investments__subtitle {
+      font-family: var(--cdt-font-sans);
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: var(--cdt-subtitle-color);
+      letter-spacing: 0;
+      text-transform: none;
+    }
+  }
+
+  app-capital-dashboard-investors,
+  app-capital-dashboard-investments {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+  }
   font-weight: var(--ks-font-weight-regular);
   color: var(--ks-color-text);
 

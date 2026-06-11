@@ -1,64 +1,124 @@
-<section class="ks-capital-dashboard portal-shell" aria-label="Capital Dashboard">
-  <!-- <header class="ks-capital-dashboard__header">
-    <h1 class="ks-capital-dashboard__title">Capital Dashboard</h1>
-  </header> -->
-
-  <nav
-    mat-tab-nav-bar
-    class="ks-capital-dashboard__tabs"
-    aria-label="Capital Dashboard sections"
-    mat-stretch-tabs="false"
-    mat-align-tabs="start"
-  >
-    <a
-      mat-tab-link
-      class="ks-capital-dashboard__tab"
-      routerLink="./investor"
-      [queryParams]="tabClearQueryParams"
-      queryParamsHandling="merge"
-      replaceUrl="true"
-      routerLinkActive
-      #investorTab="routerLinkActive"
-      [active]="investorTab.isActive"
-    >
-      <span class="ks-capital-dashboard__tab-label">
-        <mat-icon aria-hidden="true" class="ks-tab-icon">person</mat-icon>
-        <span class="ks-capital-dashboard__tab-text">Investors</span>
-      </span>
-    </a>
-    <a
-      mat-tab-link
-      class="ks-capital-dashboard__tab"
-      routerLink="./investment"
-      [queryParams]="tabClearQueryParams"
-      queryParamsHandling="merge"
-      replaceUrl="true"
-      routerLinkActive
-      #investmentTab="routerLinkActive"
-      [active]="investmentTab.isActive"
-    >
-      <span class="ks-capital-dashboard__tab-label">
-        <mat-icon aria-hidden="true" class="ks-tab-icon">trending_up</mat-icon>
-        <span class="ks-capital-dashboard__tab-text">Investments</span>
-      </span>
-    </a>
-    <a
-      mat-tab-link
-      class="ks-capital-dashboard__tab"
-      routerLink="./asset"
-      [queryParams]="tabClearQueryParams"
-      queryParamsHandling="merge"
-      replaceUrl="true"
-      routerLinkActive
-      #assetTab="routerLinkActive"
-      [active]="assetTab.isActive"
-    >
-      <span class="ks-capital-dashboard__tab-label">
-        <mat-icon aria-hidden="true" class="ks-tab-icon">category</mat-icon>
-        <span class="ks-capital-dashboard__tab-text">Assets</span>
-      </span>
-    </a>
-  </nav>
-
-  <router-outlet />
-</section>
+<div class="cdt-shell ks-capital-dashboard portal-shell" aria-label="Capital Dashboard">
+  <header class="cdt-topbar">
+    <div class="cdt-topbar__brand">
+      <span class="cdt-topbar__mark" aria-hidden="true">K</span>
+      <span class="cdt-topbar__title">
+        KingSight <span class="cdt-topbar__dash">–</span> Data Tool
+      </span>
+    </div>
+
+    <div #searchWrap class="cdt-topbar__search-wrap">
+      <div class="cdt-topbar__search">
+        <mat-icon class="cdt-topbar__search-icon" aria-hidden="true">search</mat-icon>
+        <input
+          class="cdt-topbar__search-input"
+          type="search"
+          placeholder="Search funds, investors, assets..."
+          [ngModel]="searchQuery()"
+          (ngModelChange)="onSearchInput($event)"
+          (focus)="onSearchFocus()"
+          aria-label="Search funds, investors, assets"
+          aria-autocomplete="list"
+          [attr.aria-expanded]="searchOpen()"
+          aria-controls="cdt-global-search-results"
+        />
+        @if (searchQuery().trim()) {
+          <button
+            type="button"
+            class="cdt-topbar__search-clear"
+            (click)="clearSearch()"
+            aria-label="Clear search"
+          >
+            <mat-icon aria-hidden="true">close</mat-icon>
+          </button>
+        }
+      </div>
+
+      @if (searchOpen() && searchQuery().trim()) {
+        <div
+          id="cdt-global-search-results"
+          class="cdt-topbar-search-panel"
+          role="listbox"
+          aria-label="Search results"
+        >
+          @if (searchLoading()) {
+            <div class="cdt-topbar-search-panel__state" role="status">
+              <div class="cdt-topbar-search-panel__spinner" aria-hidden="true"></div>
+              <p>Searching…</p>
+            </div>
+          } @else if (!searchResults().length) {
+            <div class="cdt-topbar-search-panel__state">
+              <p>No results found</p>
+            </div>
+          } @else {
+            @for (result of searchResults(); track result.entity_type + ':' + result.entity_key) {
+              @let presentation = searchResultPresentation(result.entity_type);
+              <button
+                type="button"
+                class="cdt-topbar-search-item"
+                role="option"
+                (click)="selectSearchResult(result)"
+              >
+                <span class="cdt-topbar-search-item__icon" [class]="presentation.iconClass">
+                  <mat-icon aria-hidden="true">{{ presentation.icon }}</mat-icon>
+                </span>
+                <span class="cdt-topbar-search-item__body">
+                  <span class="cdt-topbar-search-item__name">{{ result.name }}</span>
+                  @if (result.subtitle?.trim()) {
+                    <span class="cdt-topbar-search-item__subtitle">{{ result.subtitle }}</span>
+                  }
+                </span>
+                <span class="cdt-topbar-search-item__badge" [class]="presentation.badgeClass">
+                  {{ presentation.badgeLabel }}
+                </span>
+              </button>
+            }
+          }
+        </div>
+      }
+    </div>
+  </header>
+
+  <nav class="cdt-subnav" aria-label="Capital Dashboard sections">
+    <a
+      class="cdt-subnav__link"
+      routerLink="./investor"
+      [queryParams]="tabClearQueryParams"
+      queryParamsHandling="merge"
+      replaceUrl="true"
+      routerLinkActive="cdt-subnav__link--active"
+      [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
+    >
+      <mat-icon aria-hidden="true">groups</mat-icon>
+      <span>Investors</span>
+    </a>
+    <a
+      class="cdt-subnav__link"
+      routerLink="./investment"
+      [queryParams]="tabClearQueryParams"
+      queryParamsHandling="merge"
+      replaceUrl="true"
+      routerLinkActive="cdt-subnav__link--active"
+      [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
+    >
+      <mat-icon aria-hidden="true">trending_up</mat-icon>
+      <span>Investments</span>
+    </a>
+    <a
+      class="cdt-subnav__link"
+      routerLink="./asset"
+      [queryParams]="tabClearQueryParams"
+      queryParamsHandling="merge"
+      replaceUrl="true"
+      routerLinkActive="cdt-subnav__link--active"
+      [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
+    >
+      <mat-icon aria-hidden="true">inventory_2</mat-icon>
+      <span>Assets</span>
+    </a>
+  </nav>
+
+  <main class="cdt-main">
+    <router-outlet />
+  </main>
+</div>

@@ -1,879 +1,419 @@
-import {
-
-  Component,
-
-  computed,
-
-  effect,
-
-  ElementRef,
-
-  inject,
-
-  signal,
-
-  viewChild,
-
-} from '@angular/core';
-
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-
-import { Store } from '@ngrx/store';
-
 import { FormsModule } from '@angular/forms';
-
-import { ActivatedRoute, Router } from '@angular/router';
-
-import { MatButtonModule } from '@angular/material/button';
-
-import { MatChipsModule } from '@angular/material/chips';
-
-import { MatFormFieldModule } from '@angular/material/form-field';
-
 import { MatIconModule } from '@angular/material/icon';
+import { Store } from '@ngrx/store';
+import { catchError, debounceTime, distinctUntilChanged, of } from 'rxjs';
 
-import { MatInputModule } from '@angular/material/input';
-
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-
-import { MatTableModule } from '@angular/material/table';
-
-import { MatTabsModule } from '@angular/material/tabs';
-
-import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
-
-
-
-import { InvestorsApiActions } from '../store';
-
-import { extractPagedItems } from '../store/capital-dashboard-cache.util';
-
-import { selectInvestorsDetail, selectInvestorsList } from '../store/capital-dashboard.selectors';
-
-import { ListInfiniteScrollDirective } from '../shared/list-infinite-scroll.directive';
-
-import { DetailStatusBadgeComponent } from '../shared/components/detail-status-badge/detail-status-badge.component';
-
-import { OverviewSectionCardsComponent } from '../shared/components/overview-section-cards/overview-section-cards.component';
-
-import { PortalSpinnerComponent } from '../shared/components/portal-spinner/portal-spinner.component';
-
-import { InvestorListItemDto } from '../shared/models/api.models';
-
-import { formatCurrency, formatPercent } from '../shared/utils/format-currency.util';
-
-import { scrollListItemIntoView } from '../shared/utils/list-scroll.util';
-
-import { sectionCardsFromSections } from '../shared/utils/dynamic-sections.util';
-
-import { shouldRequestDetail } from '../shared/utils/should-request-detail.util';
-
+import { ExcelService } from '../../../core/services/excel.service';
 import { KsCurrencyPipe } from '../../../shared/pipes/ks-currency.pipe';
+import { INVESTORS_LIST_PAGE_SIZE } from '../shared/list-pagination.constants';
+import { InvestorsListQueryParams } from '../shared/models/api.models';
+import { CapitalInvestorsApiService } from '../shared/services/capital-investors-api.service';
+import { CapitalDashboardRouteSearchSync } from '../shared/utils/capital-dashboard-route-search.util';
+import {
+  EMPTY_INVESTORS_FILTER_OPTIONS,
+  InvestorsFilterOptions,
+  normalizeInvestorsFilterOptions,
+} from '../shared/utils/investor-filter-options.util';
+import {
+  buildInvestorsListCacheKey,
+  defaultInvestorsSortDirection,
+  INVESTORS_TABLE_SORT_API_FIELDS,
+  InvestorTableRow,
+  InvestorsTableSortColumn,
+  InvestorsTableSortDirection,
+  mapInvestorListItemToRow,
+} from '../shared/utils/investor-list-row.util';
+import { InvestorsApiActions } from '../store';
+import { selectInvestorsList } from '../store/capital-dashboard.selectors';
 
-import { InvestorCommitmentsTabComponent } from './tabs/commitments/investor-commitments-tab.component';
+type TimeframeView = 'ltd' | 'quarterly';
 
-import { InvestorUnfundedCommitmentTabComponent } from './tabs/unfunded-commitment/investor-unfunded-commitment-tab.component';
-
-import { InvestorCapitalInvestmentsTabComponent } from './tabs/investments/investor-capital-investments-tab.component';
-
-import { InvestorDistributionsTabComponent } from './tabs/distributions/investor-distributions-tab.component';
-
-import { InvestorNavTabComponent } from './tabs/nav/investor-nav-tab.component';
-
-
+const VISIBLE_PAGE_BUTTON_COUNT = 3;
 
 @Component({
-
   selector: 'app-capital-dashboard-investors',
-
   standalone: true,
-
-  imports: [
-
-    FormsModule,
-
-    MatButtonModule,
-
-    MatChipsModule,
-
-    MatFormFieldModule,
-
-    MatIconModule,
-
-    MatInputModule,
-
-    MatProgressBarModule,
-
-    MatTableModule,
-
-    MatTabsModule,
-
-    ListInfiniteScrollDirective,
-
-
-    DetailStatusBadgeComponent,
-
-    OverviewSectionCardsComponent,
-
-    PortalSpinnerComponent,
-
-    KsCurrencyPipe,
-
-    InvestorCommitmentsTabComponent,
-
-    InvestorUnfundedCommitmentTabComponent,
-
-    InvestorCapitalInvestmentsTabComponent,
-
-    InvestorDistributionsTabComponent,
-
-    InvestorNavTabComponent,
-
-  ],
-
+  imports: [FormsModule, MatIconModule, KsCurrencyPipe],
   templateUrl: './capital-dashboard-investors.component.html',
-
   styleUrl: './capital-dashboard-investors.component.scss',
-
 })
-
 export class CapitalDashboardInvestorsComponent {
-
   private readonly store = inject(Store);
+  private readonly excel = inject(ExcelService);
+  private readonly investorsApi = inject(CapitalInvestorsApiService);
+  private readonly routeSearchSync = inject(CapitalDashboardRouteSearchSync);
 
-  private readonly route = inject(ActivatedRoute);
+  private readonly listState = this.store.selectSignal(selectInvestorsList);
 
-  private readonly router = inject(Router);
+  readonly tableSearch = signal('');
+  readonly timeframe = signal<TimeframeView>('ltd');
+  readonly quarter = signal<number | null>(null);
+  readonly year = signal<number | null>(null);
+  readonly filterOptions = signal<InvestorsFilterOptions>(EMPTY_INVESTORS_FILTER_OPTIONS);
+  readonly investorTypeFilter = signal('all');
+  readonly relationshipFilter = signal('all');
+  readonly filtersPanelVisible = signal(true);
+  readonly sortColumn = signal<InvestorsTableSortColumn | null>(null);
+  readonly sortDir = signal<InvestorsTableSortDirection>('desc');
+  readonly currentPage = signal(1);
 
-
-
-  private readonly investorsListState = this.store.selectSignal(selectInvestorsList);
-
-  private readonly investorsDetailState = this.store.selectSignal(selectInvestorsDetail);
-
-
-
-  readonly formatCurrency = formatCurrency;
-
-  readonly formatPercent = formatPercent;
-
-  readonly overviewCards = computed(() =>
-
-    sectionCardsFromSections(this.investorDetail()?.sections ?? null),
-
+  readonly listLoading = computed(() => this.listState().loading);
+  readonly listError = computed(() => this.listState().error);
+  readonly totalCount = computed(() => this.listState().totalCount);
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.totalCount() / INVESTORS_LIST_PAGE_SIZE)),
   );
 
+  readonly quarterlyPeriodOptions = computed(() => this.filterOptions().quarterlyPeriods);
 
+  readonly dateKey = computed(() => {
+    const quarter = this.quarter();
+    const year = this.year();
+    if (quarter == null || year == null) {
+      return null;
+    }
 
-  readonly searchQuery = signal('');
+    return (
+      this.quarterlyPeriodOptions().find(
+        (period) => period.quarter === quarter && period.calendarYear === year,
+      )?.dateKey ?? null
+    );
+  });
 
-  readonly fundsSearchQuery = signal('');
+  /** All quarters present in filter-options (not scoped by year — year is scoped by quarter). */
+  readonly availableQuarters = computed(() => {
+    const periods = this.quarterlyPeriodOptions();
+    return [...new Set(periods.map((period) => period.quarter))].sort((a, b) => a - b);
+  });
 
-  readonly investors = computed(() => extractPagedItems(this.investorsListState().items));
+  readonly availableYears = computed(() => {
+    const periods = this.quarterlyPeriodOptions();
+    const selectedQuarter = this.quarter();
+    const scoped = selectedQuarter != null
+      ? periods.filter((period) => period.quarter === selectedQuarter)
+      : periods;
 
-  readonly listLoading = computed(() => this.investorsListState().loading);
+    return [...new Set(scoped.map((period) => period.calendarYear))].sort((a, b) => b - a);
+  });
 
-  readonly listLoadingMore = computed(() => this.investorsListState().loadingMore);
+  readonly periodLabel = computed(() => {
+    if (this.timeframe() !== 'quarterly') {
+      return 'LTD';
+    }
 
-  readonly listError = computed(() => this.investorsListState().error);
+    const quarter = this.quarter();
+    const year = this.year();
+    if (quarter == null || year == null) {
+      return 'Quarterly';
+    }
 
-  readonly totalCount = computed(() => this.investorsListState().totalCount);
+    const period = this.quarterlyPeriodOptions().find(
+      (item) => item.quarter === quarter && item.calendarYear === year,
+    );
+    return period?.label ?? period?.quarterYear ?? `Q${quarter} ${year}`;
+  });
 
-  readonly hasNextPage = computed(() => this.investorsListState().hasNextPage);
+  readonly subtitleText = computed(
+    () => `${this.totalCount()} investor${this.totalCount() === 1 ? '' : 's'} · ${this.periodLabel()}`,
+  );
 
+  readonly activeFilterCount = computed(() => {
+    let count = 0;
+    if (this.tableSearch().trim()) {
+      count += 1;
+    }
+    if (this.investorTypeFilter() !== 'all') {
+      count += 1;
+    }
+    if (this.relationshipFilter() !== 'all') {
+      count += 1;
+    }
+    return count;
+  });
 
+  readonly distributedColumnLabel = computed(() =>
+    this.timeframe() === 'quarterly'
+      ? `Net Distributed (${this.periodLabel()})`
+      : 'Net Distributed (LTD)',
+  );
 
-  readonly selectedInvestorKey = computed(() => this.investorsDetailState().selectedKey);
+  readonly rows = computed(() =>
+    this.listState().items.map((item, index) => mapInvestorListItemToRow(item, index)),
+  );
 
-  readonly investorDetail = computed(() => this.investorsDetailState().detail);
+  readonly investorTypeOptions = computed(() => this.filterOptions().investorTypes);
 
-  readonly investorInvestments = computed(() => this.investorsDetailState().investments);
+  readonly relationshipOptions = computed(() => this.filterOptions().relationships);
 
-  readonly investorFundsLoading = computed(() => this.investorsDetailState().investmentsLoading);
+  readonly pageTotals = computed(() => {
+    const rows = this.rows();
+    return {
+      commitment: rows.reduce((sum, row) => sum + row.commitment, 0),
+      netInvestedCapital: rows.reduce((sum, row) => sum + row.netInvestedCapital, 0),
+      netDistributed: rows.reduce((sum, row) => sum + row.netDistributed, 0),
+      reservedUncalled: rows.reduce((sum, row) => sum + row.reservedUncalled, 0),
+    };
+  });
 
-  readonly investorFundsLoadingMore = computed(() => this.investorsDetailState().investmentsLoadingMore);
+  readonly kpiCards = computed(() => {
+    const summary = this.listState().summary;
+    const total = this.totalCount();
 
-  readonly investorFundsHasNextPage = computed(() => this.investorsDetailState().investmentsHasNextPage);
+    if (summary) {
+      return {
+        totalInvestors: summary.totalInvestors ?? total,
+        totalCommitment: summary.totalCommitment ?? 0,
+        netInvestedCapital: summary.netInvestedCapital ?? 0,
+        netDistributed: summary.netDistributed ?? 0,
+        reservedUncalled: summary.reservedUncalled ?? 0,
+      };
+    }
 
-  readonly detailLoading = computed(() => this.investorsDetailState().loading);
+    const rows = this.rows();
+    return {
+      totalInvestors: total,
+      totalCommitment: rows.reduce((sum, row) => sum + row.commitment, 0),
+      netInvestedCapital: rows.reduce((sum, row) => sum + row.netInvestedCapital, 0),
+      netDistributed: rows.reduce((sum, row) => sum + row.netDistributed, 0),
+      reservedUncalled: rows.reduce((sum, row) => sum + row.reservedUncalled, 0),
+    };
+  });
 
-  readonly detailError = computed(() => this.investorsDetailState().error);
+  readonly pageNumbers = computed(() => {
+    const totalPages = this.totalPages();
+    const currentPage = this.currentPage();
 
+    if (totalPages <= VISIBLE_PAGE_BUTTON_COUNT) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
 
+    let start = Math.max(1, currentPage - 1);
+    if (start + VISIBLE_PAGE_BUTTON_COUNT - 1 > totalPages) {
+      start = totalPages - VISIBLE_PAGE_BUTTON_COUNT + 1;
+    }
 
-  readonly activeTabIndex = signal(0);
+    return Array.from(
+      { length: VISIBLE_PAGE_BUTTON_COUNT },
+      (_, index) => start + index,
+    );
+  });
 
-  /** Overview=0, Commitments=1, Unfunded=2, Investments=3, Distributions=4, NAV=5 */
+  readonly showingFrom = computed(() =>
+    this.totalCount() === 0 ? 0 : (this.currentPage() - 1) * INVESTORS_LIST_PAGE_SIZE + 1,
+  );
 
-  readonly commitmentsTabIndex = 1;
-
-  readonly unfundedCommitmentsTabIndex = 2;
-
-  readonly capitalInvestmentsTabIndex = 3;
-
-  readonly distributionsTabIndex = 4;
-
-  readonly navTabIndex = 5;
-
-
-
-  readonly listColumns = ['investor', 'invested'];
-
-  readonly fundColumns = ['name', 'type', 'status', 'value', 'return'];
-
-
-
-  readonly selectedInvestor = computed(() => this.investorDetail());
-
-
-
-  private pendingScrollKey: number | null = null;
-
-  private pendingSelectName: string | null = null;
-
-  private pendingAutoOpenFirst = false;
-
-  private loadingMoreForScroll = false;
-
-
-
-  private readonly listScrollContainer = viewChild<ElementRef<HTMLElement>>('listScrollContainer');
-
-  private readonly loadDetail$ = new Subject<number>();
-
-
+  readonly showingTo = computed(() =>
+    Math.min(this.currentPage() * INVESTORS_LIST_PAGE_SIZE, this.totalCount()),
+  );
 
   constructor() {
-
-    this.route.queryParamMap
-
-      .pipe(takeUntilDestroyed())
-
-      .subscribe((params) => {
-
-        const detailTab = params.get('detailTab');
-
-        if (
-          detailTab === 'funds' ||
-          detailTab === 'investments' ||
-          detailTab === 'capital-investments'
-        ) {
-          this.activeTabIndex.set(this.capitalInvestmentsTabIndex);
-        }
-
-        if (detailTab === 'commitments') this.activeTabIndex.set(this.commitmentsTabIndex);
-
-        if (detailTab === 'unfunded') this.activeTabIndex.set(this.unfundedCommitmentsTabIndex);
-
-        if (detailTab === 'distributions') this.activeTabIndex.set(this.distributionsTabIndex);
-
-        if (detailTab === 'nav') this.activeTabIndex.set(this.navTabIndex);
-
-        if (detailTab === 'overview') this.activeTabIndex.set(0);
-
-
-
-        const selectedRaw = params.get('selected');
-
-        const selectedParsed = selectedRaw ? Number(selectedRaw) : NaN;
-
-        this.pendingScrollKey = Number.isFinite(selectedParsed) ? selectedParsed : null;
-
-
-
-        const search = (params.get('search') ?? '').trim();
-
-        this.pendingSelectName = search || null;
-
-        this.pendingAutoOpenFirst = !!search;
-
-        if (search && this.searchQuery() !== search) {
-
-          this.searchQuery.set(search);
-
-        }
-
-      });
-
-
-
-    toObservable(this.searchQuery)
-
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
-
-      .subscribe((search) => {
-
-        this.pendingScrollKey = this.pendingScrollKey ?? this.selectedIdFromRoute();
-
-        this.store.dispatch(InvestorsApiActions.loadList({ search, page: 1, replace: true }));
-
-      });
-
-
-
-    toObservable(this.fundsSearchQuery)
-
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
-
-      .subscribe((search) => {
-
-        const investorKey = this.investorsDetailState().selectedKey;
-
-        if (!investorKey) return;
-
-        this.store.dispatch(
-
-          InvestorsApiActions.loadInvestorFundsPage({
-
-            investorKey,
-
-            page: 1,
-
-            search,
-
-          }),
-
-        );
-
-      });
-
-
-
-    const initialSelected = this.selectedIdFromRoute();
-
-    if (initialSelected != null) {
-
-      this.pendingScrollKey = initialSelected;
-
-    }
-
-
-
-    this.loadDetail$.pipe(takeUntilDestroyed()).subscribe((investorKey) => {
-
-      this.activeTabIndex.set(0);
-
-      this.fundsSearchQuery.set('');
-
-      this.store.dispatch(InvestorsApiActions.loadDetail({ investorKey }));
-
-    });
-
-
-
-    effect(() => {
-
-      const list = this.investorsListState();
-
-      if (!list.loading && !list.loadingMore) {
-
-        this.ensureSelectedInListAndScroll();
-
-      }
-
-    });
-
-
-
-    effect(() => {
-      const detail = this.investorsDetailState();
-
-      if (!detail.loading && detail.detail) {
-        this.cleanupDeepLinkQueryParams();
-      }
-    });
-  }
-
-
-
-  onDetailTabIndexChange(index: number): void {
-
-    this.activeTabIndex.set(index);
-
-  }
-
-
-
-  private loadInvestorFundsPageIfNeeded(): void {
-
-    const investorKey = this.selectedInvestorKey();
-
-    if (!investorKey || this.detailLoading()) return;
-
-
-
-    const detail = this.investorsDetailState();
-
-    const search = this.fundsSearchQuery().trim();
-
-    if (detail.investmentsLoading || detail.investmentsLoadingMore) return;
-
-    if (
-
-      detail.investments.length > 0 &&
-
-      detail.investmentsSearch.trim() === search
-
-    ) {
-
-      return;
-
-    }
-
-
-
-    this.store.dispatch(
-
-      InvestorsApiActions.loadInvestorFundsPage({
-
-        investorKey,
-
-        page: 1,
-
-        search,
-
-      }),
-
-    );
-
-  }
-
-
-
-  loadMoreInvestorFunds(): void {
-
-    const detail = this.investorsDetailState();
-
-    if (detail.investmentsLoading || detail.investmentsLoadingMore || !detail.investmentsHasNextPage) {
-
-      return;
-
-    }
-
-    const investorKey = detail.selectedKey;
-
-    if (!investorKey) return;
-
-
-
-    this.store.dispatch(
-
-      InvestorsApiActions.loadInvestorFundsPage({
-
-        investorKey,
-
-        page: detail.investmentsPage + 1,
-
-        search: detail.investmentsSearch,
-
-      }),
-
-    );
-
-  }
-
-
-
-  clearFundsSearch(): void {
-
-    this.fundsSearchQuery.set('');
-
-  }
-
-
-
-  private cleanupDeepLinkQueryParams(): void {
-
-    const params = this.route.snapshot.queryParamMap;
-
-    const hasDeepLinkParams = params.has('selected') || params.has('search') || params.has('detailTab');
-
-    if (!hasDeepLinkParams) return;
-
-
-
-    void this.router.navigate([], {
-
-      relativeTo: this.route,
-
-      queryParams: {
-
-        selected: null,
-
-        search: null,
-
-        detailTab: null,
-
-      },
-
-      queryParamsHandling: 'merge',
-
-      replaceUrl: true,
-
-    });
-
-  }
-
-
-
-  loadMore(): void {
-
-    this.store.dispatch(InvestorsApiActions.loadListMore());
-
-  }
-
-
-
-  selectInvestor(investor: InvestorListItemDto): void {
-
-    this.requestDetail(investor.investorKey);
-
-  }
-
-
-
-  clearSelection(): void {
-
-    this.store.dispatch(InvestorsApiActions.clearDetail());
-
-    this.activeTabIndex.set(0);
-
-  }
-
-
-
-  investorIcon(type: string | null | undefined): string {
-
-    switch (type) {
-
-      case 'Institution':
-
-        return 'business';
-
-      case 'Family Office':
-
-      case 'Trust':
-
-        return 'account_balance';
-
-      default:
-
-        return 'person';
-
-    }
-
-  }
-
-
-
-  private summaryValueRaw(key: string): unknown | null {
-
-    const summary = this.investorDetail()?.summary;
-
-    if (!summary) return null;
-
-    const record = summary as unknown as Record<string, unknown>;
-
-    return record[key] ?? null;
-
-  }
-
-
-
-  summaryDisplay(key: string): string {
-
-    const raw = this.summaryValueRaw(key);
-
-    if (raw == null) return '—';
-
-    if (typeof raw === 'string') return raw.trim() || '—';
-
-    if (typeof raw === 'number' || typeof raw === 'boolean') return String(raw);
-
-    return String(raw).trim() || '—';
-
-  }
-
-
-
-  summaryMoney(key: string): string {
-
-    const raw = this.summaryValueRaw(key);
-
-    if (typeof raw === 'number' && Number.isFinite(raw)) return formatCurrency(raw);
-
-    if (typeof raw === 'string') {
-
-      const parsed = Number(raw.trim());
-
-      if (Number.isFinite(parsed)) return formatCurrency(parsed);
-
-      return raw.trim() || '—';
-
-    }
-
-    return '—';
-
-  }
-
-
-
-  summaryNumber(key: string): number {
-
-    const raw = this.summaryValueRaw(key);
-
-    if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
-
-    if (typeof raw === 'string') {
-
-      const parsed = Number(raw.trim());
-
-      if (Number.isFinite(parsed)) return parsed;
-
-    }
-
-    return 0;
-
-  }
-
-
-
-  joinDateDisplay(): string {
-
-    const year = this.summaryNumber('joinYear');
-
-    if (year > 0) return String(year);
-
-    return '—';
-
-  }
-
-
-
-  goToInvestment(fundKey: number, fundName: string | null | undefined): void {
-
-    void this.router.navigate(['../investment'], {
-
-      relativeTo: this.route,
-
-      queryParams: {
-
-        selected: fundKey,
-
-        search: fundName?.trim() || undefined,
-
-        detailTab: 'overview',
-
-      },
-
-      queryParamsHandling: 'merge',
-
-      replaceUrl: true,
-
-    });
-
-  }
-
-
-
-  private readonly selectedIdFromRoute = () => {
-
-    const value = this.route.snapshot.queryParamMap.get('selected');
-
-    if (!value) return null;
-
-    const parsed = Number(value);
-
-    return Number.isFinite(parsed) ? parsed : null;
-
-  };
-
-
-
-  private ensureSelectedInListAndScroll(): void {
-
-    let key = this.pendingScrollKey ?? this.selectedInvestorKey();
-
-    if (key == null && this.pendingSelectName) {
-
-      key = this.matchInvestorKeyByName(this.pendingSelectName);
-
-      if (key != null) this.pendingScrollKey = key;
-
-    }
-
-    if (key == null) {
-
-      if (this.pendingAutoOpenFirst) {
-
-        const first = this.investors()[0] ?? null;
-
-        if (first) {
-
-          this.pendingAutoOpenFirst = false;
-
-          this.pendingScrollKey = first.investorKey;
-
-          this.requestDetail(first.investorKey);
-
-          this.scrollToSelected(first.investorKey);
-
-        }
-
-      }
-
-      return;
-
-    }
-
-
-
-    if (this.investors().some((investor) => investor.investorKey === key)) {
-
-      this.requestDetail(key);
-
-      this.scrollToSelected(key);
-
-      return;
-
-    }
-
-
-
-    if (!this.hasNextPage() && this.pendingSelectName) {
-
-      const byName = this.matchInvestorKeyByName(this.pendingSelectName);
-
-      if (byName != null && byName !== key) {
-
-        this.pendingScrollKey = byName;
-
-        this.requestDetail(byName);
-
-        this.scrollToSelected(byName);
-
-        return;
-
-      }
-
-    }
-
-
-
-    if (!this.hasNextPage() && this.pendingAutoOpenFirst) {
-
-      const first = this.investors()[0] ?? null;
-
-      if (first) {
-
-        this.pendingAutoOpenFirst = false;
-
-        this.pendingScrollKey = first.investorKey;
-
-        this.requestDetail(first.investorKey);
-
-        this.scrollToSelected(first.investorKey);
-
-        return;
-
-      }
-
-    }
-
-
-
-    if (this.hasNextPage() && !this.listLoadingMore() && !this.loadingMoreForScroll) {
-
-      this.loadingMoreForScroll = true;
-
-      this.store.dispatch(InvestorsApiActions.loadListMore());
-
-      queueMicrotask(() => {
-
-        this.loadingMoreForScroll = false;
-
-      });
-
-    }
-
-  }
-
-
-
-  private matchInvestorKeyByName(name: string): number | null {
-
-    const needle = name.trim().toLowerCase();
-
-    if (!needle) return null;
-
-
-
-    const matches = this.investors().filter((inv) => {
-
-      const hay = (inv.investorName ?? '').trim().toLowerCase();
-
-      return hay === needle || hay.includes(needle);
-
-    });
-
-
-
-    if (matches.length === 1) return matches[0].investorKey;
-
-    return null;
-
-  }
-
-
-
-  private requestDetail(investorKey: number): void {
-
-    const detail = this.investorsDetailState();
-
-    if (
-
-      !shouldRequestDetail(
-
-        detail.selectedKey,
-
-        detail.loading,
-
-        detail.detail != null,
-
-        investorKey,
-
+    this.routeSearchSync.bindTableSearch(this.tableSearch, () => this.currentPage.set(1));
+
+    this.investorsApi
+      .getFilterOptions()
+      .pipe(
+        catchError(() => of(null)),
+        takeUntilDestroyed(),
       )
+      .subscribe((response) => {
+        const options = normalizeInvestorsFilterOptions(response);
+        this.filterOptions.set(options);
+        this.ensureQuarterlySelection(options);
+      });
 
-    ) {
-
-      return;
-
-    }
-
-    this.loadDetail$.next(investorKey);
-
-  }
-
-
-
-  private scrollToSelected(key: number): void {
-
-    const rowIndex = this.investors().findIndex((investor) => investor.investorKey === key);
-
-    scrollListItemIntoView(() => this.listScrollContainer()?.nativeElement, key, {
-
-      rowIndex,
-
-      onSuccess: () => {
-
-        this.pendingScrollKey = null;
-
-      },
-
+    effect(() => {
+      this.timeframe();
+      this.quarter();
+      this.year();
+      this.investorTypeFilter();
+      this.relationshipFilter();
+      this.sortColumn();
+      this.sortDir();
+      this.currentPage();
+      if (this.timeframe() === 'quarterly' && this.dateKey() == null) {
+        return;
+      }
+      this.dispatchLoad(true);
     });
 
+    toObservable(this.tableSearch)
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe(() => {
+        this.currentPage.set(1);
+        this.dispatchLoad(true);
+      });
   }
 
+  setTimeframe(view: TimeframeView): void {
+    this.timeframe.set(view);
+    if (view === 'quarterly') {
+      this.ensureQuarterlySelection(this.filterOptions());
+    }
+    this.currentPage.set(1);
+  }
+
+  setQuarter(quarter: number): void {
+    this.quarter.set(quarter);
+    this.alignYearToQuarter();
+    this.currentPage.set(1);
+  }
+
+  setYear(year: number): void {
+    this.year.set(year);
+    this.alignQuarterToYear();
+    this.currentPage.set(1);
+  }
+
+  toggleFiltersPanel(): void {
+    this.filtersPanelVisible.update((value) => !value);
+  }
+
+  clearAllFilters(): void {
+    this.tableSearch.set('');
+    this.investorTypeFilter.set('all');
+    this.relationshipFilter.set('all');
+    this.currentPage.set(1);
+  }
+
+  toggleSort(column: InvestorsTableSortColumn): void {
+    if (this.sortColumn() === column) {
+      this.sortDir.update((dir) => (dir === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDir.set(defaultInvestorsSortDirection(column));
+    }
+    this.currentPage.set(1);
+  }
+
+  isSortActive(column: InvestorsTableSortColumn): boolean {
+    return this.sortColumn() === column;
+  }
+
+  sortIcon(column: InvestorsTableSortColumn): string {
+    if (!this.isSortActive(column)) {
+      return 'unfold_more';
+    }
+    return this.sortDir() === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages()) {
+      return;
+    }
+    this.currentPage.set(page);
+  }
+
+  retryLoad(): void {
+    this.dispatchLoad(true);
+  }
+
+  downloadTable(): void {
+    const rows = this.rows();
+    if (!rows.length) {
+      return;
+    }
+
+    this.excel.export<InvestorTableRow>({
+      filename: 'investors',
+      sheetName: 'Investors',
+      columns: [
+        { header: 'Investor Name', value: (row) => row.name },
+        { header: 'Type', value: (row) => row.investorType },
+        { header: 'Relationship', value: (row) => row.relationship },
+        { header: 'Funds', value: (row) => row.fundsCount },
+        { header: 'Commitment', value: (row) => row.commitment },
+        { header: 'Net Invested Capital', value: (row) => row.netInvestedCapital },
+        { header: this.distributedColumnLabel(), value: (row) => row.netDistributed },
+        { header: 'Reserved / Uncalled', value: (row) => row.reservedUncalled },
+        { header: 'Released Capital', value: (row) => row.releasedCapital ?? '—' },
+        { header: 'Contact', value: (row) => row.contactName },
+      ],
+      rows,
+    });
+  }
+
+  private dispatchLoad(replace: boolean): void {
+    const activeSortColumn = this.sortColumn();
+    const sortBy = activeSortColumn
+      ? INVESTORS_TABLE_SORT_API_FIELDS[activeSortColumn]
+      : undefined;
+    const sortDir = activeSortColumn ? this.sortDir() : undefined;
+
+    const activeDateKey = this.timeframe() === 'quarterly' ? this.dateKey() : null;
+
+    const cacheKey = buildInvestorsListCacheKey({
+      view: this.timeframe(),
+      dateKey: activeDateKey,
+      investorType: this.investorTypeFilter(),
+      relationship: this.relationshipFilter(),
+      sortBy: sortBy ?? null,
+      sortDir: sortDir ?? null,
+    });
+
+    const apiParams: InvestorsListQueryParams = {
+      view: this.timeframe(),
+      page: this.currentPage(),
+      pageSize: INVESTORS_LIST_PAGE_SIZE,
+      search: this.tableSearch().trim() || undefined,
+      ...(sortBy && sortDir ? { sortBy, sortDir } : {}),
+      ...(activeDateKey != null ? { dateKey: activeDateKey } : {}),
+      ...(this.investorTypeFilter() !== 'all'
+        ? { investorType: this.investorTypeFilter() }
+        : {}),
+      ...(this.relationshipFilter() !== 'all'
+        ? { relationship: this.relationshipFilter() }
+        : {}),
+    };
+
+    this.store.dispatch(
+      InvestorsApiActions.loadList({
+        search: this.tableSearch().trim(),
+        page: this.currentPage(),
+        replace,
+        cacheKey,
+        apiParams,
+      }),
+    );
+  }
+
+  private ensureQuarterlySelection(options: InvestorsFilterOptions): void {
+    const periods = options.quarterlyPeriods;
+    if (!periods.length) {
+      this.quarter.set(null);
+      this.year.set(null);
+      return;
+    }
+
+    const quarter = this.quarter();
+    const year = this.year();
+    if (
+      quarter != null &&
+      year != null &&
+      periods.some((period) => period.quarter === quarter && period.calendarYear === year)
+    ) {
+      return;
+    }
+
+    const first = periods[0];
+    this.quarter.set(first.quarter);
+    this.year.set(first.calendarYear);
+  }
+
+  private alignYearToQuarter(): void {
+    const years = this.availableYears();
+    const currentYear = this.year();
+    if (currentYear == null || !years.includes(currentYear)) {
+      this.year.set(years[0] ?? null);
+    }
+  }
+
+  private alignQuarterToYear(): void {
+    const quarters = this.availableQuarters();
+    const currentQuarter = this.quarter();
+    if (currentQuarter == null || !quarters.includes(currentQuarter)) {
+      this.quarter.set(quarters[0] ?? null);
+    }
+  }
 }
-
-

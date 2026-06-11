@@ -1,0 +1,334 @@
+@use './capital-data-tool';
+
+body[data-ks-capital-dashboard] {
+  .cdt-shell {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    background: var(--cdt-page-bg);
+    overflow: hidden;
+  }
+
+  .cdt-topbar {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    flex-shrink: 0;
+    min-height: 3.25rem;
+    padding: 0.625rem 1.5rem;
+    background: var(--cdt-header-bg);
+    color: #fff;
+  }
+
+  .cdt-topbar__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    flex-shrink: 0;
+  }
+
+  .cdt-topbar__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    background: var(--cdt-gold);
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 700;
+    font-family: var(--cdt-font-serif);
+    line-height: 1;
+  }
+
+  .cdt-topbar__title {
+    font-family: var(--cdt-font-serif);
+    font-size: 1.125rem;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+
+  .cdt-topbar__dash {
+    opacity: 0.9;
+  }
+
+  .cdt-topbar__search-wrap {
+    position: relative;
+    flex: 1;
+    max-width: 42rem;
+    margin: 0 auto;
+  }
+
+  .cdt-topbar__search {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.875rem;
+    background: var(--cdt-header-search-bg);
+    border: 1px solid var(--cdt-header-search-border);
+    border-radius: var(--cdt-radius);
+  }
+
+  .cdt-topbar__search-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    font-size: 1.125rem;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .cdt-topbar__search-input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: #fff;
+    font-family: var(--cdt-font-sans);
+    font-size: 0.875rem;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.65);
+    }
+
+    &::-webkit-search-cancel-button {
+      display: none;
+    }
+  }
+
+  .cdt-topbar__search-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+
+    .mat-icon {
+      width: 1rem;
+      height: 1rem;
+      font-size: 1rem;
+    }
+
+    &:hover {
+      color: #fff;
+    }
+  }
+
+  .cdt-topbar-search-panel {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    max-height: 24rem;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+  }
+
+  .cdt-topbar-search-panel__state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1.5rem 1rem;
+    color: #64748b;
+    font-size: 0.875rem;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  .cdt-topbar-search-panel__spinner {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 74, 153, 0.15);
+    border-top-color: #004a99;
+    animation: cdt-topbar-search-spin 0.75s linear infinite;
+  }
+
+  @keyframes cdt-topbar-search-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .cdt-topbar-search-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 0;
+    border-bottom: 1px solid #f1f5f9;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+
+    &:last-child {
+      border-bottom: 0;
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: #f8fafc;
+      outline: none;
+    }
+  }
+
+  .cdt-topbar-search-item__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 8px;
+    flex-shrink: 0;
+
+    .mat-icon {
+      width: 1.125rem;
+      height: 1.125rem;
+      font-size: 1.125rem;
+    }
+  }
+
+  .cdt-topbar-search-item__icon--fund {
+    background: #f1f5f9;
+    color: #64748b;
+  }
+
+  .cdt-topbar-search-item__icon--investor {
+    background: #fff7ed;
+    color: #ea580c;
+  }
+
+  .cdt-topbar-search-item__icon--asset {
+    background: #eff6ff;
+    color: #2563eb;
+  }
+
+  .cdt-topbar-search-item__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .cdt-topbar-search-item__name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cdt-topbar-search-item__subtitle {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: #64748b;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cdt-topbar-search-item__badge {
+    flex-shrink: 0;
+    padding: 0.2rem 0.625rem;
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    white-space: nowrap;
+  }
+
+  .cdt-topbar-search-item__badge--fund {
+    background: #eff6ff;
+    color: #2563eb;
+  }
+
+  .cdt-topbar-search-item__badge--investor {
+    background: #fff7ed;
+    color: #ea580c;
+  }
+
+  .cdt-topbar-search-item__badge--asset {
+    background: #eff6ff;
+    color: #2563eb;
+  }
+
+  .cdt-subnav {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    flex-shrink: 0;
+    padding: 0 1.5rem;
+    background: var(--cdt-surface);
+    border-bottom: 1px solid var(--cdt-border);
+  }
+
+  .cdt-subnav__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.25rem;
+    color: var(--cdt-text-muted);
+    font-family: var(--cdt-font-sans);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+
+    .mat-icon {
+      width: 1.125rem;
+      height: 1.125rem;
+      font-size: 1.125rem;
+    }
+
+    &:hover {
+      color: var(--cdt-text);
+    }
+
+    &--active {
+      color: var(--cdt-navy);
+      font-weight: 600;
+      border-bottom-color: var(--cdt-header-bg);
+    }
+  }
+
+  .cdt-main {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--cdt-page-bg);
+
+    > app-capital-dashboard-investors,
+    > app-capital-dashboard-investments,
+    > app-capital-dashboard-assets {
+      display: flex;
+      flex: 1 1 0;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+  }
+}
