@@ -9,10 +9,11 @@
       <button
         type="button"
         class="cdt-btn cdt-btn--filters"
+        [class.cdt-btn--filters-active]="filtersPanelVisible()"
         (click)="toggleFiltersPanel()"
         [attr.aria-expanded]="filtersPanelVisible()"
       >
-        <mat-icon aria-hidden="true">filter_list</mat-icon>
+        <mat-icon aria-hidden="true">filter_alt</mat-icon>
         Filters
         @if (activeFilterCount() > 0) {
           <span class="cdt-btn__badge">{{ activeFilterCount() }}</span>
@@ -20,7 +21,13 @@
       </button>
 
       <button type="button" class="cdt-btn cdt-btn--download" (click)="downloadTable()">
-        <mat-icon aria-hidden="true">download</mat-icon>
+        <span class="cdt-btn__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 15V3" />
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <path d="m7 10 5 5 5-5" />
+          </svg>
+        </span>
         Download
       </button>
     </div>
