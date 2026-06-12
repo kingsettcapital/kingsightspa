@@ -62,15 +62,18 @@ export class MainLayoutComponent implements OnInit {
   isMobileNavOpen = signal(false);
   isAIChatOpen = signal(false);
   openDropdown = signal<string | null>(null);
+  hideAppSidebar = signal(this.isCapitalDashboardUrl(this.router.url));
 
   ngOnInit(): void {
     this.syncDropdownToRoute(this.router.url);
+    this.hideAppSidebar.set(this.isCapitalDashboardUrl(this.router.url));
 
     this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event) => {
         const navigation = event as NavigationEnd;
         this.syncDropdownToRoute(navigation.urlAfterRedirects);
+        this.hideAppSidebar.set(this.isCapitalDashboardUrl(navigation.urlAfterRedirects));
         this.closeMobileNav();
       });
   }
@@ -124,6 +127,10 @@ export class MainLayoutComponent implements OnInit {
       return;
     }
     this.openDropdown.update((v) => (v === label ? null : label));
+  }
+
+  private isCapitalDashboardUrl(url: string): boolean {
+    return url.startsWith('/capital-dashboard');
   }
 
   private syncDropdownToRoute(url: string): void {

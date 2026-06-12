@@ -12,6 +12,11 @@
   background: var(--ks-color-bg);
 }
 
+.ks-app-shell--no-sidebar .ks-app-main {
+  flex: 1 1 100%;
+  width: 100%;
+}
+
 .ks-app-shell > app-ai-chat-sidebar {
   display: flex;
   flex-shrink: 0;

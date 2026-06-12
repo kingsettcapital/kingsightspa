@@ -1,44 +1,12 @@
 @use 'capital-data-tool';
 
 body[data-ks-capital-dashboard] {
-  app-capital-dashboard-investors {
-    display: flex;
-    flex: 1 1 0;
-    flex-direction: column;
-    min-height: 0;
-    height: 100%;
-    overflow: hidden;
-  }
-
   .cdt-investors {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
-    padding: 1.5rem 2rem 1.25rem;
-    min-height: 0;
-    flex: 1 1 0;
-    height: 100%;
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    scrollbar-color: #c1c1c1 #f1f1f1;
     background: var(--cdt-page-bg);
     font-family: var(--cdt-font-sans);
-
-    &::-webkit-scrollbar {
-      width: 0.5rem;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: #f1f1f1;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background-color: #c1c1c1;
-      border-radius: 0.25rem;
-    }
   }
 
   .cdt-investors__header,
@@ -553,6 +521,10 @@ body[data-ks-capital-dashboard] {
     background: #fafbfc;
   }
 
+  .cdt-table__row--clickable {
+    cursor: pointer;
+  }
+
   .cdt-table__sort {
     display: inline-flex;
     align-items: center;
@@ -768,10 +740,6 @@ body[data-ks-capital-dashboard] {
   }
 
   @media (max-width: 768px) {
-    .cdt-investors {
-      padding: 1rem;
-    }
-
     .cdt-kpi-row {
       grid-template-columns: 1fr;
     }

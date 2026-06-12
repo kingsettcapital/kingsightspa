@@ -287,7 +287,7 @@
           </thead>
           <tbody>
             @for (row of rows(); track row.investorKey) {
-              <tr class="cdt-table__row">
+              <tr class="cdt-table__row cdt-table__row--clickable" (click)="openInvestor(row)">
                 <td>
                   <div class="cdt-investor-cell">
                     <span

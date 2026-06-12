@@ -138,6 +138,14 @@ export class CapitalDashboardComponent {
       return;
     }
 
+    if (tab === 'investor') {
+      this.router.navigate([`./investor/${result.entity_key}`], {
+        relativeTo: this.route,
+        queryParams: { search: result.name },
+      });
+      return;
+    }
+
     this.router.navigate([`./${tab}`], {
       relativeTo: this.route,
       queryParams: {
@@ -163,7 +171,9 @@ export class CapitalDashboardComponent {
       return path;
     }
 
-    const urlMatch = this.router.url.match(/\/capital-dashboard\/(investor|investment|asset)(?:\/|$|\?)/);
+    const urlMatch = this.router.url.match(
+      /\/capital-dashboard\/(investor|investment|asset)(?:\/|$|\?)/,
+    );
     const urlTab = urlMatch?.[1];
     if (urlTab === 'investor' || urlTab === 'investment' || urlTab === 'asset') {
       return urlTab;

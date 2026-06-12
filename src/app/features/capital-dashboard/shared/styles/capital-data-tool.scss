@@ -30,9 +30,29 @@ body[data-ks-capital-dashboard] {
   --cdt-control-border: #d8dee6;
   --cdt-subtitle-color: #718096;
   --cdt-table-scroll-height: 28rem;
-
+  --cdt-content-padding-x: 3rem;
+  --cdt-content-padding-y: 1.5rem;
+  --cdt-content-padding-bottom: 1.25rem;
   --ks-capital-dashboard-font-family: var(--cdt-font-sans);
   font-family: var(--cdt-font-sans);
+
+  .cdt-investors,
+  .cdt-investments,
+  .cdt-assets {
+    width: 100%;
+    padding: var(--cdt-content-padding-y) var(--cdt-content-padding-x) var(--cdt-content-padding-bottom);
+    box-sizing: border-box;
+  }
+
+  @media (min-width: 100rem) {
+    --cdt-content-padding-x: 4rem;
+  }
+
+  @media (max-width: 768px) {
+    --cdt-content-padding-x: 1rem;
+    --cdt-content-padding-y: 1rem;
+    --cdt-content-padding-bottom: 1rem;
+  }
 
   /* Hide app chrome — Figma uses its own top bar */
   .ks-header {

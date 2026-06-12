@@ -11,6 +11,13 @@ export const CAPITAL_DASHBOARD_ROUTES: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'investor' },
       {
+        path: 'investor/:investorKey',
+        loadComponent: () =>
+          import('./investors/investor-detail/investor-detail.component').then(
+            (m) => m.InvestorDetailComponent,
+          ),
+      },
+      {
         path: 'investor',
         loadComponent: () =>
           import('./investors/capital-dashboard-investors.component').then(

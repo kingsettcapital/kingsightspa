@@ -1,5 +1,5 @@
-<div class="ks-app-shell">
-  @if (isMobileNavOpen()) {
+<div class="ks-app-shell" [class.ks-app-shell--no-sidebar]="hideAppSidebar()">
+  @if (isMobileNavOpen() && !hideAppSidebar()) {
     <button
       type="button"
       class="ks-sidebar-backdrop"
@@ -8,6 +8,7 @@
     ></button>
   }
 
+  @if (!hideAppSidebar()) {
   <aside
     class="ks-sidebar"
     [class.ks-sidebar--collapsed]="!isSidebarExpanded()"
@@ -218,6 +219,7 @@
       </button>
     </div>
   </aside>
+  }
 
   <div class="ks-app-main">
     <header class="ks-header">
