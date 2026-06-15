@@ -6,6 +6,8 @@
 @use '../shared/styles/capital-data-tool-investor-detail';
 @use '../shared/styles/capital-data-tool-investments';
 @use '../shared/styles/capital-data-tool-assets';
+@use '../shared/styles/capital-data-tool-dashboard';
+@use '../shared/styles/capital-data-tool-table-scroll';
 
 body[data-ks-capital-dashboard] {
   /* Capital Dashboard typography */
@@ -15,7 +17,8 @@ body[data-ks-capital-dashboard] {
   .cdt-shell,
   .cdt-investors,
   .cdt-investments,
-  .cdt-assets {
+  .cdt-assets,
+  .cdt-dashboard {
     text-transform: none;
 
     h1,
@@ -33,6 +36,7 @@ body[data-ks-capital-dashboard] {
     }
 
     .cdt-kpi__label,
+    .cdt-dashboard-kpi__label,
     .cdt-filters-bar__label,
     .cdt-table thead th,
     .cdt-table__total-row td {
@@ -41,12 +45,16 @@ body[data-ks-capital-dashboard] {
 
     .cdt-kpi__label,
     .cdt-kpi__value,
-    .cdt-kpi__hint {
+    .cdt-kpi__hint,
+    .cdt-dashboard-kpi__label,
+    .cdt-dashboard-kpi__value,
+    .cdt-dashboard-kpi__hint {
       color: #fff;
     }
 
     h1.cdt-investors__title,
-    h1.cdt-investments__title {
+    h1.cdt-investments__title,
+    h1.cdt-dashboard-header__title {
       font-family: 'Rufina', Georgia, serif;
       font-size: 1.25rem;
       font-weight: 700;
@@ -68,7 +76,9 @@ body[data-ks-capital-dashboard] {
   }
 
   app-capital-dashboard-investors,
-  app-capital-dashboard-investments {
+  app-capital-dashboard-investments,
+  app-capital-dashboard-assets,
+  app-capital-dashboard-dashboard {
     display: flex;
     flex: 1;
     min-height: 0;
@@ -311,7 +321,8 @@ body[data-ks-capital-dashboard] {
   app-capital-dashboard-investors,
   app-capital-dashboard-investments,
   app-capital-dashboard-assets {
-    display: block;
+    display: flex;
+    flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
     height: 100%;

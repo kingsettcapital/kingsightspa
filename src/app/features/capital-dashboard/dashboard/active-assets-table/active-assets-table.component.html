@@ -1,0 +1,80 @@
+<section class="cdt-dashboard-table-card" aria-label="Active Assets">
+  <header class="cdt-dashboard-table-card__header">
+    <div class="cdt-dashboard-table-card__heading">
+      <h2 class="cdt-dashboard-table-card__title">Active Assets</h2>
+      <p class="cdt-dashboard-table-card__subtitle">{{ subtitleText() }}</p>
+    </div>
+
+    <div class="cdt-dashboard-table-card__actions">
+      <a class="cdt-dashboard-table-card__more" routerLink="../asset">
+        More
+        <mat-icon aria-hidden="true">chevron_right</mat-icon>
+      </a>
+    </div>
+  </header>
+
+  <div class="cdt-dashboard-table-card__body">
+    <div class="cdt-dashboard-table-wrap">
+      <table class="cdt-dashboard-table">
+        <thead>
+          <tr>
+            <th class="cdt-dashboard-table__rank-col">#</th>
+            <th>Asset Name</th>
+            <th>Type</th>
+            <th>City</th>
+            <th class="cdt-dashboard-table__num-col">Market Value</th>
+            <th class="cdt-dashboard-table__num-col">Quarterly NOI</th>
+            <th class="cdt-dashboard-table__num-col">Occupancy</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (loading()) {
+            <tr>
+              <td colspan="8">Loading assets…</td>
+            </tr>
+          } @else if (error()) {
+            <tr>
+              <td colspan="8">{{ error() }}</td>
+            </tr>
+          } @else if (!rows().length) {
+            <tr>
+              <td colspan="8">No active assets found.</td>
+            </tr>
+          }
+          @for (row of rows(); track row.rank) {
+            <tr>
+              <td class="cdt-dashboard-table__rank-col">{{ row.rank }}</td>
+              <td class="cdt-dashboard-table__name">{{ row.name }}</td>
+              <td>{{ row.type }}</td>
+              <td>{{ row.city }}</td>
+              <td class="cdt-dashboard-table__num-col">{{ row.marketValue }}</td>
+              <td class="cdt-dashboard-table__num-col">{{ row.quarterlyNoi }}</td>
+              <td
+                class="cdt-dashboard-table__num-col"
+                [class.cdt-dashboard-table__num-col--positive]="row.occupancyTone === 'positive'"
+                [class.cdt-dashboard-table__num-col--warning]="row.occupancyTone === 'warning'"
+              >
+                {{ row.occupancy }}
+              </td>
+              <td
+                class="cdt-dashboard-table__status"
+                [class.cdt-dashboard-table__status--positive]="row.statusTone === 'positive'"
+                [class.cdt-dashboard-table__status--warning]="row.statusTone === 'warning'"
+              >
+                {{ row.status }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer class="cdt-dashboard-table-card__footer">
+    <a class="cdt-dashboard-table-card__footer-link" routerLink="../asset">
+      View All Assets
+      <mat-icon aria-hidden="true">chevron_right</mat-icon>
+    </a>
+  </footer>
+</section>

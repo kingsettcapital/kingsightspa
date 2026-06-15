@@ -30,6 +30,8 @@ body[data-ks-capital-dashboard] {
   --cdt-control-border: #d8dee6;
   --cdt-subtitle-color: #718096;
   --cdt-table-scroll-height: 28rem;
+  --cdt-tab-table-body-max-height: calc(100dvh - 22rem);
+  --cdt-dashboard-table-body-max-height: 16rem;
   --cdt-content-padding-x: 3rem;
   --cdt-content-padding-y: 1.5rem;
   --cdt-content-padding-bottom: 1.25rem;
@@ -38,7 +40,8 @@ body[data-ks-capital-dashboard] {
 
   .cdt-investors,
   .cdt-investments,
-  .cdt-assets {
+  .cdt-assets,
+  .cdt-dashboard {
     width: 100%;
     padding: var(--cdt-content-padding-y) var(--cdt-content-padding-x) var(--cdt-content-padding-bottom);
     box-sizing: border-box;

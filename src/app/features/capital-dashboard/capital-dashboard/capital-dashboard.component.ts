@@ -167,18 +167,18 @@ export class CapitalDashboardComponent {
 
   private readTabFromRoute(): CapitalDashboardTab {
     const path = this.route.firstChild?.snapshot?.url?.[0]?.path;
-    if (path === 'investor' || path === 'investment' || path === 'asset') {
+    if (path === 'dashboard' || path === 'investor' || path === 'investment' || path === 'asset') {
       return path;
     }
 
     const urlMatch = this.router.url.match(
-      /\/capital-dashboard\/(investor|investment|asset)(?:\/|$|\?)/,
+      /\/capital-dashboard\/(dashboard|investor|investment|asset)(?:\/|$|\?)/,
     );
     const urlTab = urlMatch?.[1];
-    if (urlTab === 'investor' || urlTab === 'investment' || urlTab === 'asset') {
+    if (urlTab === 'dashboard' || urlTab === 'investor' || urlTab === 'investment' || urlTab === 'asset') {
       return urlTab;
     }
 
-    return 'investor';
+    return 'dashboard';
   }
 }

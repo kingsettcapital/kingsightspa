@@ -1,0 +1,76 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.cdt-dashboard-widget-shell {
+  position: relative;
+  height: 100%;
+}
+
+.cdt-dashboard-widget-shell__close {
+  position: absolute;
+  top: 0.625rem;
+  right: 0.625rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  color: #334155;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+
+  .mat-icon {
+    width: 0.875rem;
+    height: 0.875rem;
+    font-size: 0.875rem;
+  }
+
+  &:hover {
+    background: #fff;
+    color: #0f172a;
+    transform: scale(1.05);
+  }
+
+  &:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+}
+
+.cdt-dashboard-widget-shell:hover .cdt-dashboard-widget-shell__close,
+.cdt-dashboard-widget-shell:focus-within .cdt-dashboard-widget-shell__close {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cdt-dashboard-widget-shell--on-light .cdt-dashboard-widget-shell__close {
+  background: #f1f5f9;
+  color: #64748b;
+  box-shadow: none;
+  border: 1px solid #e2e8f0;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #334155;
+  }
+
+  &:focus-visible {
+    outline-color: var(--cdt-header-bg);
+  }
+}

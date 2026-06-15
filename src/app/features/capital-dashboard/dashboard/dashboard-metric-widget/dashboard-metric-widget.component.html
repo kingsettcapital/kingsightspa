@@ -1,0 +1,17 @@
+<article class="cdt-dashboard-kpi" [ngClass]="'cdt-dashboard-kpi--' + variant()">
+  <p class="cdt-dashboard-kpi__label">{{ label() }}</p>
+  <p class="cdt-dashboard-kpi__value">{{ value() }}</p>
+  @if (change()) {
+    <p
+      class="cdt-dashboard-kpi__change"
+      [class.cdt-dashboard-kpi__change--positive]="changePositive()"
+      [class.cdt-dashboard-kpi__change--negative]="!changePositive()"
+    >
+      <mat-icon aria-hidden="true">{{ changePositive() ? 'north_east' : 'south_east' }}</mat-icon>
+      {{ change() }}
+    </p>
+  }
+  @if (hint()) {
+    <p class="cdt-dashboard-kpi__hint">{{ hint() }}</p>
+  }
+</article>

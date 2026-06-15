@@ -510,3 +510,85 @@ export interface PropertyInvestmentDto {
   totalReturnPercent: number | null;
 }
 
+export type DashboardApiWidgetId =
+  | 'portfolioValue'
+  | 'activeFunds'
+  | 'totalAum'
+  | 'ytdReturns'
+  | 'investorCount'
+  | 'assetCount'
+  | 'performanceChart'
+  | 'assetAllocation'
+  | 'fundReturns'
+  | 'investorGrowth'
+  | 'geographicDistribution';
+
+export interface DashboardWidgetOptionDto {
+  id: DashboardApiWidgetId;
+  label: string;
+}
+
+export type DashboardMetricFormat = 'money' | 'percent' | 'count';
+
+export interface DashboardMetricWidgetDto {
+  value: number;
+  ytdChange: number | null;
+  ytdChangePercent: number | null;
+  subtitle: string | null;
+  format: DashboardMetricFormat;
+}
+
+export interface DashboardChartSeriesDto {
+  name: string;
+  values: (number | null)[];
+}
+
+export interface DashboardLineChartDto {
+  categories: string[];
+  series: DashboardChartSeriesDto[];
+}
+
+export interface DashboardAssetAllocationSliceDto {
+  label: string;
+  value: number;
+  sharePercent: number;
+}
+
+export interface DashboardAssetAllocationDto {
+  slices: DashboardAssetAllocationSliceDto[];
+}
+
+export interface DashboardGeographicItemDto {
+  label: string;
+  sharePercent: number;
+}
+
+export interface DashboardGeographicDistributionDto {
+  items: DashboardGeographicItemDto[];
+}
+
+export interface DashboardWidgetsDataDto {
+  portfolioValue: DashboardMetricWidgetDto | null;
+  activeFunds: unknown | null;
+  totalAum: DashboardMetricWidgetDto | null;
+  ytdReturns: DashboardMetricWidgetDto | null;
+  investorCount: DashboardMetricWidgetDto | null;
+  assetCount: DashboardMetricWidgetDto | null;
+  performanceChart: DashboardLineChartDto | null;
+  assetAllocation: DashboardAssetAllocationDto | null;
+  fundReturns: DashboardLineChartDto | null;
+  investorGrowth: DashboardLineChartDto | null;
+  geographicDistribution: DashboardGeographicDistributionDto | null;
+}
+
+export interface DashboardResponseDto {
+  lastUpdated: string;
+  calendarYear: number;
+  widgets: DashboardWidgetsDataDto;
+}
+
+export interface DashboardQueryParams {
+  calendarYear?: number;
+  widgets?: string;
+}
+

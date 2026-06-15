@@ -1,0 +1,14 @@
+<div
+  class="cdt-dashboard-widget-shell"
+  [class.cdt-dashboard-widget-shell--on-light]="closeVariant() === 'on-light'"
+>
+  <button
+    type="button"
+    class="cdt-dashboard-widget-shell__close"
+    [attr.aria-label]="ariaLabel()"
+    (click)="onRemove()"
+  >
+    <mat-icon aria-hidden="true">close</mat-icon>
+  </button>
+  <ng-content />
+</div>

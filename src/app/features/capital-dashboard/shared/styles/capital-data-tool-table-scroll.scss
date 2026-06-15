@@ -1,0 +1,116 @@
+body[data-ks-capital-dashboard] {
+  .cdt-investors,
+  .cdt-investments,
+  .cdt-assets {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .cdt-table-card:not(.cdt-table-card--empty) {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .cdt-table-wrap {
+    flex: 1;
+    min-height: 12rem;
+    max-height: var(--cdt-tab-table-body-max-height);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cdt-table {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .cdt-table thead,
+  .cdt-table tfoot {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+    flex-shrink: 0;
+  }
+
+  .cdt-table tbody {
+    display: block;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #c1c1c1 #f1f1f1;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 999px;
+    }
+  }
+
+  .cdt-table tbody tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .cdt-dashboard-table-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cdt-dashboard-table-card__body {
+    min-height: 0;
+  }
+
+  .cdt-dashboard-table-wrap {
+    max-height: var(--cdt-dashboard-table-body-max-height);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cdt-dashboard-table {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+
+    thead,
+    tfoot {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+      flex-shrink: 0;
+    }
+
+    tbody {
+      display: block;
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #c1c1c1 #f1f1f1;
+
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 999px;
+      }
+    }
+
+    tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+  }
+}

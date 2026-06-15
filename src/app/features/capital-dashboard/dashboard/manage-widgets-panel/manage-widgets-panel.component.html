@@ -1,0 +1,23 @@
+<section class="cdt-manage-widgets" aria-label="Select dashboard widgets">
+  <p class="cdt-manage-widgets__label">Select widgets to display (max {{ maxSelection() }})</p>
+
+  <div class="cdt-manage-widgets__grid">
+    @for (widget of widgets(); track widget.id) {
+      <button
+        type="button"
+        class="cdt-manage-widgets__tile"
+        [class.cdt-manage-widgets__tile--selected]="isSelected(widget.id)"
+        [class.cdt-manage-widgets__tile--disabled]="isDisabled(widget.id)"
+        [attr.aria-pressed]="isSelected(widget.id)"
+        [disabled]="isDisabled(widget.id)"
+        (click)="toggleWidget(widget.id)"
+      >
+        @if (isSelected(widget.id)) {
+          <mat-icon class="cdt-manage-widgets__check" aria-hidden="true">check</mat-icon>
+        }
+        <mat-icon class="cdt-manage-widgets__icon" aria-hidden="true">{{ widget.icon }}</mat-icon>
+        <span class="cdt-manage-widgets__name">{{ widget.label }}</span>
+      </button>
+    }
+  </div>
+</section>

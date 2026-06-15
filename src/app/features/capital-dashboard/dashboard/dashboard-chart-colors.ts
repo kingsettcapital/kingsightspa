@@ -1,0 +1,16 @@
+export const DASHBOARD_CHART_COLORS = {
+  navy: '#004a99',
+  blueMid: '#1e73be',
+  blueLight: '#7eb3e8',
+  gold: '#c5a048',
+  grayDark: '#374151',
+  grayMid: '#6b7280',
+  grayLight: '#d1d5db',
+  grid: '#e8edf3',
+  text: '#64748b',
+  office: '#004a99',
+  retail: '#7eb3e8',
+  industrial: '#c5a048',
+  mixedUse: '#1e73be',
+  hospitality: '#d1d5db',
+} as const;

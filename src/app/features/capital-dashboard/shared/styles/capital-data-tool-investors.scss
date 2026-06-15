@@ -11,8 +11,7 @@ body[data-ks-capital-dashboard] {
 
   .cdt-investors__header,
   .cdt-kpi-row,
-  .cdt-filters-panel,
-  .cdt-table-card {
+  .cdt-filters-panel {
     flex-shrink: 0;
   }
 
@@ -468,13 +467,6 @@ body[data-ks-capital-dashboard] {
     min-height: 0;
   }
 
-  .cdt-table-wrap {
-    flex: 1;
-    min-height: 28rem;
-    overflow-x: auto;
-    overflow-y: visible;
-  }
-
   .cdt-table {
     width: 100%;
     border-collapse: collapse;
@@ -483,9 +475,6 @@ body[data-ks-capital-dashboard] {
   }
 
   .cdt-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
     padding: 0.875rem 1rem;
     text-align: left;
     font-size: 0.6875rem;
@@ -495,7 +484,6 @@ body[data-ks-capital-dashboard] {
     color: var(--cdt-text-muted);
     background: var(--cdt-filter-bg);
     border-bottom: 1px solid var(--cdt-border);
-    box-shadow: 0 1px 0 var(--cdt-border);
     white-space: nowrap;
   }
 
@@ -511,6 +499,7 @@ body[data-ks-capital-dashboard] {
 
   .cdt-table tfoot td {
     border-top: 1px solid var(--cdt-border);
+    background: #f8fafc;
   }
 
   .cdt-table tbody tr + tr td {

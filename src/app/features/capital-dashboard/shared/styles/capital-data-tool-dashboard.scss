@@ -1,0 +1,38 @@
+body[data-ks-capital-dashboard] {
+  .cdt-dashboard {
+    width: 100%;
+    padding: var(--cdt-content-padding-y) var(--cdt-content-padding-x) var(--cdt-content-padding-bottom);
+    box-sizing: border-box;
+  }
+
+  app-capital-dashboard-dashboard {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  .cdt-dashboard-table thead th {
+    text-transform: uppercase;
+  }
+
+  .cdt-dashboard-kpi {
+    p {
+      color: #fff;
+    }
+
+    .cdt-dashboard-kpi__label,
+    .cdt-dashboard-kpi__value,
+    .cdt-dashboard-kpi__hint {
+      color: #fff;
+    }
+
+    .cdt-dashboard-kpi__change--positive {
+      color: #86efac;
+    }
+
+    .cdt-dashboard-kpi__change--negative {
+      color: #fca5a5;
+    }
+  }
+}

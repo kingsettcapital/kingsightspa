@@ -39,7 +39,7 @@ import {
   ListCacheEntry,
 } from './capital-dashboard-cache.util';
 
-export type CapitalDashboardTab = 'investor' | 'investment' | 'asset';
+export type CapitalDashboardTab = 'dashboard' | 'investor' | 'investment' | 'asset';
 
 export interface PagedListState<T> {
   items: T[];
@@ -443,7 +443,7 @@ function emptyAssetsCache(): AssetsCacheState {
 }
 
 export const initialCapitalDashboardState: CapitalDashboardState = {
-  activeTab: 'investor',
+  activeTab: 'dashboard',
   investors: {
     list: { ...emptyInvestorsListState(), loading: true },
     detail: emptyInvestorsDetail(),

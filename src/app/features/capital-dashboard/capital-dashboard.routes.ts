@@ -9,7 +9,14 @@ export const CAPITAL_DASHBOARD_ROUTES: Routes = [
       import('./capital-dashboard/capital-dashboard.component').then((m) => m.CapitalDashboardComponent),
     providers: [...provideCapitalDashboardStore()],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'investor' },
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./dashboard/capital-dashboard-dashboard.component').then(
+            (m) => m.CapitalDashboardDashboardComponent,
+          ),
+      },
       {
         path: 'investor/:investorKey',
         loadComponent: () =>
