@@ -15,7 +15,7 @@ export const msalConfig: Configuration = {
     clientId: environment.azureConfig.clientId,
     authority: environment.azureConfig.authority,
     redirectUri: environment.azureConfig.redirectURL,
-    postLogoutRedirectUri: environment.azureConfig.postLogoutRedirectUri,
+    // postLogoutRedirectUri: environment.azureConfig.postLogoutRedirectUri,
     navigateToLoginRequestUrl: false,
   },
   cache: {
