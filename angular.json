@@ -43,7 +43,7 @@
           "builder": "@angular/build:application",
           "options": {
             "outputPath": "dist/kingsight",
-            "browser": "src/main.ts",
+            "browser": "", 
             "tsConfig": "tsconfig.app.json",
             "assets": [
               {
