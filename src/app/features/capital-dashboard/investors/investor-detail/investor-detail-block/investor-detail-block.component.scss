@@ -314,7 +314,10 @@
   }
 }
 
-.inv-detail-table__head--right,
+.inv-detail-table thead th.inv-detail-table__head--right {
+  text-align: right;
+}
+
 .inv-detail-table__cell--right {
   text-align: right;
 }
