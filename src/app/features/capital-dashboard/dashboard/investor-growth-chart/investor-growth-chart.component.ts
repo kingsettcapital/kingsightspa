@@ -12,8 +12,8 @@ import {
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 
 import { DashboardWidgetCardComponent } from '../dashboard-widget-card/dashboard-widget-card.component';
-import { DASHBOARD_CHART_COLORS } from '../dashboard-chart-colors';
-import { DashboardChartLifecycle } from '../dashboard-chart.util';
+import { dashboardLineSeriesColor } from '../dashboard-chart-colors';
+import { DashboardChartLifecycle, dashboardVerticalChartScales } from '../dashboard-chart.util';
 import { DashboardLineChartDto } from '../../shared/models/api.models';
 
 Chart.register(...registerables);
@@ -63,9 +63,10 @@ export class InvestorGrowthChartComponent implements AfterViewInit {
       return;
     }
 
+    const lineColor = dashboardLineSeriesColor(0);
     const fillGradient = context.createLinearGradient(0, 0, 0, 220);
-    fillGradient.addColorStop(0, 'rgba(30, 115, 190, 0.22)');
-    fillGradient.addColorStop(1, 'rgba(30, 115, 190, 0)');
+    fillGradient.addColorStop(0, `${lineColor}38`);
+    fillGradient.addColorStop(1, `${lineColor}00`);
 
     const maxValue = Math.max(...values, 0);
     const yMax = Math.max(45, Math.ceil(maxValue / 45) * 45);
@@ -78,12 +79,12 @@ export class InvestorGrowthChartComponent implements AfterViewInit {
           {
             label: series?.name ?? 'Investors',
             data: values,
-            borderColor: DASHBOARD_CHART_COLORS.blueMid,
+            borderColor: lineColor,
             backgroundColor: fillGradient,
             borderWidth: 2,
             pointRadius: 4,
             pointBackgroundColor: '#fff',
-            pointBorderColor: DASHBOARD_CHART_COLORS.blueMid,
+            pointBorderColor: lineColor,
             pointBorderWidth: 2,
             pointHoverRadius: 5,
             tension: 0.35,
@@ -101,27 +102,10 @@ export class InvestorGrowthChartComponent implements AfterViewInit {
             padding: 10,
           },
         },
-        scales: {
-          x: {
-            grid: { display: false },
-            border: { display: false },
-            ticks: {
-              color: DASHBOARD_CHART_COLORS.text,
-              font: { family: "'Open Sans', Arial, sans-serif", size: 10 },
-            },
-          },
-          y: {
-            min: 0,
-            max: yMax,
-            ticks: {
-              stepSize: yMax / 4,
-              color: DASHBOARD_CHART_COLORS.text,
-              font: { family: "'Open Sans', Arial, sans-serif", size: 10 },
-            },
-            grid: { color: DASHBOARD_CHART_COLORS.grid },
-            border: { display: false },
-          },
-        },
+        scales: dashboardVerticalChartScales({
+          yMax,
+          yStep: yMax / 4,
+        }),
       },
     };
 

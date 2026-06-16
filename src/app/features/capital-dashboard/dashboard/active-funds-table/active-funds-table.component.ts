@@ -61,6 +61,10 @@ export class ActiveFundsTableComponent {
     this.loadFunds();
   }
 
+  retryLoad(): void {
+    this.loadFunds();
+  }
+
   private loadFunds(): void {
     this.loading.set(true);
     this.error.set(null);

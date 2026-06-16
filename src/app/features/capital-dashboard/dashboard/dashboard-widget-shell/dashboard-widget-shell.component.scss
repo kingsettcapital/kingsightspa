@@ -1,6 +1,8 @@
 :host {
   display: block;
   height: 100%;
+  font-family: var(--cdt-font-sans);
+  font-weight: var(--ks-font-weight-regular);
 }
 
 .cdt-dashboard-widget-shell {

@@ -138,8 +138,8 @@ export class CapitalDashboardComponent {
       return;
     }
 
-    if (tab === 'investor') {
-      this.router.navigate([`./investor/${result.entity_key}`], {
+    if (tab === 'investor' || tab === 'investment' || tab === 'asset') {
+      this.router.navigate([`./${tab}/${result.entity_key}`], {
         relativeTo: this.route,
         queryParams: { search: result.name },
       });

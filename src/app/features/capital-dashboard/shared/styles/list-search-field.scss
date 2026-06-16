@@ -68,7 +68,7 @@ $ks-list-search-border-hover: #d1d5db;
   :host ::ng-deep .ks-#{$block}-search__input.mat-mdc-input-element,
   :host ::ng-deep .ks-#{$block}-search__input {
     // font-family: var(--ks-font-family, inherit);
-    font-family: var(--ks-capital-dashboard-font-family, "Arial", sans-serif);
+    font-family: var(--ks-capital-dashboard-font-family, var(--cdt-font-sans, 'Open Sans', Arial, sans-serif));
     font-size: 0.875rem;
     font-weight: 400;
     line-height: 1.25rem;

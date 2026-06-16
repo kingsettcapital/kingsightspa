@@ -20,7 +20,7 @@
 
 .inv-detail-table-card__title {
   margin: 0;
-  font-family: 'Open Sans', Arial, sans-serif;
+  font-family: var(--cdt-font-sans);
   font-size: 0.875rem;
   font-weight: 600;
   color: #1a202c;
@@ -63,7 +63,7 @@
 .inv-detail-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: 'Open Sans', Arial, sans-serif;
+  font-family: var(--cdt-font-sans);
   font-size: 0.8125rem;
 
   thead th {

@@ -4,6 +4,8 @@ body[data-ks-capital-dashboard] {
   --cdt-font-sans: 'Open Sans', Arial, sans-serif;
   --cdt-font-serif: 'Libre Baskerville', Georgia, serif;
   --cdt-font-amount: 'Rufina', Georgia, serif;
+  /* Override global Arial stack within Capital Dashboard */
+  --ks-font-family: var(--cdt-font-sans);
   --cdt-header-bg: #004a99;
   --cdt-header-search-bg: rgba(255, 255, 255, 0.12);
   --cdt-header-search-border: rgba(255, 255, 255, 0.28);
@@ -37,6 +39,43 @@ body[data-ks-capital-dashboard] {
   --cdt-content-padding-bottom: 1.25rem;
   --ks-capital-dashboard-font-family: var(--cdt-font-sans);
   font-family: var(--cdt-font-sans);
+  font-weight: var(--ks-font-weight-regular);
+
+  app-capital-dashboard,
+  app-capital-dashboard-investors,
+  app-capital-dashboard-investments,
+  app-capital-dashboard-assets,
+  app-capital-dashboard-dashboard,
+  app-investor-detail,
+  app-investor-detail-block,
+  app-investor-detail-sidebar,
+  app-investor-detail-table,
+  app-overview-section-cards,
+  app-dashboard-header,
+  app-dashboard-widget-card,
+  app-dashboard-widget-shell,
+  app-dashboard-metric-widget,
+  app-manage-widgets-panel,
+  app-active-funds-table,
+  app-active-assets-table,
+  app-total-assets-widget,
+  app-portfolio-value-widget,
+  app-ytd-returns-widget,
+  app-quarterly-returns-chart,
+  app-portfolio-performance-chart,
+  app-investor-growth-chart,
+  app-geographic-distribution-chart,
+  app-asset-allocation-chart,
+  app-detail-status-badge,
+  app-portal-spinner,
+  ks-search-field,
+  ks-progress-bar,
+  ks-segmented-control,
+  ks-badge,
+  ks-icon {
+    font-family: var(--cdt-font-sans);
+    font-weight: var(--ks-font-weight-regular);
+  }
 
   .cdt-investors,
   .cdt-investments,

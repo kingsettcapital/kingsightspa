@@ -14,7 +14,10 @@
   </header>
 
   <div class="cdt-dashboard-table-card__body">
-    <div class="cdt-dashboard-table-wrap">
+    <div
+      class="cdt-dashboard-table-wrap"
+      [class.cdt-dashboard-table-wrap--overlay]="loading() || error() || !rows().length"
+    >
       <table class="cdt-dashboard-table">
         <thead>
           <tr>
@@ -28,46 +31,65 @@
             <th>Status</th>
           </tr>
         </thead>
-        <tbody>
-          @if (loading()) {
-            <tr>
-              <td colspan="8">Loading assets…</td>
-            </tr>
-          } @else if (error()) {
-            <tr>
-              <td colspan="8">{{ error() }}</td>
-            </tr>
-          } @else if (!rows().length) {
-            <tr>
-              <td colspan="8">No active assets found.</td>
-            </tr>
-          }
-          @for (row of rows(); track row.rank) {
-            <tr>
-              <td class="cdt-dashboard-table__rank-col">{{ row.rank }}</td>
-              <td class="cdt-dashboard-table__name">{{ row.name }}</td>
-              <td>{{ row.type }}</td>
-              <td>{{ row.city }}</td>
-              <td class="cdt-dashboard-table__num-col">{{ row.marketValue }}</td>
-              <td class="cdt-dashboard-table__num-col">{{ row.quarterlyNoi }}</td>
-              <td
-                class="cdt-dashboard-table__num-col"
-                [class.cdt-dashboard-table__num-col--positive]="row.occupancyTone === 'positive'"
-                [class.cdt-dashboard-table__num-col--warning]="row.occupancyTone === 'warning'"
-              >
-                {{ row.occupancy }}
-              </td>
-              <td
-                class="cdt-dashboard-table__status"
-                [class.cdt-dashboard-table__status--positive]="row.statusTone === 'positive'"
-                [class.cdt-dashboard-table__status--warning]="row.statusTone === 'warning'"
-              >
-                {{ row.status }}
-              </td>
-            </tr>
-          }
-        </tbody>
+        @if (!loading() && !error() && rows().length) {
+          <tbody>
+            @for (row of rows(); track row.rank) {
+              <tr>
+                <td class="cdt-dashboard-table__rank-col">{{ row.rank }}</td>
+                <td class="cdt-dashboard-table__name">{{ row.name }}</td>
+                <td>{{ row.type }}</td>
+                <td>{{ row.city }}</td>
+                <td class="cdt-dashboard-table__num-col">{{ row.marketValue }}</td>
+                <td class="cdt-dashboard-table__num-col">{{ row.quarterlyNoi }}</td>
+                <td
+                  class="cdt-dashboard-table__num-col"
+                  [class.cdt-dashboard-table__num-col--positive]="row.occupancyTone === 'positive'"
+                  [class.cdt-dashboard-table__num-col--warning]="row.occupancyTone === 'warning'"
+                >
+                  {{ row.occupancy }}
+                </td>
+                <td
+                  class="cdt-dashboard-table__status"
+                  [class.cdt-dashboard-table__status--positive]="row.statusTone === 'positive'"
+                  [class.cdt-dashboard-table__status--warning]="row.statusTone === 'warning'"
+                >
+                  {{ row.status }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        }
       </table>
+
+      @if (loading()) {
+        <div class="cdt-dashboard-table-card__state" role="status" aria-live="polite">
+          <div class="cdt-dashboard-table-card__spinner" aria-hidden="true"></div>
+          <p class="cdt-dashboard-table-card__state-title">Loading assets</p>
+          <p class="cdt-dashboard-table-card__state-message">Fetching active property data…</p>
+        </div>
+      } @else if (error()) {
+        <div class="cdt-dashboard-table-card__state cdt-dashboard-table-card__state--error" role="alert">
+          <mat-icon class="cdt-dashboard-table-card__state-icon" aria-hidden="true">error_outline</mat-icon>
+          <p class="cdt-dashboard-table-card__state-title">Unable to load assets</p>
+          <p class="cdt-dashboard-table-card__state-message">Please check your connection and try again.</p>
+          <button type="button" class="cdt-dashboard-table-card__retry" (click)="retryLoad()">
+            Try again
+          </button>
+        </div>
+      } @else if (!rows().length) {
+        <div class="cdt-dashboard-table-card__state cdt-dashboard-table-card__state--empty">
+          <mat-icon
+            class="cdt-dashboard-table-card__state-icon cdt-dashboard-table-card__state-icon--muted"
+            aria-hidden="true"
+          >
+            apartment
+          </mat-icon>
+          <p class="cdt-dashboard-table-card__state-title">No active assets</p>
+          <p class="cdt-dashboard-table-card__state-message">
+            There are no properties in the portfolio to display right now.
+          </p>
+        </div>
+      }
     </div>
   </div>
 

@@ -4,47 +4,40 @@ body[data-ks-capital-dashboard] {
   .cdt-assets {
     flex: 1;
     min-height: 0;
+    min-width: 0;
   }
 
   .cdt-table-card:not(.cdt-table-card--empty) {
     flex: 1;
     min-height: 0;
+    min-width: 0;
   }
 
-  .cdt-table-wrap {
+  .cdt-table-card__body {
+    min-width: 0;
+  }
+
+  /*
+   * List tables: always use a single native <table> so thead/body/tfoot columns
+   * share one width map (split thead/tbody rows caused overlap on some widths).
+   */
+  .cdt-investors .cdt-table-wrap,
+  .cdt-investments .cdt-table-wrap,
+  .cdt-assets .cdt-table-wrap {
     flex: 1;
     min-height: 12rem;
+    min-width: 0;
     max-height: var(--cdt-tab-table-body-max-height);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .cdt-table {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0;
-  }
-
-  .cdt-table thead,
-  .cdt-table tfoot {
-    display: table;
-    width: 100%;
-    table-layout: fixed;
-    flex-shrink: 0;
-  }
-
-  .cdt-table tbody {
     display: block;
-    flex: 1;
-    min-height: 0;
     overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: #c1c1c1 #f1f1f1;
 
     &::-webkit-scrollbar {
       width: 6px;
+      height: 6px;
     }
 
     &::-webkit-scrollbar-thumb {
@@ -53,10 +46,128 @@ body[data-ks-capital-dashboard] {
     }
   }
 
-  .cdt-table tbody tr {
+  .cdt-investors .cdt-table,
+  .cdt-investments .cdt-table,
+  .cdt-assets .cdt-table {
     display: table;
     width: 100%;
-    table-layout: fixed;
+    min-width: 100%;
+    height: auto;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: auto;
+  }
+
+  .cdt-investors .cdt-table thead,
+  .cdt-investments .cdt-table thead,
+  .cdt-assets .cdt-table thead {
+    display: table-header-group;
+  }
+
+  .cdt-investors .cdt-table tbody,
+  .cdt-investments .cdt-table tbody,
+  .cdt-assets .cdt-table tbody {
+    display: table-row-group;
+  }
+
+  .cdt-investors .cdt-table tfoot,
+  .cdt-investments .cdt-table tfoot,
+  .cdt-assets .cdt-table tfoot {
+    display: table-footer-group;
+  }
+
+  .cdt-investors .cdt-table tr,
+  .cdt-investments .cdt-table tr,
+  .cdt-assets .cdt-table tr {
+    display: table-row;
+  }
+
+  .cdt-investors .cdt-table thead th,
+  .cdt-investments .cdt-table thead th,
+  .cdt-assets .cdt-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--cdt-filter-bg);
+    box-shadow: 0 1px 0 var(--cdt-border);
+    white-space: normal;
+    vertical-align: bottom;
+  }
+
+  .cdt-investors .cdt-table thead th .cdt-table__sort,
+  .cdt-investments .cdt-table thead th .cdt-table__sort,
+  .cdt-assets .cdt-table thead th .cdt-table__sort {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 0.2rem;
+    width: 100%;
+    white-space: normal;
+  }
+
+  .cdt-investors .cdt-table thead th.cdt-table__num .cdt-table__sort,
+  .cdt-investments .cdt-table thead th.cdt-table__num .cdt-table__sort,
+  .cdt-assets .cdt-table thead th.cdt-table__num .cdt-table__sort {
+    justify-content: flex-end;
+  }
+
+  .cdt-investors .cdt-table tbody td.cdt-table__num,
+  .cdt-investments .cdt-table tbody td.cdt-table__num,
+  .cdt-assets .cdt-table tbody td.cdt-table__num,
+  .cdt-investors .cdt-table tfoot td.cdt-table__num,
+  .cdt-investments .cdt-table tfoot td.cdt-table__num,
+  .cdt-assets .cdt-table tfoot td.cdt-table__num {
+    white-space: nowrap;
+  }
+
+  .cdt-investors .cdt-table tfoot td,
+  .cdt-investments .cdt-table tfoot td,
+  .cdt-assets .cdt-table tfoot td {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    background: #f8fafc;
+    box-shadow: 0 -1px 0 var(--cdt-border);
+  }
+
+  @media (max-width: 1200px) {
+    .cdt-investors .cdt-table-card,
+    .cdt-investments .cdt-table-card,
+    .cdt-assets .cdt-table-card {
+      overflow: hidden;
+      min-height: 28rem;
+    }
+
+    .cdt-investors .cdt-table {
+      min-width: 76rem;
+    }
+
+    .cdt-investments .cdt-table {
+      min-width: 70rem;
+    }
+
+    .cdt-assets .cdt-table {
+      min-width: 82rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .cdt-investors .cdt-table {
+      min-width: 68rem;
+    }
+
+    .cdt-investments .cdt-table {
+      min-width: 62rem;
+    }
+
+    .cdt-assets .cdt-table {
+      min-width: 74rem;
+    }
+
+    .cdt-investors .cdt-table-card,
+    .cdt-investments .cdt-table-card,
+    .cdt-assets .cdt-table-card {
+      min-height: 22rem;
+    }
   }
 
   .cdt-dashboard-table-card {
@@ -70,9 +181,20 @@ body[data-ks-capital-dashboard] {
 
   .cdt-dashboard-table-wrap {
     max-height: var(--cdt-dashboard-table-body-max-height);
+    min-width: 0;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    -webkit-overflow-scrolling: touch;
+
+    &:not(.cdt-dashboard-table-wrap--overlay) {
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+  }
+
+  .cdt-dashboard-table-wrap--overlay {
+    overflow: hidden;
   }
 
   .cdt-dashboard-table {
@@ -93,7 +215,8 @@ body[data-ks-capital-dashboard] {
       display: block;
       flex: 1;
       min-height: 0;
-      overflow: auto;
+      overflow-x: hidden;
+      overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: #c1c1c1 #f1f1f1;
 
@@ -111,6 +234,31 @@ body[data-ks-capital-dashboard] {
       display: table;
       width: 100%;
       table-layout: fixed;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .cdt-dashboard-table {
+      min-width: 54rem;
+      width: max(100%, 54rem);
+    }
+
+    .cdt-dashboard-table thead,
+    .cdt-dashboard-table tbody tr {
+      min-width: 54rem;
+    }
+
+    .cdt-dashboard-table thead th {
+      white-space: nowrap;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .cdt-dashboard-table,
+    .cdt-dashboard-table thead,
+    .cdt-dashboard-table tbody tr {
+      min-width: 50rem;
+      width: max(100%, 50rem);
     }
   }
 }

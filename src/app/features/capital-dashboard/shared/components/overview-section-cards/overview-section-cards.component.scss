@@ -1,6 +1,8 @@
 :host {
   display: block;
   width: 100%;
+  font-family: var(--cdt-font-sans);
+  font-weight: var(--ks-font-weight-regular);
 }
 
 .overview-section-cards {

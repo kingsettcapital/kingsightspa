@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { catchError, debounceTime, distinctUntilChanged, of } from 'rxjs';
 
@@ -43,6 +44,7 @@ const VISIBLE_PAGE_BUTTON_COUNT = 3;
 })
 export class CapitalDashboardAssetsComponent {
   private readonly store = inject(Store);
+  private readonly router = inject(Router);
   private readonly excel = inject(ExcelService);
   private readonly assetsApi = inject(CapitalAssetsApiService);
   private readonly routeSearchSync = inject(CapitalDashboardRouteSearchSync);
@@ -251,6 +253,12 @@ export class CapitalDashboardAssetsComponent {
       return;
     }
     this.currentPage.set(page);
+  }
+
+  openAsset(row: AssetTableRow): void {
+    void this.router.navigate(['/capital-dashboard/asset', row.propertyKey], {
+      state: { assetRow: row },
+    });
   }
 
   retryLoad(): void {

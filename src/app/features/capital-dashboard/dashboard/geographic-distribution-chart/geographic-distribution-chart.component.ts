@@ -11,8 +11,11 @@ import {
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 
 import { DashboardWidgetCardComponent } from '../dashboard-widget-card/dashboard-widget-card.component';
-import { DASHBOARD_CHART_COLORS } from '../dashboard-chart-colors';
-import { scheduleChartResize } from '../dashboard-chart.util';
+import { dashboardBarPieSeriesColor } from '../dashboard-chart-colors';
+import {
+  dashboardHorizontalBarChartScales,
+  scheduleChartResize,
+} from '../dashboard-chart.util';
 import { DashboardGeographicDistributionDto } from '../../shared/models/api.models';
 
 Chart.register(...registerables);
@@ -72,8 +75,8 @@ export class GeographicDistributionChartComponent implements AfterViewInit, OnDe
           {
             label: 'Distribution',
             data: values,
-            backgroundColor: DASHBOARD_CHART_COLORS.navy,
-            borderRadius: 2,
+            backgroundColor: items.map((_, index) => dashboardBarPieSeriesColor(index)),
+            borderRadius: 0,
             barThickness: 16,
           },
         ],
@@ -92,28 +95,11 @@ export class GeographicDistributionChartComponent implements AfterViewInit, OnDe
             },
           },
         },
-        scales: {
-          x: {
-            min: 0,
-            max: xMax,
-            ticks: {
-              stepSize: xMax / 4,
-              color: DASHBOARD_CHART_COLORS.text,
-              font: { family: "'Open Sans', Arial, sans-serif", size: 10 },
-              callback: (value) => `${value}%`,
-            },
-            grid: { color: DASHBOARD_CHART_COLORS.grid },
-            border: { display: false },
-          },
-          y: {
-            grid: { display: false },
-            border: { display: false },
-            ticks: {
-              color: DASHBOARD_CHART_COLORS.text,
-              font: { family: "'Open Sans', Arial, sans-serif", size: 10 },
-            },
-          },
-        },
+        scales: dashboardHorizontalBarChartScales({
+          xMax,
+          xStep: xMax / 4,
+          xTickCallback: (value) => `${value}%`,
+        }),
       },
     };
 

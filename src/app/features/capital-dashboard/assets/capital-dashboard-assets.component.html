@@ -1,164 +1,152 @@
-<section class="cdt-assets" aria-label="Assets">
-  <header class="cdt-assets__header">
-    <div class="cdt-assets__heading">
-      <h1 class="cdt-assets__title">Assets</h1>
-      <p class="cdt-assets__subtitle">{{ subtitleText() }}</p>
-    </div>
+<div style="overflow-y: auto; height: 100vh; scrollbar-width: thin;">
 
-    <div class="cdt-assets__actions">
-      <button
-        type="button"
-        class="cdt-btn cdt-btn--filters"
-        [class.cdt-btn--filters-active]="filtersPanelVisible()"
-        (click)="toggleFiltersPanel()"
-        [attr.aria-expanded]="filtersPanelVisible()"
-      >
-        <mat-icon aria-hidden="true">filter_alt</mat-icon>
-        Filters
-        @if (activeFilterCount() > 0) {
-          <span class="cdt-btn__badge">{{ activeFilterCount() }}</span>
-        }
-      </button>
 
-      <button type="button" class="cdt-btn cdt-btn--download" (click)="downloadTable()">
-        <span class="cdt-btn__icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 15V3" />
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <path d="m7 10 5 5 5-5" />
-          </svg>
-        </span>
-        Download
-      </button>
-    </div>
-  </header>
+  <div class="sticky-remove" style="position: sticky; top: 0; z-index: 5;">
 
-  <div class="cdt-kpi-row cdt-assets__kpi-row">
-    <article class="cdt-kpi cdt-kpi--navy">
-      <p class="cdt-kpi__label">Total GLA</p>
-      <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().totalGla, true) }}</p>
-      <p class="cdt-kpi__hint">Gross leasable area</p>
-    </article>
-    <article class="cdt-kpi cdt-kpi--blue">
-      <p class="cdt-kpi__label">Active Properties</p>
-      <p class="cdt-kpi__value">{{ kpiCards().activeProperties }}</p>
-      <p class="cdt-kpi__hint">of {{ kpiCards().totalProperties }} total</p>
-    </article>
-    <article class="cdt-kpi cdt-kpi--gold">
-      <p class="cdt-kpi__label">Total Committed Area</p>
-      <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().totalCommittedArea, true) }}</p>
-      <p class="cdt-kpi__hint">Leased / occupied</p>
-    </article>
-    <article class="cdt-kpi cdt-kpi--slate">
-      <p class="cdt-kpi__label">Total Vacant Area</p>
-      <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().totalVacantArea, true) }}</p>
-      <p class="cdt-kpi__hint">Available for lease</p>
-    </article>
-  </div>
+    <section class="cdt-assets" aria-label="Assets">
+      <header class="cdt-assets__header">
+        <div class="cdt-assets__heading">
+          <h1 class="cdt-assets__title">Assets</h1>
+          <p class="cdt-assets__subtitle">{{ subtitleText() }}</p>
+        </div>
 
-  @if (filtersPanelVisible()) {
-    <div class="cdt-filters-panel">
-      <div class="cdt-filters-bar">
-        <label class="cdt-filters-bar__field cdt-filters-bar__field--search">
-          <span class="cdt-filters-bar__label">SEARCH</span>
-          <div class="cdt-filters-bar__search">
-            <mat-icon aria-hidden="true">search</mat-icon>
-            <input
-              type="search"
-              placeholder="Property name, city..."
-              [ngModel]="tableSearch()"
-              (ngModelChange)="tableSearch.set($event)"
-              aria-label="Search properties"
-            />
-          </div>
-        </label>
+        <div class="cdt-assets__actions">
+          <button type="button" class="cdt-btn cdt-btn--filters" [class.cdt-btn--filters-active]="filtersPanelVisible()"
+            (click)="toggleFiltersPanel()" [attr.aria-expanded]="filtersPanelVisible()">
+            <mat-icon aria-hidden="true">filter_alt</mat-icon>
+            Filters
+            @if (activeFilterCount() > 0) {
+            <span class="cdt-btn__badge">{{ activeFilterCount() }}</span>
+            }
+          </button>
 
-        <label class="cdt-filters-bar__field">
-          <span class="cdt-filters-bar__label">ASSET TYPE</span>
-          <div class="cdt-filters-bar__select">
-            <select
-              [ngModel]="assetTypeFilter()"
-              (ngModelChange)="assetTypeFilter.set($event); currentPage.set(1)"
-              aria-label="Asset type"
-            >
-              <option value="all">All Types</option>
-              @for (option of assetTypeOptions(); track option.value) {
+          <button type="button" class="cdt-btn cdt-btn--download" (click)="downloadTable()">
+            <span class="cdt-btn__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M12 15V3" />
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <path d="m7 10 5 5 5-5" />
+              </svg>
+            </span>
+            Download
+          </button>
+        </div>
+      </header>
+
+      <div class="cdt-kpi-row cdt-assets__kpi-row">
+        <article class="cdt-kpi cdt-kpi--navy">
+          <p class="cdt-kpi__label">Total GLA</p>
+          <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().totalGla, true) }}</p>
+          <p class="cdt-kpi__hint">Gross leasable area</p>
+        </article>
+        <article class="cdt-kpi cdt-kpi--blue">
+          <p class="cdt-kpi__label">Active Properties</p>
+          <p class="cdt-kpi__value">{{ kpiCards().activeProperties }}</p>
+          <p class="cdt-kpi__hint">of {{ kpiCards().totalProperties }} total</p>
+        </article>
+        <article class="cdt-kpi cdt-kpi--gold">
+          <p class="cdt-kpi__label">Total Committed Area</p>
+          <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().totalCommittedArea, true) }}</p>
+          <p class="cdt-kpi__hint">Leased / occupied</p>
+        </article>
+        <article class="cdt-kpi cdt-kpi--slate">
+          <p class="cdt-kpi__label">Total Vacant Area</p>
+          <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().totalVacantArea, true) }}</p>
+          <p class="cdt-kpi__hint">Available for lease</p>
+        </article>
+      </div>
+
+      @if (filtersPanelVisible()) {
+      <div class="cdt-filters-panel">
+        <div class="cdt-filters-bar">
+          <label class="cdt-filters-bar__field cdt-filters-bar__field--search">
+            <span class="cdt-filters-bar__label">SEARCH</span>
+            <div class="cdt-filters-bar__search">
+              <mat-icon aria-hidden="true">search</mat-icon>
+              <input type="search" placeholder="Property name, city..." [ngModel]="tableSearch()"
+                (ngModelChange)="tableSearch.set($event)" aria-label="Search properties" />
+            </div>
+          </label>
+
+          <label class="cdt-filters-bar__field">
+            <span class="cdt-filters-bar__label">ASSET TYPE</span>
+            <div class="cdt-filters-bar__select">
+              <select [ngModel]="assetTypeFilter()" (ngModelChange)="assetTypeFilter.set($event); currentPage.set(1)"
+                aria-label="Asset type">
+                <option value="all">All Types</option>
+                @for (option of assetTypeOptions(); track option.value) {
                 <option [value]="option.value">{{ option.label }}</option>
-              }
-            </select>
-            <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
-          </div>
-        </label>
+                }
+              </select>
+              <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+            </div>
+          </label>
 
-        <label class="cdt-filters-bar__field">
-          <span class="cdt-filters-bar__label">INVESTMENT TYPE</span>
-          <div class="cdt-filters-bar__select">
-            <select
-              [ngModel]="investmentTypeFilter()"
-              (ngModelChange)="investmentTypeFilter.set($event); currentPage.set(1)"
-              aria-label="Investment type"
-            >
-              <option value="all">All Investment Types</option>
-              @for (option of investmentTypeOptions(); track option.value) {
+          <label class="cdt-filters-bar__field">
+            <span class="cdt-filters-bar__label">INVESTMENT TYPE</span>
+            <div class="cdt-filters-bar__select">
+              <select [ngModel]="investmentTypeFilter()"
+                (ngModelChange)="investmentTypeFilter.set($event); currentPage.set(1)" aria-label="Investment type">
+                <option value="all">All Investment Types</option>
+                @for (option of investmentTypeOptions(); track option.value) {
                 <option [value]="option.value">{{ option.label }}</option>
-              }
-            </select>
-            <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
-          </div>
-        </label>
+                }
+              </select>
+              <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+            </div>
+          </label>
 
-        <label class="cdt-filters-bar__field">
-          <span class="cdt-filters-bar__label">GEOGRAPHY</span>
-          <div class="cdt-filters-bar__select">
-            <select
-              [ngModel]="geographyFilter()"
-              (ngModelChange)="geographyFilter.set($event); currentPage.set(1)"
-              aria-label="Geography"
-            >
-              <option value="all">All Geographies</option>
-              @for (option of geographyOptions(); track option.value) {
+          <label class="cdt-filters-bar__field">
+            <span class="cdt-filters-bar__label">GEOGRAPHY</span>
+            <div class="cdt-filters-bar__select">
+              <select [ngModel]="geographyFilter()" (ngModelChange)="geographyFilter.set($event); currentPage.set(1)"
+                aria-label="Geography">
+                <option value="all">All Geographies</option>
+                @for (option of geographyOptions(); track option.value) {
                 <option [value]="option.value">{{ option.label }}</option>
-              }
-            </select>
-            <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
-          </div>
-        </label>
+                }
+              </select>
+              <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+            </div>
+          </label>
 
-        <label class="cdt-filters-bar__field">
-          <span class="cdt-filters-bar__label">STATUS</span>
-          <div class="cdt-filters-bar__select">
-            <select
-              [ngModel]="statusFilter()"
-              (ngModelChange)="statusFilter.set($event); currentPage.set(1)"
-              aria-label="Status"
-            >
-              <option value="all">All Statuses</option>
-              @for (option of statusOptions(); track option.value) {
+          <label class="cdt-filters-bar__field">
+            <span class="cdt-filters-bar__label">STATUS</span>
+            <div class="cdt-filters-bar__select">
+              <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event); currentPage.set(1)"
+                aria-label="Status">
+                <option value="all">All Statuses</option>
+                @for (option of statusOptions(); track option.value) {
                 <option [value]="option.value">{{ option.label }}</option>
-              }
-            </select>
-            <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
-          </div>
-        </label>
+                }
+              </select>
+              <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+            </div>
+          </label>
 
-        @if (activeFilterCount() > 0) {
+          @if (activeFilterCount() > 0) {
           <button type="button" class="cdt-filters-bar__clear" (click)="clearAllFilters()">
             <mat-icon aria-hidden="true">close</mat-icon>
             Clear all
           </button>
-        }
+          }
+        </div>
       </div>
-    </div>
-  }
+      }
 
-  <div class="cdt-table-card" [class.cdt-table-card--empty]="listLoading() || listError()">
-    @if (listLoading()) {
+    </section>
+  </div>
+
+  <section class="cdt-assets" aria-label="Assets">
+    <div class="cdt-table-card" [class.cdt-table-card--empty]="listLoading() || listError()">
+      @if (listLoading()) {
       <div class="cdt-table-card__state cdt-table-card__loading" role="status" aria-live="polite">
         <div class="cdt-table-card__spinner" aria-hidden="true"></div>
         <p class="cdt-table-card__state-title">Loading assets</p>
         <p class="cdt-table-card__state-message">Fetching the latest property data…</p>
       </div>
-    } @else if (listError()) {
+      } @else if (listError()) {
       <div class="cdt-table-card__state cdt-table-card__error" role="alert">
         <mat-icon class="cdt-table-card__state-icon" aria-hidden="true">error_outline</mat-icon>
         <p class="cdt-table-card__state-title">Unable to load assets</p>
@@ -167,108 +155,74 @@
           Try again
         </button>
       </div>
-    } @else {
+      } @else {
       <div class="cdt-table-card__body">
         <div class="cdt-table-wrap">
           <table class="cdt-table">
             <thead>
               <tr>
                 <th>
-                  <button
-                    type="button"
-                    class="cdt-table__sort"
-                    [class.cdt-table__sort--active]="isSortActive('propertyName')"
-                    (click)="toggleSort('propertyName')"
-                  >
-                    Property Name
+                  <button type="button" class="cdt-table__sort"
+                    [class.cdt-table__sort--active]="isSortActive('propertyName')" (click)="toggleSort('propertyName')">
+                    <span class="cdt-table__sort-label">Property<br>Name</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('propertyName') }}</mat-icon>
                   </button>
                 </th>
                 <th>
-                  <button
-                    type="button"
-                    class="cdt-table__sort"
-                    [class.cdt-table__sort--active]="isSortActive('geography')"
-                    (click)="toggleSort('geography')"
-                  >
-                    Geography
+                  <button type="button" class="cdt-table__sort"
+                    [class.cdt-table__sort--active]="isSortActive('geography')" (click)="toggleSort('geography')">
+                    <span class="cdt-table__sort-label">Geography</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('geography') }}</mat-icon>
                   </button>
                 </th>
                 <th>
-                  <button
-                    type="button"
-                    class="cdt-table__sort"
-                    [class.cdt-table__sort--active]="isSortActive('assetType')"
-                    (click)="toggleSort('assetType')"
-                  >
-                    Asset Type
+                  <button type="button" class="cdt-table__sort"
+                    [class.cdt-table__sort--active]="isSortActive('assetType')" (click)="toggleSort('assetType')">
+                    <span class="cdt-table__sort-label">Asset<br>Type</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('assetType') }}</mat-icon>
                   </button>
                 </th>
                 <th>
-                  <button
-                    type="button"
-                    class="cdt-table__sort"
+                  <button type="button" class="cdt-table__sort"
                     [class.cdt-table__sort--active]="isSortActive('investmentType')"
-                    (click)="toggleSort('investmentType')"
-                  >
-                    Investment Type
+                    (click)="toggleSort('investmentType')">
+                    <span class="cdt-table__sort-label">Investment<br>Type</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('investmentType') }}</mat-icon>
                   </button>
                 </th>
                 <th>
-                  <button
-                    type="button"
-                    class="cdt-table__sort"
+                  <button type="button" class="cdt-table__sort"
                     [class.cdt-table__sort--active]="isSortActive('developmentType')"
-                    (click)="toggleSort('developmentType')"
-                  >
-                    Development Type
+                    (click)="toggleSort('developmentType')">
+                    <span class="cdt-table__sort-label">Development<br>Type</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('developmentType') }}</mat-icon>
                   </button>
                 </th>
-                <th>
-                  <button
-                    type="button"
-                    class="cdt-table__sort"
-                    [class.cdt-table__sort--active]="isSortActive('glaSf')"
-                    (click)="toggleSort('glaSf')"
-                  >
-                    GLA (sf)
+                <th class="cdt-table__num">
+                  <button type="button" class="cdt-table__sort" [class.cdt-table__sort--active]="isSortActive('glaSf')"
+                    (click)="toggleSort('glaSf')">
+                    <span class="cdt-table__sort-label">GLA (sf)</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('glaSf') }}</mat-icon>
                   </button>
                 </th>
-                <th>
-                  <button
-                    type="button"
-                    class="cdt-table__sort"
-                    [class.cdt-table__sort--active]="isSortActive('committedSf')"
-                    (click)="toggleSort('committedSf')"
-                  >
-                    Committed (sf)
+                <th class="cdt-table__num">
+                  <button type="button" class="cdt-table__sort"
+                    [class.cdt-table__sort--active]="isSortActive('committedSf')" (click)="toggleSort('committedSf')">
+                    <span class="cdt-table__sort-label">Committed<br>(sf)</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('committedSf') }}</mat-icon>
                   </button>
                 </th>
-                <th>
-                  <button
-                    type="button"
-                    class="cdt-table__sort"
-                    [class.cdt-table__sort--active]="isSortActive('vacantSf')"
-                    (click)="toggleSort('vacantSf')"
-                  >
-                    Vacant (sf)
+                <th class="cdt-table__num">
+                  <button type="button" class="cdt-table__sort"
+                    [class.cdt-table__sort--active]="isSortActive('vacantSf')" (click)="toggleSort('vacantSf')">
+                    <span class="cdt-table__sort-label">Vacant (sf)</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('vacantSf') }}</mat-icon>
                   </button>
                 </th>
                 <th>
-                  <button
-                    type="button"
-                    class="cdt-table__sort"
-                    [class.cdt-table__sort--active]="isSortActive('status')"
-                    (click)="toggleSort('status')"
-                  >
-                    Status
+                  <button type="button" class="cdt-table__sort" [class.cdt-table__sort--active]="isSortActive('status')"
+                    (click)="toggleSort('status')">
+                    <span class="cdt-table__sort-label">Status</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('status') }}</mat-icon>
                   </button>
                 </th>
@@ -277,70 +231,60 @@
             </thead>
             <tbody>
               @for (row of rows(); track row.propertyKey) {
-                <tr class="cdt-table__row">
-                  <td>
-                    <div class="cdt-property-cell">
-                      <span
-                        class="cdt-property-cell__icon"
-                        [style.background-color]="'hsl(' + row.avatarHue + ' 58% 88%)'"
-                        [style.color]="'hsl(' + row.avatarHue + ' 48% 34%)'"
-                      >
-                        {{ row.initials }}
-                      </span>
-                      <span>
-                        <span class="cdt-property-cell__name">{{ row.name }}</span>
-                        <span class="cdt-property-cell__code">{{ row.code }}</span>
-                      </span>
-                    </div>
-                  </td>
-                  <td>{{ row.geography }}</td>
-                  <td>
-                    <span class="cdt-asset-type">
-                      <span
-                        class="cdt-asset-type__dot"
-                        [style.background-color]="assetTypeColor(row.assetTypeHue)"
-                        aria-hidden="true"
-                      ></span>
-                      <span
-                        class="cdt-asset-type__label"
-                        [style.color]="assetTypeColor(row.assetTypeHue)"
-                      >
-                        {{ row.assetType }}
-                      </span>
+              <tr class="cdt-table__row cdt-table__row--clickable" (click)="openAsset(row)">
+                <td>
+                  <div class="cdt-property-cell">
+                    <span class="cdt-property-cell__icon"
+                      [style.background-color]="'hsl(' + row.avatarHue + ' 58% 88%)'"
+                      [style.color]="'hsl(' + row.avatarHue + ' 48% 34%)'">
+                      {{ row.initials }}
                     </span>
-                  </td>
-                  <td>{{ row.investmentType }}</td>
-                  <td>{{ row.developmentType }}</td>
-                  <td class="cdt-table__num">
-                    <span class="cdt-commitment-cell">
-                      <span class="cdt-commitment-cell__amount">{{ formatAreaNumber(row.glaSf) }}</span>
-                      <span class="cdt-commitment-cell__bar" aria-hidden="true">
-                        <span
-                          class="cdt-commitment-cell__bar-fill cdt-commitment-cell__bar-fill--asset"
-                          [style.width.%]="clampBarFillPercent(row.occupiedPercent)"
-                          [style.background-color]="assetTypeColor(row.assetTypeHue)"
-                        ></span>
-                      </span>
-                      <span class="cdt-commitment-cell__meta">
-                        {{ formatOccupiedPercent(row.occupiedPercent) }}
-                      </span>
+                    <span>
+                      <span class="cdt-property-cell__name">{{ row.name }}</span>
+                      <span class="cdt-property-cell__code">{{ row.code }}</span>
                     </span>
-                  </td>
-                  <td class="cdt-table__num cdt-table__num--positive">
-                    {{ formatAreaNumber(row.committedSf) }}
-                  </td>
-                  <td class="cdt-table__num cdt-table__num--warning">
-                    {{ formatAreaNumber(row.vacantSf) }}
-                  </td>
-                  <td>
-                    <span [class]="statusChipClass(row.status)">
-                      {{ row.status }}
+                  </div>
+                </td>
+                <td>{{ row.geography }}</td>
+                <td>
+                  <span class="cdt-asset-type">
+                    <span class="cdt-asset-type__dot"
+                      aria-hidden="true"></span>
+                    <span class="cdt-asset-type__label">
+                      {{ row.assetType }}
                     </span>
-                  </td>
-                  <td class="cdt-table__chevron-col">
-                    <mat-icon aria-hidden="true">chevron_right</mat-icon>
-                  </td>
-                </tr>
+                  </span>
+                </td>
+                <td>{{ row.investmentType }}</td>
+                <td>{{ row.developmentType }}</td>
+                <td class="cdt-table__num">
+                  <span class="cdt-commitment-cell">
+                    <span class="cdt-commitment-cell__amount">{{ formatAreaNumber(row.glaSf) }}</span>
+                    <span class="cdt-commitment-cell__bar" aria-hidden="true">
+                      <span class="cdt-commitment-cell__bar-fill cdt-commitment-cell__bar-fill--asset"
+                        [style.width.%]="clampBarFillPercent(row.occupiedPercent)"
+                        [style.background-color]="assetTypeColor(row.assetTypeHue)"></span>
+                    </span>
+                    <span class="cdt-commitment-cell__meta">
+                      {{ formatOccupiedPercent(row.occupiedPercent) }}
+                    </span>
+                  </span>
+                </td>
+                <td class="cdt-table__num cdt-table__num--positive">
+                  {{ formatAreaNumber(row.committedSf) }}
+                </td>
+                <td class="cdt-table__num cdt-table__num--warning">
+                  {{ formatAreaNumber(row.vacantSf) }}
+                </td>
+                <td>
+                  <span [class]="statusChipClass(row.status)">
+                    {{ row.status }}
+                  </span>
+                </td>
+                <td class="cdt-table__chevron-col">
+                  <mat-icon aria-hidden="true">chevron_right</mat-icon>
+                </td>
+              </tr>
               }
             </tbody>
             <tfoot>
@@ -353,7 +297,7 @@
                 <td class="cdt-table__num cdt-table__num--warning">
                   {{ formatAreaNumber(pageTotals().vacantSf) }}
                 </td>
-                <td></td>
+                <td aria-hidden="true"></td>
                 <td class="cdt-table__chevron-col" aria-hidden="true"></td>
               </tr>
             </tfoot>
@@ -368,37 +312,25 @@
             <strong>{{ totalCount() }}</strong>
           </p>
           <nav class="cdt-pagination__nav" aria-label="Assets pagination">
-            <button
-              type="button"
-              class="cdt-pagination__arrow"
-              [disabled]="currentPage() <= 1"
-              (click)="goToPage(currentPage() - 1)"
-              aria-label="Previous page"
-            >
+            <button type="button" class="cdt-pagination__arrow" [disabled]="currentPage() <= 1"
+              (click)="goToPage(currentPage() - 1)" aria-label="Previous page">
               <mat-icon aria-hidden="true">chevron_left</mat-icon>
             </button>
             @for (page of pageNumbers(); track page) {
-              <button
-                type="button"
-                class="cdt-pagination__page"
-                [class.cdt-pagination__page--active]="page === currentPage()"
-                (click)="goToPage(page)"
-              >
-                {{ page }}
-              </button>
+            <button type="button" class="cdt-pagination__page"
+              [class.cdt-pagination__page--active]="page === currentPage()" (click)="goToPage(page)">
+              {{ page }}
+            </button>
             }
-            <button
-              type="button"
-              class="cdt-pagination__arrow"
-              [disabled]="currentPage() >= totalPages()"
-              (click)="goToPage(currentPage() + 1)"
-              aria-label="Next page"
-            >
+            <button type="button" class="cdt-pagination__arrow" [disabled]="currentPage() >= totalPages()"
+              (click)="goToPage(currentPage() + 1)" aria-label="Next page">
               <mat-icon aria-hidden="true">chevron_right</mat-icon>
             </button>
           </nav>
         </footer>
       </div>
-    }
-  </div>
-</section>
+      }
+    </div>
+  </section>
+
+</div>

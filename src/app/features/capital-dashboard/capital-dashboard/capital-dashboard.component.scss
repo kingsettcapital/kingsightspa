@@ -4,8 +4,10 @@
 @use '../shared/styles/capital-data-tool-chrome';
 @use '../shared/styles/capital-data-tool-investors';
 @use '../shared/styles/capital-data-tool-investor-detail';
+@use '../shared/styles/capital-data-tool-investment-detail';
 @use '../shared/styles/capital-data-tool-investments';
 @use '../shared/styles/capital-data-tool-assets';
+@use '../shared/styles/capital-data-tool-asset-detail';
 @use '../shared/styles/capital-data-tool-dashboard';
 @use '../shared/styles/capital-data-tool-table-scroll';
 
@@ -55,10 +57,12 @@ body[data-ks-capital-dashboard] {
     h1.cdt-investors__title,
     h1.cdt-investments__title,
     h1.cdt-dashboard-header__title {
-      font-family: 'Rufina', Georgia, serif;
+      // font-family: var(--cdt-font-amount);
+      font-family: var(--cdt-font-sans);
       font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--cdt-title-color);
+      font-weight: 400;
+      // color: var(--cdt-title-color);
+      color: #003666;
       letter-spacing: 0;
       text-transform: none;
       line-height: 1.2;
@@ -148,12 +152,42 @@ body[data-ks-capital-dashboard] {
 
 body[data-ks-capital-dashboard] {
   /* Chrome above master-detail (app header + page title + tab labels) */
-  --ks-capital-dashboard-chrome: calc(var(--ks-header-height, 4rem) + 7.5rem);
+  --ks-capital-dashboard-chrome: 3.75rem;
 
   app-capital-dashboard,
   app-capital-dashboard-investors,
   app-capital-dashboard-investments,
   app-capital-dashboard-assets,
+  app-capital-dashboard-dashboard,
+  app-investor-detail,
+  app-investment-detail,
+  app-asset-detail,
+  app-investor-detail-block,
+  app-investor-detail-sidebar,
+  app-investor-detail-table,
+  app-overview-section-cards,
+  app-dashboard-header,
+  app-dashboard-widget-card,
+  app-dashboard-widget-shell,
+  app-dashboard-metric-widget,
+  app-manage-widgets-panel,
+  app-active-funds-table,
+  app-active-assets-table,
+  app-total-assets-widget,
+  app-portfolio-value-widget,
+  app-ytd-returns-widget,
+  app-quarterly-returns-chart,
+  app-portfolio-performance-chart,
+  app-investor-growth-chart,
+  app-geographic-distribution-chart,
+  app-asset-allocation-chart,
+  app-detail-status-badge,
+  app-portal-spinner,
+  ks-search-field,
+  ks-progress-bar,
+  ks-segmented-control,
+  ks-badge,
+  ks-icon,
   .ks-capital-dashboard,
   .mat-mdc-tab-group,
   .mat-mdc-tab-nav-bar,
@@ -170,8 +204,8 @@ body[data-ks-capital-dashboard] {
   input,
   select,
   textarea {
-    // font-family: var(--ks-font-family);
     font-family: var(--ks-capital-dashboard-font-family);
+    font-weight: var(--ks-font-weight-regular);
   }
 
   /* Fill main content area without page scroll */

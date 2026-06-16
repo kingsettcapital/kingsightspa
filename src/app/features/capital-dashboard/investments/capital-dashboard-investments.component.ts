@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { catchError, debounceTime, distinctUntilChanged, of } from 'rxjs';
 
@@ -42,6 +43,7 @@ const VISIBLE_PAGE_BUTTON_COUNT = 3;
 })
 export class CapitalDashboardInvestmentsComponent {
   private readonly store = inject(Store);
+  private readonly router = inject(Router);
   private readonly excel = inject(ExcelService);
   private readonly fundsApi = inject(CapitalFundsApiService);
   private readonly routeSearchSync = inject(CapitalDashboardRouteSearchSync);
@@ -304,6 +306,12 @@ export class CapitalDashboardInvestmentsComponent {
       return;
     }
     this.currentPage.set(page);
+  }
+
+  openInvestment(row: FundTableRow): void {
+    void this.router.navigate(['/capital-dashboard/investment', row.fundKey], {
+      state: { fundRow: row },
+    });
   }
 
   retryLoad(): void {

@@ -11,18 +11,15 @@ import {
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 
 import { DashboardWidgetCardComponent } from '../dashboard-widget-card/dashboard-widget-card.component';
-import { DASHBOARD_CHART_COLORS } from '../dashboard-chart-colors';
-import { scheduleChartResize } from '../dashboard-chart.util';
+import { dashboardBarPieSeriesColor } from '../dashboard-chart-colors';
+import {
+  dashboardLegendLabels,
+  dashboardVerticalChartScales,
+  scheduleChartResize,
+} from '../dashboard-chart.util';
 import { DashboardLineChartDto } from '../../shared/models/api.models';
 
 Chart.register(...registerables);
-
-const QUARTER_COLORS = [
-  DASHBOARD_CHART_COLORS.navy,
-  DASHBOARD_CHART_COLORS.blueMid,
-  DASHBOARD_CHART_COLORS.gold,
-  DASHBOARD_CHART_COLORS.blueLight,
-];
 
 @Component({
   selector: 'app-quarterly-returns-chart',
@@ -70,8 +67,8 @@ export class QuarterlyReturnsChartComponent implements AfterViewInit, OnDestroy 
     const datasets = series.map((item, index) => ({
       label: item.name,
       data: item.values.map((value) => value ?? 0),
-      backgroundColor: QUARTER_COLORS[index % QUARTER_COLORS.length],
-      borderRadius: 2,
+      backgroundColor: dashboardBarPieSeriesColor(index),
+      borderRadius: 0,
       maxBarThickness: 14,
     }));
 
@@ -92,15 +89,7 @@ export class QuarterlyReturnsChartComponent implements AfterViewInit, OnDestroy 
           legend: {
             display: series.length > 0,
             position: 'bottom',
-            labels: {
-              boxWidth: 10,
-              boxHeight: 10,
-              usePointStyle: true,
-              pointStyle: 'rectRounded',
-              padding: 14,
-              color: DASHBOARD_CHART_COLORS.text,
-              font: { family: "'Open Sans', Arial, sans-serif", size: 11 },
-            },
+            labels: dashboardLegendLabels(),
           },
           tooltip: {
             backgroundColor: '#1a202c',
@@ -110,28 +99,10 @@ export class QuarterlyReturnsChartComponent implements AfterViewInit, OnDestroy 
             },
           },
         },
-        scales: {
-          x: {
-            grid: { display: false },
-            border: { display: false },
-            ticks: {
-              color: DASHBOARD_CHART_COLORS.text,
-              font: { family: "'Open Sans', Arial, sans-serif", size: 10 },
-            },
-          },
-          y: {
-            min: 0,
-            max: yMax,
-            beginAtZero: true,
-            ticks: {
-              stepSize: yMax / 4,
-              color: DASHBOARD_CHART_COLORS.text,
-              font: { family: "'Open Sans', Arial, sans-serif", size: 10 },
-            },
-            grid: { color: DASHBOARD_CHART_COLORS.grid },
-            border: { display: false },
-          },
-        },
+        scales: dashboardVerticalChartScales({
+          yMax,
+          yStep: yMax / 4,
+        }),
       },
     };
 

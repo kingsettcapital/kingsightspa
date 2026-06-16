@@ -8,7 +8,7 @@ export interface FundTableRow {
   avatarHue: number;
   fundType: string;
   strategy: string;
-  strategyHue: number;
+  strategyColor: string;
   commitment: number;
   investedPercent: number | null;
   netInvestedCapital: number;
@@ -19,14 +19,14 @@ export interface FundTableRow {
 
 const AVATAR_HUES = [210, 250, 170, 30, 340, 190, 280, 15];
 
-const STRATEGY_HUES: Record<string, number> = {
-  income: 270,
-  growth: 145,
-  mortgage: 32,
-  urban: 330,
+const STRATEGY_COLORS: Record<string, string> = {
+  income: '#00529B',
+  growth: '#344033',
+  mortgage: '#E7A614',
+  urban: '#957695',
 };
 
-const DEFAULT_STRATEGY_HUE = 210;
+const DEFAULT_STRATEGY_COLOR = '#00529B';
 
 function readRecord(dto: FundListItemDto): Record<string, unknown> {
   return dto as unknown as Record<string, unknown>;
@@ -65,9 +65,9 @@ function readNullableNumber(record: Record<string, unknown>, ...keys: string[]):
   return null;
 }
 
-export function strategyHue(strategy: string): number {
+export function strategyColor(strategy: string): string {
   const key = strategy.trim().toLowerCase();
-  return STRATEGY_HUES[key] ?? DEFAULT_STRATEGY_HUE;
+  return STRATEGY_COLORS[key] ?? DEFAULT_STRATEGY_COLOR;
 }
 
 export function computeInvestedPercent(
@@ -173,7 +173,7 @@ export function mapFundListItemToRow(dto: FundListItemDto, index: number): FundT
     avatarHue: AVATAR_HUES[index % AVATAR_HUES.length],
     fundType,
     strategy,
-    strategyHue: strategyHue(strategy),
+    strategyColor: strategyColor(strategy),
     commitment: resolvedCommitment,
     investedPercent,
     netInvestedCapital,

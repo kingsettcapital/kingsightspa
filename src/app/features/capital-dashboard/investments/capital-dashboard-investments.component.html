@@ -1,3 +1,8 @@
+<div style="overflow-y: auto; height: 100vh; scrollbar-width: thin;">
+
+
+  <div class="sticky-remove"  style="position: sticky; top: 0; z-index: 5;">
+
 <section class="cdt-investments" aria-label="Investments">
   <header class="cdt-investments__header">
     <div class="cdt-investments__heading">
@@ -171,6 +176,10 @@
     </div>
   }
 
+  </section>
+  </div>
+
+  <section class="cdt-investments" aria-label="Investments">
   <div class="cdt-table-card" [class.cdt-table-card--empty]="listLoading() || listError()">
     @if (listLoading()) {
       <div class="cdt-table-card__state cdt-table-card__loading" role="status" aria-live="polite">
@@ -200,7 +209,7 @@
                     [class.cdt-table__sort--active]="isSortActive('fundName')"
                     (click)="toggleSort('fundName')"
                   >
-                    Fund Name
+                    <span class="cdt-table__sort-label">Fund Name</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('fundName') }}</mat-icon>
                   </button>
                 </th>
@@ -211,62 +220,62 @@
                     [class.cdt-table__sort--active]="isSortActive('strategy')"
                     (click)="toggleSort('strategy')"
                   >
-                    Strategy
+                    <span class="cdt-table__sort-label">Strategy</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('strategy') }}</mat-icon>
                   </button>
                 </th>
-                <th>
+                <th class="cdt-table__num">
                   <button
                     type="button"
                     class="cdt-table__sort"
                     [class.cdt-table__sort--active]="isSortActive('commitment')"
                     (click)="toggleSort('commitment')"
                   >
-                    Commitment
+                    <span class="cdt-table__sort-label">Commitment</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('commitment') }}</mat-icon>
                   </button>
                 </th>
-                <th>
+                <th class="cdt-table__num">
                   <button
                     type="button"
                     class="cdt-table__sort"
                     [class.cdt-table__sort--active]="isSortActive('netInvestedCapital')"
                     (click)="toggleSort('netInvestedCapital')"
                   >
-                    Net Invested Capital
+                    <span class="cdt-table__sort-label">Net Invested<br>Capital</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('netInvestedCapital') }}</mat-icon>
                   </button>
                 </th>
-                <th>
+                <th class="cdt-table__num">
                   <button
                     type="button"
                     class="cdt-table__sort"
                     [class.cdt-table__sort--active]="isSortActive('netDistributed')"
                     (click)="toggleSort('netDistributed')"
                   >
-                    {{ distributedColumnLabel() }}
+                    <span class="cdt-table__sort-label">{{ distributedColumnLabel() }}</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('netDistributed') }}</mat-icon>
                   </button>
                 </th>
-                <th>
+                <th class="cdt-table__num">
                   <button
                     type="button"
                     class="cdt-table__sort"
                     [class.cdt-table__sort--active]="isSortActive('reservedUncalled')"
                     (click)="toggleSort('reservedUncalled')"
                   >
-                    Reserved / Uncalled
+                    <span class="cdt-table__sort-label">Reserved /<br>Uncalled</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('reservedUncalled') }}</mat-icon>
                   </button>
                 </th>
-                <th>
+                <th class="cdt-table__num">
                   <button
                     type="button"
                     class="cdt-table__sort"
                     [class.cdt-table__sort--active]="isSortActive('releasedCapital')"
                     (click)="toggleSort('releasedCapital')"
                   >
-                    Released Capital
+                    <span class="cdt-table__sort-label">Released<br>Capital</span>
                     <mat-icon aria-hidden="true">{{ sortIcon('releasedCapital') }}</mat-icon>
                   </button>
                 </th>
@@ -275,7 +284,7 @@
             </thead>
             <tbody>
               @for (row of rows(); track row.fundKey) {
-                <tr class="cdt-table__row">
+                <tr class="cdt-table__row cdt-table__row--clickable" (click)="openInvestment(row)">
                   <td>
                     <div class="cdt-fund-cell">
                       <span
@@ -292,10 +301,10 @@
                     </div>
                   </td>
                   <td>
-                    <span class="cdt-strategy">
+                    <span class="cdt-strategy" [style.color]="row.strategyColor">
                       <span
                         class="cdt-strategy__dot"
-                        [style.background-color]="'hsl(' + row.strategyHue + ' 62% 48%)'"
+                        [style.background-color]="row.strategyColor"
                         aria-hidden="true"
                       ></span>
                       <span class="cdt-strategy__label">{{ row.strategy }}</span>
@@ -364,7 +373,7 @@
                 <td class="cdt-table__num cdt-table__num--warning">
                   {{ pageTotals().reservedUncalled | ksCurrency: 'USD' : 2 : true }}
                 </td>
-                <td></td>
+                <td class="cdt-table__num cdt-table__muted" aria-hidden="true"></td>
                 <td class="cdt-table__chevron-col" aria-hidden="true"></td>
               </tr>
             </tfoot>
@@ -413,3 +422,4 @@
     }
   </div>
 </section>
+</div>

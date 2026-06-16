@@ -36,6 +36,10 @@ export class ActiveAssetsTableComponent {
     this.loadAssets();
   }
 
+  retryLoad(): void {
+    this.loadAssets();
+  }
+
   private loadAssets(): void {
     this.loading.set(true);
     this.error.set(null);

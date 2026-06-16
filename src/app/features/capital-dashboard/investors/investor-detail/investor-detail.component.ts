@@ -18,6 +18,10 @@ import { KsCurrencyPipe } from '../../../../shared/pipes/ks-currency.pipe';
 import { InvestorTableRow } from '../../shared/utils/investor-list-row.util';
 import { InvestorsApiActions } from '../../store';
 import { selectInvestorsDetail } from '../../store/capital-dashboard.selectors';
+import {
+  bindDetailSectionScrollSpy,
+  flattenSidebarSectionIds,
+} from '../../shared/utils/detail-section-scroll-spy.util';
 import { INVESTOR_DETAIL_SIDEBAR_SECTIONS } from './models/investor-detail-sidebar.config';
 import { InvestorDetailSidebarComponent } from './investor-detail-sidebar/investor-detail-sidebar.component';
 import { InvestorDetailBlockComponent } from './investor-detail-block/investor-detail-block.component';
@@ -52,6 +56,7 @@ export class InvestorDetailComponent {
 
   readonly sidebarSections = INVESTOR_DETAIL_SIDEBAR_SECTIONS;
   readonly activeSectionId = signal<InvestorDetailSectionId>('overview');
+  private readonly scrollSpyPaused = signal(false);
   readonly timeframe = signal<DetailTimeframe>('ltd');
 
   readonly investorKey = signal<number | null>(null);
@@ -152,6 +157,34 @@ export class InvestorDetailComponent {
       }
       this.loadSectionData(investorKey, view);
     });
+
+    effect((onCleanup) => {
+      if (this.loading()) {
+        return;
+      }
+
+      this.flatBlocks();
+
+      const main = this.mainContentRef()?.nativeElement;
+      if (!main) {
+        return;
+      }
+
+      let detachSpy: (() => void) | undefined;
+      const frame = requestAnimationFrame(() => {
+        detachSpy = bindDetailSectionScrollSpy({
+          main,
+          sectionIds: flattenSidebarSectionIds(this.sidebarSections),
+          activeSectionId: this.activeSectionId,
+          isPaused: () => this.scrollSpyPaused(),
+        });
+      });
+
+      onCleanup(() => {
+        cancelAnimationFrame(frame);
+        detachSpy?.();
+      });
+    });
   }
 
   setTimeframe(view: DetailTimeframe): void {
@@ -159,28 +192,29 @@ export class InvestorDetailComponent {
   }
 
   scrollToSection(sectionId: string): void {
+    this.scrollSpyPaused.set(true);
     this.activeSectionId.set(sectionId as InvestorDetailSectionId);
 
     requestAnimationFrame(() => {
       const main = this.mainContentRef()?.nativeElement;
       if (!main) {
+        this.scrollSpyPaused.set(false);
         return;
       }
 
       if (sectionId === 'overview') {
         main.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
+      } else {
+        const target = main.querySelector<HTMLElement>(`#inv-section-${sectionId}`);
+        if (target) {
+          const mainRect = main.getBoundingClientRect();
+          const targetRect = target.getBoundingClientRect();
+          const top = main.scrollTop + (targetRect.top - mainRect.top);
+          main.scrollTo({ top, behavior: 'smooth' });
+        }
       }
 
-      const target = main.querySelector<HTMLElement>(`#inv-section-${sectionId}`);
-      if (!target) {
-        return;
-      }
-
-      const mainRect = main.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
-      const top = main.scrollTop + (targetRect.top - mainRect.top);
-      main.scrollTo({ top, behavior: 'smooth' });
+      window.setTimeout(() => this.scrollSpyPaused.set(false), 800);
     });
   }
 

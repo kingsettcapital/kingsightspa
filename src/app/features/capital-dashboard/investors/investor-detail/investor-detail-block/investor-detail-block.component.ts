@@ -3,7 +3,11 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 
 import { KsCurrencyPipe } from '../../../../../shared/pipes/ks-currency.pipe';
-import { InvestorDetailBlock } from '../models/investor-detail-block.models';
+import {
+  InvestorDetailBlock,
+  InvestorDetailFieldGridBlock,
+  InvestorDetailFieldItem,
+} from '../models/investor-detail-block.models';
 import {
   INVESTOR_DETAIL_CELL_TONES_KEY,
   InvestorDetailColumnTone,
@@ -26,6 +30,19 @@ export class InvestorDetailBlockComponent {
   readonly searchQuery = signal('');
   readonly filtersPanelVisible = signal(false);
   readonly minCommitmentFilter = signal('');
+  readonly documentTypeFilter = signal('all');
+
+  readonly documentTypeOptions = [
+    'All Types',
+    'Quarterly Report',
+    'Annual Report',
+    'Appraisal',
+    'Project Update',
+    'Lease',
+    'Permit',
+    'Environmental',
+    'Insurance',
+  ];
 
   toggleExpanded(): void {
     const current = this.block();
@@ -94,6 +111,14 @@ export class InvestorDetailBlockComponent {
     return null;
   }
 
+  displayAmountValue(value: InvestorDetailTableCellValue): number | null {
+    const amount = this.amountValue(value);
+    if (amount == null) {
+      return null;
+    }
+    return this.isAssetTransactionsVariant() ? Math.abs(amount) : amount;
+  }
+
   showAmount(value: InvestorDetailTableCellValue, dashZero = false): boolean {
     if (!dashZero) {
       return this.amountValue(value) != null;
@@ -125,6 +150,143 @@ export class InvestorDetailBlockComponent {
     this.filtersPanelVisible.update((value) => !value);
   }
 
+  transactionActiveFilterCount(): number {
+    const minCommitment = Number(this.minCommitmentFilter());
+    return Number.isFinite(minCommitment) && minCommitment > 0 ? 1 : 0;
+  }
+
+  transactionsFiltersActive(): boolean {
+    return this.filtersPanelVisible() || this.transactionActiveFilterCount() > 0;
+  }
+
+  clearTransactionFilters(): void {
+    this.minCommitmentFilter.set('');
+  }
+
+  documentActiveFilterCount(): number {
+    return this.documentTypeFilter() !== 'all' ? 1 : 0;
+  }
+
+  documentsFiltersActive(): boolean {
+    return this.documentActiveFilterCount() > 0;
+  }
+
+  clearDocumentFilters(): void {
+    this.documentTypeFilter.set('all');
+  }
+
+  isPerformanceKpiRow(): boolean {
+    const block = this.block();
+    return block.kind === 'kpi-row' && block.display === 'performance';
+  }
+
+  isEsgBlock(): boolean {
+    return this.block().kind === 'esg-metrics';
+  }
+
+  isDebtBlock(): boolean {
+    return this.block().kind === 'debt-financing';
+  }
+
+  isLeasingBlock(): boolean {
+    return this.block().kind === 'leasing-summary';
+  }
+
+  isRiskBlock(): boolean {
+    return this.block().kind === 'risk-insurance';
+  }
+
+  isAssetTransactionsVariant(): boolean {
+    const block = this.block();
+    return block.kind === 'table' && block.variant === 'asset-transactions';
+  }
+
+  isPairedFieldGrid(): boolean {
+    const block = this.block();
+    return block.kind === 'field-grid' && block.layout === 'paired-rows';
+  }
+
+  pairedFieldRows(block: InvestorDetailFieldGridBlock): InvestorDetailFieldItem[][] {
+    const left = block.columns[0]?.fields ?? [];
+    const right = block.columns[1]?.fields ?? [];
+    const rowCount = Math.max(left.length, right.length);
+    const rows: InvestorDetailFieldItem[][] = [];
+
+    for (let index = 0; index < rowCount; index += 1) {
+      const row: InvestorDetailFieldItem[] = [];
+      if (left[index]) {
+        row.push(left[index]);
+      }
+      if (right[index]) {
+        row.push(right[index]);
+      }
+      if (row.length) {
+        rows.push(row);
+      }
+    }
+
+    return rows;
+  }
+
+  formatAssetSignedAmount(value: InvestorDetailTableCellValue): string {
+    const amount = this.amountValue(value);
+    if (amount == null) {
+      return '—';
+    }
+    const formatted = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(Math.abs(amount));
+    return amount < 0 ? `(${formatted})` : formatted;
+  }
+
+  assetAmountClass(row: InvestorDetailTableRow, key: string): string {
+    const amount = this.amountValue(this.cellValue(row, key));
+    const classes = ['inv-detail-table__amount'];
+    if (amount == null) {
+      return classes.join(' ');
+    }
+    classes.push(amount < 0 ? 'inv-detail-table__amount--negative' : 'inv-detail-table__amount--positive');
+    return classes.join(' ');
+  }
+
+  transactionTypeClass(value: InvestorDetailTableCellValue): string {
+    const type = String(value ?? '').toLowerCase();
+    const base = 'inv-detail-block__tx-type';
+    if (type.includes('acquisition')) {
+      return `${base} ${base}--acquisition`;
+    }
+    if (type.includes('distribution')) {
+      return `${base} ${base}--distribution`;
+    }
+    if (type.includes('capital call')) {
+      return `${base} ${base}--capital-call`;
+    }
+    if (type.includes('refinancing') || type.includes('financing')) {
+      return `${base} ${base}--refinancing`;
+    }
+    if (type.includes('sale') || type.includes('disposition')) {
+      return `${base} ${base}--sale`;
+    }
+    return base;
+  }
+
+  riskFlagClass(tone?: string): string {
+    if (tone === 'positive') {
+      return 'inv-detail-block__risk-flag inv-detail-block__risk-flag--positive';
+    }
+    if (tone === 'warning') {
+      return 'inv-detail-block__risk-flag inv-detail-block__risk-flag--warning';
+    }
+    return 'inv-detail-block__risk-flag';
+  }
+
+  bannerClass(tone: 'positive' | 'warning'): string {
+    return `inv-detail-block__risk-banner inv-detail-block__risk-banner--${tone}`;
+  }
+
   statusClass(value: InvestorDetailTableCellValue): string {
     const status = String(value ?? '').toLowerCase();
     const usePill = !this.isCommunicationsVariant();
@@ -154,24 +316,27 @@ export class InvestorDetailBlockComponent {
     return `inv-detail-block__field-value inv-detail-block__field-value--${tone}`;
   }
 
-  kpiVariantClass(variant: string): string {
-    return `inv-detail-block__kpi inv-detail-block__kpi--${variant}`;
+  kpiVariantClass(variant?: string): string {
+    return `inv-detail-block__kpi inv-detail-block__kpi--${variant ?? 'navy'}`;
   }
 
   filteredDocuments() {
     const query = this.searchQuery().trim().toLowerCase();
+    const typeFilter = this.documentTypeFilter();
     const block = this.block();
     if (block.kind !== 'document-list') {
       return [];
     }
-    if (!query) {
-      return block.documents;
-    }
-    return block.documents.filter(
-      (doc) =>
+
+    return block.documents.filter((doc) => {
+      const matchesQuery =
+        !query ||
         doc.name.toLowerCase().includes(query) ||
-        doc.category.toLowerCase().includes(query),
-    );
+        doc.category.toLowerCase().includes(query);
+      const matchesType =
+        typeFilter === 'all' || doc.category.toLowerCase() === typeFilter.toLowerCase();
+      return matchesQuery && matchesType;
+    });
   }
 
   filteredTableRows() {

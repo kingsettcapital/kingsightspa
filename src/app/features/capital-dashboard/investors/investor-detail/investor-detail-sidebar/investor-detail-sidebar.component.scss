@@ -2,6 +2,8 @@
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
+  font-family: var(--cdt-font-sans);
+  font-weight: var(--ks-font-weight-regular);
 }
 
 .inv-detail-sidebar {

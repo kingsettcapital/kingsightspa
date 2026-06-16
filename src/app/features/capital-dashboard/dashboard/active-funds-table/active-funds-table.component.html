@@ -33,7 +33,10 @@
   </header>
 
   <div class="cdt-dashboard-table-card__body">
-    <div class="cdt-dashboard-table-wrap">
+    <div
+      class="cdt-dashboard-table-wrap"
+      [class.cdt-dashboard-table-wrap--overlay]="loading() || error() || !rows().length"
+    >
       <table class="cdt-dashboard-table">
         <thead>
           <tr>
@@ -46,40 +49,59 @@
             <th>Status</th>
           </tr>
         </thead>
-        <tbody>
-          @if (loading()) {
-            <tr>
-              <td colspan="7">Loading funds…</td>
-            </tr>
-          } @else if (error()) {
-            <tr>
-              <td colspan="7">{{ error() }}</td>
-            </tr>
-          } @else if (!rows().length) {
-            <tr>
-              <td colspan="7">No active funds found.</td>
-            </tr>
-          }
-          @for (row of rows(); track row.rank) {
-            <tr>
-              <td class="cdt-dashboard-table__rank-col">{{ row.rank }}</td>
-              <td class="cdt-dashboard-table__name">{{ row.name }}</td>
-              <td class="cdt-dashboard-table__num-col">{{ row.aum }}</td>
-              <td
-                class="cdt-dashboard-table__num-col"
-                [class.cdt-dashboard-table__num-col--positive]="row.q3ReturnPositive"
-              >
-                {{ row.q3Return }}
-              </td>
-              <td class="cdt-dashboard-table__num-col">{{ row.investors }}</td>
-              <td class="cdt-dashboard-table__num-col">{{ row.assets }}</td>
-              <td class="cdt-dashboard-table__status cdt-dashboard-table__status--positive">
-                {{ row.status }}
-              </td>
-            </tr>
-          }
-        </tbody>
+        @if (!loading() && !error() && rows().length) {
+          <tbody>
+            @for (row of rows(); track row.rank) {
+              <tr>
+                <td class="cdt-dashboard-table__rank-col">{{ row.rank }}</td>
+                <td class="cdt-dashboard-table__name">{{ row.name }}</td>
+                <td class="cdt-dashboard-table__num-col">{{ row.aum }}</td>
+                <td
+                  class="cdt-dashboard-table__num-col"
+                  [class.cdt-dashboard-table__num-col--positive]="row.q3ReturnPositive"
+                >
+                  {{ row.q3Return }}
+                </td>
+                <td class="cdt-dashboard-table__num-col">{{ row.investors }}</td>
+                <td class="cdt-dashboard-table__num-col">{{ row.assets }}</td>
+                <td class="cdt-dashboard-table__status cdt-dashboard-table__status--positive">
+                  {{ row.status }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        }
       </table>
+
+      @if (loading()) {
+        <div class="cdt-dashboard-table-card__state" role="status" aria-live="polite">
+          <div class="cdt-dashboard-table-card__spinner" aria-hidden="true"></div>
+          <p class="cdt-dashboard-table-card__state-title">Loading funds</p>
+          <p class="cdt-dashboard-table-card__state-message">Fetching active fund data…</p>
+        </div>
+      } @else if (error()) {
+        <div class="cdt-dashboard-table-card__state cdt-dashboard-table-card__state--error" role="alert">
+          <mat-icon class="cdt-dashboard-table-card__state-icon" aria-hidden="true">error_outline</mat-icon>
+          <p class="cdt-dashboard-table-card__state-title">Unable to load funds</p>
+          <p class="cdt-dashboard-table-card__state-message">Please check your connection and try again.</p>
+          <button type="button" class="cdt-dashboard-table-card__retry" (click)="retryLoad()">
+            Try again
+          </button>
+        </div>
+      } @else if (!rows().length) {
+        <div class="cdt-dashboard-table-card__state cdt-dashboard-table-card__state--empty">
+          <mat-icon
+            class="cdt-dashboard-table-card__state-icon cdt-dashboard-table-card__state-icon--muted"
+            aria-hidden="true"
+          >
+            account_balance
+          </mat-icon>
+          <p class="cdt-dashboard-table-card__state-title">No active funds</p>
+          <p class="cdt-dashboard-table-card__state-message">
+            There are no funds under management to display right now.
+          </p>
+        </div>
+      }
     </div>
   </div>
 

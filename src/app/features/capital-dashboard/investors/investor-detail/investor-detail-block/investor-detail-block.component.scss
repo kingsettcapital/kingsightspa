@@ -32,6 +32,26 @@
 .inv-detail-transactions__filters {
   .cdt-filters-panel {
     margin-top: 0;
+    background: #fff;
+  }
+
+  .cdt-filters-bar__clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: 0.5rem;
+    padding: 0.375rem 0;
+    border: 0;
+    background: transparent;
+    color: #dc2626;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+
+    &:hover {
+      color: #b91c1c;
+    }
   }
 }
 
@@ -43,7 +63,7 @@
     border: 0;
     outline: none;
     background: transparent;
-    font-family: 'Open Sans', Arial, sans-serif;
+    font-family: var(--cdt-font-sans);
     font-size: 0.875rem;
     font-weight: 400;
     line-height: 1.25;
@@ -75,24 +95,51 @@
 .inv-detail-documents__toolbar-row {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.75rem;
   padding: 0.875rem 1.25rem 1rem;
+}
 
-  .inv-detail-block__search {
-    flex: 1;
-    max-width: none;
-    min-width: 0;
+.inv-detail-documents__toolbar-main {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.inv-detail-documents__toolbar-row .inv-detail-block__count {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.inv-detail-documents__toolbar-main .inv-detail-block__filter-btn {
+  flex-shrink: 0;
+}
+
+.inv-detail-documents__filters {
+  padding: 0 1.25rem 1rem;
+
+  .cdt-filters-panel {
+    margin-top: 0;
   }
 
-  .inv-detail-block__search--pill {
-    max-width: none;
-    min-width: 0;
-    flex: 1;
-  }
+  .cdt-filters-bar__clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: 0.5rem;
+    padding: 0.375rem 0;
+    border: 0;
+    background: transparent;
+    color: #dc2626;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
 
-  .inv-detail-block__count {
-    flex-shrink: 0;
-    margin-left: auto;
+    &:hover {
+      color: #b91c1c;
+    }
   }
 }
 
@@ -132,7 +179,7 @@
 
 .inv-detail-block__title {
   margin: 0;
-  font-family: 'Open Sans', Arial, sans-serif;
+  font-family: var(--cdt-font-sans);
   font-size: 0.9375rem;
   font-weight: 600;
   color: #111827;
@@ -141,7 +188,7 @@
 
 .inv-detail-block__subtitle {
   margin: 0.375rem 0 0;
-  font-family: 'Open Sans', Arial, sans-serif;
+  font-family: var(--cdt-font-sans);
   font-size: 0.8125rem;
   font-weight: 400;
   color: #94a3b8;
@@ -199,6 +246,13 @@
       background: #fff;
       border: 1px solid #e2e8f0;
     }
+  }
+
+  &--documents {
+    flex: 0 1 auto;
+    width: 16rem;
+    max-width: 16rem;
+    min-width: 12rem;
   }
 
   .mat-icon {
@@ -278,7 +332,7 @@
 .inv-detail-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: 'Open Sans', Arial, sans-serif;
+  font-family: var(--cdt-font-sans);
   font-size: 0.8125rem;
 
   thead th {
@@ -522,6 +576,30 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2.5rem;
   padding: 1.25rem 1.25rem 1.5rem;
+
+  &--paired-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0.5rem 1.25rem 1.25rem;
+  }
+}
+
+.inv-detail-block__field-pair-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2.5rem;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid #edf2f7;
+
+  &:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .inv-detail-block__field {
+    min-width: 0;
+  }
 }
 
 .inv-detail-block__field-column-title {
@@ -610,7 +688,7 @@
 
 .inv-detail-block__kpi-value {
   margin: 0.375rem 0 0;
-  font-family: 'Rufina', Georgia, serif;
+  font-family: var(--cdt-font-amount);
   font-size: 1.375rem;
   font-weight: 700;
   line-height: 1.15;
@@ -635,6 +713,128 @@
 
 .inv-detail-block__kpi--slate {
   background: #244b8f;
+}
+
+.inv-detail-block--performance {
+  // background: #f4f5f7;
+  border-color: #e8edf2;
+
+  .inv-detail-block__header {
+    border-bottom: 0;
+    padding: 1.125rem 1.25rem 0.75rem;
+  }
+
+  .inv-detail-block__title {
+    font-family: var(--cdt-font-serif);
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .inv-detail-block__body {
+    padding-top: 0;
+  }
+}
+
+.inv-detail-block--esg,
+.inv-detail-block--debt {
+  .inv-detail-block__header {
+    border-bottom: 0;
+    padding: 1.125rem 1.25rem 0.75rem;
+  }
+
+  .inv-detail-block__title {
+    font-family: var(--cdt-font-serif);
+    font-size: 1rem;
+    font-weight: 700;
+  }
+}
+
+.inv-detail-block__perf-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.inv-detail-block__perf-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 6.5rem;
+  padding: 1rem 1.125rem;
+  border-radius: 8px;
+  background: #f4f5f7;
+  border: 1px solid #e8edf2;
+}
+
+.inv-detail-block__perf-label {
+  margin: 0;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  line-height: 1.2;
+}
+
+.inv-detail-block__perf-value {
+  margin: 0.25rem 0 0;
+  font-family: var(--cdt-font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0c274a;
+  line-height: 1.15;
+}
+
+.inv-detail-block__perf-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+
+.inv-detail-block__esg-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.inv-detail-block__esg-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-height: 5.75rem;
+  padding: 1rem 1.125rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+}
+
+.inv-detail-block__esg-label {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #94a3b8;
+  line-height: 1.3;
+}
+
+.inv-detail-block__esg-value {
+  margin: 0;
+  font-family: var(--cdt-font-serif);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.25;
+}
+
+.inv-detail-block__esg-hint {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: #94a3b8;
+  line-height: 1.35;
 }
 
 .inv-detail-block__status {
@@ -763,6 +963,382 @@
   }
 }
 
+.inv-detail-block__debt {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 2.5rem;
+  align-items: start;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.inv-detail-block__debt-metrics {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.inv-detail-block__debt-metric {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid #edf2f7;
+
+  &:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
+}
+
+.inv-detail-block__debt-metric-label {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.inv-detail-block__debt-metric-value {
+  margin: 0;
+  font-family: var(--cdt-font-amount);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #111827;
+  text-align: right;
+}
+
+.inv-detail-block__maturity-title {
+  margin: 0 0 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.inv-detail-block__maturity-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.inv-detail-block__maturity-row {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr 2.25rem;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.inv-detail-block__maturity-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.inv-detail-block__maturity-track {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #e8edf2;
+  overflow: hidden;
+}
+
+.inv-detail-block__maturity-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #004a99;
+}
+
+.inv-detail-block__maturity-pct {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #111827;
+  text-align: right;
+}
+
+.inv-detail-block__occupancy {
+  margin: 1.25rem 1.25rem 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #edf2f7;
+}
+
+.inv-detail-block__occupancy-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.inv-detail-block__occupancy-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.inv-detail-block__occupancy-pct {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.inv-detail-block__occupancy-track {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #e8edf2;
+  overflow: hidden;
+}
+
+.inv-detail-block__occupancy-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #004a99;
+}
+
+.inv-detail-block__occupancy-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.375rem;
+  font-size: 0.6875rem;
+  color: #94a3b8;
+}
+
+.inv-detail-block__leasing {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.inv-detail-block__leasing-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.inv-detail-block__leasing-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+}
+
+.inv-detail-block__leasing-metric {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.inv-detail-block__leasing-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.inv-detail-block__leasing-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  text-align: right;
+}
+
+.inv-detail-block__leasing-hint {
+  margin: 0;
+  font-size: 0.6875rem;
+  color: #94a3b8;
+}
+
+.inv-detail-block__maturity--leasing {
+  padding-top: 0.25rem;
+}
+
+.inv-detail-block__risk {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.inv-detail-block__risk-column-title {
+  margin: 0 0 1rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.inv-detail-block__risk-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.inv-detail-block__risk-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #edf2f7;
+
+  &:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  &--stacked {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+
+    dt {
+      font-weight: 600;
+      color: #111827;
+    }
+
+    dd {
+      text-align: left;
+      font-weight: 400;
+      color: #64748b;
+    }
+  }
+
+  dt {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #64748b;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #111827;
+    text-align: right;
+  }
+}
+
+.inv-detail-block__risk-banner {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+
+  &--positive {
+    background: #f0f9f4;
+    color: #2d8a4e;
+  }
+}
+
+.inv-detail-block__risk-flag {
+  color: #111827;
+
+  &--positive {
+    color: #16a34a;
+  }
+
+  &--warning {
+    color: #d97706;
+  }
+}
+
+.inv-detail-block--leasing,
+.inv-detail-block--risk,
+.inv-detail-block--esg,
+.inv-detail-block--debt {
+  .inv-detail-block__title {
+    font-family: var(--cdt-font-serif);
+    font-size: 1rem;
+    font-weight: 700;
+  }
+}
+
+.inv-detail-table--asset-transactions {
+  .inv-detail-table__amount-fund {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.375rem;
+  }
+
+  .inv-detail-table__amount {
+    font-weight: 600;
+    white-space: nowrap;
+
+    &--positive {
+      color: #16a34a;
+    }
+
+    &--negative {
+      color: #dc2626;
+    }
+  }
+
+  .inv-detail-table__fund-name {
+    color: #111827;
+    font-weight: 400;
+  }
+
+  .inv-detail-table__cell--amount.inv-detail-table__cell--positive {
+    color: #16a34a;
+  }
+
+  .inv-detail-table__cell--amount.inv-detail-table__cell--negative {
+    color: #dc2626;
+  }
+}
+
+.inv-detail-block__tx-type {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #475569;
+
+  &--acquisition {
+    background: #dbeafe;
+    color: #2563eb;
+  }
+
+  &--distribution {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+
+  &--capital-call {
+    background: #ede9fe;
+    color: #7c3aed;
+  }
+
+  &--refinancing {
+    background: #f1f5f9;
+    color: #475569;
+  }
+
+  &--sale {
+    background: #ffedd5;
+    color: #ea580c;
+  }
+}
+
 @media (max-width: 900px) {
   .inv-detail-block__header {
     flex-direction: column;
@@ -782,14 +1358,23 @@
 
   .inv-detail-documents__toolbar-row {
     flex-wrap: wrap;
+    gap: 0.625rem;
+  }
 
-    .inv-detail-block__search {
-      flex: 1 1 100%;
-    }
+  .inv-detail-documents__toolbar-main {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
 
-    .inv-detail-block__count {
-      margin-left: auto;
-    }
+  .inv-detail-documents__toolbar-main .inv-detail-block__search--documents {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .inv-detail-documents__toolbar-row .inv-detail-block__count {
+    margin-left: auto;
   }
 
   .inv-detail-block__toolbar-row {
@@ -810,6 +1395,28 @@
 
   .inv-detail-block__kpi-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inv-detail-block__perf-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inv-detail-block__esg-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inv-detail-block__debt {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+
+  .inv-detail-block__leasing-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inv-detail-block__risk {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
   }
 
   .inv-detail-block__table-footer {

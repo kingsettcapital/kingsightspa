@@ -32,11 +32,23 @@ export const CAPITAL_DASHBOARD_ROUTES: Routes = [
           ),
       },
       {
+        path: 'investment/:fundKey',
+        loadComponent: () =>
+          import('./investments/investment-detail/investment-detail.component').then(
+            (m) => m.InvestmentDetailComponent,
+          ),
+      },
+      {
         path: 'investment',
         loadComponent: () =>
           import('./investments/capital-dashboard-investments.component').then(
             (m) => m.CapitalDashboardInvestmentsComponent,
           ),
+      },
+      {
+        path: 'asset/:propertyKey',
+        loadComponent: () =>
+          import('./assets/asset-detail/asset-detail.component').then((m) => m.AssetDetailComponent),
       },
       {
         path: 'asset',

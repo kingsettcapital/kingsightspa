@@ -9,7 +9,7 @@
   height: 100%;
   background: var(--cdt-surface);
   border: 1px solid var(--cdt-border);
-  border-radius: 10px;
+  // border-radius: 10px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
   overflow: hidden;
 }
@@ -23,7 +23,9 @@
   font-family: var(--cdt-font-sans);
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--cdt-title-color);
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em;
+  color: #003666;
   line-height: 1.35;
 }
 

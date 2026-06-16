@@ -44,7 +44,7 @@
 
 .cdt-table-card__state-title {
   margin: 0;
-  font-family: 'Open Sans', Arial, sans-serif;
+  font-family: var(--cdt-font-sans);
   font-size: 1.25rem;
   font-weight: 600;
   color: #1a202c;
@@ -54,7 +54,7 @@
 .cdt-table-card__state-message {
   margin: 0;
   max-width: 24rem;
-  font-family: 'Open Sans', Arial, sans-serif;
+  font-family: var(--cdt-font-sans);
   font-size: 1rem;
   font-weight: 400;
   color: #64748b;
@@ -72,7 +72,7 @@
   border-radius: 6px;
   background: #004a99;
   color: #fff;
-  font-family: 'Open Sans', Arial, sans-serif;
+  font-family: var(--cdt-font-sans);
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.25;

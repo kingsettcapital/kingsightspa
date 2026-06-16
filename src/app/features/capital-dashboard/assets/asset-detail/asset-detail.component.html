@@ -1,0 +1,81 @@
+<section class="inv-detail" aria-label="Asset profile">
+  <aside class="inv-detail__sidebar">
+    <app-investor-detail-sidebar
+      [sections]="sidebarSections"
+      [activeSectionId]="activeSectionId()"
+      (sectionSelect)="scrollToSection($event)"
+    />
+  </aside>
+
+  <div #mainContent class="inv-detail__main">
+    <button type="button" class="inv-detail__back" (click)="backToList()">
+      <mat-icon aria-hidden="true">chevron_left</mat-icon>
+      Back to Assets
+    </button>
+
+    <header class="inv-detail__header">
+      <div class="inv-detail__heading">
+        <div class="inv-detail__title-row">
+          <h1 class="inv-detail__title">{{ propertyName() }}</h1>
+          <span [class]="assetTypeChipClass()">{{ assetType() }}</span>
+          <span [class]="statusChipClass()">{{ statusLabel() }}</span>
+        </div>
+        <p class="inv-detail__subtitle">{{ subtitleText() }}</p>
+      </div>
+
+      <div class="inv-detail__actions">
+        <button type="button" class="cdt-btn cdt-btn--download">
+          <span class="cdt-btn__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 15V3" />
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <path d="m7 10 5 5 5-5" />
+            </svg>
+          </span>
+          Download
+        </button>
+      </div>
+    </header>
+
+    <div class="inv-detail__kpi-row inv-detail__kpi-row--assets">
+      <article class="cdt-kpi cdt-kpi--navy">
+        <p class="cdt-kpi__label">Total GLA</p>
+        <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().totalGlaSf, true) }}</p>
+        <p class="cdt-kpi__hint">{{ formatAssetKpiHint('gla', kpiCards()) }}</p>
+      </article>
+      <article class="cdt-kpi cdt-kpi--blue">
+        <p class="cdt-kpi__label">Committed Area</p>
+        <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().committedSf, true) }}</p>
+        <p class="cdt-kpi__hint">{{ formatAssetKpiHint('committed', kpiCards()) }}</p>
+      </article>
+      <article class="cdt-kpi cdt-kpi--gold">
+        <p class="cdt-kpi__label">Vacant Area</p>
+        <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().vacantSf, true) }}</p>
+        <p class="cdt-kpi__hint">{{ formatAssetKpiHint('vacant', kpiCards()) }}</p>
+      </article>
+      <article class="cdt-kpi cdt-kpi--blue-light">
+        <p class="cdt-kpi__label">Est. Market Value</p>
+        <p class="cdt-kpi__value">{{ kpiCards().marketValue | ksCurrency: 'USD' : 2 : true }}</p>
+        <p class="cdt-kpi__hint">{{ formatAssetKpiHint('value', kpiCards()) }}</p>
+      </article>
+    </div>
+
+    @if (loading()) {
+      <div class="inv-detail__state" role="status">
+        <div class="inv-detail__spinner" aria-hidden="true"></div>
+        <p>Loading asset profile…</p>
+      </div>
+    } @else {
+      <div class="inv-detail__content">
+        @for (item of flatBlocks(); track item.block.id) {
+          <div
+            class="inv-detail__block-wrap"
+            [attr.id]="item.isSectionStart ? 'inv-section-' + item.sectionId : null"
+          >
+            <app-investor-detail-block [block]="item.block" />
+          </div>
+        }
+      </div>
+    }
+  </div>
+</section>

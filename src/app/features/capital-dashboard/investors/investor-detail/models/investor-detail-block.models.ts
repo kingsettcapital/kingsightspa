@@ -4,7 +4,12 @@ import {
   InvestorDetailTableRow,
 } from './investor-detail-table.models';
 
-export type InvestorDetailTableVariant = 'default' | 'transactions' | 'communications' | 'investments';
+export type InvestorDetailTableVariant =
+  | 'default'
+  | 'transactions'
+  | 'communications'
+  | 'investments'
+  | 'asset-transactions';
 
 export interface InvestorDetailTableBlock extends InvestorDetailTableConfig {
   kind: 'table';
@@ -25,19 +30,45 @@ export interface InvestorDetailFieldColumn {
   fields: InvestorDetailFieldItem[];
 }
 
+export interface InvestorDetailOccupancyFooter {
+  label: string;
+  percent: number;
+  committedLabel: string;
+  vacantLabel: string;
+}
+
 export interface InvestorDetailFieldGridBlock {
   kind: 'field-grid';
   id: string;
   title: string;
   collapsible?: boolean;
   defaultExpanded?: boolean;
+  layout?: 'columns' | 'paired-rows';
   columns: InvestorDetailFieldColumn[];
+  occupancyFooter?: InvestorDetailOccupancyFooter;
+}
+
+export interface InvestorDetailLeasingMetric {
+  label: string;
+  value: string;
+  hint?: string;
+}
+
+export interface InvestorDetailLeasingSummaryBlock {
+  kind: 'leasing-summary';
+  id: string;
+  title: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  metricGroups: InvestorDetailLeasingMetric[][];
+  leaseExpirySchedule: InvestorDetailDebtMaturityBar[];
 }
 
 export interface InvestorDetailKpiCard {
   label: string;
   value: string;
-  variant: 'navy' | 'blue' | 'blue-light' | 'gold' | 'slate';
+  hint?: string;
+  variant?: 'navy' | 'blue' | 'blue-light' | 'gold' | 'slate';
 }
 
 export interface InvestorDetailKpiRowBlock {
@@ -46,7 +77,23 @@ export interface InvestorDetailKpiRowBlock {
   title: string;
   collapsible?: boolean;
   defaultExpanded?: boolean;
+  display?: 'colored' | 'performance';
   cards: InvestorDetailKpiCard[];
+}
+
+export interface InvestorDetailEsgMetricCard {
+  label: string;
+  value: string;
+  hint: string;
+}
+
+export interface InvestorDetailEsgMetricsBlock {
+  kind: 'esg-metrics';
+  id: string;
+  title: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  cards: InvestorDetailEsgMetricCard[];
 }
 
 export interface InvestorDetailDocumentItem {
@@ -66,11 +113,49 @@ export interface InvestorDetailDocumentListBlock {
   documents: InvestorDetailDocumentItem[];
 }
 
+export interface InvestorDetailDebtMaturityBar {
+  label: string;
+  percent: number;
+}
+
+export interface InvestorDetailDebtFinancingBlock {
+  kind: 'debt-financing';
+  id: string;
+  title: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  metrics: InvestorDetailFieldItem[];
+  maturitySchedule: InvestorDetailDebtMaturityBar[];
+}
+
+export interface InvestorDetailRiskFlag {
+  label: string;
+  value: string;
+  tone?: 'default' | 'positive' | 'warning';
+}
+
+export interface InvestorDetailRiskInsuranceBlock {
+  kind: 'risk-insurance';
+  id: string;
+  title: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  coverageTitle: string;
+  coverage: InvestorDetailFieldItem[];
+  riskTitle: string;
+  banner?: { message: string; tone: 'positive' | 'warning' };
+  riskFlags: InvestorDetailRiskFlag[];
+}
+
 export type InvestorDetailBlock =
   | InvestorDetailTableBlock
   | InvestorDetailFieldGridBlock
   | InvestorDetailKpiRowBlock
-  | InvestorDetailDocumentListBlock;
+  | InvestorDetailEsgMetricsBlock
+  | InvestorDetailDocumentListBlock
+  | InvestorDetailDebtFinancingBlock
+  | InvestorDetailLeasingSummaryBlock
+  | InvestorDetailRiskInsuranceBlock;
 
 export interface InvestorDetailSectionBlock {
   sectionId: string;

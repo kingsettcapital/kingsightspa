@@ -5,7 +5,9 @@ export type InvestorDetailColumnType =
   | 'date'
   | 'link'
   | 'status'
-  | 'percent';
+  | 'percent'
+  | 'transaction-type'
+  | 'amount-fund';
 
 export type InvestorDetailColumnTone =
   | 'default'

@@ -11,19 +11,15 @@ import {
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 
 import { DashboardWidgetCardComponent } from '../dashboard-widget-card/dashboard-widget-card.component';
-import { DASHBOARD_CHART_COLORS } from '../dashboard-chart-colors';
-import { scheduleChartResize } from '../dashboard-chart.util';
+import { dashboardLineSeriesColor } from '../dashboard-chart-colors';
+import {
+  dashboardLegendLabels,
+  dashboardVerticalChartScales,
+  scheduleChartResize,
+} from '../dashboard-chart.util';
 import { DashboardLineChartDto } from '../../shared/models/api.models';
 
 Chart.register(...registerables);
-
-const LINE_COLORS = [
-  DASHBOARD_CHART_COLORS.grayDark,
-  DASHBOARD_CHART_COLORS.gold,
-  DASHBOARD_CHART_COLORS.blueMid,
-  DASHBOARD_CHART_COLORS.navy,
-  DASHBOARD_CHART_COLORS.blueLight,
-];
 
 @Component({
   selector: 'app-portfolio-performance-chart',
@@ -74,7 +70,7 @@ export class PortfolioPerformanceChartComponent implements AfterViewInit, OnDest
     }
 
     const datasets = series.map((item, index) => {
-      const color = LINE_COLORS[index % LINE_COLORS.length];
+      const color = dashboardLineSeriesColor(index);
       const gradient = context.createLinearGradient(0, 0, 0, 220);
       gradient.addColorStop(0, `${color}33`);
       gradient.addColorStop(1, `${color}00`);
@@ -114,18 +110,7 @@ export class PortfolioPerformanceChartComponent implements AfterViewInit, OnDest
             display: series.length > 0,
             position: 'bottom',
             align: 'center',
-            labels: {
-              boxWidth: 10,
-              boxHeight: 10,
-              usePointStyle: true,
-              pointStyle: 'rectRounded',
-              padding: 16,
-              color: DASHBOARD_CHART_COLORS.text,
-              font: {
-                family: "'Open Sans', Arial, sans-serif",
-                size: 11,
-              },
-            },
+            labels: dashboardLegendLabels(),
           },
           tooltip: {
             backgroundColor: '#1a202c',
@@ -135,28 +120,11 @@ export class PortfolioPerformanceChartComponent implements AfterViewInit, OnDest
             },
           },
         },
-        scales: {
-          x: {
-            grid: { display: false },
-            border: { display: false },
-            ticks: {
-              color: DASHBOARD_CHART_COLORS.text,
-              font: { family: "'Open Sans', Arial, sans-serif", size: 10 },
-            },
-          },
-          y: {
-            min: 0,
-            max: yMax,
-            ticks: {
-              stepSize: yMax / 4,
-              color: DASHBOARD_CHART_COLORS.text,
-              font: { family: "'Open Sans', Arial, sans-serif", size: 10 },
-              callback: (value) => `${value}%`,
-            },
-            grid: { color: DASHBOARD_CHART_COLORS.grid },
-            border: { display: false },
-          },
-        },
+        scales: dashboardVerticalChartScales({
+          yMax,
+          yStep: yMax / 4,
+          yTickCallback: (value) => `${value}%`,
+        }),
       },
     };
 

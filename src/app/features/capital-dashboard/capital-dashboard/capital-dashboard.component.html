@@ -1,11 +1,55 @@
 <div class="cdt-shell ks-capital-dashboard portal-shell" aria-label="Capital Dashboard">
   <header class="cdt-topbar">
     <div class="cdt-topbar__brand">
-      <span class="cdt-topbar__mark" aria-hidden="true">K</span>
-      <span class="cdt-topbar__title">
-        KingSight <span class="cdt-topbar__dash">–</span> Data Tool
-      </span>
+      <span class="cdt-topbar__title">KingSight Data Tool</span>
     </div>
+
+    <nav class="cdt-subnav" aria-label="Capital Dashboard sections">
+      <a
+        class="cdt-subnav__link"
+        routerLink="./dashboard"
+        [queryParams]="tabClearQueryParams"
+        queryParamsHandling="merge"
+        replaceUrl="true"
+        routerLinkActive="cdt-subnav__link--active"
+        [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
+      >
+        <span class="captilize">Dashboard</span>
+      </a>
+      <a
+        class="cdt-subnav__link"
+        routerLink="./investor"
+        [queryParams]="tabClearQueryParams"
+        queryParamsHandling="merge"
+        replaceUrl="true"
+        routerLinkActive="cdt-subnav__link--active"
+        [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
+      >
+        <span class="captilize">Investors</span>
+      </a>
+      <a
+        class="cdt-subnav__link"
+        routerLink="./investment"
+        [queryParams]="tabClearQueryParams"
+        queryParamsHandling="merge"
+        replaceUrl="true"
+        routerLinkActive="cdt-subnav__link--active"
+        [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
+      >
+        <span class="captilize">Investments</span>
+      </a>
+      <a
+        class="cdt-subnav__link"
+        routerLink="./asset"
+        [queryParams]="tabClearQueryParams"
+        queryParamsHandling="merge"
+        replaceUrl="true"
+        routerLinkActive="cdt-subnav__link--active"
+        [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
+      >
+        <span class="captilize">Assets</span>
+      </a>
+    </nav>
 
     <div #searchWrap class="cdt-topbar__search-wrap">
       <div class="cdt-topbar__search">
@@ -78,57 +122,6 @@
       }
     </div>
   </header>
-
-  <nav class="cdt-subnav" aria-label="Capital Dashboard sections">
-    <a
-      class="cdt-subnav__link"
-      routerLink="./dashboard"
-      [queryParams]="tabClearQueryParams"
-      queryParamsHandling="merge"
-      replaceUrl="true"
-      routerLinkActive="cdt-subnav__link--active"
-      [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
-    >
-      <mat-icon aria-hidden="true">dashboard</mat-icon>
-      <span>Dashboard</span>
-    </a>
-    <a
-      class="cdt-subnav__link"
-      routerLink="./investor"
-      [queryParams]="tabClearQueryParams"
-      queryParamsHandling="merge"
-      replaceUrl="true"
-      routerLinkActive="cdt-subnav__link--active"
-      [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
-    >
-      <mat-icon aria-hidden="true">groups</mat-icon>
-      <span>Investors</span>
-    </a>
-    <a
-      class="cdt-subnav__link"
-      routerLink="./investment"
-      [queryParams]="tabClearQueryParams"
-      queryParamsHandling="merge"
-      replaceUrl="true"
-      routerLinkActive="cdt-subnav__link--active"
-      [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
-    >
-      <mat-icon aria-hidden="true">trending_up</mat-icon>
-      <span>Investments</span>
-    </a>
-    <a
-      class="cdt-subnav__link"
-      routerLink="./asset"
-      [queryParams]="tabClearQueryParams"
-      queryParamsHandling="merge"
-      replaceUrl="true"
-      routerLinkActive="cdt-subnav__link--active"
-      [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
-    >
-      <mat-icon aria-hidden="true">inventory_2</mat-icon>
-      <span>Assets</span>
-    </a>
-  </nav>
 
   <main class="cdt-main">
     <router-outlet />
