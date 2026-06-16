@@ -1,216 +1,6 @@
 @let current = block();
 
-@if (isTransactionsVariant() && current.kind === 'table') {
-  <section
-    class="inv-detail-transactions"
-    [attr.aria-labelledby]="'inv-detail-block-' + current.id"
-  >
-    <div class="inv-detail-transactions__chrome">
-      <div class="inv-detail-transactions__header-row">
-        <div class="inv-detail-block__heading">
-          <h2 class="inv-detail-block__title" [id]="'inv-detail-block-' + current.id">
-            {{ current.title }}
-          </h2>
-          @if (current.subtitle) {
-            <p class="inv-detail-block__subtitle">
-              {{ current.subtitle }}
-              @if (current.subtitleAccent) {
-                <span class="inv-detail-block__subtitle-accent">{{ current.subtitleAccent }}</span>
-              }
-            </p>
-          }
-        </div>
-
-        <div class="inv-detail-transactions__toolbar">
-          <label class="inv-detail-block__search inv-detail-block__search--pill inv-detail-block__search--white">
-            <mat-icon aria-hidden="true">search</mat-icon>
-            <input
-              type="search"
-              placeholder="Search..."
-              [ngModel]="searchQuery()"
-              (ngModelChange)="onTransactionSearchInput($event)"
-              aria-label="Search transactions"
-            />
-          </label>
-          <!--
-          <button
-            type="button"
-            class="cdt-btn cdt-btn--filters inv-detail-block__filter-btn"
-            [class.cdt-btn--filters-active]="transactionsFiltersActive()"
-            (click)="toggleFiltersPanel()"
-            [attr.aria-expanded]="filtersPanelVisible()"
-          >
-            <mat-icon aria-hidden="true">filter_alt</mat-icon>
-            <span>Filter</span>
-            @if (transactionActiveFilterCount() > 0) {
-              <span class="cdt-btn__badge">{{ transactionActiveFilterCount() }}</span>
-            }
-          </button>
-          -->
-        </div>
-      </div>
-
-      <!--
-      @if (filtersPanelVisible()) {
-        <div class="inv-detail-transactions__filters">
-          <div class="cdt-filters-panel">
-            <div class="cdt-filters-bar">
-              <label class="cdt-filters-bar__field">
-                <span class="cdt-filters-bar__label">MIN. COMMITMENT ($M)</span>
-                <div class="cdt-filters-bar__select inv-detail-transactions__filter-input">
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    placeholder="e.g. 1"
-                    [ngModel]="minCommitmentFilter()"
-                    (ngModelChange)="minCommitmentFilter.set($event)"
-                    aria-label="Minimum commitment in millions"
-                  />
-                </div>
-              </label>
-              @if (transactionActiveFilterCount() > 0) {
-                <button
-                  type="button"
-                  class="cdt-filters-bar__clear"
-                  (click)="clearTransactionFilters()"
-                >
-                  × Clear
-                </button>
-              }
-            </div>
-          </div>
-        </div>
-      }
-      -->
-    </div>
-
-    <div class="inv-detail-block__table-card" [id]="'inv-detail-block-body-' + current.id">
-      <div class="inv-detail-table-wrap inv-detail-table-wrap--transactions">
-        <table class="inv-detail-table inv-detail-table--transactions">
-          <thead>
-            <tr>
-              @for (column of current.columns; track column.key) {
-                <th [class]="transactionHeadCellClass(column)">
-                  @if (column.sortBy) {
-                    <button
-                      type="button"
-                      class="inv-detail-table__sort"
-                      [class.inv-detail-table__sort--active]="isSortActive(column)"
-                      [class.inv-detail-table__sort--right]="column.align === 'right'"
-                      (click)="toggleSort(column)"
-                    >
-                      <span class="inv-detail-table__sort-label">{{ column.label }}</span>
-                      @if (sortIcon(column); as icon) {
-                        <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
-                      }
-                    </button>
-                  } @else {
-                    {{ column.label }}
-                  }
-                </th>
-              }
-            </tr>
-          </thead>
-          <tbody>
-            @if (tableLoading()) {
-              <tr class="inv-detail-table__status-row">
-                <td [attr.colspan]="current.columns.length">
-                  <div class="inv-detail-table__status" role="status">
-                    <div class="inv-detail-table__spinner" aria-hidden="true"></div>
-                    <p>Loading…</p>
-                  </div>
-                </td>
-              </tr>
-            } @else if (!filteredTableRows().length) {
-              <tr class="inv-detail-table__status-row">
-                <td [attr.colspan]="current.columns.length">
-                  <div class="inv-detail-table__status inv-detail-table__status--empty" role="status">
-                    <p>{{ emptyStateMessage() }}</p>
-                  </div>
-                </td>
-              </tr>
-            } @else {
-              @for (row of filteredTableRows(); track $index) {
-              <tr>
-                @for (column of current.columns; track column.key) {
-                  <td [class]="cellClass(column, row)">
-                    @switch (column.type) {
-                      @case ('amount') {
-                        @if (showAmount(cellValue(row, column.key), true)) {
-                          {{ amountValue(cellValue(row, column.key)) | ksCurrency: 'USD' : 2 : true }}
-                        } @else {
-                          <span class="inv-detail-table__empty">—</span>
-                        }
-                      }
-                      @case ('number') {
-                        {{ formatNumber(cellValue(row, column.key)) }}
-                      }
-                      @case ('percent') {
-                        {{ formatPercent(cellValue(row, column.key)) }}
-                      }
-                      @case ('status') {
-                        <span [class]="statusClass(cellValue(row, column.key))">{{ cellValue(row, column.key) ?? '—' }}</span>
-                      }
-                      @default {
-                        {{ cellValue(row, column.key) ?? '—' }}
-                      }
-                    }
-                  </td>
-                }
-              </tr>
-              }
-            }
-          </tbody>
-          @if (current.totals && !tableLoading() && filteredTableRows().length) {
-            <tfoot>
-              <tr class="inv-detail-table__total-row">
-                @for (column of current.columns; track column.key) {
-                  <td [class]="cellClass(column, current.totals ?? undefined)">
-                    @switch (column.type) {
-                      @case ('amount') {
-                        @if (showAmount(cellValue(current.totals, column.key), true)) {
-                          {{ amountValue(cellValue(current.totals, column.key)) | ksCurrency: 'USD' : 2 : true }}
-                        } @else {
-                          <span class="inv-detail-table__empty">—</span>
-                        }
-                      }
-                      @case ('number') {
-                        {{ formatNumber(cellValue(current.totals, column.key)) }}
-                      }
-                      @case ('percent') {
-                        {{ formatPercent(cellValue(current.totals, column.key)) }}
-                      }
-                      @default {
-                        {{ cellValue(current.totals, column.key) ?? '—' }}
-                      }
-                    }
-                  </td>
-                }
-              </tr>
-            </tfoot>
-          }
-        </table>
-      </div>
-      @if (!tableLoading() && filteredTableRows().length) {
-        <footer class="inv-detail-block__table-footer">
-          <span class="inv-detail-block__table-summary">
-            Showing 1–{{ filteredTableRows().length }} of {{ filteredTableRows().length }}
-          </span>
-          <nav class="inv-detail-block__pagination" aria-label="Transactions pagination">
-            <button type="button" class="inv-detail-block__page-btn" disabled aria-label="Previous page">
-              <mat-icon aria-hidden="true">chevron_left</mat-icon>
-            </button>
-            <button type="button" class="inv-detail-block__page-btn inv-detail-block__page-btn--active">1</button>
-            <button type="button" class="inv-detail-block__page-btn" disabled aria-label="Next page">
-              <mat-icon aria-hidden="true">chevron_right</mat-icon>
-            </button>
-          </nav>
-        </footer>
-      }
-    </div>
-  </section>
-} @else if (isDocumentsVariant() && current.kind === 'document-list') {
+@if (isDocumentsVariant() && current.kind === 'document-list') {
   <section
     class="inv-detail-documents"
     [attr.aria-labelledby]="'inv-detail-block-' + current.id"
@@ -345,6 +135,18 @@
       </div>
 
       <div class="inv-detail-block__header-actions">
+        @if (current.kind === 'table' && current.showToolbar) {
+          <label class="inv-detail-block__search inv-detail-block__search--pill inv-detail-block__search--white">
+            <mat-icon aria-hidden="true">search</mat-icon>
+            <input
+              type="search"
+              placeholder="Search..."
+              [ngModel]="searchQuery()"
+              (ngModelChange)="onTransactionSearchInput($event)"
+              aria-label="Search table"
+            />
+          </label>
+        }
         @if (current.collapsible) {
           <button
             type="button"
@@ -368,11 +170,8 @@
               [class.inv-detail-table-wrap--investments]="current.variant === 'investments'"
             >
               <table
-                class="inv-detail-table"
+                class="inv-detail-table inv-detail-table--data-grid"
                 [class.inv-detail-table--investments]="current.variant === 'investments'"
-                [class.inv-detail-table--communications]="current.variant === 'communications'"
-                [class.inv-detail-table--asset-transactions]="current.variant === 'asset-transactions'"
-                [class.inv-detail-table--exposure]="current.id === 'fund-exposure'"
               >
                 <thead>
                   <tr>
@@ -399,7 +198,25 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @for (row of filteredTableRows(); track $index) {
+                  @if (tableLoading()) {
+                    <tr class="inv-detail-table__status-row">
+                      <td [attr.colspan]="current.columns.length">
+                        <div class="inv-detail-table__status" role="status">
+                          <div class="inv-detail-table__spinner" aria-hidden="true"></div>
+                          <p>Loading…</p>
+                        </div>
+                      </td>
+                    </tr>
+                  } @else if (!filteredTableRows().length) {
+                    <tr class="inv-detail-table__status-row">
+                      <td [attr.colspan]="current.columns.length">
+                        <div class="inv-detail-table__status inv-detail-table__status--empty" role="status">
+                          <p>{{ emptyStateMessage() }}</p>
+                        </div>
+                      </td>
+                    </tr>
+                  } @else {
+                    @for (row of filteredTableRows(); track $index) {
                     <tr
                       [class.inv-detail-table__row--clickable]="isFundExposureTable()"
                       (click)="isFundExposureTable() && onFundExposureRowClick(row, $index)"
@@ -408,7 +225,11 @@
                         <td [class]="cellClass(column, row)">
                           @switch (column.type) {
                             @case ('amount') {
-                              {{ displayAmountValue(cellValue(row, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                              @if (showAmount(cellValue(row, column.key), isTransactionsVariant())) {
+                                {{ displayAmountValue(cellValue(row, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                              } @else {
+                                <span class="inv-detail-table__empty">—</span>
+                              }
                             }
                             @case ('amount-fund') {
                               <span class="inv-detail-table__amount-fund">
@@ -439,16 +260,21 @@
                         </td>
                       }
                     </tr>
+                    }
                   }
                 </tbody>
-                @if (current.totals) {
+                @if (current.totals && !tableLoading() && filteredTableRows().length) {
                   <tfoot>
                     <tr class="inv-detail-table__total-row">
                       @for (column of current.columns; track column.key) {
                         <td [class]="cellClass(column, current.totals ?? undefined)">
                           @switch (column.type) {
                             @case ('amount') {
-                              {{ amountValue(cellValue(current.totals, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                              @if (showAmount(cellValue(current.totals, column.key), isTransactionsVariant())) {
+                                {{ amountValue(cellValue(current.totals, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                              } @else {
+                                <span class="inv-detail-table__empty">—</span>
+                              }
                             }
                             @case ('number') {
                               {{ formatNumber(cellValue(current.totals, column.key)) }}

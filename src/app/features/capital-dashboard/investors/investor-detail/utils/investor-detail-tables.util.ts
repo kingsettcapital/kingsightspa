@@ -420,7 +420,7 @@ function fundToolbarTableBlock(
 ): InvestorDetailTableBlock {
   return tableBlock({
     ...config,
-    collapsible: false,
+    collapsible: true,
     defaultExpanded: true,
     variant: 'transactions',
     showToolbar: true,
