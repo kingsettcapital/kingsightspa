@@ -180,7 +180,7 @@ function buildCapitalAccountGrid(
     columns: [
       {
         fields: [
-          { label: 'Total Commitment (LTD)', value: formatCurrencyCompact(kpi.totalCommitment) },
+          { label: 'Total Commitment (ITD)', value: formatCurrencyCompact(kpi.totalCommitment) },
           {
             label: 'Net Invested Capital',
             value: formatCurrencyCompact(kpi.netInvestedCapital),
@@ -194,7 +194,7 @@ function buildCapitalAccountGrid(
       },
       {
         fields: [
-          { label: 'Net Distributed (LTD)', value: formatCurrencyCompact(distributedLtd) },
+          { label: 'Net Distributed (ITD)', value: formatCurrencyCompact(distributedLtd) },
           { label: 'Released Capital', value: '—' },
           {
             label: 'Total Value (Investment Cost)',
@@ -440,7 +440,7 @@ function buildIrrsTable(rows: FundInvestorIrrTabRow[], periodLabel: string): Inv
     { key: 'irr5Year', label: '5Y IRR', type: 'percent', align: 'right', sortBy: 'irr_5_year_pct' },
     { key: 'irr7Year', label: '7Y IRR', type: 'percent', align: 'right', sortBy: 'irr_7_year_pct' },
     { key: 'irr10Year', label: '10Y IRR', type: 'percent', align: 'right', sortBy: 'irr_10_year_pct' },
-    { key: 'irrLtd', label: 'LTD IRR', type: 'percent', align: 'right', tone: 'info', sortBy: 'irr_ltd_pct' },
+    { key: 'irrLtd', label: 'ITD IRR', type: 'percent', align: 'right', tone: 'info', sortBy: 'irr_ltd_pct' },
   ];
 
   return fundToolbarTableBlock({

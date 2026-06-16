@@ -117,6 +117,10 @@ export class CapitalDashboardInvestorsComponent {
     return period?.label ?? period?.quarterYear ?? `Q${quarter} ${year}`;
   });
 
+  readonly reportingPeriodTitle = computed(() =>
+    this.timeframe() === 'quarterly' ? this.periodLabel() : 'ITD',
+  );
+
   readonly activeFilterCount = computed(() => {
     let count = 0;
     if (this.tableSearch().trim()) {
@@ -290,9 +294,9 @@ export class CapitalDashboardInvestorsComponent {
     return this.sortColumn() === column;
   }
 
-  sortIcon(column: InvestorsTableSortColumn): string {
+  sortIcon(column: InvestorsTableSortColumn): string | null {
     if (!this.isSortActive(column)) {
-      return 'unfold_more';
+      return null;
     }
     return this.sortDir() === 'asc' ? 'arrow_upward' : 'arrow_downward';
   }

@@ -32,7 +32,7 @@
             [class.cdt-toggle__btn--active]="timeframe() === 'ltd'"
             (click)="setTimeframe('ltd')"
           >
-            LTD
+            ITD
           </button>
           <button
             type="button"
@@ -91,7 +91,7 @@
       <article class="cdt-kpi cdt-kpi--navy">
         <p class="cdt-kpi__label">Total Commitment</p>
         <p class="cdt-kpi__value">{{ kpiCards().totalCommitment | ksCurrency: 'USD' : 2 : true }}</p>
-        <p class="cdt-kpi__hint">LTD</p>
+        <p class="cdt-kpi__hint">{{ periodLabel() }}</p>
       </article>
       <article class="cdt-kpi cdt-kpi--blue">
         <p class="cdt-kpi__label">Net Invested Capital</p>

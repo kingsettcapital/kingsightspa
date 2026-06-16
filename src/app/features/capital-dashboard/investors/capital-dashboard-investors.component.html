@@ -3,7 +3,7 @@
 
   <div class="sticky-remove" style="position: sticky; top: 0; z-index: 5;">
 
-    <section class="cdt-investors" aria-label="Investors">
+    <section class="cdt-investors cdt-investors--sticky-chrome" aria-label="Investors">
       <header class="cdt-investors__header">
         <div class="cdt-investors__heading">
           <h1 class="cdt-investors__title">Investors</h1>
@@ -153,15 +153,11 @@
     </section>
   </div>
 
-  <section class="cdt-investors" aria-label="Investors">
+  <section class="cdt-investors cdt-investors--table-section" aria-label="Investors table">
 
-    @if (timeframe() === 'quarterly') {
-    <header class="cdt-investors__header">
-      <div class="cdt-investors__heading">
-        <h2 class="cdt-investors__title">Reporting Period - {{ periodLabel() }}</h2>
-      </div>
+    <header class="cdt-investors__period-header">
+      <h2 class="cdt-investors__title">Reporting Period - {{ reportingPeriodTitle() }}</h2>
     </header>
-    }
 
     <div class="cdt-table-card" [class.cdt-table-card--empty]="listLoading() || listError()">
       @if (listLoading()) {
@@ -185,14 +181,98 @@
           <table class="cdt-table">
             <thead>
               <tr>
-                <th>Investor Name</th>
-                <th>Relationship</th>
-                <th class="cdt-table__num">Commitment</th>
-                <th class="cdt-table__num">Net Invested<br>Capital</th>
-                <th class="cdt-table__num">{{ distributedColumnLabel }}</th>
-                <th class="cdt-table__num">Reserved</th>
+                <th>
+                  <button
+                    type="button"
+                    class="cdt-table__sort"
+                    [class.cdt-table__sort--active]="isSortActive('investorName')"
+                    (click)="toggleSort('investorName')"
+                  >
+                    <span class="cdt-table__sort-label">Investor Name</span>
+                    @if (sortIcon('investorName'); as icon) {
+                      <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+                    }
+                  </button>
+                </th>
+                <th>
+                  <button
+                    type="button"
+                    class="cdt-table__sort"
+                    [class.cdt-table__sort--active]="isSortActive('relationship')"
+                    (click)="toggleSort('relationship')"
+                  >
+                    <span class="cdt-table__sort-label">Relationship</span>
+                    @if (sortIcon('relationship'); as icon) {
+                      <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+                    }
+                  </button>
+                </th>
+                <th class="cdt-table__num">
+                  <button
+                    type="button"
+                    class="cdt-table__sort"
+                    [class.cdt-table__sort--active]="isSortActive('commitment')"
+                    (click)="toggleSort('commitment')"
+                  >
+                    <span class="cdt-table__sort-label">Commitment</span>
+                    @if (sortIcon('commitment'); as icon) {
+                      <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+                    }
+                  </button>
+                </th>
+                <th class="cdt-table__num">
+                  <button
+                    type="button"
+                    class="cdt-table__sort"
+                    [class.cdt-table__sort--active]="isSortActive('netInvestedCapital')"
+                    (click)="toggleSort('netInvestedCapital')"
+                  >
+                    <span class="cdt-table__sort-label">Net Invested<br>Capital</span>
+                    @if (sortIcon('netInvestedCapital'); as icon) {
+                      <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+                    }
+                  </button>
+                </th>
+                <th class="cdt-table__num">
+                  <button
+                    type="button"
+                    class="cdt-table__sort"
+                    [class.cdt-table__sort--active]="isSortActive('netDistributed')"
+                    (click)="toggleSort('netDistributed')"
+                  >
+                    <span class="cdt-table__sort-label">{{ distributedColumnLabel }}</span>
+                    @if (sortIcon('netDistributed'); as icon) {
+                      <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+                    }
+                  </button>
+                </th>
+                <th class="cdt-table__num">
+                  <button
+                    type="button"
+                    class="cdt-table__sort"
+                    [class.cdt-table__sort--active]="isSortActive('reservedUncalled')"
+                    (click)="toggleSort('reservedUncalled')"
+                  >
+                    <span class="cdt-table__sort-label">Reserved</span>
+                    @if (sortIcon('reservedUncalled'); as icon) {
+                      <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+                    }
+                  </button>
+                </th>
                 <th class="cdt-table__num">Unfunded</th>
-                <th class="cdt-table__num">Released<br>Capital</th>
+                <th class="cdt-table__num">
+                  <button
+                    type="button"
+                    class="cdt-table__sort"
+                    [class.cdt-table__sort--active]="isSortActive('releasedCapital')"
+                    (click)="toggleSort('releasedCapital')"
+                  >
+                    <span class="cdt-table__sort-label">Released<br>Capital</span>
+                    @if (sortIcon('releasedCapital'); as icon) {
+                      <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+                    }
+                  </button>
+                </th>
                 <th class="cdt-table__chevron-col" aria-hidden="true"></th>
               </tr>
             </thead>
@@ -201,15 +281,8 @@
               <tr class="cdt-table__row cdt-table__row--clickable" (click)="openInvestor(row)">
                 <td>
                   <div class="cdt-investor-cell">
-                    <span class="cdt-investor-cell__avatar"
-                      [style.background-color]="row.avatarBackground"
-                      [style.color]="row.avatarColor">
-                      {{ row.initials }}
-                    </span>
-                    <span>
-                      <span class="cdt-investor-cell__name">{{ row.name }}</span>
-                      <span class="cdt-investor-cell__type">{{ row.investorType }}</span>
-                    </span>
+                    <span class="cdt-investor-cell__name">{{ row.name }}</span>
+                    <span class="cdt-investor-cell__type">{{ row.investorType }}</span>
                   </div>
                 </td>
                 <td>{{ row.relationship }}</td>

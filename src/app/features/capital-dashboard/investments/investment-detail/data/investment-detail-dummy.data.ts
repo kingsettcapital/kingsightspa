@@ -282,5 +282,5 @@ export function periodAccentLabel(timeframe: InvestmentDetailTimeframe): string 
   if (timeframe === 'daily') {
     return 'Daily';
   }
-  return 'LTD';
+  return 'ITD';
 }

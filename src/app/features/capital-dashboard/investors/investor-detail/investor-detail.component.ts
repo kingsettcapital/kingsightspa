@@ -173,7 +173,7 @@ export class InvestorDetailComponent {
       case 'daily':
         return 'Daily';
       default:
-        return 'LTD';
+        return 'ITD';
     }
   });
 

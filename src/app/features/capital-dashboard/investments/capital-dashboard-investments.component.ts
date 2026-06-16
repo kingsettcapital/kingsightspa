@@ -102,7 +102,7 @@ export class CapitalDashboardInvestmentsComponent {
 
   readonly periodLabel = computed(() => {
     if (this.timeframe() !== 'quarterly') {
-      return 'LTD';
+      return 'ITD';
     }
 
     const quarter = this.quarter();
@@ -138,7 +138,7 @@ export class CapitalDashboardInvestmentsComponent {
   readonly distributedColumnLabel = computed(() =>
     this.timeframe() === 'quarterly'
       ? `Net Distributed (${this.periodLabel()})`
-      : 'Net Distributed (LTD)',
+      : 'Net Distributed (ITD)',
   );
 
   readonly rows = computed(() =>

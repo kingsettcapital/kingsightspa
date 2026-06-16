@@ -178,18 +178,18 @@ export class InvestmentDetailComponent {
       case 'daily':
         return 'Daily';
       default:
-        return 'LTD';
+        return 'ITD';
     }
   });
 
   readonly netInvestedHint = computed(() => {
     if (this.timeframe() === 'daily') {
-      return 'LTD-adjusted';
+      return 'ITD-adjusted';
     }
     if (this.timeframe() === 'quarterly') {
-      return 'LTD deployed';
+      return 'ITD deployed';
     }
-    return 'LTD deployed';
+    return 'ITD deployed';
   });
 
   readonly reservedHint = computed(() =>
