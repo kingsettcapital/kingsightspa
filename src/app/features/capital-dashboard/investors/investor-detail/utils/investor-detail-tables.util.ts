@@ -237,7 +237,12 @@ function formatMultiple(value: number): string {
 function tableBlock(
   config: Omit<InvestorDetailTableBlock, 'kind'>,
 ): InvestorDetailTableBlock {
-  return { kind: 'table', ...config };
+  return {
+    kind: 'table',
+    collapsible: true,
+    defaultExpanded: true,
+    ...config,
+  };
 }
 
 export function buildFundExposureTable(
@@ -409,8 +414,6 @@ function buildUnderlyingInvestmentsTable(
     subtitle: `${rows.length} propert${rows.length === 1 ? 'y' : 'ies'} across ${investments.length} fund${investments.length === 1 ? '' : 's'}`,
     columns,
     rows,
-    collapsible: false,
-    defaultExpanded: true,
     variant: 'investments',
   });
 }
@@ -498,13 +501,10 @@ function buildDistributionsTable(
   const columns: InvestorDetailTableColumn[] = [
     { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left', sortBy: 'fund_code' },
     { key: 'fundName', label: 'Fund Name', type: 'text', align: 'left', sortBy: 'fund_name' },
-    { key: 'prefReturn', label: `Pref. Return (${periodLabel})`, type: 'amount', align: 'right', tone: 'info', sortBy: 'preferred_return' },
-    { key: 'committed', label: 'Committed', type: 'amount', align: 'right', sortBy: 'committed' },
-    { key: 'unfunded', label: 'Unfunded', type: 'amount', align: 'right', tone: 'warning', sortBy: 'unfunded' },
-    { key: 'cashDist', label: `Cash Dist. (${periodLabel})`, type: 'amount', align: 'right', tone: 'positive', sortBy: 'cash_dist' },
-    { key: 'gainDist', label: `Gain Dist. (${periodLabel})`, type: 'amount', align: 'right', tone: 'positive', sortBy: 'gain_dist' },
+    { key: 'prefReturn', label: 'Pref. Return', type: 'amount', align: 'right', tone: 'info', sortBy: 'preferred_return' },
+    { key: 'cashDist', label: 'Cash Dist.', type: 'amount', align: 'right', tone: 'positive', sortBy: 'cash_dist' },
+    { key: 'gainDist', label: 'Gain Dist.', type: 'amount', align: 'right', tone: 'positive', sortBy: 'gain_dist' },
     { key: 'returnOfCapital', label: 'Return of Capital', type: 'amount', align: 'right', sortBy: 'return_of_capital' },
-    { key: 'released', label: 'Released', type: 'amount', align: 'right', sortBy: 'released' },
   ];
 
   return fundToolbarTableBlock({
@@ -559,7 +559,7 @@ function buildDocumentsList(detail: InvestorDetailDto | null): InvestorDetailDoc
     id: 'documents',
     title: 'Documents',
     subtitle: 'Financial statements, reports, and fund agreements',
-    collapsible: false,
+    collapsible: true,
     defaultExpanded: true,
     documents,
   };

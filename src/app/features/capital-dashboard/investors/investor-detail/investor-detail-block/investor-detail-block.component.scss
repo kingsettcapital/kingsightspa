@@ -88,6 +88,10 @@
 }
 
 .inv-detail-documents__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
   padding: 1rem 1.25rem;
   border-bottom: 1px solid #edf2f7;
 }

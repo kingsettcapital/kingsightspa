@@ -15,8 +15,20 @@
             <p class="inv-detail-block__subtitle">{{ current.subtitle }}</p>
           }
         </div>
+        @if (current.collapsible) {
+          <button
+            type="button"
+            class="inv-detail-block__toggle"
+            (click)="toggleExpanded()"
+            [attr.aria-expanded]="isExpanded()"
+            [attr.aria-controls]="'inv-detail-block-body-' + current.id"
+          >
+            <mat-icon aria-hidden="true">{{ isExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        }
       </header>
 
+      @if (isExpanded()) {
       <div class="inv-detail-documents__toolbar-row">
         <div class="inv-detail-documents__toolbar-main">
           <label class="inv-detail-block__search inv-detail-block__search--pill inv-detail-block__search--documents">
@@ -101,6 +113,7 @@
           </li>
         }
       </ul>
+      }
     </div>
   </section>
 } @else {
