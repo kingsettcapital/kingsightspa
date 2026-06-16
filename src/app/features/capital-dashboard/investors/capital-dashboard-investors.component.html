@@ -215,7 +215,7 @@
                   <mat-icon aria-hidden="true">{{ sortIcon('relationship') }}</mat-icon>
                 </button>
               </th>
-              <th class="cdt-table__num">
+              <!-- <th class="cdt-table__num">
                 <button
                   type="button"
                   class="cdt-table__sort"
@@ -225,7 +225,7 @@
                   Funds
                   <mat-icon aria-hidden="true">{{ sortIcon('fundsCount') }}</mat-icon>
                 </button>
-              </th>
+              </th> -->
               <th class="cdt-table__num">
                 <button
                   type="button"
@@ -304,7 +304,7 @@
                   </div>
                 </td>
                 <td>{{ row.relationship }}</td>
-                <td class="cdt-table__num">{{ row.fundsCount }}</td>
+                <!-- <td class="cdt-table__num">{{ row.fundsCount }}</td> -->
                 <td class="cdt-table__num">{{ row.commitment | ksCurrency: 'USD' : 2 : true }}</td>
                 <td class="cdt-table__num">{{ row.netInvestedCapital | ksCurrency: 'USD' : 2 : true }}</td>
                 <td
