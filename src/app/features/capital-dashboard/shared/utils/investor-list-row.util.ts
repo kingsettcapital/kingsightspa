@@ -1,10 +1,12 @@
 import { InvestorListItemDto, InvestorsListSummaryDto } from '../models/api.models';
+import { kingsettAvatarColor } from './kingsett-avatar-colors.util';
 
 export interface InvestorTableRow {
   investorKey: number;
   name: string;
   initials: string;
-  avatarHue: number;
+  avatarBackground: string;
+  avatarColor: string;
   investorType: string;
   relationship: string;
   fundsCount: number;
@@ -12,11 +14,10 @@ export interface InvestorTableRow {
   netInvestedCapital: number;
   netDistributed: number;
   reservedUncalled: number;
+  unfunded: number;
   releasedCapital: number | null;
   contactName: string;
 }
-
-const AVATAR_HUES = [210, 250, 170, 30, 340, 190, 280, 15];
 
 function readRecord(dto: InvestorListItemDto): Record<string, unknown> {
   return dto as unknown as Record<string, unknown>;
@@ -108,6 +109,12 @@ export function mapInvestorListItemToRow(dto: InvestorListItemDto, index: number
     'reserved_amount',
     'reservedUncalled',
     'ReservedUncalled',
+  );
+  const unfunded = readNumber(
+    record,
+    'unfunded_amount',
+    'unfundedAmount',
+    'UnfundedAmount',
     'unfunded',
     'Unfunded',
   );
@@ -123,11 +130,14 @@ export function mapInvestorListItemToRow(dto: InvestorListItemDto, index: number
     readString(record, 'contactName', 'ContactName', 'contact', 'Contact') ||
     [contactFirst, contactLast].filter(Boolean).join(' ').trim();
 
+  const avatar = kingsettAvatarColor(index);
+
   return {
     investorKey: dto.investorKey,
     name,
     initials: investorInitials(name),
-    avatarHue: AVATAR_HUES[index % AVATAR_HUES.length],
+    avatarBackground: avatar.background,
+    avatarColor: avatar.color,
     investorType,
     relationship: relationship || '—',
     fundsCount,
@@ -135,6 +145,7 @@ export function mapInvestorListItemToRow(dto: InvestorListItemDto, index: number
     netInvestedCapital,
     netDistributed,
     reservedUncalled,
+    unfunded,
     releasedCapital,
     contactName: contactName || '—',
   };
@@ -166,6 +177,17 @@ export function extractInvestorsListSummary(result: unknown): InvestorsListSumma
     'reserved_uncalled',
     'reservedUncalled',
     'ReservedUncalled',
+    'reserved_amount',
+    'reservedAmount',
+  );
+  const unfunded = readNumber(s, 'unfunded', 'Unfunded', 'unfunded_amount', 'unfundedAmount');
+  const releasedCapital = readNumber(
+    s,
+    'released_capital',
+    'releasedCapital',
+    'ReleasedCapital',
+    'released_capital_amount',
+    'releasedCapitalAmount',
   );
 
   return {
@@ -174,6 +196,8 @@ export function extractInvestorsListSummary(result: unknown): InvestorsListSumma
     netInvestedCapital,
     netDistributed,
     reservedUncalled,
+    unfunded,
+    releasedCapital,
   };
 }
 

@@ -100,11 +100,11 @@ export class CapitalDashboardInvestorsComponent {
     return [...new Set(scoped.map((period) => period.calendarYear))].sort((a, b) => b - a);
   });
 
-  readonly periodLabel = computed(() => {
-    if (this.timeframe() !== 'quarterly') {
-      return 'LTD';
-    }
+  readonly subtitleText = computed(
+    () => `${this.totalCount()} investor${this.totalCount() === 1 ? '' : 's'}`,
+  );
 
+  readonly periodLabel = computed(() => {
     const quarter = this.quarter();
     const year = this.year();
     if (quarter == null || year == null) {
@@ -116,10 +116,6 @@ export class CapitalDashboardInvestorsComponent {
     );
     return period?.label ?? period?.quarterYear ?? `Q${quarter} ${year}`;
   });
-
-  readonly subtitleText = computed(
-    () => `${this.totalCount()} investor${this.totalCount() === 1 ? '' : 's'} · ${this.periodLabel()}`,
-  );
 
   readonly activeFilterCount = computed(() => {
     let count = 0;
@@ -135,11 +131,7 @@ export class CapitalDashboardInvestorsComponent {
     return count;
   });
 
-  readonly distributedColumnLabel = computed(() =>
-    this.timeframe() === 'quarterly'
-      ? `Net Distributed (${this.periodLabel()})`
-      : 'Net Distributed (LTD)',
-  );
+  readonly distributedColumnLabel = 'Net Distributed';
 
   readonly rows = computed(() =>
     this.listState().items.map((item, index) => mapInvestorListItemToRow(item, index)),
@@ -156,6 +148,7 @@ export class CapitalDashboardInvestorsComponent {
       netInvestedCapital: rows.reduce((sum, row) => sum + row.netInvestedCapital, 0),
       netDistributed: rows.reduce((sum, row) => sum + row.netDistributed, 0),
       reservedUncalled: rows.reduce((sum, row) => sum + row.reservedUncalled, 0),
+      unfunded: rows.reduce((sum, row) => sum + row.unfunded, 0),
     };
   });
 
@@ -170,6 +163,8 @@ export class CapitalDashboardInvestorsComponent {
         netInvestedCapital: summary.netInvestedCapital ?? 0,
         netDistributed: summary.netDistributed ?? 0,
         reservedUncalled: summary.reservedUncalled ?? 0,
+        unfunded: summary.unfunded ?? 0,
+        releasedCapital: summary.releasedCapital ?? 0,
       };
     }
 
@@ -180,6 +175,8 @@ export class CapitalDashboardInvestorsComponent {
       netInvestedCapital: rows.reduce((sum, row) => sum + row.netInvestedCapital, 0),
       netDistributed: rows.reduce((sum, row) => sum + row.netDistributed, 0),
       reservedUncalled: rows.reduce((sum, row) => sum + row.reservedUncalled, 0),
+      unfunded: rows.reduce((sum, row) => sum + row.unfunded, 0),
+      releasedCapital: rows.reduce((sum, row) => sum + (row.releasedCapital ?? 0), 0),
     };
   });
 
@@ -333,10 +330,10 @@ export class CapitalDashboardInvestorsComponent {
         { header: 'Funds', value: (row) => row.fundsCount },
         { header: 'Commitment', value: (row) => row.commitment },
         { header: 'Net Invested Capital', value: (row) => row.netInvestedCapital },
-        { header: this.distributedColumnLabel(), value: (row) => row.netDistributed },
-        { header: 'Reserved / Uncalled', value: (row) => row.reservedUncalled },
+        { header: this.distributedColumnLabel, value: (row) => row.netDistributed },
+        { header: 'Reserved', value: (row) => row.reservedUncalled },
+        { header: 'Unfunded', value: (row) => row.unfunded },
         { header: 'Released Capital', value: (row) => row.releasedCapital ?? '—' },
-        { header: 'Contact', value: (row) => row.contactName },
       ],
       rows,
     });

@@ -30,7 +30,8 @@ body[data-ks-capital-dashboard] {
     gap: 0.25rem;
   }
 
-  h1.cdt-investors__title {
+  h1.cdt-investors__title,
+  h2.cdt-investors__title {
     margin: 0;
     font-family: var(--cdt-font-sans);
     font-size: 1.25rem;
@@ -246,6 +247,12 @@ body[data-ks-capital-dashboard] {
     line-height: 1;
   }
 
+  .cdt-investors .cdt-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
   .cdt-kpi-row {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -281,6 +288,18 @@ body[data-ks-capital-dashboard] {
 
   .cdt-kpi--slate {
     background: var(--cdt-slate);
+  }
+
+  .cdt-kpi--metric-reserved {
+    background: var(--cdt-metric-reserved);
+  }
+
+  .cdt-kpi--metric-unfunded {
+    background: var(--cdt-metric-unfunded);
+  }
+
+  .cdt-kpi--metric-released {
+    background: var(--cdt-metric-released);
   }
 
   .cdt-kpi__label,
@@ -774,6 +793,42 @@ body[data-ks-capital-dashboard] {
     font-weight: 600;
   }
 
+  .cdt-table tbody td.cdt-table__num--commitment,
+  .cdt-table tfoot td.cdt-table__num--commitment {
+    color: var(--cdt-blue-mid);
+    font-weight: 600;
+  }
+
+  .cdt-table tbody td.cdt-table__num--net-invested,
+  .cdt-table tfoot td.cdt-table__num--net-invested {
+    color: var(--cdt-blue-light);
+    font-weight: 600;
+  }
+
+  .cdt-table tbody td.cdt-table__num--net-distributed,
+  .cdt-table tfoot td.cdt-table__num--net-distributed {
+    color: var(--cdt-gold-card);
+    font-weight: 600;
+  }
+
+  .cdt-table tbody td.cdt-table__num--reserved,
+  .cdt-table tfoot td.cdt-table__num--reserved {
+    color: var(--cdt-metric-reserved);
+    font-weight: 600;
+  }
+
+  .cdt-table tbody td.cdt-table__num--unfunded,
+  .cdt-table tfoot td.cdt-table__num--unfunded {
+    color: var(--cdt-metric-unfunded);
+    font-weight: 600;
+  }
+
+  .cdt-table tbody td.cdt-table__num--released,
+  .cdt-table tfoot td.cdt-table__num--released {
+    color: var(--cdt-metric-released);
+    font-weight: 600;
+  }
+
   .cdt-table__muted {
     color: var(--cdt-table-muted-color);
     font-weight: 400;
@@ -821,6 +876,30 @@ body[data-ks-capital-dashboard] {
 
   .cdt-table__total-row td.cdt-table__num--warning {
     color: var(--cdt-table-warning-color);
+  }
+
+  .cdt-table__total-row td.cdt-table__num--commitment {
+    color: var(--cdt-blue-mid);
+  }
+
+  .cdt-table__total-row td.cdt-table__num--net-invested {
+    color: var(--cdt-blue-light);
+  }
+
+  .cdt-table__total-row td.cdt-table__num--net-distributed {
+    color: var(--cdt-gold-card);
+  }
+
+  .cdt-table__total-row td.cdt-table__num--reserved {
+    color: var(--cdt-metric-reserved);
+  }
+
+  .cdt-table__total-row td.cdt-table__num--unfunded {
+    color: var(--cdt-metric-unfunded);
+  }
+
+  .cdt-table__total-row td.cdt-table__num--released {
+    color: var(--cdt-metric-released);
   }
 
   .cdt-pagination {
@@ -916,6 +995,10 @@ body[data-ks-capital-dashboard] {
   }
 
   @media (max-width: 1200px) {
+    .cdt-investors .cdt-kpi-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
     .cdt-kpi-row {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }

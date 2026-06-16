@@ -15,6 +15,9 @@ body[data-ks-capital-dashboard] {
   --cdt-blue-mid: #004a99;
   --cdt-blue-light: #1e73be;
   --cdt-slate: #244b8f;
+  --cdt-metric-reserved: var(--ks-color-chart-blue-mid);
+  --cdt-metric-unfunded: var(--ks-color-blue-dark);
+  --cdt-metric-released: var(--ks-color-chart-green);
   --cdt-filter-bg: #ffffff;
   --cdt-page-bg: #f4f5f7;
   --cdt-surface: #ffffff;

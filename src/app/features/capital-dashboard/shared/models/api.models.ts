@@ -55,6 +55,8 @@ export interface InvestorsListSummaryDto {
   netInvestedCapital?: number;
   netDistributed?: number;
   reservedUncalled?: number;
+  unfunded?: number;
+  releasedCapital?: number;
 }
 
 export interface AssetsFilterOptionDto {
@@ -113,6 +115,7 @@ export interface InvestorListItemDto {
   netInvestedCapital?: number | null;
   netDistributed?: number | null;
   reservedUncalled?: number | null;
+  unfunded?: number | null;
   releasedCapital?: number | null;
   contactName?: string | null;
 }
