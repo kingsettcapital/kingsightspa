@@ -67,10 +67,27 @@ export function investorInitials(name: string): string {
   return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
 }
 
+function readInvestorKey(record: Record<string, unknown>, dto: InvestorListItemDto): number {
+  const fromRecord = readNumber(record, 'investor_key', 'investorKey', 'InvestorKey');
+  if (fromRecord > 0) {
+    return fromRecord;
+  }
+  return dto.investorKey;
+}
+
 export function mapInvestorListItemToRow(dto: InvestorListItemDto, index: number): InvestorTableRow {
   const record = readRecord(dto);
-  const name = readString(record, 'investorName', 'InvestorName') || '—';
-  const investorType = readString(record, 'investorType', 'InvestorType') || '—';
+  const name =
+    readString(record, 'investor_name', 'investorName', 'InvestorName', 'name', 'Name') || '—';
+  const investorType =
+    readString(
+      record,
+      'investor_type',
+      'investor_type_name',
+      'investorType',
+      'InvestorType',
+      'InvestorTypeName',
+    ) || '—';
   const relationship = readString(
     record,
     'relationship_name',
@@ -107,6 +124,7 @@ export function mapInvestorListItemToRow(dto: InvestorListItemDto, index: number
   const reservedUncalled = readNumber(
     record,
     'reserved_amount',
+    'reserved_uncalled',
     'reservedUncalled',
     'ReservedUncalled',
   );
@@ -133,7 +151,7 @@ export function mapInvestorListItemToRow(dto: InvestorListItemDto, index: number
   const avatar = kingsettAvatarColor(index);
 
   return {
-    investorKey: dto.investorKey,
+    investorKey: readInvestorKey(record, dto),
     name,
     initials: investorInitials(name),
     avatarBackground: avatar.background,
@@ -215,7 +233,7 @@ export type InvestorsTableSortDirection = 'asc' | 'desc';
 
 /** API `sortBy` values for `GET /api/CapitalInvestors` — must match response property names. */
 export const INVESTORS_TABLE_SORT_API_FIELDS: Record<InvestorsTableSortColumn, string> = {
-  investorName: 'investorName',
+  investorName: 'investor_name',
   relationship: 'relationship_name',
   fundsCount: 'fund_count',
   commitment: 'commitment_amount',

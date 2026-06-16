@@ -183,6 +183,35 @@ export function mapFundListItemToRow(dto: FundListItemDto, index: number): FundT
   };
 }
 
+/** Build navigation state when opening investment detail from investor fund-exposure. */
+export function fundTableRowFromFundExposure(input: {
+  fundKey: number;
+  fundName: string;
+  commitment: number;
+  netInvestedCapital: number;
+  netDistributed: number;
+  reservedUncalled: number;
+  releasedCapital: number | null;
+  index?: number;
+}): FundTableRow {
+  const commitment = input.commitment || input.netInvestedCapital;
+  return {
+    fundKey: input.fundKey,
+    name: input.fundName,
+    initials: investorInitials(input.fundName),
+    avatarHue: AVATAR_HUES[(input.index ?? 0) % AVATAR_HUES.length],
+    fundType: '—',
+    strategy: '—',
+    strategyColor: DEFAULT_STRATEGY_COLOR,
+    commitment,
+    investedPercent: computeInvestedPercent(commitment, input.netInvestedCapital),
+    netInvestedCapital: input.netInvestedCapital,
+    netDistributed: input.netDistributed,
+    reservedUncalled: input.reservedUncalled,
+    releasedCapital: input.releasedCapital,
+  };
+}
+
 export function extractFundsListSummary(result: unknown): FundsListSummaryDto | null {
   if (!result || typeof result !== 'object') {
     return null;

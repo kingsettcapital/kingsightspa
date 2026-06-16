@@ -19,6 +19,8 @@ import { catchError, debounceTime, distinctUntilChanged, map, of, Subject } from
 import { KsCurrencyPipe } from '../../../../shared/pipes/ks-currency.pipe';
 import { CapitalInvestorsApiService } from '../../shared/services/capital-investors-api.service';
 import { InvestorTableRow } from '../../shared/utils/investor-list-row.util';
+import { fundTableRowFromFundExposure } from '../../shared/utils/fund-list-row.util';
+import { InvestorDetailTableRow } from './models/investor-detail-table.models';
 import {
   EMPTY_INVESTORS_FILTER_OPTIONS,
   InvestorsFilterOptions,
@@ -36,8 +38,11 @@ import { InvestorDetailBlockComponent } from './investor-detail-block/investor-d
 import { InvestorDetailBlock } from './models/investor-detail-block.models';
 import {
   buildFlatInvestorBlocks,
+  buildFundExposureTable,
+  distributionAmountRows,
   InvestorDetailSectionId,
   kpiCardsFromListRow,
+  mergeKpiCardsWithFundExposure,
 } from './utils/investor-detail-tables.util';
 
 type DetailTimeframe = 'ltd' | 'quarterly' | 'daily';
@@ -177,7 +182,25 @@ export class InvestorDetailComponent {
     }
   });
 
-  readonly kpiCards = computed(() => kpiCardsFromListRow(this.listRow()));
+  readonly fundExposureTable = computed(() => {
+    const state = this.detailState();
+    return buildFundExposureTable(
+      state.investments,
+      state.commitments,
+      state.unfundedCommitments,
+      state.capitalInvestments,
+      distributionAmountRows(state.investorDistributions),
+      state.capitalActivities,
+      state.distributionTable,
+    );
+  });
+
+  readonly kpiCards = computed(() =>
+    mergeKpiCardsWithFundExposure(
+      kpiCardsFromListRow(this.listRow()),
+      this.fundExposureTable(),
+    ),
+  );
 
   readonly tableContextKey = computed(() => {
     const investorKey = this.investorKey();
@@ -356,21 +379,31 @@ export class InvestorDetailComponent {
       [event.blockId]: { sortBy: event.sortBy, sortDir: nextDir },
     }));
 
-    this.reloadTransactionTable(event.blockId);
+    if (this.isServerSortedTable(event.blockId)) {
+      this.reloadTransactionTable(event.blockId);
+    }
+  }
+
+  private isServerSortedTable(blockId: string): boolean {
+    return blockId === 'capital-activities' || blockId === 'distributions' || blockId === 'irrs';
   }
 
   tableSortColumnForBlock(block: InvestorDetailBlock): string | null {
-    if (block.kind !== 'table' || !block.showToolbar) {
+    if (block.kind !== 'table' || !this.hasSortableColumns(block)) {
       return null;
     }
     return this.transactionSort()[block.id]?.sortBy ?? null;
   }
 
   tableSortDirForBlock(block: InvestorDetailBlock): TransactionTableSortDir {
-    if (block.kind !== 'table' || !block.showToolbar) {
+    if (block.kind !== 'table' || !this.hasSortableColumns(block)) {
       return 'desc';
     }
     return this.transactionSort()[block.id]?.sortDir ?? 'desc';
+  }
+
+  private hasSortableColumns(block: InvestorDetailBlock): boolean {
+    return block.kind === 'table' && block.columns.some((column) => !!column.sortBy);
   }
 
   tableLoadingForBlock(block: InvestorDetailBlock): boolean {
@@ -433,6 +466,49 @@ export class InvestorDetailComponent {
       }
 
       window.setTimeout(() => this.scrollSpyPaused.set(false), 800);
+    });
+  }
+
+  openFundFromExposure(event: { row: InvestorDetailTableRow; rowIndex: number }): void {
+    const row = event.row;
+    const fundKey = row['fundKey'];
+    if (typeof fundKey !== 'number' || !Number.isFinite(fundKey) || fundKey <= 0) {
+      return;
+    }
+
+    const fundName = typeof row['fund'] === 'string' ? row['fund'] : '—';
+    const readAmount = (key: string): number => {
+      const value = row[key];
+      return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+    };
+    const readNullableAmount = (key: string): number | null => {
+      const value = row[key];
+      return typeof value === 'number' && Number.isFinite(value) ? value : null;
+    };
+
+    const investorKey = this.investorKey();
+    void this.router.navigate(['/capital-dashboard/investment', fundKey], {
+      state: {
+        fundRow: fundTableRowFromFundExposure({
+          fundKey,
+          fundName,
+          commitment: readAmount('commitment'),
+          netInvestedCapital: readAmount('netInvestedCapital'),
+          netDistributed: readAmount('netDistributed'),
+          reservedUncalled: readAmount('reserved'),
+          releasedCapital: readNullableAmount('releasedCapital'),
+          index: event.rowIndex,
+        }),
+        ...(investorKey != null && investorKey > 0
+          ? {
+              returnToInvestor: {
+                investorKey,
+                investorName: this.investorName(),
+                investorRow: this.listRow(),
+              },
+            }
+          : {}),
+      },
     });
   }
 

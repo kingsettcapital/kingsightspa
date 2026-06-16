@@ -101,7 +101,9 @@
                       (click)="toggleSort(column)"
                     >
                       <span class="inv-detail-table__sort-label">{{ column.label }}</span>
-                      <mat-icon aria-hidden="true">{{ sortIcon(column) }}</mat-icon>
+                      @if (sortIcon(column); as icon) {
+                        <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+                      }
                     </button>
                   } @else {
                     {{ column.label }}
@@ -375,15 +377,33 @@
                 <thead>
                   <tr>
                     @for (column of current.columns; track column.key) {
-                      <th [class.inv-detail-table__head--right]="column.align === 'right'">
-                        {{ column.label }}
+                      <th [class]="transactionHeadCellClass(column)">
+                        @if (column.sortBy) {
+                          <button
+                            type="button"
+                            class="inv-detail-table__sort"
+                            [class.inv-detail-table__sort--active]="isSortActive(column)"
+                            [class.inv-detail-table__sort--right]="column.align === 'right'"
+                            (click)="toggleSort(column)"
+                          >
+                            <span class="inv-detail-table__sort-label">{{ column.label }}</span>
+                            @if (sortIcon(column); as icon) {
+                              <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+                            }
+                          </button>
+                        } @else {
+                          {{ column.label }}
+                        }
                       </th>
                     }
                   </tr>
                 </thead>
                 <tbody>
                   @for (row of filteredTableRows(); track $index) {
-                    <tr>
+                    <tr
+                      [class.inv-detail-table__row--clickable]="isFundExposureTable()"
+                      (click)="isFundExposureTable() && onFundExposureRowClick(row, $index)"
+                    >
                       @for (column of current.columns; track column.key) {
                         <td [class]="cellClass(column, row)">
                           @switch (column.type) {

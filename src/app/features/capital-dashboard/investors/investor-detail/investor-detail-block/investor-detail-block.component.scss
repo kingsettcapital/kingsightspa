@@ -502,14 +502,77 @@
 }
 
 .inv-detail-table--exposure {
+  thead th {
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #64748b;
+  }
+
+  thead th.inv-detail-table__head--label {
+    color: #64748b;
+  }
+
+  thead th.inv-detail-table__head--metric {
+    color: #0c274a;
+  }
+
   .inv-detail-table__cell--fund {
     color: #374151;
     font-weight: 600;
   }
 
-  .inv-detail-table__cell--since {
-    color: #6b7280;
-    font-weight: 400;
+  tbody td.inv-detail-table__cell--commitment,
+  tfoot td.inv-detail-table__cell--commitment {
+    color: var(--cdt-blue-mid);
+    font-weight: 600;
+  }
+
+  tbody td.inv-detail-table__cell--netInvestedCapital,
+  tfoot td.inv-detail-table__cell--netInvestedCapital {
+    color: var(--cdt-blue-light);
+    font-weight: 600;
+  }
+
+  tbody td.inv-detail-table__cell--netDistributed,
+  tfoot td.inv-detail-table__cell--netDistributed {
+    color: var(--cdt-blue-light);
+    font-weight: 600;
+  }
+
+  tbody td.inv-detail-table__cell--reserved,
+  tfoot td.inv-detail-table__cell--reserved {
+    color: var(--cdt-metric-reserved);
+    font-weight: 600;
+  }
+
+  tbody td.inv-detail-table__cell--unfunded,
+  tfoot td.inv-detail-table__cell--unfunded {
+    color: var(--cdt-metric-unfunded);
+    font-weight: 600;
+  }
+
+  tbody td.inv-detail-table__cell--releasedCapital,
+  tfoot td.inv-detail-table__cell--releasedCapital {
+    color: var(--cdt-metric-released);
+    font-weight: 600;
+  }
+
+  tbody tr.inv-detail-table__row--clickable {
+    cursor: pointer;
+
+    &:hover {
+      background: #fafbfc;
+    }
+
+    &:hover .inv-detail-table__cell--fund {
+      color: #004a99;
+    }
   }
 }
 

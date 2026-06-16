@@ -37,6 +37,7 @@ export class InvestorDetailBlockComponent {
     sortBy: string;
     defaultDir: 'asc' | 'desc';
   }>();
+  readonly fundExposureRowClick = output<{ row: InvestorDetailTableRow; rowIndex: number }>();
 
   readonly expanded = signal(true);
   readonly searchQuery = signal('');
@@ -73,6 +74,22 @@ export class InvestorDetailBlockComponent {
     this.transactionSearchChange.emit({ blockId: block.id, search: value });
   }
 
+  isFundExposureTable(): boolean {
+    const block = this.block();
+    return block.kind === 'table' && block.id === 'fund-exposure';
+  }
+
+  onFundExposureRowClick(row: InvestorDetailTableRow, rowIndex: number): void {
+    if (!this.isFundExposureTable()) {
+      return;
+    }
+    const fundKey = row['fundKey'];
+    if (typeof fundKey !== 'number' || !Number.isFinite(fundKey) || fundKey <= 0) {
+      return;
+    }
+    this.fundExposureRowClick.emit({ row, rowIndex });
+  }
+
   readonly emptyStateMessage = computed(() => {
     if (this.tableSearchActive() || this.searchQuery().trim()) {
       return 'No results found for your search.';
@@ -101,9 +118,9 @@ export class InvestorDetailBlockComponent {
     return !!column.sortBy && this.sortColumn() === column.sortBy;
   }
 
-  sortIcon(column: InvestorDetailTableColumn): string {
+  sortIcon(column: InvestorDetailTableColumn): string | null {
     if (!this.isSortActive(column)) {
-      return 'unfold_more';
+      return null;
     }
     return this.sortDir() === 'asc' ? 'arrow_upward' : 'arrow_downward';
   }
@@ -166,7 +183,16 @@ export class InvestorDetailBlockComponent {
     if (column.align === 'right') {
       classes.push('inv-detail-table__head--right');
     }
-    if (column.key === 'fundCode' || column.key === 'fundName' || column.key === 'investorCode' || column.key === 'investorName') {
+    if (
+      column.key === 'fundCode' ||
+      column.key === 'fundName' ||
+      column.key === 'fund' ||
+      column.key === 'property' ||
+      column.key === 'description' ||
+      column.key === 'date' ||
+      column.key === 'investorCode' ||
+      column.key === 'investorName'
+    ) {
       classes.push('inv-detail-table__head--label');
     } else {
       classes.push('inv-detail-table__head--metric');
@@ -446,6 +472,33 @@ export class InvestorDetailBlockComponent {
       });
     }
 
+    const sortBy = this.sortColumn();
+    if (sortBy && !this.isTransactionsVariant()) {
+      const column = block.columns.find((item) => item.sortBy === sortBy);
+      if (column) {
+        const dir = this.sortDir() === 'asc' ? 1 : -1;
+        rows = [...rows].sort((left, right) => compareTableRows(left, right, column.key, dir));
+      }
+    }
+
     return rows;
   }
+}
+
+function compareTableRows(
+  left: InvestorDetailTableRow,
+  right: InvestorDetailTableRow,
+  key: string,
+  dir: 1 | -1,
+): number {
+  const leftValue = left[key];
+  const rightValue = right[key];
+
+  if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+    return (leftValue - rightValue) * dir;
+  }
+
+  const leftText = String(leftValue ?? '').trim().toLowerCase();
+  const rightText = String(rightValue ?? '').trim().toLowerCase();
+  return leftText.localeCompare(rightText) * dir;
 }

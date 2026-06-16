@@ -19,6 +19,7 @@ import { catchError, debounceTime, distinctUntilChanged, map, of, Subject } from
 import { KsCurrencyPipe } from '../../../../shared/pipes/ks-currency.pipe';
 import { CapitalFundsApiService } from '../../shared/services/capital-funds-api.service';
 import { FundTableRow } from '../../shared/utils/fund-list-row.util';
+import { InvestorTableRow } from '../../shared/utils/investor-list-row.util';
 import {
   EMPTY_FUNDS_FILTER_OPTIONS,
   FundsFilterOptions,
@@ -47,6 +48,12 @@ type TransactionTableSortDir = 'asc' | 'desc';
 interface TransactionTableSort {
   sortBy: string;
   sortDir: TransactionTableSortDir;
+}
+
+interface InvestorReturnContext {
+  investorKey: number;
+  investorName: string;
+  investorRow?: InvestorTableRow | null;
 }
 
 @Component({
@@ -82,6 +89,16 @@ export class InvestmentDetailComponent {
 
   readonly fundKey = signal<number | null>(null);
   readonly listRow = signal<FundTableRow | null>(null);
+  readonly returnToInvestor = signal<InvestorReturnContext | null>(null);
+
+  readonly backLinkLabel = computed(() => {
+    const investor = this.returnToInvestor();
+    if (!investor?.investorKey) {
+      return 'Back to Investments';
+    }
+    const name = investor.investorName?.trim();
+    return name ? `Back to ${name}` : 'Back to Investor';
+  });
 
   private readonly detailState = this.store.selectSignal(selectFundsDetail);
 
@@ -264,9 +281,20 @@ export class InvestmentDetailComponent {
         this.loadFundData(fundKey);
       });
 
-    const navigationState = (history.state ?? {}) as { fundRow?: FundTableRow };
+    const navigationState = (history.state ?? {}) as {
+      fundRow?: FundTableRow;
+      returnToInvestor?: InvestorReturnContext;
+    };
     if (navigationState.fundRow) {
       this.listRow.set(navigationState.fundRow);
+    }
+    const returnToInvestor = navigationState.returnToInvestor;
+    if (
+      returnToInvestor &&
+      Number.isFinite(returnToInvestor.investorKey) &&
+      returnToInvestor.investorKey > 0
+    ) {
+      this.returnToInvestor.set(returnToInvestor);
     }
 
     this.destroyRef.onDestroy(() => {
@@ -456,6 +484,14 @@ export class InvestmentDetailComponent {
   }
 
   backToList(): void {
+    const investor = this.returnToInvestor();
+    if (investor?.investorKey) {
+      void this.router.navigate(['/capital-dashboard/investor', investor.investorKey], {
+        state: investor.investorRow ? { investorRow: investor.investorRow } : undefined,
+      });
+      return;
+    }
+
     void this.router.navigate(['/capital-dashboard/investment']);
   }
 

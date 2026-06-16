@@ -69,6 +69,123 @@ function amountByFundCode(rows: FundAmountTabRow[]): Map<string, number> {
   return map;
 }
 
+function lookupAmount(map: Map<string, number>, ...keys: string[]): number {
+  for (const key of keys) {
+    const trimmed = key.trim();
+    if (!trimmed) {
+      continue;
+    }
+    const value = map.get(trimmed);
+    if (value !== undefined) {
+      return value;
+    }
+  }
+  return 0;
+}
+
+function normalizeFundName(name: string | null | undefined): string {
+  return name?.trim().toLowerCase() ?? '';
+}
+
+function readInvestmentFundCode(investment: InvestorInvestmentDto): string {
+  const record = investment as InvestorInvestmentDto & Record<string, unknown>;
+  for (const key of ['fund_code', 'fundCode', 'FundCode']) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return '';
+}
+
+function fundLookupKeys(
+  investment: InvestorInvestmentDto,
+  capitalActivities: InvestorCapitalActivityTabRow[],
+  distributionTable: InvestorDistributionTableTabRow[],
+): string[] {
+  const keys = new Set<string>();
+  const add = (value: string | null | undefined): void => {
+    const trimmed = value?.trim();
+    if (trimmed) {
+      keys.add(trimmed);
+    }
+  };
+
+  add(String(investment.fundKey));
+  add(investment.fundName);
+  add(readInvestmentFundCode(investment));
+
+  const fundName = normalizeFundName(investment.fundName);
+  for (const row of capitalActivities) {
+    const rowName = normalizeFundName(row.fundName);
+    if (
+      (fundName && rowName === fundName) ||
+      row.fundCode?.trim() === String(investment.fundKey)
+    ) {
+      add(row.fundCode);
+    }
+  }
+  for (const row of distributionTable) {
+    const rowName = normalizeFundName(row.fundName);
+    if (
+      (fundName && rowName === fundName) ||
+      row.fundCode?.trim() === String(investment.fundKey)
+    ) {
+      add(row.fundCode);
+    }
+  }
+
+  if (fundName) {
+    keys.add(fundName);
+  }
+
+  return [...keys];
+}
+
+function calledByFundCode(rows: InvestorCapitalActivityTabRow[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    const code = row.fundCode?.trim();
+    if (code) {
+      map.set(code, row.called);
+    }
+    const name = normalizeFundName(row.fundName);
+    if (name) {
+      map.set(name, row.called);
+    }
+  }
+  return map;
+}
+
+function findDistributionRow(
+  investment: InvestorInvestmentDto,
+  distributionTable: InvestorDistributionTableTabRow[],
+  capitalActivities: InvestorCapitalActivityTabRow[],
+): InvestorDistributionTableTabRow | undefined {
+  const lookupKeys = new Set(fundLookupKeys(investment, capitalActivities, distributionTable));
+  const fundName = normalizeFundName(investment.fundName);
+  return distributionTable.find((row) => {
+    const code = row.fundCode?.trim();
+    const name = normalizeFundName(row.fundName);
+    return (
+      (!!code && lookupKeys.has(code)) ||
+      (!!fundName && name === fundName)
+    );
+  });
+}
+
+function netDistributedAmount(
+  distributionRow: InvestorDistributionTableTabRow | undefined,
+  fallback: number,
+): number {
+  if (!distributionRow) {
+    return fallback;
+  }
+  return (
+    distributionRow.cashDist + distributionRow.gainDist + distributionRow.returnOfCapital
+  );
+}
+
 function investedByFundCode(rows: FundCommitmentTabRow[]): Map<string, number> {
   const map = new Map<string, number>();
   for (const row of rows) {
@@ -129,30 +246,53 @@ export function buildFundExposureTable(
   unfunded: FundAmountTabRow[],
   capitalInvestments: FundCommitmentTabRow[],
   distributions: FundAmountTabRow[],
+  capitalActivities: InvestorCapitalActivityTabRow[],
+  distributionTable: InvestorDistributionTableTabRow[],
 ): InvestorDetailTableBlock {
   const commitmentMap = amountByFundCode(commitments);
   const unfundedMap = amountByFundCode(unfunded);
   const investedMap = investedByFundCode(capitalInvestments);
   const distributedMap = amountByFundCode(distributions);
+  const calledMap = calledByFundCode(capitalActivities);
 
   const columns: InvestorDetailTableColumn[] = [
-    { key: 'fund', label: 'Fund', type: 'text', align: 'left' },
-    { key: 'since', label: 'Since', type: 'date', align: 'left', tone: 'muted' },
-    { key: 'commitment', label: 'Commitment', type: 'amount', align: 'right' },
-    { key: 'unfunded', label: 'Unfunded', type: 'amount', align: 'right', tone: 'warning' },
-    { key: 'netInvested', label: 'Net Invested', type: 'amount', align: 'right' },
-    { key: 'distributed', label: 'Distributed', type: 'amount', align: 'right', tone: 'positive' },
+    { key: 'fund', label: 'Fund', type: 'text', align: 'left', sortBy: 'fund' },
+    { key: 'commitment', label: 'Commitment', type: 'amount', align: 'right', sortBy: 'commitment' },
+    { key: 'netInvestedCapital', label: 'Net Invested Capital', type: 'amount', align: 'right', sortBy: 'netInvestedCapital' },
+    { key: 'netDistributed', label: 'Net Distributed', type: 'amount', align: 'right', sortBy: 'netDistributed' },
+    { key: 'reserved', label: 'Reserved', type: 'amount', align: 'right', sortBy: 'reserved' },
+    { key: 'unfunded', label: 'Unfunded', type: 'amount', align: 'right', sortBy: 'unfunded' },
+    { key: 'releasedCapital', label: 'Released Capital', type: 'amount', align: 'right', sortBy: 'releasedCapital' },
   ];
 
   const rows: InvestorDetailTableRow[] = investments.map((investment) => {
-    const fundCode = String(investment.fundKey);
+    const keys = fundLookupKeys(investment, capitalActivities, distributionTable);
+    const distributionRow = findDistributionRow(investment, distributionTable, capitalActivities);
+    const commitment = distributionRow
+      ? distributionRow.committed
+      : lookupAmount(commitmentMap, ...keys) || investment.investedAmount || 0;
+    const unfundedAmount = distributionRow
+      ? distributionRow.unfunded
+      : lookupAmount(unfundedMap, ...keys);
+    const netInvestedCapital =
+      lookupAmount(investedMap, ...keys) || investment.investedAmount || 0;
+    const netDistributed = netDistributedAmount(
+      distributionRow,
+      lookupAmount(distributedMap, ...keys),
+    );
+    const called = lookupAmount(calledMap, ...keys);
+    const reserved = called > 0 ? commitment - called : commitment - netInvestedCapital - unfundedAmount;
+    const releasedCapital = distributionRow?.released ?? 0;
+
     return {
       fund: investment.fundName ?? '—',
-      since: '—',
-      commitment: commitmentMap.get(fundCode) ?? investment.investedAmount ?? 0,
-      unfunded: unfundedMap.get(fundCode) ?? 0,
-      netInvested: investedMap.get(fundCode) ?? investment.investedAmount ?? 0,
-      distributed: distributedMap.get(fundCode) ?? 0,
+      fundKey: investment.fundKey,
+      commitment,
+      netInvestedCapital,
+      netDistributed,
+      reserved,
+      unfunded: unfundedAmount,
+      releasedCapital,
     };
   });
 
@@ -186,7 +326,7 @@ function buildCapitalAccountGrid(kpi: InvestorDetailKpiCards): InvestorDetailFie
         fields: [
           { label: 'Total Commitment (ITD)', value: formatCurrencyCompact(kpi.totalCommitment) },
           { label: 'Net Invested Capital (ITD)', value: formatCurrencyCompact(kpi.netInvestedCapital) },
-          { label: 'Reserved / Uncalled', value: formatCurrencyCompact(kpi.reservedUncalled) },
+          { label: 'Reserved', value: formatCurrencyCompact(kpi.reservedUncalled) },
           { label: '% Deployed', value: `${deployedPct.toFixed(1)}%` },
         ],
       },
@@ -234,15 +374,15 @@ function buildUnderlyingInvestmentsTable(
   investments: InvestorInvestmentDto[],
 ): InvestorDetailTableBlock {
   const columns: InvestorDetailTableColumn[] = [
-    { key: 'property', label: 'Property', type: 'text', align: 'left' },
-    { key: 'type', label: 'Type', type: 'text', align: 'left', tone: 'muted' },
-    { key: 'city', label: 'City', type: 'text', align: 'left', tone: 'muted' },
-    { key: 'fund', label: 'Fund', type: 'text', align: 'left', tone: 'muted' },
-    { key: 'gla', label: 'GLA (sf)', type: 'number', align: 'right' },
-    { key: 'occupancy', label: 'Occupancy', type: 'percent', align: 'right' },
-    { key: 'marketValue', label: 'Market Value', type: 'amount', align: 'right' },
-    { key: 'capRate', label: 'Cap Rate', type: 'percent', align: 'right', tone: 'muted' },
-    { key: 'status', label: 'Status', type: 'status', align: 'left' },
+    { key: 'property', label: 'Property', type: 'text', align: 'left', sortBy: 'property' },
+    { key: 'type', label: 'Type', type: 'text', align: 'left', tone: 'muted', sortBy: 'type' },
+    { key: 'city', label: 'City', type: 'text', align: 'left', tone: 'muted', sortBy: 'city' },
+    { key: 'fund', label: 'Fund', type: 'text', align: 'left', tone: 'muted', sortBy: 'fund' },
+    { key: 'gla', label: 'GLA (sf)', type: 'number', align: 'right', sortBy: 'gla' },
+    { key: 'occupancy', label: 'Occupancy', type: 'percent', align: 'right', sortBy: 'occupancy' },
+    { key: 'marketValue', label: 'Market Value', type: 'amount', align: 'right', sortBy: 'marketValue' },
+    { key: 'capRate', label: 'Cap Rate', type: 'percent', align: 'right', tone: 'muted', sortBy: 'capRate' },
+    { key: 'status', label: 'Status', type: 'status', align: 'left', sortBy: 'status' },
   ];
 
   const rows: InvestorDetailTableRow[] = investments.map((investment) => {
@@ -265,7 +405,7 @@ function buildUnderlyingInvestmentsTable(
 
   return tableBlock({
     id: 'underlying-investments',
-    title: 'Underlying Investments',
+    title: 'Underlying Assets',
     subtitle: `${rows.length} propert${rows.length === 1 ? 'y' : 'ies'} across ${investments.length} fund${investments.length === 1 ? '' : 's'}`,
     columns,
     rows,
@@ -457,9 +597,9 @@ function buildRiskComplianceGrid(): InvestorDetailFieldGridBlock {
 
 function buildCommunicationsTable(): InvestorDetailTableBlock {
   const columns: InvestorDetailTableColumn[] = [
-    { key: 'date', label: 'Date', type: 'date', align: 'left', tone: 'muted' },
-    { key: 'description', label: 'Description', type: 'text', align: 'left' },
-    { key: 'status', label: 'Status', type: 'status', align: 'right' },
+    { key: 'date', label: 'Date', type: 'date', align: 'left', tone: 'muted', sortBy: 'date' },
+    { key: 'description', label: 'Description', type: 'text', align: 'left', sortBy: 'description' },
+    { key: 'status', label: 'Status', type: 'status', align: 'right', sortBy: 'status' },
   ];
 
   const rows: InvestorDetailTableRow[] = [
@@ -549,7 +689,7 @@ export type InvestorDetailSectionId =
   | 'risk-compliance'
   | 'communications';
 
-function distributionAmountRows(groups: FundDistributionGroupTabRow[]): FundAmountTabRow[] {
+export function distributionAmountRows(groups: FundDistributionGroupTabRow[]): FundAmountTabRow[] {
   return groups.map((group) => ({
     fundCode: group.fundCode,
     amount: group.totalAmount,
@@ -580,6 +720,8 @@ export function buildBlocksForSection(
     unfunded,
     capitalInvestments,
     distributionRows,
+    capitalActivities,
+    distributionTable,
   );
   switch (sectionId) {
     case 'overview':
@@ -596,9 +738,9 @@ export function buildBlocksForSection(
         : [
             tableBlock({
               id: 'underlying-investments',
-              title: 'Underlying Investments',
+              title: 'Underlying Assets',
               columns: [{ key: 'message', label: 'Status', type: 'text', align: 'left' }],
-              rows: [{ message: 'No underlying investments available.' }],
+              rows: [{ message: 'No underlying assets available.' }],
               collapsible: true,
               defaultExpanded: true,
             }),
@@ -712,6 +854,7 @@ export interface InvestorDetailKpiCards {
   netInvestedCapital: number;
   netDistributed: number;
   reservedUncalled: number;
+  unfunded: number;
   releasedCapital: number;
   fundsCount: number;
 }
@@ -723,6 +866,7 @@ export function kpiCardsFromListRow(row: InvestorTableRow | null): InvestorDetai
       netInvestedCapital: 0,
       netDistributed: 0,
       reservedUncalled: 0,
+      unfunded: 0,
       releasedCapital: 0,
       fundsCount: 0,
     };
@@ -733,7 +877,31 @@ export function kpiCardsFromListRow(row: InvestorTableRow | null): InvestorDetai
     netInvestedCapital: row.netInvestedCapital,
     netDistributed: row.netDistributed,
     reservedUncalled: row.reservedUncalled,
+    unfunded: row.unfunded,
     releasedCapital: row.releasedCapital ?? 0,
     fundsCount: row.fundsCount,
+  };
+}
+
+function readTableTotal(totals: InvestorDetailTableRow | null | undefined, key: string): number {
+  const value = totals?.[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+/** Prefer fund-exposure totals for metrics the list API may omit. */
+export function mergeKpiCardsWithFundExposure(
+  base: InvestorDetailKpiCards,
+  exposure: InvestorDetailTableBlock | null,
+): InvestorDetailKpiCards {
+  const totals = exposure?.totals;
+  if (!totals || !(exposure?.rows?.length ?? 0)) {
+    return base;
+  }
+
+  return {
+    ...base,
+    reservedUncalled: readTableTotal(totals, 'reserved'),
+    unfunded: readTableTotal(totals, 'unfunded'),
+    releasedCapital: readTableTotal(totals, 'releasedCapital'),
   };
 }

@@ -145,6 +145,8 @@ export interface InvestorDetailDto {
 
 export interface InvestorInvestmentDto {
   fundKey: number;
+  fund_code?: string | null;
+  fundCode?: string | null;
   fundName: string | null;
   fundType: string | null;
   fundCategory: string | null;
