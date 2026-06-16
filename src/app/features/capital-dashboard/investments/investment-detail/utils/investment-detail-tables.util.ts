@@ -4,6 +4,9 @@ import {
   FundCommitmentTabRow,
   FundDetailDto,
   FundDistributionGroupTabRow,
+  FundInvestorCapitalActivityTabRow,
+  FundInvestorDistributionTableTabRow,
+  FundInvestorIrrTabRow,
 } from '../../../shared/models/api.models';
 import { FundTableRow } from '../../../shared/utils/fund-list-row.util';
 import {
@@ -27,7 +30,6 @@ import {
   INVESTMENT_DETAIL_DUMMY,
   investedPercentForTimeframe,
   netDistributedForTimeframe,
-  periodAccentLabel,
 } from '../data/investment-detail-dummy.data';
 
 export type InvestmentDetailTimeframe = 'ltd' | 'quarterly' | 'daily';
@@ -36,7 +38,9 @@ export type InvestmentDetailSectionId =
   | 'capital-account'
   | 'performance'
   | 'assets'
-  | 'transactions'
+  | 'capital-activities'
+  | 'distributions'
+  | 'irrs'
   | 'documents'
   | 'esg-reporting'
   | 'debt-financing';
@@ -323,77 +327,130 @@ function readAssetCapRate(asset: FundAssetTabRow): number | null {
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : null;
 }
 
-function buildTransactionsTable(
-  timeframe: InvestmentDetailTimeframe,
-  commitments: FundAmountTabRow[],
-  unfunded: FundAmountTabRow[],
-  capitalInvestments: FundCommitmentTabRow[],
-  distributions: FundDistributionGroupTabRow[],
+function fundToolbarTableBlock(
+  config: Omit<InvestorDetailTableBlock, 'kind' | 'variant' | 'showToolbar' | 'collapsible' | 'defaultExpanded'>,
 ): InvestorDetailTableBlock {
-  const periodLabel = periodAccentLabel(timeframe);
-  const columns: InvestorDetailTableColumn[] = [
-    { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left' },
-    { key: 'fundName', label: 'Fund Name', type: 'text', align: 'left' },
-    { key: 'committed', label: 'Committed', type: 'amount', align: 'right' },
-    { key: 'called', label: 'Called', type: 'amount', align: 'right' },
-    { key: 'unfunded', label: 'Unfunded', type: 'amount', align: 'right', tone: 'warning' },
-    {
-      key: 'cashDist',
-      label: `Cash Dist. (${periodLabel})`,
-      type: 'amount',
-      align: 'right',
-      tone: 'positive',
-    },
-    {
-      key: 'gainDist',
-      label: `Gain Dist. (${periodLabel})`,
-      type: 'amount',
-      align: 'right',
-      tone: 'positive',
-    },
-    {
-      key: 'prefReturn',
-      label: `Pref. Return (${periodLabel})`,
-      type: 'amount',
-      align: 'right',
-      tone: 'info',
-    },
-    { key: 'transferIn', label: 'Transfer In', type: 'amount', align: 'right', tone: 'positive' },
-    { key: 'transferOut', label: 'Transfer Out', type: 'amount', align: 'right', tone: 'negative' },
-    { key: 'released', label: 'Released', type: 'amount', align: 'right' },
-  ];
-
-  const rows: InvestorDetailTableRow[] = INVESTMENT_DETAIL_DUMMY.transactions.map((row) => ({
-    fundCode: row.fundCode,
-    fundName: row.fundName,
-    committed: row.committed,
-    called: row.called,
-    unfunded: row.unfunded,
-    cashDist: row.cashDist[timeframe],
-    gainDist: row.gainDist[timeframe],
-    prefReturn: row.prefReturn[timeframe],
-    transferIn: row.transferIn,
-    transferOut: row.transferOut,
-    released: row.released,
-  }));
-
-  void commitments;
-  void unfunded;
-  void capitalInvestments;
-  void distributions;
-
   return tableBlock({
-    id: 'transactions',
-    title: 'Transactions by Investor',
-    subtitle: 'Capital account activity across all limited partners in this fund ·',
-    subtitleAccent: periodLabel,
-    columns,
-    rows,
-    totals: buildTotalsRow(columns, rows),
+    ...config,
     collapsible: false,
     defaultExpanded: true,
     variant: 'transactions',
     showToolbar: true,
+  });
+}
+
+function capitalActivityRowsToTableRows(rows: FundInvestorCapitalActivityTabRow[]): InvestorDetailTableRow[] {
+  return rows.map((row) => ({
+    investorCode: row.investorCode,
+    investorName: row.investorName,
+    called: row.called,
+    transferIn: row.transferIn,
+    transferOut: row.transferOut,
+    redemption: row.redemption,
+  }));
+}
+
+function distributionTableRowsToTableRows(rows: FundInvestorDistributionTableTabRow[]): InvestorDetailTableRow[] {
+  return rows.map((row) => ({
+    investorCode: row.investorCode,
+    investorName: row.investorName,
+    prefReturn: row.preferredReturn,
+    committed: row.committed,
+    unfunded: row.unfunded,
+    cashDist: row.cashDist,
+    gainDist: row.gainDist,
+    returnOfCapital: row.returnOfCapital,
+    released: row.released,
+  }));
+}
+
+function irrRowsToTableRows(rows: FundInvestorIrrTabRow[]): InvestorDetailTableRow[] {
+  return rows.map((row) => ({
+    investorCode: row.investorCode,
+    investorName: row.investorName,
+    irr1Year: row.irr1Year,
+    irr3Year: row.irr3Year,
+    irr5Year: row.irr5Year,
+    irr7Year: row.irr7Year,
+    irr10Year: row.irr10Year,
+    irrLtd: row.irrLtd,
+  }));
+}
+
+function buildCapitalActivitiesTable(
+  rows: FundInvestorCapitalActivityTabRow[],
+  periodLabel: string,
+): InvestorDetailTableBlock {
+  const tableRows = capitalActivityRowsToTableRows(rows);
+  const columns: InvestorDetailTableColumn[] = [
+    { key: 'investorCode', label: 'Investor Code', type: 'link', align: 'left', sortBy: 'investor_code' },
+    { key: 'investorName', label: 'Investor Name', type: 'text', align: 'left', sortBy: 'investor_name' },
+    { key: 'called', label: 'Called', type: 'amount', align: 'right', sortBy: 'called' },
+    { key: 'transferIn', label: 'Transfer In', type: 'amount', align: 'right', sortBy: 'transfer_in' },
+    { key: 'transferOut', label: 'Transfer Out', type: 'amount', align: 'right', tone: 'negative', sortBy: 'transfer_out' },
+    { key: 'redemption', label: 'Redemption', type: 'amount', align: 'right', sortBy: 'redemption' },
+  ];
+
+  return fundToolbarTableBlock({
+    id: 'capital-activities',
+    title: 'Capital Activities',
+    subtitle: 'Capital calls, transfers, and redemptions by investor ·',
+    subtitleAccent: periodLabel,
+    columns,
+    rows: tableRows,
+    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorCode', `Total — ${tableRows.length}`) : null,
+  });
+}
+
+function buildDistributionsTable(
+  rows: FundInvestorDistributionTableTabRow[],
+  periodLabel: string,
+): InvestorDetailTableBlock {
+  const tableRows = distributionTableRowsToTableRows(rows);
+  const columns: InvestorDetailTableColumn[] = [
+    { key: 'investorCode', label: 'Investor Code', type: 'link', align: 'left', sortBy: 'investor_code' },
+    { key: 'investorName', label: 'Investor Name', type: 'text', align: 'left', sortBy: 'investor_name' },
+    { key: 'prefReturn', label: `Pref. Return (${periodLabel})`, type: 'amount', align: 'right', tone: 'info', sortBy: 'preferred_return' },
+    { key: 'committed', label: 'Committed', type: 'amount', align: 'right', sortBy: 'committed' },
+    { key: 'unfunded', label: 'Unfunded', type: 'amount', align: 'right', tone: 'warning', sortBy: 'unfunded' },
+    { key: 'cashDist', label: `Cash Dist. (${periodLabel})`, type: 'amount', align: 'right', tone: 'positive', sortBy: 'cash_dist' },
+    { key: 'gainDist', label: `Gain Dist. (${periodLabel})`, type: 'amount', align: 'right', tone: 'positive', sortBy: 'gain_dist' },
+    { key: 'returnOfCapital', label: 'Return of Capital', type: 'amount', align: 'right', sortBy: 'return_of_capital' },
+    { key: 'released', label: 'Released', type: 'amount', align: 'right', sortBy: 'released' },
+  ];
+
+  return fundToolbarTableBlock({
+    id: 'distributions',
+    title: 'Distributions',
+    subtitle: 'Distribution activity and capital account balances by investor ·',
+    subtitleAccent: periodLabel,
+    columns,
+    rows: tableRows,
+    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorCode', `Total — ${tableRows.length}`) : null,
+  });
+}
+
+function buildIrrsTable(rows: FundInvestorIrrTabRow[], periodLabel: string): InvestorDetailTableBlock {
+  const tableRows = irrRowsToTableRows(rows);
+  const columns: InvestorDetailTableColumn[] = [
+    { key: 'investorCode', label: 'Investor Code', type: 'link', align: 'left', sortBy: 'investor_code' },
+    { key: 'investorName', label: 'Investor Name', type: 'text', align: 'left', sortBy: 'investor_name' },
+    { key: 'irr1Year', label: '1Y IRR', type: 'percent', align: 'right', sortBy: 'irr_1_year_pct' },
+    { key: 'irr3Year', label: '3Y IRR', type: 'percent', align: 'right', sortBy: 'irr_3_year_pct' },
+    { key: 'irr5Year', label: '5Y IRR', type: 'percent', align: 'right', sortBy: 'irr_5_year_pct' },
+    { key: 'irr7Year', label: '7Y IRR', type: 'percent', align: 'right', sortBy: 'irr_7_year_pct' },
+    { key: 'irr10Year', label: '10Y IRR', type: 'percent', align: 'right', sortBy: 'irr_10_year_pct' },
+    { key: 'irrLtd', label: 'LTD IRR', type: 'percent', align: 'right', tone: 'info', sortBy: 'irr_ltd_pct' },
+  ];
+
+  return fundToolbarTableBlock({
+    id: 'irrs',
+    title: 'IRRs',
+    subtitle: 'Internal rate of return by investor ·',
+    subtitleAccent: periodLabel,
+    columns,
+    rows: tableRows,
+    totals: null,
   });
 }
 
@@ -453,9 +510,18 @@ export function buildBlocksForSection(
   unfunded: FundAmountTabRow[],
   capitalInvestments: FundCommitmentTabRow[],
   distributions: FundDistributionGroupTabRow[],
+  capitalActivities: FundInvestorCapitalActivityTabRow[],
+  distributionTable: FundInvestorDistributionTableTabRow[],
+  irr: FundInvestorIrrTabRow[],
   kpi: InvestmentDetailKpiCards,
   timeframe: InvestmentDetailTimeframe,
+  periodLabel: string,
 ): InvestorDetailBlock[] {
+  void commitments;
+  void unfunded;
+  void capitalInvestments;
+  void distributions;
+
   switch (sectionId) {
     case 'overview':
       return [];
@@ -465,8 +531,12 @@ export function buildBlocksForSection(
       return [buildPerformanceKpiRow(kpi, timeframe)];
     case 'assets':
       return [mapAssetsTable(assets)];
-    case 'transactions':
-      return [buildTransactionsTable(timeframe, commitments, unfunded, capitalInvestments, distributions)];
+    case 'capital-activities':
+      return [buildCapitalActivitiesTable(capitalActivities, periodLabel)];
+    case 'distributions':
+      return [buildDistributionsTable(distributionTable, periodLabel)];
+    case 'irrs':
+      return [buildIrrsTable(irr, periodLabel)];
     case 'documents':
       return [buildDocumentsList(detail)];
     case 'esg-reporting':
@@ -485,8 +555,12 @@ export function buildFlatInvestmentBlocks(
   unfunded: FundAmountTabRow[],
   capitalInvestments: FundCommitmentTabRow[],
   distributions: FundDistributionGroupTabRow[],
+  capitalActivities: FundInvestorCapitalActivityTabRow[],
+  distributionTable: FundInvestorDistributionTableTabRow[],
+  irr: FundInvestorIrrTabRow[],
   kpi: InvestmentDetailKpiCards,
   timeframe: InvestmentDetailTimeframe,
+  periodLabel: string,
 ): InvestmentDetailFlatBlock[] {
   const sections = buildAllSectionBlocks(
     detail,
@@ -495,8 +569,12 @@ export function buildFlatInvestmentBlocks(
     unfunded,
     capitalInvestments,
     distributions,
+    capitalActivities,
+    distributionTable,
+    irr,
     kpi,
     timeframe,
+    periodLabel,
   );
 
   const flat: InvestmentDetailFlatBlock[] = [];
@@ -522,8 +600,12 @@ export function buildAllSectionBlocks(
   unfunded: FundAmountTabRow[],
   capitalInvestments: FundCommitmentTabRow[],
   distributions: FundDistributionGroupTabRow[],
+  capitalActivities: FundInvestorCapitalActivityTabRow[],
+  distributionTable: FundInvestorDistributionTableTabRow[],
+  irr: FundInvestorIrrTabRow[],
   kpi: InvestmentDetailKpiCards,
   timeframe: InvestmentDetailTimeframe,
+  periodLabel: string,
 ): InvestorDetailSectionBlock[] {
   return INVESTMENT_DETAIL_SIDEBAR_SECTIONS.flatMap((section) =>
     section.items.map((item) => ({
@@ -536,8 +618,12 @@ export function buildAllSectionBlocks(
         unfunded,
         capitalInvestments,
         distributions,
+        capitalActivities,
+        distributionTable,
+        irr,
         kpi,
         timeframe,
+        periodLabel,
       ),
     })),
   );

@@ -17,9 +17,13 @@ import {
   FundTimeGranularity,
   FundUnfundedCommitmentsQueryParams,
   fundTimeGranularityFromTimeframe,
+  InvestorCapitalActivityDto,
   InvestorDetailDto,
+  InvestorDistributionTableDto,
   InvestorInvestmentDto,
+  InvestorIrrDto,
   InvestorListItemDto,
+  InvestorTransactionTableQueryParams,
   InvestorsFilterOptionsDto,
   InvestorsListQueryParams,
   InvestorsPagedResult,
@@ -165,5 +169,58 @@ export class CapitalInvestorsApiService {
       `api/CapitalInvestors/${investorKey}/nav`,
       query as any,
     );
+  }
+
+  getInvestorCapitalActivitiesPage(
+    investorKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: Omit<InvestorTransactionTableQueryParams, 'view' | 'investorKey'> = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<InvestorCapitalActivityDto>> {
+    return this.api.get<PagedResult<InvestorCapitalActivityDto>>(
+      `api/CapitalInvestors/${investorKey}/capital-activities`,
+      this.buildInvestorTransactionTableQuery(investorKey, timeframe, params, pageSize) as any,
+    );
+  }
+
+  getInvestorDistributionTablePage(
+    investorKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: Omit<InvestorTransactionTableQueryParams, 'view' | 'investorKey'> = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<InvestorDistributionTableDto>> {
+    return this.api.get<PagedResult<InvestorDistributionTableDto>>(
+      `api/CapitalInvestors/${investorKey}/distributions-table`,
+      this.buildInvestorTransactionTableQuery(investorKey, timeframe, params, pageSize) as any,
+    );
+  }
+
+  getInvestorIrrPage(
+    investorKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: Omit<InvestorTransactionTableQueryParams, 'view' | 'investorKey'> = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<InvestorIrrDto>> {
+    return this.api.get<PagedResult<InvestorIrrDto>>(
+      `api/CapitalInvestors/${investorKey}/irr`,
+      this.buildInvestorTransactionTableQuery(investorKey, timeframe, params, pageSize) as any,
+    );
+  }
+
+  private buildInvestorTransactionTableQuery(
+    investorKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: Omit<InvestorTransactionTableQueryParams, 'view' | 'investorKey'> = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): InvestorTransactionTableQueryParams {
+    return {
+      investorKey,
+      view: fundTimeGranularityFromTimeframe(timeframe),
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? pageSize,
+      ...(timeframe === 'quarterly' && params.dateKey != null ? { dateKey: params.dateKey } : {}),
+      ...(params.search?.trim() ? { search: params.search.trim() } : {}),
+      ...(params.sortBy ? { sortBy: params.sortBy, sortDir: params.sortDir ?? 'desc' } : {}),
+    };
   }
 }

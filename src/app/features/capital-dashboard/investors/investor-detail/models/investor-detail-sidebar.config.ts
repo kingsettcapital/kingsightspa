@@ -17,7 +17,9 @@ export const INVESTOR_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] = 
     title: 'Data',
     items: [
       { id: 'investments', label: 'Investments' },
-      { id: 'transactions', label: 'Transactions' },
+      { id: 'capital-activities', label: 'Capital Activities' },
+      { id: 'distributions', label: 'Distributions' },
+      { id: 'irrs', label: 'IRR' },
       { id: 'documents', label: 'Documents' },
     ],
   },

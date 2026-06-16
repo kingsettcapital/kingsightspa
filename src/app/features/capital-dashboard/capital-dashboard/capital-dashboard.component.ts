@@ -18,6 +18,8 @@ import { catchError, debounceTime, distinctUntilChanged, filter, of, switchMap, 
 import { CapitalSearchResultDto } from '../shared/models/search.models';
 import { CapitalSearchApiService } from '../shared/services/capital-search-api.service';
 import {
+  normalizeSearchResult,
+  searchResultEntityKey,
   searchResultPresentation,
   searchResultTabPath,
 } from '../shared/utils/search-result.util';
@@ -98,7 +100,7 @@ export class CapitalDashboardComponent {
       )
       .subscribe((response) => {
         this.searchLoading.set(false);
-        this.searchResults.set(response.results ?? []);
+        this.searchResults.set((response.results ?? []).map(normalizeSearchResult));
       });
   }
 
@@ -133,26 +135,25 @@ export class CapitalDashboardComponent {
   }
 
   selectSearchResult(result: CapitalSearchResultDto): void {
-    const tab = searchResultTabPath(result.entity_type);
-    if (!tab) {
+    const normalized = normalizeSearchResult(result);
+    const tab = searchResultTabPath(normalized.entity_type);
+    const entityKey = searchResultEntityKey(normalized);
+    if (!tab || entityKey == null) {
       return;
     }
 
     if (tab === 'investor' || tab === 'investment' || tab === 'asset') {
-      this.router.navigate([`./${tab}/${result.entity_key}`], {
-        relativeTo: this.route,
-        queryParams: { search: result.name },
+      void this.router.navigate(['/capital-dashboard', tab, entityKey], {
+        queryParams: { search: normalized.name },
       });
-      return;
+    } else {
+      void this.router.navigate(['/capital-dashboard', tab], {
+        queryParams: {
+          search: normalized.name,
+          selected: entityKey,
+        },
+      });
     }
-
-    this.router.navigate([`./${tab}`], {
-      relativeTo: this.route,
-      queryParams: {
-        search: result.name,
-        selected: result.entity_key,
-      },
-    });
 
     this.searchOpen.set(false);
     this.searchQuery.set('');

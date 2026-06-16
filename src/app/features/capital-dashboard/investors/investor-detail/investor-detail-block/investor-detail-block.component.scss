@@ -324,8 +324,55 @@
 .inv-detail-table-wrap {
   overflow-x: auto;
 
-  &--transactions .inv-detail-table {
-    min-width: 72rem;
+  &--transactions {
+    --inv-detail-transactions-table-max-height: 20rem;
+    max-height: var(--inv-detail-transactions-table-max-height);
+    min-height: 12rem;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #c1c1c1 #f1f1f1;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 999px;
+    }
+
+    .inv-detail-table {
+      min-width: 72rem;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .inv-detail-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #f8fafc;
+      box-shadow: 0 1px 0 #e2e8f0;
+    }
+
+    .inv-detail-table tfoot td {
+      position: sticky;
+      bottom: 0;
+      z-index: 1;
+      background: #f8fafc;
+      box-shadow: 0 -1px 0 #e2e8f0;
+    }
+
+    .inv-detail-table tbody tr:last-child td {
+      border-bottom: 1px solid #edf2f7;
+    }
+
+    .inv-detail-table__status {
+      min-height: 8rem;
+    }
   }
 }
 
@@ -411,6 +458,49 @@
   font-weight: 400;
 }
 
+.inv-detail-table__status-row td {
+  padding: 0;
+  border-bottom: 0;
+}
+
+.inv-detail-table__status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 10rem;
+  padding: 2rem 1rem;
+  color: #64748b;
+  text-align: center;
+  font-weight: 500;
+
+  p {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+}
+
+.inv-detail-table__status--empty p {
+  color: #94a3b8;
+}
+
+.inv-detail-table__spinner {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 74, 153, 0.15);
+  border-top-color: #004a99;
+  animation: inv-detail-table-spin 0.75s linear infinite;
+}
+
+@keyframes inv-detail-table-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .inv-detail-table--exposure {
   .inv-detail-table__cell--fund {
     color: #374151;
@@ -475,26 +565,124 @@
     text-transform: none;
     letter-spacing: 0;
     font-size: 0.8125rem;
-    font-weight: 500;
+    font-weight: 600;
     color: #64748b;
   }
 
-  tbody td {
+  thead th.inv-detail-table__head--label {
+    color: #64748b;
+  }
+
+  thead th.inv-detail-table__head--metric {
+    color: #0c274a;
+  }
+
+  tbody td,
+  tfoot td {
     padding-top: 0.875rem;
     padding-bottom: 0.875rem;
-  }
-
-  .inv-detail-table__cell--fundName {
-    color: #374151;
-    font-weight: 500;
-  }
-
-  .inv-detail-table__cell--committed,
-  .inv-detail-table__cell--called,
-  .inv-detail-table__cell--released {
     color: #111827;
-    font-weight: 600;
+    font-weight: 400;
   }
+
+  tfoot td {
+    font-weight: 400;
+  }
+
+  tbody td.inv-detail-table__cell--link,
+  tfoot td.inv-detail-table__cell--link,
+  tbody td.inv-detail-table__cell--fundCode,
+  tfoot td.inv-detail-table__cell--fundCode,
+  tbody td.inv-detail-table__cell--investorCode,
+  tfoot td.inv-detail-table__cell--investorCode {
+    color: #00529b;
+  }
+
+  tbody td.inv-detail-table__cell--fundName,
+  tfoot td.inv-detail-table__cell--fundName,
+  tbody td.inv-detail-table__cell--investorName,
+  tfoot td.inv-detail-table__cell--investorName {
+    color: #374151;
+  }
+
+  tbody td.inv-detail-table__cell--warning,
+  tfoot td.inv-detail-table__cell--warning,
+  tbody td.inv-detail-table__cell--unfunded,
+  tfoot td.inv-detail-table__cell--unfunded {
+    color: #d97706;
+  }
+
+  tbody td.inv-detail-table__cell--positive,
+  tfoot td.inv-detail-table__cell--positive,
+  tbody td.inv-detail-table__cell--cashDist,
+  tfoot td.inv-detail-table__cell--cashDist,
+  tbody td.inv-detail-table__cell--gainDist,
+  tfoot td.inv-detail-table__cell--gainDist {
+    color: #668C62;
+  }
+
+  tbody td.inv-detail-table__cell--negative,
+  tfoot td.inv-detail-table__cell--negative,
+  tbody td.inv-detail-table__cell--transferOut,
+  tfoot td.inv-detail-table__cell--transferOut {
+    color: #e11d48;
+  }
+
+  tbody td.inv-detail-table__cell--info,
+  tfoot td.inv-detail-table__cell--info,
+  tbody td.inv-detail-table__cell--prefReturn,
+  tfoot td.inv-detail-table__cell--prefReturn {
+    color: #2563eb;
+  }
+
+  tbody td.inv-detail-table__cell--transferIn,
+  tfoot td.inv-detail-table__cell--transferIn {
+    color: #668C62;
+  }
+
+  .inv-detail-table__empty {
+    color: #94a3b8;
+    font-weight: 400;
+  }
+}
+
+.inv-detail-table__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+
+  .mat-icon {
+    width: 1rem;
+    height: 1rem;
+    font-size: 1rem;
+    color: #94a3b8;
+  }
+
+  &--active {
+    color: #004a99;
+
+    .mat-icon {
+      color: #004a99;
+    }
+  }
+
+  &--right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+.inv-detail-table__sort-label {
+  display: block;
+  line-height: 1.25;
 }
 
 .inv-detail-table--communications {

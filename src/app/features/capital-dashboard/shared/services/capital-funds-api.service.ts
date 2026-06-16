@@ -21,6 +21,10 @@ import {
   FundInvestorDto,
   FundInvestmentsQueryParams,
   FundPeriodsQueryParams,
+  FundInvestorCapitalActivityDto,
+  FundInvestorDistributionTableDto,
+  FundInvestorIrrDto,
+  FundTransactionTableQueryParams,
   FundUnfundedCommitmentsQueryParams,
   ListQueryParams,
   PagedResult,
@@ -162,5 +166,58 @@ export class CapitalFundsApiService {
       `api/Funds/${fundKey}/distributions`,
       query as any,
     );
+  }
+
+  getFundCapitalActivitiesPage(
+    fundKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: Omit<FundTransactionTableQueryParams, 'view' | 'fundKey'> = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<FundInvestorCapitalActivityDto>> {
+    return this.api.get<PagedResult<FundInvestorCapitalActivityDto>>(
+      `api/Funds/${fundKey}/capital-activities`,
+      this.buildFundTransactionTableQuery(fundKey, timeframe, params, pageSize) as any,
+    );
+  }
+
+  getFundDistributionTablePage(
+    fundKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: Omit<FundTransactionTableQueryParams, 'view' | 'fundKey'> = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<FundInvestorDistributionTableDto>> {
+    return this.api.get<PagedResult<FundInvestorDistributionTableDto>>(
+      `api/Funds/${fundKey}/distributions-table`,
+      this.buildFundTransactionTableQuery(fundKey, timeframe, params, pageSize) as any,
+    );
+  }
+
+  getFundIrrPage(
+    fundKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: Omit<FundTransactionTableQueryParams, 'view' | 'fundKey'> = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<FundInvestorIrrDto>> {
+    return this.api.get<PagedResult<FundInvestorIrrDto>>(
+      `api/Funds/${fundKey}/irr`,
+      this.buildFundTransactionTableQuery(fundKey, timeframe, params, pageSize) as any,
+    );
+  }
+
+  private buildFundTransactionTableQuery(
+    fundKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: Omit<FundTransactionTableQueryParams, 'view' | 'fundKey'> = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): FundTransactionTableQueryParams {
+    return {
+      fundKey,
+      view: fundTimeGranularityFromTimeframe(timeframe),
+      page: params.page ?? 1,
+      pageSize: params.pageSize ?? pageSize,
+      ...(timeframe === 'quarterly' && params.dateKey != null ? { dateKey: params.dateKey } : {}),
+      ...(params.search?.trim() ? { search: params.search.trim() } : {}),
+      ...(params.sortBy ? { sortBy: params.sortBy, sortDir: params.sortDir ?? 'desc' } : {}),
+    };
   }
 }

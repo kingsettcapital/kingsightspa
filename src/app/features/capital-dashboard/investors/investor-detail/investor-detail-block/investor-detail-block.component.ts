@@ -1,4 +1,4 @@
-import { Component, input, signal } from '@angular/core';
+import { Component, computed, effect, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -25,6 +25,18 @@ import {
 })
 export class InvestorDetailBlockComponent {
   readonly block = input.required<InvestorDetailBlock>();
+  /** Changes when investor/timeframe/period changes — resets transaction search UI. */
+  readonly tableContextKey = input('');
+  readonly tableLoading = input(false);
+  readonly tableSearchActive = input(false);
+  readonly sortColumn = input<string | null>(null);
+  readonly sortDir = input<'asc' | 'desc'>('desc');
+  readonly transactionSearchChange = output<{ blockId: string; search: string }>();
+  readonly transactionSortChange = output<{
+    blockId: string;
+    sortBy: string;
+    defaultDir: 'asc' | 'desc';
+  }>();
 
   readonly expanded = signal(true);
   readonly searchQuery = signal('');
@@ -43,6 +55,65 @@ export class InvestorDetailBlockComponent {
     'Environmental',
     'Insurance',
   ];
+
+  constructor() {
+    effect(() => {
+      this.tableContextKey();
+      this.searchQuery.set('');
+      this.minCommitmentFilter.set('');
+    });
+  }
+
+  onTransactionSearchInput(value: string): void {
+    this.searchQuery.set(value);
+    const block = this.block();
+    if (block.kind !== 'table') {
+      return;
+    }
+    this.transactionSearchChange.emit({ blockId: block.id, search: value });
+  }
+
+  readonly emptyStateMessage = computed(() => {
+    if (this.tableSearchActive() || this.searchQuery().trim()) {
+      return 'No results found for your search.';
+    }
+    return 'No data available.';
+  });
+
+  toggleSort(column: InvestorDetailTableColumn): void {
+    if (!column.sortBy) {
+      return;
+    }
+
+    const block = this.block();
+    if (block.kind !== 'table') {
+      return;
+    }
+
+    this.transactionSortChange.emit({
+      blockId: block.id,
+      sortBy: column.sortBy,
+      defaultDir: this.defaultSortDir(column),
+    });
+  }
+
+  isSortActive(column: InvestorDetailTableColumn): boolean {
+    return !!column.sortBy && this.sortColumn() === column.sortBy;
+  }
+
+  sortIcon(column: InvestorDetailTableColumn): string {
+    if (!this.isSortActive(column)) {
+      return 'unfold_more';
+    }
+    return this.sortDir() === 'asc' ? 'arrow_upward' : 'arrow_downward';
+  }
+
+  private defaultSortDir(column: InvestorDetailTableColumn): 'asc' | 'desc' {
+    if (column.type === 'amount' || column.type === 'number' || column.type === 'percent') {
+      return 'desc';
+    }
+    return 'asc';
+  }
 
   toggleExpanded(): void {
     const current = this.block();
@@ -90,6 +161,19 @@ export class InvestorDetailBlockComponent {
     return classes.join(' ');
   }
 
+  transactionHeadCellClass(column: InvestorDetailTableColumn): string {
+    const classes = [`inv-detail-table__head--${column.key}`];
+    if (column.align === 'right') {
+      classes.push('inv-detail-table__head--right');
+    }
+    if (column.key === 'fundCode' || column.key === 'fundName' || column.key === 'investorCode' || column.key === 'investorName') {
+      classes.push('inv-detail-table__head--label');
+    } else {
+      classes.push('inv-detail-table__head--metric');
+    }
+    return classes.join(' ');
+  }
+
   formatNumber(value: InvestorDetailTableCellValue): string {
     if (typeof value !== 'number' || !Number.isFinite(value)) {
       return '—';
@@ -129,7 +213,7 @@ export class InvestorDetailBlockComponent {
 
   isTransactionsVariant(): boolean {
     const block = this.block();
-    return block.kind === 'table' && block.variant === 'transactions';
+    return block.kind === 'table' && block.showToolbar === true;
   }
 
   isInvestmentsVariant(): boolean {
@@ -348,7 +432,7 @@ export class InvestorDetailBlockComponent {
     const minCommitment = Number(this.minCommitmentFilter());
     let rows = block.rows;
 
-    if (query) {
+    if (query && !this.isTransactionsVariant()) {
       rows = rows.filter((row) =>
         Object.values(row).some((value) => String(value ?? '').toLowerCase().includes(query)),
       );

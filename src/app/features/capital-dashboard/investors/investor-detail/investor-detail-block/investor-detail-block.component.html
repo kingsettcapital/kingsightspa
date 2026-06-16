@@ -28,10 +28,11 @@
               type="search"
               placeholder="Search..."
               [ngModel]="searchQuery()"
-              (ngModelChange)="searchQuery.set($event)"
+              (ngModelChange)="onTransactionSearchInput($event)"
               aria-label="Search transactions"
             />
           </label>
+          <!--
           <button
             type="button"
             class="cdt-btn cdt-btn--filters inv-detail-block__filter-btn"
@@ -45,9 +46,11 @@
               <span class="cdt-btn__badge">{{ transactionActiveFilterCount() }}</span>
             }
           </button>
+          -->
         </div>
       </div>
 
+      <!--
       @if (filtersPanelVisible()) {
         <div class="inv-detail-transactions__filters">
           <div class="cdt-filters-panel">
@@ -79,6 +82,7 @@
           </div>
         </div>
       }
+      -->
     </div>
 
     <div class="inv-detail-block__table-card" [id]="'inv-detail-block-body-' + current.id">
@@ -87,14 +91,45 @@
           <thead>
             <tr>
               @for (column of current.columns; track column.key) {
-                <th [class.inv-detail-table__head--right]="column.align === 'right'">
-                  {{ column.label }}
+                <th [class]="transactionHeadCellClass(column)">
+                  @if (column.sortBy) {
+                    <button
+                      type="button"
+                      class="inv-detail-table__sort"
+                      [class.inv-detail-table__sort--active]="isSortActive(column)"
+                      [class.inv-detail-table__sort--right]="column.align === 'right'"
+                      (click)="toggleSort(column)"
+                    >
+                      <span class="inv-detail-table__sort-label">{{ column.label }}</span>
+                      <mat-icon aria-hidden="true">{{ sortIcon(column) }}</mat-icon>
+                    </button>
+                  } @else {
+                    {{ column.label }}
+                  }
                 </th>
               }
             </tr>
           </thead>
           <tbody>
-            @for (row of filteredTableRows(); track $index) {
+            @if (tableLoading()) {
+              <tr class="inv-detail-table__status-row">
+                <td [attr.colspan]="current.columns.length">
+                  <div class="inv-detail-table__status" role="status">
+                    <div class="inv-detail-table__spinner" aria-hidden="true"></div>
+                    <p>Loading…</p>
+                  </div>
+                </td>
+              </tr>
+            } @else if (!filteredTableRows().length) {
+              <tr class="inv-detail-table__status-row">
+                <td [attr.colspan]="current.columns.length">
+                  <div class="inv-detail-table__status inv-detail-table__status--empty" role="status">
+                    <p>{{ emptyStateMessage() }}</p>
+                  </div>
+                </td>
+              </tr>
+            } @else {
+              @for (row of filteredTableRows(); track $index) {
               <tr>
                 @for (column of current.columns; track column.key) {
                   <td [class]="cellClass(column, row)">
@@ -122,9 +157,10 @@
                   </td>
                 }
               </tr>
+              }
             }
           </tbody>
-          @if (current.totals) {
+          @if (current.totals && !tableLoading() && filteredTableRows().length) {
             <tfoot>
               <tr class="inv-detail-table__total-row">
                 @for (column of current.columns; track column.key) {
@@ -154,7 +190,7 @@
           }
         </table>
       </div>
-      @if (filteredTableRows().length) {
+      @if (!tableLoading() && filteredTableRows().length) {
         <footer class="inv-detail-block__table-footer">
           <span class="inv-detail-block__table-summary">
             Showing 1–{{ filteredTableRows().length }} of {{ filteredTableRows().length }}

@@ -16,6 +16,10 @@ import { map } from 'rxjs';
 
 import { KsCurrencyPipe } from '../../../../shared/pipes/ks-currency.pipe';
 import { AssetTableRow, formatSquareFeet } from '../../shared/utils/asset-list-row.util';
+import {
+  propertyDetailLocation,
+  propertyDetailName,
+} from '../../shared/utils/property-display.util';
 import { InvestorDetailSidebarComponent } from '../../investors/investor-detail/investor-detail-sidebar/investor-detail-sidebar.component';
 import { InvestorDetailBlockComponent } from '../../investors/investor-detail/investor-detail-block/investor-detail-block.component';
 import { AssetsApiActions } from '../../store';
@@ -66,24 +70,34 @@ export class AssetDetailComponent {
   readonly detail = computed(() => this.detailState().detail);
 
   readonly propertyName = computed(
-    () => this.listRow()?.name ?? ASSET_DETAIL_DUMMY.propertyName,
+    () =>
+      this.listRow()?.name ??
+      propertyDetailName(this.detail()) ??
+      ASSET_DETAIL_DUMMY.propertyName,
   );
 
   readonly assetType = computed(
-    () => this.listRow()?.assetType ?? ASSET_DETAIL_DUMMY.assetType,
+    () =>
+      this.listRow()?.assetType ??
+      this.detail()?.summary?.assetType ??
+      ASSET_DETAIL_DUMMY.assetType,
   );
 
   readonly statusLabel = computed(
-    () => this.listRow()?.status ?? ASSET_DETAIL_DUMMY.status,
+    () =>
+      this.listRow()?.status ??
+      this.detail()?.summary?.status ??
+      ASSET_DETAIL_DUMMY.status,
   );
 
   readonly subtitleText = computed(() => {
     const row = this.listRow();
+    const detail = this.detail();
     const dummy = ASSET_DETAIL_DUMMY;
     const location =
       row?.geography && row.geography !== '—'
         ? row.geography
-        : `${dummy.city}, ${dummy.province}`;
+        : propertyDetailLocation(detail) ?? `${dummy.city}, ${dummy.province}`;
     const parts = [
       location,
       row?.investmentType ?? dummy.investmentType,

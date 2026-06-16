@@ -2,9 +2,9 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { catchError, debounceTime, distinctUntilChanged, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, filter, map, of } from 'rxjs';
 
 import { ExcelService } from '../../../core/services/excel.service';
 import { ASSETS_LIST_PAGE_SIZE } from '../shared/list-pagination.constants';
@@ -45,6 +45,7 @@ const VISIBLE_PAGE_BUTTON_COUNT = 3;
 export class CapitalDashboardAssetsComponent {
   private readonly store = inject(Store);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly excel = inject(ExcelService);
   private readonly assetsApi = inject(CapitalAssetsApiService);
   private readonly routeSearchSync = inject(CapitalDashboardRouteSearchSync);
@@ -168,6 +169,24 @@ export class CapitalDashboardAssetsComponent {
 
   constructor() {
     this.routeSearchSync.bindTableSearch(this.tableSearch, () => this.currentPage.set(1));
+
+    this.route.queryParamMap
+      .pipe(
+        map((params) => {
+          const selected = params.get('selected');
+          const propertyKey = selected != null ? Number(selected) : NaN;
+          return Number.isFinite(propertyKey) && propertyKey > 0 ? propertyKey : null;
+        }),
+        filter((propertyKey): propertyKey is number => propertyKey != null),
+        takeUntilDestroyed(),
+      )
+      .subscribe((propertyKey) => {
+        const search = this.route.snapshot.queryParamMap.get('search');
+        void this.router.navigate(['/capital-dashboard/asset', propertyKey], {
+          ...(search ? { queryParams: { search } } : {}),
+          replaceUrl: true,
+        });
+      });
 
     this.assetsApi
       .getFilterOptions()

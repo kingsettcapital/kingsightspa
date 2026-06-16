@@ -453,6 +453,180 @@ export type FundNavDto = FundCommitmentDto;
 
 export type FundNavTabRow = FundAmountTabRow;
 
+/** GET api/CapitalInvestors/{investorKey}/capital-activities */
+export interface InvestorCapitalActivityDto {
+  fund_code?: string | null;
+  fundCode?: string | null;
+  fund_name?: string | null;
+  fundName?: string | null;
+  called?: number | null;
+  transfer_in?: number | null;
+  transferIn?: number | null;
+  transfer_out?: number | null;
+  transferOut?: number | null;
+  redemption?: number | null;
+}
+
+export interface InvestorCapitalActivityTabRow {
+  fundCode: string;
+  fundName: string;
+  called: number;
+  transferIn: number;
+  transferOut: number;
+  redemption: number;
+}
+
+/** GET api/CapitalInvestors/{investorKey}/distributions-table */
+export interface InvestorDistributionTableDto {
+  fund_code?: string | null;
+  fundCode?: string | null;
+  fund_name?: string | null;
+  fundName?: string | null;
+  committed?: number | null;
+  unfunded?: number | null;
+  cash_dist?: number | null;
+  cashDist?: number | null;
+  gain_dist?: number | null;
+  gainDist?: number | null;
+  preferred_return?: number | null;
+  preferredReturn?: number | null;
+  return_of_capital?: number | null;
+  returnOfCapital?: number | null;
+  released?: number | null;
+}
+
+export interface InvestorDistributionTableTabRow {
+  fundCode: string;
+  fundName: string;
+  committed: number;
+  unfunded: number;
+  cashDist: number;
+  gainDist: number;
+  preferredReturn: number;
+  returnOfCapital: number;
+  released: number;
+}
+
+/** GET api/CapitalInvestors/{investorKey}/irr */
+export interface InvestorIrrDto {
+  fund_code?: string | null;
+  fundCode?: string | null;
+  fund_name?: string | null;
+  fundName?: string | null;
+  irr_1_year_pct?: number | null;
+  irr_3_year_pct?: number | null;
+  irr_5_year_pct?: number | null;
+  irr_7_year_pct?: number | null;
+  irr_10_year_pct?: number | null;
+  irr_ltd_pct?: number | null;
+}
+
+export interface InvestorIrrTabRow {
+  fundCode: string;
+  fundName: string;
+  irr1Year: number | null;
+  irr3Year: number | null;
+  irr5Year: number | null;
+  irr7Year: number | null;
+  irr10Year: number | null;
+  irrLtd: number | null;
+}
+
+export interface InvestorTransactionTableQueryParams extends ListQueryParams {
+  view?: FundCommitmentTimeframe;
+  dateKey?: number;
+  investorKey?: number;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+}
+
+/** GET api/Funds/{fundKey}/capital-activities */
+export interface FundInvestorCapitalActivityDto {
+  investor_code?: string | null;
+  investorCode?: string | null;
+  investor_name?: string | null;
+  investorName?: string | null;
+  called?: number | null;
+  transfer_in?: number | null;
+  transferIn?: number | null;
+  transfer_out?: number | null;
+  transferOut?: number | null;
+  redemption?: number | null;
+}
+
+export interface FundInvestorCapitalActivityTabRow {
+  investorCode: string;
+  investorName: string;
+  called: number;
+  transferIn: number;
+  transferOut: number;
+  redemption: number;
+}
+
+/** GET api/Funds/{fundKey}/distributions-table */
+export interface FundInvestorDistributionTableDto {
+  investor_code?: string | null;
+  investorCode?: string | null;
+  investor_name?: string | null;
+  investorName?: string | null;
+  committed?: number | null;
+  unfunded?: number | null;
+  cash_dist?: number | null;
+  cashDist?: number | null;
+  gain_dist?: number | null;
+  gainDist?: number | null;
+  preferred_return?: number | null;
+  preferredReturn?: number | null;
+  return_of_capital?: number | null;
+  returnOfCapital?: number | null;
+  released?: number | null;
+}
+
+export interface FundInvestorDistributionTableTabRow {
+  investorCode: string;
+  investorName: string;
+  committed: number;
+  unfunded: number;
+  cashDist: number;
+  gainDist: number;
+  preferredReturn: number;
+  returnOfCapital: number;
+  released: number;
+}
+
+/** GET api/Funds/{fundKey}/irr */
+export interface FundInvestorIrrDto {
+  investor_code?: string | null;
+  investorCode?: string | null;
+  investor_name?: string | null;
+  investorName?: string | null;
+  irr_1_year_pct?: number | null;
+  irr_3_year_pct?: number | null;
+  irr_5_year_pct?: number | null;
+  irr_7_year_pct?: number | null;
+  irr_10_year_pct?: number | null;
+  irr_ltd_pct?: number | null;
+}
+
+export interface FundInvestorIrrTabRow {
+  investorCode: string;
+  investorName: string;
+  irr1Year: number | null;
+  irr3Year: number | null;
+  irr5Year: number | null;
+  irr7Year: number | null;
+  irr10Year: number | null;
+  irrLtd: number | null;
+}
+
+export interface FundTransactionTableQueryParams extends ListQueryParams {
+  view?: FundCommitmentTimeframe;
+  dateKey?: number;
+  fundKey?: number;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+}
+
 export interface PropertyListItemDto {
   propertyKey: number;
   propertyName: string | null;

@@ -4,8 +4,11 @@ import {
   FundCommitmentTabRow,
   FundDistributionGroupTabRow,
   FundNavTabRow,
+  InvestorCapitalActivityTabRow,
   InvestorDetailDto,
+  InvestorDistributionTableTabRow,
   InvestorInvestmentDto,
+  InvestorIrrTabRow,
 } from '../../../shared/models/api.models';
 import { formatByFormatType, toFieldLabel } from '../../../shared/utils/dynamic-sections.util';
 import { InvestorTableRow } from '../../../shared/utils/investor-list-row.util';
@@ -272,76 +275,133 @@ function buildUnderlyingInvestmentsTable(
   });
 }
 
-function buildTransactionsTable(
-  investments: InvestorInvestmentDto[],
-  commitments: FundAmountTabRow[],
-  unfunded: FundAmountTabRow[],
-  capitalInvestments: FundCommitmentTabRow[],
-  distributions: FundDistributionGroupTabRow[],
-  periodLabel: string,
+function fundToolbarTableBlock(
+  config: Omit<InvestorDetailTableBlock, 'kind' | 'variant' | 'showToolbar' | 'collapsible' | 'defaultExpanded'>,
 ): InvestorDetailTableBlock {
-  const commitmentMap = amountByFundCode(commitments);
-  const unfundedMap = amountByFundCode(unfunded);
-  const calledMap = investedByFundCode(capitalInvestments);
-  const distributionMap = distributionByFundAndType(distributions);
-
-  const columns: InvestorDetailTableColumn[] = [
-    { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left' },
-    { key: 'fundName', label: 'Fund Name', type: 'text', align: 'left' },
-    { key: 'committed', label: 'Committed', type: 'amount', align: 'right' },
-    { key: 'called', label: 'Called', type: 'amount', align: 'right' },
-    { key: 'unfunded', label: 'Unfunded', type: 'amount', align: 'right', tone: 'warning' },
-    { key: 'cashDist', label: `Cash Dist. (${periodLabel})`, type: 'amount', align: 'right', tone: 'positive' },
-    { key: 'gainDist', label: `Gain Dist. (${periodLabel})`, type: 'amount', align: 'right', tone: 'positive' },
-    { key: 'prefReturn', label: `Pref. Return (${periodLabel})`, type: 'amount', align: 'right', tone: 'info' },
-    { key: 'transferIn', label: 'Transfer In', type: 'amount', align: 'right', tone: 'positive' },
-    { key: 'transferOut', label: 'Transfer Out', type: 'amount', align: 'right', tone: 'negative' },
-    { key: 'released', label: 'Released', type: 'amount', align: 'right' },
-  ];
-
-  const findDistAmount = (typeMap: Map<string, number> | undefined, ...patterns: string[]): number => {
-    if (!typeMap) {
-      return 0;
-    }
-    let total = 0;
-    for (const [type, amount] of typeMap.entries()) {
-      if (patterns.some((pattern) => type.includes(pattern))) {
-        total += amount;
-      }
-    }
-    return total;
-  };
-
-  const rows: InvestorDetailTableRow[] = investments.map((investment) => {
-    const fundCode = String(investment.fundKey);
-    const typeMap = distributionMap.get(fundCode);
-    return {
-      fundCode,
-      fundName: investment.fundName ?? '—',
-      committed: commitmentMap.get(fundCode) ?? 0,
-      called: calledMap.get(fundCode) ?? 0,
-      unfunded: unfundedMap.get(fundCode) ?? 0,
-      cashDist: findDistAmount(typeMap, 'cash'),
-      gainDist: findDistAmount(typeMap, 'gain'),
-      prefReturn: findDistAmount(typeMap, 'pref', 'preferred'),
-      transferIn: findDistAmount(typeMap, 'transfer in'),
-      transferOut: findDistAmount(typeMap, 'transfer out'),
-      released: 0,
-    };
-  });
-
   return tableBlock({
-    id: 'transactions',
-    title: 'Transactions by Fund',
-    subtitle: 'Capital account activity across all fund subscriptions ·',
-    subtitleAccent: periodLabel,
-    columns,
-    rows,
-    totals: rows.length ? buildTotalsRow(columns, rows, 'fundCode', `Total — ${rows.length}`) : null,
+    ...config,
     collapsible: false,
     defaultExpanded: true,
     variant: 'transactions',
     showToolbar: true,
+  });
+}
+
+function capitalActivityRowsToTableRows(rows: InvestorCapitalActivityTabRow[]): InvestorDetailTableRow[] {
+  return rows.map((row) => ({
+    fundCode: row.fundCode,
+    fundName: row.fundName,
+    called: row.called,
+    transferIn: row.transferIn,
+    transferOut: row.transferOut,
+    redemption: row.redemption,
+  }));
+}
+
+function distributionTableRowsToTableRows(rows: InvestorDistributionTableTabRow[]): InvestorDetailTableRow[] {
+  return rows.map((row) => ({
+    fundCode: row.fundCode,
+    fundName: row.fundName,
+    prefReturn: row.preferredReturn,
+    committed: row.committed,
+    unfunded: row.unfunded,
+    cashDist: row.cashDist,
+    gainDist: row.gainDist,
+    returnOfCapital: row.returnOfCapital,
+    released: row.released,
+  }));
+}
+
+function irrRowsToTableRows(rows: InvestorIrrTabRow[]): InvestorDetailTableRow[] {
+  return rows.map((row) => ({
+    fundCode: row.fundCode,
+    fundName: row.fundName,
+    irr1Year: row.irr1Year,
+    irr3Year: row.irr3Year,
+    irr5Year: row.irr5Year,
+    irr7Year: row.irr7Year,
+    irr10Year: row.irr10Year,
+    irrLtd: row.irrLtd,
+  }));
+}
+
+function buildCapitalActivitiesTable(
+  rows: InvestorCapitalActivityTabRow[],
+  periodLabel: string,
+): InvestorDetailTableBlock {
+  const tableRows = capitalActivityRowsToTableRows(rows);
+  const columns: InvestorDetailTableColumn[] = [
+    { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left', sortBy: 'fund_code' },
+    { key: 'fundName', label: 'Fund Name', type: 'text', align: 'left', sortBy: 'fund_name' },
+    { key: 'called', label: 'Called', type: 'amount', align: 'right', sortBy: 'called' },
+    { key: 'transferIn', label: 'Transfer In', type: 'amount', align: 'right', sortBy: 'transfer_in' },
+    { key: 'transferOut', label: 'Transfer Out', type: 'amount', align: 'right', tone: 'negative', sortBy: 'transfer_out' },
+    { key: 'redemption', label: 'Redemption', type: 'amount', align: 'right', sortBy: 'redemption' },
+  ];
+
+  return fundToolbarTableBlock({
+    id: 'capital-activities',
+    title: 'Capital Activities',
+    subtitle: 'Capital calls, transfers, and redemptions across fund subscriptions ·',
+    subtitleAccent: periodLabel,
+    columns,
+    rows: tableRows,
+    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'fundCode', `Total — ${tableRows.length}`) : null,
+  });
+}
+
+function buildDistributionsTable(
+  rows: InvestorDistributionTableTabRow[],
+  periodLabel: string,
+): InvestorDetailTableBlock {
+  const tableRows = distributionTableRowsToTableRows(rows);
+  const columns: InvestorDetailTableColumn[] = [
+    { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left', sortBy: 'fund_code' },
+    { key: 'fundName', label: 'Fund Name', type: 'text', align: 'left', sortBy: 'fund_name' },
+    { key: 'prefReturn', label: `Pref. Return (${periodLabel})`, type: 'amount', align: 'right', tone: 'info', sortBy: 'preferred_return' },
+    { key: 'committed', label: 'Committed', type: 'amount', align: 'right', sortBy: 'committed' },
+    { key: 'unfunded', label: 'Unfunded', type: 'amount', align: 'right', tone: 'warning', sortBy: 'unfunded' },
+    { key: 'cashDist', label: `Cash Dist. (${periodLabel})`, type: 'amount', align: 'right', tone: 'positive', sortBy: 'cash_dist' },
+    { key: 'gainDist', label: `Gain Dist. (${periodLabel})`, type: 'amount', align: 'right', tone: 'positive', sortBy: 'gain_dist' },
+    { key: 'returnOfCapital', label: 'Return of Capital', type: 'amount', align: 'right', sortBy: 'return_of_capital' },
+    { key: 'released', label: 'Released', type: 'amount', align: 'right', sortBy: 'released' },
+  ];
+
+  return fundToolbarTableBlock({
+    id: 'distributions',
+    title: 'Distributions',
+    subtitle: 'Distribution activity and capital account balances by fund ·',
+    subtitleAccent: periodLabel,
+    columns,
+    rows: tableRows,
+    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'fundCode', `Total — ${tableRows.length}`) : null,
+  });
+}
+
+function buildIrrsTable(
+  rows: InvestorIrrTabRow[],
+  periodLabel: string,
+): InvestorDetailTableBlock {
+  const tableRows = irrRowsToTableRows(rows);
+  const columns: InvestorDetailTableColumn[] = [
+    { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left', sortBy: 'fund_code' },
+    { key: 'fundName', label: 'Fund Name', type: 'text', align: 'left', sortBy: 'fund_name' },
+    { key: 'irr1Year', label: '1Y IRR', type: 'percent', align: 'right', sortBy: 'irr_1_year_pct' },
+    { key: 'irr3Year', label: '3Y IRR', type: 'percent', align: 'right', sortBy: 'irr_3_year_pct' },
+    { key: 'irr5Year', label: '5Y IRR', type: 'percent', align: 'right', sortBy: 'irr_5_year_pct' },
+    { key: 'irr7Year', label: '7Y IRR', type: 'percent', align: 'right', sortBy: 'irr_7_year_pct' },
+    { key: 'irr10Year', label: '10Y IRR', type: 'percent', align: 'right', sortBy: 'irr_10_year_pct' },
+    { key: 'irrLtd', label: 'LTD IRR', type: 'percent', align: 'right', tone: 'info', sortBy: 'irr_ltd_pct' },
+  ];
+
+  return fundToolbarTableBlock({
+    id: 'irrs',
+    title: 'IRRs',
+    subtitle: 'Internal rate of return by fund subscription ·',
+    subtitleAccent: periodLabel,
+    columns,
+    rows: tableRows,
+    totals: null,
   });
 }
 
@@ -482,7 +542,9 @@ export type InvestorDetailSectionId =
   | 'capital-account'
   | 'performance'
   | 'investments'
-  | 'transactions'
+  | 'capital-activities'
+  | 'distributions'
+  | 'irrs'
   | 'documents'
   | 'risk-compliance'
   | 'communications';
@@ -505,6 +567,9 @@ export function buildBlocksForSection(
   capitalInvestments: FundCommitmentTabRow[],
   distributions: FundDistributionGroupTabRow[],
   nav: FundNavTabRow[],
+  capitalActivities: InvestorCapitalActivityTabRow[],
+  distributionTable: InvestorDistributionTableTabRow[],
+  irr: InvestorIrrTabRow[],
   kpi: InvestorDetailKpiCards,
   periodLabel: string,
 ): InvestorDetailBlock[] {
@@ -538,28 +603,12 @@ export function buildBlocksForSection(
               defaultExpanded: true,
             }),
           ];
-    case 'transactions':
-      return investments.length
-        ? [
-            buildTransactionsTable(
-              investments,
-              commitments,
-              unfunded,
-              capitalInvestments,
-              distributions,
-              periodLabel,
-            ),
-          ]
-        : [
-            tableBlock({
-              id: 'transactions',
-              title: 'Transactions by Fund',
-              columns: [{ key: 'message', label: 'Status', type: 'text', align: 'left' }],
-              rows: [{ message: 'No transactions available.' }],
-              collapsible: true,
-              defaultExpanded: true,
-            }),
-          ];
+    case 'capital-activities':
+      return [buildCapitalActivitiesTable(capitalActivities, periodLabel)];
+    case 'distributions':
+      return [buildDistributionsTable(distributionTable, periodLabel)];
+    case 'irrs':
+      return [buildIrrsTable(irr, periodLabel)];
     case 'documents':
       return [buildDocumentsList(detail)];
     case 'risk-compliance':
@@ -585,6 +634,9 @@ export function buildFlatInvestorBlocks(
   capitalInvestments: FundCommitmentTabRow[],
   distributions: FundDistributionGroupTabRow[],
   nav: FundNavTabRow[],
+  capitalActivities: InvestorCapitalActivityTabRow[],
+  distributionTable: InvestorDistributionTableTabRow[],
+  irr: InvestorIrrTabRow[],
   kpi: InvestorDetailKpiCards,
   periodLabel: string,
 ): InvestorDetailFlatBlock[] {
@@ -596,6 +648,9 @@ export function buildFlatInvestorBlocks(
     capitalInvestments,
     distributions,
     nav,
+    capitalActivities,
+    distributionTable,
+    irr,
     kpi,
     periodLabel,
   );
@@ -624,6 +679,9 @@ export function buildAllSectionBlocks(
   capitalInvestments: FundCommitmentTabRow[],
   distributions: FundDistributionGroupTabRow[],
   nav: FundNavTabRow[],
+  capitalActivities: InvestorCapitalActivityTabRow[],
+  distributionTable: InvestorDistributionTableTabRow[],
+  irr: InvestorIrrTabRow[],
   kpi: InvestorDetailKpiCards,
   periodLabel: string,
 ): InvestorDetailSectionBlock[] {
@@ -639,6 +697,9 @@ export function buildAllSectionBlocks(
         capitalInvestments,
         distributions,
         nav,
+        capitalActivities,
+        distributionTable,
+        irr,
         kpi,
         periodLabel,
       ),

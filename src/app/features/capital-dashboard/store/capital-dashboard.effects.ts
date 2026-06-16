@@ -20,6 +20,16 @@ import { mapFundAssetsToTabRows } from '../shared/mappers/fund-asset.mapper';
 import { mapFundInvestorsToTabRows } from '../shared/mappers/fund-investor.mapper';
 import { mapFundDistributionGroupsToTabRows } from '../shared/mappers/fund-distribution.mapper';
 import { mapFundNavToTabRows } from '../shared/mappers/fund-nav.mapper';
+import {
+  mapFundCapitalActivitiesToTabRows,
+  mapFundDistributionTableToTabRows,
+  mapFundIrrToTabRows,
+} from '../shared/mappers/fund-transaction-tables.mapper';
+import {
+  mapInvestorCapitalActivitiesToTabRows,
+  mapInvestorDistributionTableToTabRows,
+  mapInvestorIrrToTabRows,
+} from '../shared/mappers/investor-transaction-tables.mapper';
 import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
 import {
   readFundCommitmentsPageCache,
@@ -28,10 +38,16 @@ import {
   readFundDistributionsPageCache,
   readFundInvestmentsPageCache,
   readFundUnfundedCommitmentsPageCache,
+  readFundCapitalActivitiesPageCache,
+  readFundDistributionTablePageCache,
+  readFundIrrPageCache,
   readInvestorCapitalInvestmentsPageCache,
   readInvestorCommitmentsPageCache,
   readInvestorDistributionsPageCache,
   readInvestorNavPageCache,
+  readInvestorCapitalActivitiesPageCache,
+  readInvestorDistributionTablePageCache,
+  readInvestorIrrPageCache,
   readInvestorPeriodsCache,
   readInvestorUnfundedCommitmentsPageCache,
   readAssetsListCacheEntry,
@@ -551,6 +567,165 @@ export class CapitalDashboardEffects {
     ),
   );
 
+  readonly loadFundCapitalActivitiesPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FundsApiActions.loadFundCapitalActivitiesPage),
+      withLatestFrom(this.store.select(selectFunds)),
+      switchMap(([request, funds]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          !request.sortBy &&
+          readFundCapitalActivitiesPageCache(
+            funds.cache.capitalActivitiesPages,
+            request.fundKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.fundsApi
+          .getFundCapitalActivitiesPage(request.fundKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+            search: request.search,
+            sortBy: request.sortBy,
+            sortDir: request.sortDir,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundCapitalActivitiesToTabRows(extractPagedItems(result));
+              return FundsApiActions.loadFundCapitalActivitiesPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+                sortBy: request.sortBy,
+              });
+            }),
+            catchError(() =>
+              of(
+                FundsApiActions.loadFundCapitalActivitiesPageFailure({
+                  error: 'Unable to load capital activities. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadFundDistributionTablePage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FundsApiActions.loadFundDistributionTablePage),
+      withLatestFrom(this.store.select(selectFunds)),
+      switchMap(([request, funds]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          !request.sortBy &&
+          readFundDistributionTablePageCache(
+            funds.cache.distributionTablePages,
+            request.fundKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.fundsApi
+          .getFundDistributionTablePage(request.fundKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+            search: request.search,
+            sortBy: request.sortBy,
+            sortDir: request.sortDir,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundDistributionTableToTabRows(extractPagedItems(result));
+              return FundsApiActions.loadFundDistributionTablePageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+                sortBy: request.sortBy,
+              });
+            }),
+            catchError(() =>
+              of(
+                FundsApiActions.loadFundDistributionTablePageFailure({
+                  error: 'Unable to load distributions. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadFundIrrPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FundsApiActions.loadFundIrrPage),
+      withLatestFrom(this.store.select(selectFunds)),
+      switchMap(([request, funds]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          !request.sortBy &&
+          readFundIrrPageCache(
+            funds.cache.irrPages,
+            request.fundKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.fundsApi
+          .getFundIrrPage(request.fundKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+            search: request.search,
+            sortBy: request.sortBy,
+            sortDir: request.sortDir,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundIrrToTabRows(extractPagedItems(result));
+              return FundsApiActions.loadFundIrrPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+                sortBy: request.sortBy,
+              });
+            }),
+            catchError(() =>
+              of(
+                FundsApiActions.loadFundIrrPageFailure({
+                  error: 'Unable to load IRR data. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
 
   readonly loadInvestorPeriods$ = createEffect(() =>
     this.actions$.pipe(
@@ -830,6 +1005,165 @@ export class CapitalDashboardEffects {
               of(
                 InvestorsApiActions.loadInvestorNavPageFailure({
                   error: 'Unable to load NAV. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorCapitalActivitiesPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorCapitalActivitiesPage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          !request.sortBy &&
+          readInvestorCapitalActivitiesPageCache(
+            investors.cache.capitalActivitiesPages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorCapitalActivitiesPage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+            search: request.search,
+            sortBy: request.sortBy,
+            sortDir: request.sortDir,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapInvestorCapitalActivitiesToTabRows(extractPagedItems(result));
+              return InvestorsApiActions.loadInvestorCapitalActivitiesPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+                sortBy: request.sortBy,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorCapitalActivitiesPageFailure({
+                  error: 'Unable to load capital activities. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorDistributionTablePage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorDistributionTablePage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          !request.sortBy &&
+          readInvestorDistributionTablePageCache(
+            investors.cache.distributionTablePages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorDistributionTablePage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+            search: request.search,
+            sortBy: request.sortBy,
+            sortDir: request.sortDir,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapInvestorDistributionTableToTabRows(extractPagedItems(result));
+              return InvestorsApiActions.loadInvestorDistributionTablePageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+                sortBy: request.sortBy,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorDistributionTablePageFailure({
+                  error: 'Unable to load distributions. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorIrrPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorIrrPage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        if (
+          !search &&
+          !request.sortBy &&
+          readInvestorIrrPageCache(
+            investors.cache.irrPages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorIrrPage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+            search: request.search,
+            sortBy: request.sortBy,
+            sortDir: request.sortDir,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapInvestorIrrToTabRows(extractPagedItems(result));
+              return InvestorsApiActions.loadInvestorIrrPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+                sortBy: request.sortBy,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorIrrPageFailure({
+                  error: 'Unable to load IRR data. Please try again.',
                 }),
               ),
             ),

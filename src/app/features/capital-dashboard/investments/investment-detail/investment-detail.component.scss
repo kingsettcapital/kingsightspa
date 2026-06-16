@@ -214,10 +214,7 @@ p.inv-detail__subtitle {
   }
 
   .inv-detail__sidebar {
-    flex: 0 0 auto;
-    border-right: 0;
-    border-bottom: 1px solid #e2e8f0;
-    padding: 1rem 0;
+    display: none;
   }
 
   .inv-detail__main {

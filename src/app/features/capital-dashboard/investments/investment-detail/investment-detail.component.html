@@ -52,6 +52,28 @@
           </button>
         </div>
 
+        @if (timeframe() === 'quarterly') {
+          <div class="cdt-period-select">
+            <mat-icon class="cdt-period-select__calendar" aria-hidden="true">calendar_today</mat-icon>
+            <label class="cdt-period-select__field">
+              <select [ngModel]="quarter()" (ngModelChange)="setQuarter(+$event)" aria-label="Quarter">
+                @for (option of availableQuarters(); track option) {
+                  <option [ngValue]="option">Q{{ option }}</option>
+                }
+              </select>
+              <mat-icon class="cdt-period-select__chevron" aria-hidden="true">expand_more</mat-icon>
+            </label>
+            <label class="cdt-period-select__field">
+              <select [ngModel]="year()" (ngModelChange)="setYear(+$event)" aria-label="Year">
+                @for (option of availableYears(); track option) {
+                  <option [ngValue]="option">{{ option }}</option>
+                }
+              </select>
+              <mat-icon class="cdt-period-select__chevron" aria-hidden="true">expand_more</mat-icon>
+            </label>
+          </div>
+        }
+
         <button type="button" class="cdt-btn cdt-btn--download">
           <span class="cdt-btn__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -104,10 +126,16 @@
       </article>
     </div>
 
-    @if (loading()) {
+    @if (contentLoading()) {
       <div class="inv-detail__state" role="status">
         <div class="inv-detail__spinner" aria-hidden="true"></div>
-        <p>Loading investment profile…</p>
+        <p>{{ contentLoadingMessage() }}</p>
+      </div>
+    } @else if (error()) {
+      <div class="inv-detail__state inv-detail__state--error" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <p>{{ error() }}</p>
+        <button type="button" class="inv-detail__retry" (click)="backToList()">Back to list</button>
       </div>
     } @else {
       <div class="inv-detail__content">
@@ -116,7 +144,16 @@
             class="inv-detail__block-wrap"
             [attr.id]="item.isSectionStart ? 'inv-section-' + item.sectionId : null"
           >
-            <app-investor-detail-block [block]="item.block" />
+            <app-investor-detail-block
+              [block]="item.block"
+              [tableContextKey]="tableContextKey()"
+              [tableLoading]="tableLoadingForBlock(item.block)"
+              [tableSearchActive]="tableSearchActiveForBlock(item.block)"
+              [sortColumn]="tableSortColumnForBlock(item.block)"
+              [sortDir]="tableSortDirForBlock(item.block)"
+              (transactionSearchChange)="onTransactionSearch($event)"
+              (transactionSortChange)="onTransactionSort($event)"
+            />
           </div>
         }
       </div>
