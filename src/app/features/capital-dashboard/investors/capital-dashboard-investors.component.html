@@ -290,13 +290,13 @@
               <tr class="cdt-table__row cdt-table__row--clickable" (click)="openInvestor(row)">
                 <td>
                   <div class="cdt-investor-cell">
-                    <span
+                    <!-- <span
                       class="cdt-investor-cell__avatar"
                       [style.background-color]="'hsl(' + row.avatarHue + ' 58% 88%)'"
                       [style.color]="'hsl(' + row.avatarHue + ' 48% 34%)'"
                     >
                       {{ row.initials }}
-                    </span>
+                    </span> -->
                     <span>
                       <span class="cdt-investor-cell__name">{{ row.name }}</span>
                       <span class="cdt-investor-cell__type">{{ row.investorType }}</span>
@@ -312,11 +312,11 @@
                   [class.cdt-table__num--positive]="row.netDistributed > 0"
                   [class.cdt-table__num--negative]="row.netDistributed < 0"
                 >
-                  @if (row.netDistributed > 0) {
+                  <!-- @if (row.netDistributed > 0) {
                     <mat-icon aria-hidden="true">north_east</mat-icon>
                   } @else if (row.netDistributed < 0) {
                     <mat-icon aria-hidden="true">south_east</mat-icon>
-                  }
+                  } -->
                   {{ row.netDistributed | ksCurrency: 'USD' : 2 : true }}
                 </td>
                 <td class="cdt-table__num cdt-table__num--warning">
