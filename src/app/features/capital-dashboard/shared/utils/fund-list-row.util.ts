@@ -14,7 +14,7 @@ export interface FundTableRow {
   netInvestedCapital: number;
   netDistributed: number;
   reservedUncalled: number;
-  releasedCapital: number | null;
+  releasedCapital: number;
 }
 
 const AVATAR_HUES = [210, 250, 170, 30, 340, 190, 280, 15];
@@ -147,13 +147,14 @@ export function mapFundListItemToRow(dto: FundListItemDto, index: number): FundT
     'ReservedUncalled',
     'reserved_uncalled',
   );
-  const releasedCapital = readNullableNumber(
-    record,
-    'released_capital_amount',
-    'releasedCapital',
-    'ReleasedCapital',
-    'released_capital',
-  );
+  const releasedCapital =
+    readNullableNumber(
+      record,
+      'released_capital_amount',
+      'releasedCapital',
+      'ReleasedCapital',
+      'released_capital',
+    ) ?? 0;
   const resolvedCommitment = commitment || netInvestedCapital;
   const investedPercent =
     computeInvestedPercent(resolvedCommitment, netInvestedCapital) ??
@@ -191,18 +192,22 @@ export function fundTableRowFromFundExposure(input: {
   netInvestedCapital: number;
   netDistributed: number;
   reservedUncalled: number;
-  releasedCapital: number | null;
+  releasedCapital: number;
+  fundType?: string | null;
+  strategy?: string | null;
   index?: number;
 }): FundTableRow {
   const commitment = input.commitment || input.netInvestedCapital;
+  const fundType = input.fundType?.trim() || '—';
+  const strategy = input.strategy?.trim() || fundType;
   return {
     fundKey: input.fundKey,
     name: input.fundName,
     initials: investorInitials(input.fundName),
     avatarHue: AVATAR_HUES[(input.index ?? 0) % AVATAR_HUES.length],
-    fundType: '—',
-    strategy: '—',
-    strategyColor: DEFAULT_STRATEGY_COLOR,
+    fundType,
+    strategy,
+    strategyColor: strategyColor(strategy),
     commitment,
     investedPercent: computeInvestedPercent(commitment, input.netInvestedCapital),
     netInvestedCapital: input.netInvestedCapital,

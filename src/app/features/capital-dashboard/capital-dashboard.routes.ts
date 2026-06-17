@@ -18,13 +18,6 @@ export const CAPITAL_DASHBOARD_ROUTES: Routes = [
           ),
       },
       {
-        path: 'investor/:investorKey/fund/:fundKey',
-        loadComponent: () =>
-          import('./investors/investor-fund-detail/investor-fund-detail.component').then(
-            (m) => m.InvestorFundDetailComponent,
-          ),
-      },
-      {
         path: 'investor/:investorKey',
         loadComponent: () =>
           import('./investors/investor-detail/investor-detail.component').then(

@@ -41,8 +41,13 @@ import {
   buildFundExposureTable,
   distributionAmountRows,
   InvestorDetailSectionId,
+  InvestorOverviewInput,
   kpiCardsFromListRow,
   mergeKpiCardsWithFundExposure,
+  pickDisplayLabel,
+  readDetailSummaryString,
+  readInvestmentFundKey,
+  readInvestmentString,
 } from './utils/investor-detail-tables.util';
 
 type DetailTimeframe = 'ltd' | 'quarterly' | 'daily';
@@ -137,16 +142,26 @@ export class InvestorDetailComponent {
 
   readonly investorName = computed(
     () =>
-      this.listRow()?.name ??
-      this.detail()?.summary.investorName ??
-      'Investor',
+      pickDisplayLabel(
+        this.listRow()?.name,
+        readDetailSummaryString(this.detail(), 'investor_name', 'investorName', 'InvestorName'),
+        this.detail()?.summary.investorName,
+      ) || 'Investor',
   );
 
   readonly investorType = computed(
     () =>
-      this.listRow()?.investorType ??
-      this.detail()?.summary.investorType ??
-      '—',
+      pickDisplayLabel(
+        this.listRow()?.investorType,
+        readDetailSummaryString(
+          this.detail(),
+          'investor_type',
+          'investor_type_name',
+          'investorType',
+          'InvestorType',
+        ),
+        this.detail()?.summary.investorType,
+      ) || '—',
   );
 
   readonly relationshipLabel = computed(() => this.listRow()?.relationship ?? '—');
@@ -217,6 +232,13 @@ export class InvestorDetailComponent {
 
   readonly flatBlocks = computed(() => {
     const state = this.detailState();
+    const overview: InvestorOverviewInput = {
+      investorName: this.investorName(),
+      investorType: this.investorType(),
+      relationship: this.relationshipLabel(),
+      contactName: this.contactName(),
+      status: this.detail()?.summary.status ?? 'Active',
+    };
     return buildFlatInvestorBlocks(
       state.detail,
       state.investments,
@@ -230,6 +252,7 @@ export class InvestorDetailComponent {
       state.irr,
       this.kpiCards(),
       this.periodLabel(),
+      overview,
     );
   });
 
@@ -508,30 +531,12 @@ export class InvestorDetailComponent {
       const value = row[key];
       return typeof value === 'number' && Number.isFinite(value) ? value : 0;
     };
-    const readNullableAmount = (key: string): number | null => {
-      const value = row[key];
-      return typeof value === 'number' && Number.isFinite(value) ? value : null;
-    };
 
     const investorKey = this.investorKey();
-    if (investorKey == null || investorKey <= 0) {
-      return;
-    }
-
-    const investment = this.detailState().investments.find((item) => item.fundKey === fundKey);
-    const fundCodeRecord = investment as (typeof investment & Record<string, unknown>) | undefined;
-    let fundCode: string | null = null;
-    if (fundCodeRecord) {
-      for (const key of ['fund_code', 'fundCode', 'FundCode']) {
-        const value = fundCodeRecord[key];
-        if (typeof value === 'string' && value.trim()) {
-          fundCode = value.trim();
-          break;
-        }
-      }
-    }
-
-    void this.router.navigate(['/capital-dashboard/investor', investorKey, 'fund', fundKey], {
+    const investment = this.detailState().investments.find(
+      (item) => readInvestmentFundKey(item) === fundKey,
+    );
+    void this.router.navigate(['/capital-dashboard/investment', fundKey], {
       state: {
         fundRow: fundTableRowFromFundExposure({
           fundKey,
@@ -540,13 +545,59 @@ export class InvestorDetailComponent {
           netInvestedCapital: readAmount('netInvestedCapital'),
           netDistributed: readAmount('netDistributed'),
           reservedUncalled: readAmount('reserved'),
-          releasedCapital: readNullableAmount('releasedCapital'),
+          releasedCapital: readAmount('releasedCapital'),
+          fundType: investment
+            ? readInvestmentString(investment, 'fund_type', 'fundType', 'FundType')
+            : null,
+          strategy: investment
+            ? readInvestmentString(
+                investment,
+                'fund_category',
+                'fundCategory',
+                'strategy',
+                'fund_strategy_name',
+              )
+            : null,
           index: event.rowIndex,
         }),
-        investorRow: this.listRow(),
-        fundCode,
+        ...(investorKey != null && investorKey > 0
+          ? {
+              returnToInvestor: {
+                investorKey,
+                investorName: this.investorName(),
+                investorRow: this.listRow(),
+              },
+            }
+          : {}),
       },
     });
+  }
+
+  openFundFromOverview(event: { fundKey: number }): void {
+    const exposure = this.fundExposureTable();
+    const rowIndex = exposure.rows.findIndex((row) => row['fundKey'] === event.fundKey);
+    if (rowIndex < 0) {
+      const investment = this.detailState().investments.find((item) => item.fundKey === event.fundKey);
+      if (!investment) {
+        return;
+      }
+      this.openFundFromExposure({
+        row: {
+          fund: investment.fundName ?? '—',
+          fundKey: event.fundKey,
+          commitment: investment.investedAmount ?? 0,
+          netInvestedCapital: investment.investedAmount ?? 0,
+          netDistributed: 0,
+          reserved: 0,
+          unfunded: 0,
+          releasedCapital: 0,
+        },
+        rowIndex: 0,
+      });
+      return;
+    }
+
+    this.openFundFromExposure({ row: exposure.rows[rowIndex], rowIndex });
   }
 
   backToList(): void {

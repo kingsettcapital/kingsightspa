@@ -16,6 +16,7 @@ import { INVESTOR_DETAIL_SIDEBAR_SECTIONS } from '../models/investor-detail-side
 import {
   InvestorDetailBlock,
   InvestorDetailDocumentListBlock,
+  InvestorDetailEntityOverviewBlock,
   InvestorDetailFieldGridBlock,
   InvestorDetailKpiRowBlock,
   InvestorDetailSectionBlock,
@@ -98,6 +99,81 @@ function readInvestmentFundCode(investment: InvestorInvestmentDto): string {
   return '';
 }
 
+export function readInvestmentFundName(investment: InvestorInvestmentDto): string {
+  const record = investment as InvestorInvestmentDto & Record<string, unknown>;
+  for (const key of ['fund_name', 'fundName', 'FundName', 'name', 'Name']) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return investment.fundName?.trim() ?? '';
+}
+
+export function readInvestmentFundKey(investment: InvestorInvestmentDto): number {
+  const record = investment as InvestorInvestmentDto & Record<string, unknown>;
+  const fromRecord = record['fund_key'] ?? record['fundKey'] ?? record['FundKey'];
+  if (typeof fromRecord === 'number' && Number.isFinite(fromRecord) && fromRecord > 0) {
+    return fromRecord;
+  }
+  return investment.fundKey;
+}
+
+export function readInvestmentString(investment: InvestorInvestmentDto, ...keys: string[]): string {
+  const record = investment as InvestorInvestmentDto & Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return '';
+}
+
+export function readDetailSummaryString(detail: InvestorDetailDto | null, ...keys: string[]): string {
+  if (!detail?.summary) {
+    return '';
+  }
+  const record = detail.summary as unknown as Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return '';
+}
+
+function resolveInvestmentFundName(
+  investment: InvestorInvestmentDto,
+  capitalActivities: InvestorCapitalActivityTabRow[],
+  distributionTable: InvestorDistributionTableTabRow[],
+): string {
+  const direct = readInvestmentFundName(investment);
+  if (direct) {
+    return direct;
+  }
+
+  const fundKey = readInvestmentFundKey(investment);
+  const fundCode = readInvestmentFundCode(investment);
+  const lookupKeys = new Set(
+    [fundCode, String(fundKey)].map((value) => value.trim()).filter(Boolean),
+  );
+
+  for (const row of [...distributionTable, ...capitalActivities]) {
+    const rowCode = row.fundCode?.trim() ?? '';
+    const rowName = row.fundName?.trim() ?? '';
+    if (!rowName || rowName === '—') {
+      continue;
+    }
+    if (lookupKeys.has(rowCode) || lookupKeys.has(normalizeFundName(rowName))) {
+      return rowName;
+    }
+  }
+
+  return '';
+}
+
 function fundLookupKeys(
   investment: InvestorInvestmentDto,
   capitalActivities: InvestorCapitalActivityTabRow[],
@@ -111,11 +187,13 @@ function fundLookupKeys(
     }
   };
 
-  add(String(investment.fundKey));
-  add(investment.fundName);
+  add(String(readInvestmentFundKey(investment)));
+  add(resolveInvestmentFundName(investment, capitalActivities, distributionTable));
   add(readInvestmentFundCode(investment));
 
-  const fundName = normalizeFundName(investment.fundName);
+  const fundName = normalizeFundName(
+    resolveInvestmentFundName(investment, capitalActivities, distributionTable),
+  );
   for (const row of capitalActivities) {
     const rowName = normalizeFundName(row.fundName);
     if (
@@ -163,7 +241,7 @@ function findDistributionRow(
   capitalActivities: InvestorCapitalActivityTabRow[],
 ): InvestorDistributionTableTabRow | undefined {
   const lookupKeys = new Set(fundLookupKeys(investment, capitalActivities, distributionTable));
-  const fundName = normalizeFundName(investment.fundName);
+  const fundName = normalizeFundName(readInvestmentFundName(investment));
   return distributionTable.find((row) => {
     const code = row.fundCode?.trim();
     const name = normalizeFundName(row.fundName);
@@ -261,7 +339,7 @@ export function buildFundExposureTable(
   const calledMap = calledByFundCode(capitalActivities);
 
   const columns: InvestorDetailTableColumn[] = [
-    { key: 'fund', label: 'Fund', type: 'text', align: 'left', sortBy: 'fund' },
+    { key: 'fund', label: 'Fund', type: 'link', align: 'left', sortBy: 'fund' },
     { key: 'commitment', label: 'Commitment', type: 'amount', align: 'right', sortBy: 'commitment' },
     { key: 'netInvestedCapital', label: 'Net Invested Capital', type: 'amount', align: 'right', sortBy: 'netInvestedCapital' },
     { key: 'netDistributed', label: 'Net Distributed', type: 'amount', align: 'right', sortBy: 'netDistributed' },
@@ -290,8 +368,8 @@ export function buildFundExposureTable(
     const releasedCapital = distributionRow?.released ?? 0;
 
     return {
-      fund: investment.fundName ?? '—',
-      fundKey: investment.fundKey,
+      fund: resolveInvestmentFundName(investment, capitalActivities, distributionTable) || '—',
+      fundKey: readInvestmentFundKey(investment),
       commitment,
       netInvestedCapital,
       netDistributed,
@@ -310,6 +388,125 @@ export function buildFundExposureTable(
     collapsible: true,
     defaultExpanded: true,
   });
+}
+
+function formatCurrencyCompactOrDash(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value) || value === 0) {
+    return '—';
+  }
+  return formatCurrencyCompact(value);
+}
+
+function deploymentPercent(invested: number, commitment: number): number {
+  if (commitment <= 0) {
+    return 0;
+  }
+  return Math.min(100, (invested / commitment) * 100);
+}
+
+function deploymentRemainingLabel(remaining: number): string {
+  if (remaining <= 0) {
+    return 'fully deployed';
+  }
+  return `${formatCurrencyCompact(remaining)} remaining`;
+}
+
+export function pickDisplayLabel(...candidates: Array<string | null | undefined>): string {
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim();
+    if (!trimmed || trimmed === '—' || trimmed === 'Investor') {
+      continue;
+    }
+    return trimmed;
+  }
+  return '';
+}
+
+export interface InvestorOverviewInput {
+  investorName: string;
+  investorType: string;
+  relationship: string;
+  contactName: string;
+  status: string;
+}
+
+function buildInvestorOverviewBlock(
+  detail: InvestorDetailDto | null,
+  investments: InvestorInvestmentDto[],
+  capitalActivities: InvestorCapitalActivityTabRow[],
+  distributionTable: InvestorDistributionTableTabRow[],
+  kpi: InvestorDetailKpiCards,
+  overview: InvestorOverviewInput,
+): InvestorDetailEntityOverviewBlock {
+  const investorName =
+    pickDisplayLabel(
+      overview.investorName,
+      readDetailSummaryString(detail, 'investor_name', 'investorName', 'InvestorName'),
+      detail?.summary.investorName,
+    ) || '—';
+  const investorType =
+    pickDisplayLabel(
+      overview.investorType,
+      readDetailSummaryString(detail, 'investor_type', 'investor_type_name', 'investorType', 'InvestorType'),
+      detail?.summary.investorType,
+    ) || '—';
+  const relationship = overview.relationship?.trim() || '—';
+  const status = overview.status?.trim() || detail?.summary.status?.trim() || 'Active';
+  const contact = overview.contactName?.trim() || '—';
+  const deployedPct = deploymentPercent(kpi.netInvestedCapital, kpi.totalCommitment);
+  const remaining = Math.max(0, kpi.totalCommitment - kpi.netInvestedCapital);
+
+  const membershipItems = investments
+    .map((item) => ({
+      fundKey: readInvestmentFundKey(item),
+      name: resolveInvestmentFundName(item, capitalActivities, distributionTable),
+    }))
+    .filter((item) => item.fundKey > 0 && item.name)
+    .slice(0, 5);
+  const fundCount = kpi.fundsCount || investments.length;
+
+  return {
+    kind: 'entity-overview',
+    id: 'investor-overview',
+    title: 'Investor Overview',
+    variant: 'investor',
+    collapsible: false,
+    defaultExpanded: true,
+    deploymentBarPlacement: 'full',
+    columns: [
+      {
+        title: 'Identity',
+        fields: [
+          { label: 'Investor Name', value: investorName },
+          { label: 'Investor Type', value: investorType },
+          { label: 'Relationship', value: relationship },
+          { label: 'Status', value: status, tone: status.toLowerCase() === 'active' ? 'positive' : 'default' },
+          { label: 'Contact', value: contact },
+        ],
+      },
+      {
+        title: 'Capital Summary',
+        fields: [
+          { label: 'Total Commitment', value: formatCurrencyCompact(kpi.totalCommitment) },
+          { label: 'Net Invested', value: formatCurrencyCompact(kpi.netInvestedCapital) },
+          { label: 'Reserved / Uncalled', value: formatCurrencyCompact(kpi.reservedUncalled) },
+          { label: 'Net Distributed', value: formatCurrencyCompact(kpi.netDistributed) },
+          { label: 'Released Capital', value: formatCurrencyCompact(kpi.releasedCapital) },
+        ],
+      },
+    ],
+    fundMembership: {
+      count: fundCount,
+      items: membershipItems,
+      moreCount: Math.max(0, fundCount - membershipItems.length),
+    },
+    deploymentBar: {
+      label: 'Capital Deployment',
+      percent: deployedPct,
+      leftLabel: `${formatCurrencyCompact(kpi.netInvestedCapital)} Invested`,
+      rightLabel: deploymentRemainingLabel(remaining),
+    },
+  };
 }
 
 function buildCapitalAccountGrid(kpi: InvestorDetailKpiCards): InvestorDetailFieldGridBlock {
@@ -712,6 +909,7 @@ export function buildBlocksForSection(
   irr: InvestorIrrTabRow[],
   kpi: InvestorDetailKpiCards,
   periodLabel: string,
+  overview?: InvestorOverviewInput,
 ): InvestorDetailBlock[] {
   const distributionRows = distributionAmountRows(distributions);
   const fundExposure = buildFundExposureTable(
@@ -725,7 +923,17 @@ export function buildBlocksForSection(
   );
   switch (sectionId) {
     case 'overview':
-      return [];
+      return overview
+        ? [buildInvestorOverviewBlock(detail, investments, capitalActivities, distributionTable, kpi, overview)]
+        : [
+            buildInvestorOverviewBlock(detail, investments, capitalActivities, distributionTable, kpi, {
+              investorName: '—',
+              investorType: '—',
+              relationship: '—',
+              contactName: '—',
+              status: 'Active',
+            }),
+          ];
     case 'fund-exposure':
       return [fundExposure];
     case 'capital-account':
@@ -781,6 +989,7 @@ export function buildFlatInvestorBlocks(
   irr: InvestorIrrTabRow[],
   kpi: InvestorDetailKpiCards,
   periodLabel: string,
+  overview?: InvestorOverviewInput,
 ): InvestorDetailFlatBlock[] {
   const sections = buildAllSectionBlocks(
     detail,
@@ -795,6 +1004,7 @@ export function buildFlatInvestorBlocks(
     irr,
     kpi,
     periodLabel,
+    overview,
   );
 
   const flat: InvestorDetailFlatBlock[] = [];
@@ -826,6 +1036,7 @@ export function buildAllSectionBlocks(
   irr: InvestorIrrTabRow[],
   kpi: InvestorDetailKpiCards,
   periodLabel: string,
+  overview?: InvestorOverviewInput,
 ): InvestorDetailSectionBlock[] {
   return INVESTOR_DETAIL_SIDEBAR_SECTIONS.flatMap((section) =>
     section.items.map((item) => ({
@@ -844,6 +1055,7 @@ export function buildAllSectionBlocks(
         irr,
         kpi,
         periodLabel,
+        overview,
       ),
     })),
   );

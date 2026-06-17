@@ -37,6 +37,43 @@ export interface InvestorDetailOccupancyFooter {
   vacantLabel: string;
 }
 
+export interface InvestorDetailDeploymentBar {
+  label: string;
+  percent: number;
+  leftLabel: string;
+  rightLabel: string;
+}
+
+export interface InvestorDetailFundMembershipItem {
+  fundKey: number;
+  name: string;
+}
+
+export interface InvestorDetailFundMembership {
+  count: number;
+  items: InvestorDetailFundMembershipItem[];
+  moreCount: number;
+}
+
+export interface InvestorDetailOverviewMiniKpi {
+  label: string;
+  value: string;
+}
+
+export interface InvestorDetailEntityOverviewBlock {
+  kind: 'entity-overview';
+  id: string;
+  title: string;
+  variant: 'investor' | 'fund';
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  columns: InvestorDetailFieldColumn[];
+  fundMembership?: InvestorDetailFundMembership;
+  performanceMiniKpis?: InvestorDetailOverviewMiniKpi[];
+  deploymentBar: InvestorDetailDeploymentBar;
+  deploymentBarPlacement?: 'full' | 'performance-column';
+}
+
 export interface InvestorDetailFieldGridBlock {
   kind: 'field-grid';
   id: string;
@@ -150,6 +187,7 @@ export interface InvestorDetailRiskInsuranceBlock {
 export type InvestorDetailBlock =
   | InvestorDetailTableBlock
   | InvestorDetailFieldGridBlock
+  | InvestorDetailEntityOverviewBlock
   | InvestorDetailKpiRowBlock
   | InvestorDetailEsgMetricsBlock
   | InvestorDetailDocumentListBlock

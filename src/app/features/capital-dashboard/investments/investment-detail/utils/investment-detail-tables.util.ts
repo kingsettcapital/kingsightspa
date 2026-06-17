@@ -13,6 +13,7 @@ import {
   InvestorDetailBlock,
   InvestorDetailDebtFinancingBlock,
   InvestorDetailDocumentListBlock,
+  InvestorDetailEntityOverviewBlock,
   InvestorDetailEsgMetricsBlock,
   InvestorDetailFieldGridBlock,
   InvestorDetailKpiRowBlock,
@@ -32,6 +33,30 @@ import {
   netDistributedForTimeframe,
 } from '../data/investment-detail-dummy.data';
 
+export function readFundDetailSummaryString(detail: FundDetailDto | null, ...keys: string[]): string {
+  if (!detail?.summary) {
+    return '';
+  }
+  const record = detail.summary as unknown as Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return '';
+}
+
+export function pickOverviewLabel(...candidates: Array<string | null | undefined>): string {
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim();
+    if (trimmed && trimmed !== '—') {
+      return trimmed;
+    }
+  }
+  return '—';
+}
+
 export type InvestmentDetailTimeframe = 'ltd' | 'quarterly' | 'daily';
 export type InvestmentDetailSectionId =
   | 'overview'
@@ -50,6 +75,7 @@ export interface InvestmentDetailKpiCards {
   netInvestedCapital: number;
   netDistributed: number;
   reservedUncalled: number | null;
+  releasedCapital: number;
   investedPercent: number;
   tvpi: number;
 }
@@ -109,7 +135,7 @@ function formatMultiple(value: number): string {
 }
 
 function formatPerformanceMultiple(value: number): string {
-  if (!Number.isFinite(value) || value <= 0) {
+  if (!Number.isFinite(value) || value < 0) {
     return '—';
   }
   return `${value.toFixed(2)}X`;
@@ -158,8 +184,90 @@ export function kpiCardsFromListRow(
     netInvestedCapital: netInvested,
     netDistributed: distributed,
     reservedUncalled: reserved != null && reserved > 0 ? reserved : null,
+    releasedCapital: row?.releasedCapital ?? 0,
     investedPercent: investedPct,
     tvpi: Math.round(tvpi * 100) / 100 || dummy.tvpi,
+  };
+}
+
+function formatCurrencyCompactOrDash(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value) || value === 0) {
+    return '—';
+  }
+  return formatCurrencyCompact(value);
+}
+
+function deploymentRemainingLabel(remaining: number): string {
+  if (remaining <= 0) {
+    return 'fully deployed';
+  }
+  return `${formatCurrencyCompact(remaining)} remaining`;
+}
+
+export interface FundOverviewInput {
+  fundName: string;
+  fundType: string;
+  strategy: string;
+  fundId: number | string;
+}
+
+function formatReleasedCapital(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) {
+    return '—';
+  }
+  return formatCurrencyCompact(value);
+}
+
+function buildFundOverviewBlock(
+  kpi: InvestmentDetailKpiCards,
+  overview: FundOverviewInput,
+): InvestorDetailEntityOverviewBlock {
+  const deployedPct = kpi.investedPercent;
+  const remaining = Math.max(0, kpi.totalCommitment - kpi.netInvestedCapital);
+  const distributedLtd = kpi.netDistributed;
+  const dpi = kpi.netInvestedCapital > 0 ? distributedLtd / kpi.netInvestedCapital : 0;
+
+  return {
+    kind: 'entity-overview',
+    id: 'fund-overview',
+    title: 'Fund Overview',
+    variant: 'fund',
+    collapsible: false,
+    defaultExpanded: true,
+    deploymentBarPlacement: 'performance-column',
+    columns: [
+      {
+        title: 'Fund Identity',
+        fields: [
+          { label: 'Fund Name', value: overview.fundName },
+          { label: 'Fund ID', value: String(overview.fundId) },
+          { label: 'Fund Type', value: pickOverviewLabel(overview.fundType) },
+          { label: 'Strategy', value: pickOverviewLabel(overview.strategy) },
+        ],
+      },
+      {
+        title: 'Capital Structure',
+        fields: [
+          { label: 'Total Commitment', value: formatCurrencyCompact(kpi.totalCommitment) },
+          { label: 'Net Invested Capital', value: formatCurrencyCompact(kpi.netInvestedCapital) },
+          { label: 'Reserved / Uncalled', value: formatCurrencyCompactOrDash(kpi.reservedUncalled) },
+          { label: 'Net Distributed', value: formatCurrencyCompact(kpi.netDistributed) },
+          { label: 'Released Capital', value: formatReleasedCapital(kpi.releasedCapital) },
+        ],
+      },
+    ],
+    performanceMiniKpis: [
+      { label: 'TVPI', value: formatPerformanceMultiple(kpi.tvpi) },
+      { label: 'DPI', value: formatPerformanceMultiple(dpi) },
+      { label: '% Invested', value: formatPercentValue(deployedPct) },
+      { label: 'Reserved', value: formatCurrencyCompactOrDash(kpi.reservedUncalled) },
+    ],
+    deploymentBar: {
+      label: 'Deployment',
+      percent: deployedPct,
+      leftLabel: `${formatCurrencyCompact(kpi.netInvestedCapital)} invested`,
+      rightLabel: deploymentRemainingLabel(remaining),
+    },
   };
 }
 
@@ -195,7 +303,7 @@ function buildCapitalAccountGrid(
       {
         fields: [
           { label: 'Net Distributed (ITD)', value: formatCurrencyCompact(distributedLtd) },
-          { label: 'Released Capital', value: '—' },
+          { label: 'Released Capital', value: formatReleasedCapital(kpi.releasedCapital) },
           {
             label: 'Total Value (Investment Cost)',
             value: formatCurrencyCompact(totalValue),
@@ -211,8 +319,9 @@ function buildPerformanceKpiRow(
   kpi: InvestmentDetailKpiCards,
   timeframe: InvestmentDetailTimeframe,
 ): InvestorDetailKpiRowBlock {
-  const distributedLtd = INVESTMENT_DETAIL_DUMMY.netDistributed.ltd;
-  const dpi = kpi.netInvestedCapital > 0 ? distributedLtd / kpi.netInvestedCapital : 0.25;
+  const distributedLtd =
+    timeframe === 'ltd' ? kpi.netDistributed : INVESTMENT_DETAIL_DUMMY.netDistributed.ltd;
+  const dpi = kpi.netInvestedCapital > 0 ? distributedLtd / kpi.netInvestedCapital : 0;
   const tvpi = kpi.tvpi;
   const rvpi = 1.0;
   const deployLabel = timeframe === 'ltd' ? 'Deployment' : 'Deploy Rate';
@@ -516,6 +625,7 @@ export function buildBlocksForSection(
   kpi: InvestmentDetailKpiCards,
   timeframe: InvestmentDetailTimeframe,
   periodLabel: string,
+  overview?: FundOverviewInput,
 ): InvestorDetailBlock[] {
   void commitments;
   void unfunded;
@@ -524,7 +634,29 @@ export function buildBlocksForSection(
 
   switch (sectionId) {
     case 'overview':
-      return [];
+      return overview
+        ? [buildFundOverviewBlock(kpi, overview)]
+        : [
+            buildFundOverviewBlock(kpi, {
+              fundName: pickOverviewLabel(detail?.summary.fundName),
+              fundType: pickOverviewLabel(
+                readFundDetailSummaryString(detail, 'fund_type', 'fundType', 'FundType'),
+                detail?.summary.fundType,
+              ),
+              strategy: pickOverviewLabel(
+                readFundDetailSummaryString(
+                  detail,
+                  'strategy',
+                  'fund_strategy_name',
+                  'fundStrategyName',
+                  'fund_strategy',
+                ),
+                readFundDetailSummaryString(detail, 'fund_type', 'fundType', 'FundType'),
+                detail?.summary.fundType,
+              ),
+              fundId: detail?.summary.fundId ?? '—',
+            }),
+          ];
     case 'capital-account':
       return [buildCapitalAccountGrid(kpi, timeframe)];
     case 'performance':
@@ -561,6 +693,7 @@ export function buildFlatInvestmentBlocks(
   kpi: InvestmentDetailKpiCards,
   timeframe: InvestmentDetailTimeframe,
   periodLabel: string,
+  overview?: FundOverviewInput,
 ): InvestmentDetailFlatBlock[] {
   const sections = buildAllSectionBlocks(
     detail,
@@ -575,6 +708,7 @@ export function buildFlatInvestmentBlocks(
     kpi,
     timeframe,
     periodLabel,
+    overview,
   );
 
   const flat: InvestmentDetailFlatBlock[] = [];
@@ -606,6 +740,7 @@ export function buildAllSectionBlocks(
   kpi: InvestmentDetailKpiCards,
   timeframe: InvestmentDetailTimeframe,
   periodLabel: string,
+  overview?: FundOverviewInput,
 ): InvestorDetailSectionBlock[] {
   return INVESTMENT_DETAIL_SIDEBAR_SECTIONS.flatMap((section) =>
     section.items.map((item) => ({
@@ -624,6 +759,7 @@ export function buildAllSectionBlocks(
         kpi,
         timeframe,
         periodLabel,
+        overview,
       ),
     })),
   );

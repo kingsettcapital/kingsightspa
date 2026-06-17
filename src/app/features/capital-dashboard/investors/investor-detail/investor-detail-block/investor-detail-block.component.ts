@@ -38,6 +38,7 @@ export class InvestorDetailBlockComponent {
     defaultDir: 'asc' | 'desc';
   }>();
   readonly fundExposureRowClick = output<{ row: InvestorDetailTableRow; rowIndex: number }>();
+  readonly overviewFundClick = output<{ fundKey: number }>();
 
   readonly expanded = signal(true);
   readonly searchQuery = signal('');
@@ -88,6 +89,17 @@ export class InvestorDetailBlockComponent {
       return;
     }
     this.fundExposureRowClick.emit({ row, rowIndex });
+  }
+
+  onOverviewFundClick(fundKey: number): void {
+    if (!Number.isFinite(fundKey) || fundKey <= 0) {
+      return;
+    }
+    this.overviewFundClick.emit({ fundKey });
+  }
+
+  isEntityOverviewBlock(): boolean {
+    return this.block().kind === 'entity-overview';
   }
 
   readonly emptyStateMessage = computed(() => {

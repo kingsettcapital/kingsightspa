@@ -37,9 +37,12 @@ import {
 import { INVESTMENT_DETAIL_SIDEBAR_SECTIONS } from './models/investment-detail-sidebar.config';
 import {
   buildFlatInvestmentBlocks,
+  FundOverviewInput,
   InvestmentDetailSectionId,
   InvestmentDetailTimeframe,
   kpiCardsFromListRow,
+  pickOverviewLabel,
+  readFundDetailSummaryString,
 } from './utils/investment-detail-tables.util';
 import { INVESTMENT_DETAIL_DUMMY } from './data/investment-detail-dummy.data';
 
@@ -106,12 +109,23 @@ export class InvestmentDetailComponent {
   private readonly detailState = this.store.selectSignal(selectFundsDetail);
 
   readonly loading = computed(() => this.detailState().loading);
-  readonly error = computed(() => this.detailState().error);
+  readonly error = computed(() => {
+    if (this.listRow()) {
+      return null;
+    }
+    return this.detailState().error;
+  });
   readonly detail = computed(() => this.detailState().detail);
 
   private readonly filterReloading = signal(false);
 
-  readonly contentLoading = computed(() => this.loading() || this.filterReloading());
+  readonly contentLoading = computed(() => {
+    if (this.listRow()) {
+      const detailPending = this.detailState().loading && !this.detailState().detail;
+      return detailPending || this.filterReloading();
+    }
+    return this.loading() || this.filterReloading();
+  });
   readonly contentLoadingMessage = computed(() =>
     this.loading() ? 'Loading investment profile…' : 'Loading data…',
   );
@@ -155,14 +169,31 @@ export class InvestmentDetailComponent {
       INVESTMENT_DETAIL_DUMMY.fundName,
   );
 
-  readonly fundType = computed(
-    () =>
-      this.listRow()?.fundType ??
-      this.detail()?.summary.fundType ??
-      INVESTMENT_DETAIL_DUMMY.fundType,
+  readonly fundType = computed(() =>
+    pickOverviewLabel(
+      this.listRow()?.fundType,
+      readFundDetailSummaryString(this.detail(), 'fund_type', 'fundType', 'FundType'),
+    ),
   );
 
-  readonly strategyLabel = computed(() => this.listRow()?.strategy ?? this.fundType());
+  readonly strategyLabel = computed(() => {
+    const strategy = pickOverviewLabel(
+      this.listRow()?.strategy,
+      readFundDetailSummaryString(
+        this.detail(),
+        'strategy',
+        'fund_strategy_name',
+        'fundStrategyName',
+        'fund_strategy',
+        'fund_category',
+        'fundCategory',
+      ),
+    );
+    if (strategy !== '—') {
+      return strategy;
+    }
+    return this.fundType();
+  });
 
   readonly investedPercent = computed(() => {
     const row = this.listRow();
@@ -174,7 +205,7 @@ export class InvestmentDetailComponent {
 
   readonly subtitleText = computed(() => {
     const status = INVESTMENT_DETAIL_DUMMY.listingStatus;
-    const fundId = this.detail()?.summary.fundId ?? INVESTMENT_DETAIL_DUMMY.fundId;
+    const fundId = this.detail()?.summary.fundId ?? this.fundKey() ?? INVESTMENT_DETAIL_DUMMY.fundId;
     const pct = this.investedPercent();
     const pctLabel = pct != null ? `${pct.toFixed(1)}% Invested` : '';
     return [status, `Fund ID: ${fundId}`, pctLabel].filter(Boolean).join(' · ');
@@ -230,6 +261,12 @@ export class InvestmentDetailComponent {
 
   readonly flatBlocks = computed(() => {
     const state = this.detailState();
+    const overview: FundOverviewInput = {
+      fundName: this.fundName(),
+      fundType: this.fundType(),
+      strategy: this.strategyLabel(),
+      fundId: this.detail()?.summary.fundId ?? INVESTMENT_DETAIL_DUMMY.fundId,
+    };
     return buildFlatInvestmentBlocks(
       state.detail,
       state.assets,
@@ -243,6 +280,7 @@ export class InvestmentDetailComponent {
       this.kpiCards(),
       this.timeframe(),
       this.periodLabel(),
+      overview,
     );
   });
 
