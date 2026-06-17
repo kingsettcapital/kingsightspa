@@ -314,6 +314,7 @@
             <div
               class="inv-detail-block__entity-overview"
               [class.inv-detail-block__entity-overview--fund]="current.variant === 'fund'"
+              [class.inv-detail-block__entity-overview--profile]="current.variant === 'investor' || current.variant === 'fund'"
             >
               <div class="inv-detail-block__entity-overview-grid">
                 @for (column of current.columns; track column.title ?? $index) {
@@ -325,7 +326,10 @@
                       @for (field of column.fields; track field.label) {
                         <div class="inv-detail-block__field">
                           <dt class="inv-detail-block__field-label">{{ field.label }}</dt>
-                          <dd [class]="fieldToneClass(field.tone)">{{ field.value }}</dd>
+                          <dd
+                            [class]="fieldToneClass(field.tone)"
+                            [class.inv-detail-block__field-value--multiline]="field.multiline"
+                          >{{ field.value }}</dd>
                         </div>
                       }
                     </dl>
@@ -368,45 +372,49 @@
                         </article>
                       }
                     </div>
-                    @if (current.deploymentBarPlacement === 'performance-column') {
+                    @if (current.deploymentBar; as inlineDeploymentBar) {
+                      @if (current.deploymentBarPlacement === 'performance-column') {
                       <div class="inv-detail-block__deployment inv-detail-block__deployment--inline">
                         <div class="inv-detail-block__deployment-head">
-                          <span class="inv-detail-block__deployment-label">{{ current.deploymentBar.label }}</span>
-                          <span class="inv-detail-block__deployment-pct">{{ current.deploymentBar.percent.toFixed(1) }}%</span>
+                          <span class="inv-detail-block__deployment-label">{{ inlineDeploymentBar.label }}</span>
+                          <span class="inv-detail-block__deployment-pct">{{ inlineDeploymentBar.percent.toFixed(1) }}%</span>
                         </div>
                         <div class="inv-detail-block__deployment-track" aria-hidden="true">
                           <span
                             class="inv-detail-block__deployment-fill"
-                            [style.width.%]="current.deploymentBar.percent"
+                            [style.width.%]="inlineDeploymentBar.percent"
                           ></span>
                         </div>
                         <div class="inv-detail-block__deployment-meta">
-                          <span>{{ current.deploymentBar.leftLabel }}</span>
-                          <span>{{ current.deploymentBar.rightLabel }}</span>
+                          <span>{{ inlineDeploymentBar.leftLabel }}</span>
+                          <span>{{ inlineDeploymentBar.rightLabel }}</span>
                         </div>
                       </div>
+                      }
                     }
                   </div>
                 }
               </div>
 
-              @if (current.deploymentBarPlacement !== 'performance-column') {
+              @if (current.deploymentBar; as deploymentBar) {
+                @if (current.deploymentBarPlacement !== 'performance-column') {
                 <div class="inv-detail-block__deployment inv-detail-block__deployment--full">
                   <div class="inv-detail-block__deployment-head">
-                    <span class="inv-detail-block__deployment-label">{{ current.deploymentBar.label }}</span>
-                    <span class="inv-detail-block__deployment-pct">{{ current.deploymentBar.percent.toFixed(1) }}% deployed</span>
+                    <span class="inv-detail-block__deployment-label">{{ deploymentBar.label }}</span>
+                    <span class="inv-detail-block__deployment-pct">{{ deploymentBar.percent.toFixed(1) }}% deployed</span>
                   </div>
                   <div class="inv-detail-block__deployment-track" aria-hidden="true">
                     <span
                       class="inv-detail-block__deployment-fill"
-                      [style.width.%]="current.deploymentBar.percent"
+                      [style.width.%]="deploymentBar.percent"
                     ></span>
                   </div>
                   <div class="inv-detail-block__deployment-meta">
-                    <span>{{ current.deploymentBar.leftLabel }}</span>
-                    <span>{{ current.deploymentBar.rightLabel }}</span>
+                    <span>{{ deploymentBar.leftLabel }}</span>
+                    <span>{{ deploymentBar.rightLabel }}</span>
                   </div>
                 </div>
+                }
               }
             </div>
           }

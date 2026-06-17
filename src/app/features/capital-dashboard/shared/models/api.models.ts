@@ -118,6 +118,14 @@ export interface InvestorListItemDto {
   unfunded?: number | null;
   releasedCapital?: number | null;
   contactName?: string | null;
+  addressLine1?: string | null;
+  address_line1?: string | null;
+  addressLine2?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  province?: string | null;
+  provinceCode?: string | null;
+  province_code?: string | null;
 }
 
 export interface InvestorsPagedResult extends PagedResult<InvestorListItemDto> {
@@ -134,6 +142,22 @@ export interface InvestorSummaryDto {
   investmentsCount: number;
   documentsCount: number;
   joinYear: number | null;
+  relationship_name?: string | null;
+  relationshipName?: string | null;
+  contact_first_name?: string | null;
+  contactFirstName?: string | null;
+  contact_last_name?: string | null;
+  contactLastName?: string | null;
+  contact_email?: string | null;
+  contactEmail?: string | null;
+  address_line1?: string | null;
+  addressLine1?: string | null;
+  address_line2?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  province?: string | null;
+  province_code?: string | null;
+  provinceCode?: string | null;
 }
 
 export interface InvestorDetailDto {

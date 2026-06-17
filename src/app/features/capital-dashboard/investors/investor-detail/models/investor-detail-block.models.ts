@@ -23,6 +23,7 @@ export interface InvestorDetailFieldItem {
   label: string;
   value: string;
   tone?: 'default' | 'warning' | 'positive' | 'negative' | 'muted';
+  multiline?: boolean;
 }
 
 export interface InvestorDetailFieldColumn {
@@ -70,7 +71,7 @@ export interface InvestorDetailEntityOverviewBlock {
   columns: InvestorDetailFieldColumn[];
   fundMembership?: InvestorDetailFundMembership;
   performanceMiniKpis?: InvestorDetailOverviewMiniKpi[];
-  deploymentBar: InvestorDetailDeploymentBar;
+  deploymentBar?: InvestorDetailDeploymentBar;
   deploymentBarPlacement?: 'full' | 'performance-column';
 }
 

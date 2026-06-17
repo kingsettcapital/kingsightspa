@@ -18,13 +18,7 @@
   
       <header class="inv-detail__header">
         <div class="inv-detail__heading">
-          <div class="inv-detail__title-row">
-            <h1 class="inv-detail__title">{{ investorName() }}</h1>
-            @if (relationshipLabel() !== '—') {
-              <span class="inv-detail__chip">{{ relationshipLabel() }}</span>
-            }
-          </div>
-          <p class="inv-detail__subtitle">{{ subtitleText() }}</p>
+          <h1 class="inv-detail__title">{{ investorName() }}</h1>
         </div>
   
         <div class="inv-detail__actions">

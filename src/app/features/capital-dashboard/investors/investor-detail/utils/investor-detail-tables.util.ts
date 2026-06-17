@@ -12,6 +12,7 @@ import {
 } from '../../../shared/models/api.models';
 import { formatByFormatType, toFieldLabel } from '../../../shared/utils/dynamic-sections.util';
 import { InvestorTableRow } from '../../../shared/utils/investor-list-row.util';
+import { createDetailTableBlock } from '../../../shared/utils/investor-detail-table-block.util';
 import { INVESTOR_DETAIL_SIDEBAR_SECTIONS } from '../models/investor-detail-sidebar.config';
 import {
   InvestorDetailBlock,
@@ -142,6 +143,86 @@ export function readDetailSummaryString(detail: InvestorDetailDto | null, ...key
     }
   }
   return '';
+}
+
+function readContactInformationString(detail: InvestorDetailDto | null, ...keys: string[]): string {
+  if (!detail?.contactInformation?.length) {
+    return '';
+  }
+
+  const normalizedKeys = new Set(keys.map((key) => key.toLowerCase()));
+  for (const field of detail.contactInformation) {
+    const fieldKey = field.key?.trim().toLowerCase();
+    if (!fieldKey || !normalizedKeys.has(fieldKey)) {
+      continue;
+    }
+    const formatted = formatByFormatType(field.value, field.formatType);
+    if (typeof formatted === 'string' && formatted.trim()) {
+      return formatted.trim();
+    }
+  }
+
+  return '';
+}
+
+function readInvestorDetailString(detail: InvestorDetailDto | null, ...keys: string[]): string {
+  return readDetailSummaryString(detail, ...keys) || readContactInformationString(detail, ...keys);
+}
+
+export function formatInvestorAddress(detail: InvestorDetailDto | null, fallback = ''): string {
+  const trimmedFallback = fallback.trim();
+  if (trimmedFallback) {
+    return trimmedFallback;
+  }
+
+  const line1 = readInvestorDetailString(detail, 'address_line1', 'addressLine1', 'AddressLine1');
+  const line2 = readInvestorDetailString(detail, 'address_line2', 'addressLine2', 'AddressLine2');
+  const city = readInvestorDetailString(detail, 'city', 'City');
+  const provinceCode = readInvestorDetailString(
+    detail,
+    'province_code',
+    'provinceCode',
+    'ProvinceCode',
+  );
+  const province = readInvestorDetailString(detail, 'province', 'Province');
+  const region = provinceCode || province;
+  const parts: string[] = [];
+
+  if (line1) {
+    parts.push(line1);
+  }
+  if (line2) {
+    parts.push(line2);
+  }
+
+  const cityLine = [city, region].filter(Boolean).join(', ');
+  if (cityLine) {
+    parts.push(cityLine);
+  }
+
+  return parts.join('\n');
+}
+
+function resolveInvestorContact(detail: InvestorDetailDto | null, overview: InvestorOverviewInput): string {
+  const fromOverview = overview.contactName?.trim();
+  if (fromOverview && fromOverview !== '—') {
+    return fromOverview;
+  }
+
+  const first = readInvestorDetailString(
+    detail,
+    'contact_first_name',
+    'contactFirstName',
+    'ContactFirstName',
+  );
+  const last = readInvestorDetailString(
+    detail,
+    'contact_last_name',
+    'contactLastName',
+    'ContactLastName',
+  );
+  const joined = [first, last].filter(Boolean).join(' ').trim();
+  return joined || '—';
 }
 
 function resolveInvestmentFundName(
@@ -315,12 +396,7 @@ function formatMultiple(value: number): string {
 function tableBlock(
   config: Omit<InvestorDetailTableBlock, 'kind'>,
 ): InvestorDetailTableBlock {
-  return {
-    kind: 'table',
-    collapsible: true,
-    defaultExpanded: true,
-    ...config,
-  };
+  return createDetailTableBlock(config);
 }
 
 export function buildFundExposureTable(
@@ -385,8 +461,6 @@ export function buildFundExposureTable(
     columns,
     rows,
     totals: rows.length ? buildTotalsRow(columns, rows) : null,
-    collapsible: true,
-    defaultExpanded: true,
   });
 }
 
@@ -428,6 +502,7 @@ export interface InvestorOverviewInput {
   relationship: string;
   contactName: string;
   status: string;
+  address?: string;
 }
 
 function buildInvestorOverviewBlock(
@@ -438,75 +513,44 @@ function buildInvestorOverviewBlock(
   kpi: InvestorDetailKpiCards,
   overview: InvestorOverviewInput,
 ): InvestorDetailEntityOverviewBlock {
-  const investorName =
-    pickDisplayLabel(
-      overview.investorName,
-      readDetailSummaryString(detail, 'investor_name', 'investorName', 'InvestorName'),
-      detail?.summary.investorName,
-    ) || '—';
   const investorType =
     pickDisplayLabel(
       overview.investorType,
       readDetailSummaryString(detail, 'investor_type', 'investor_type_name', 'investorType', 'InvestorType'),
       detail?.summary.investorType,
     ) || '—';
-  const relationship = overview.relationship?.trim() || '—';
+  const relationship =
+    pickDisplayLabel(
+      overview.relationship,
+      readDetailSummaryString(detail, 'relationship_name', 'relationshipName', 'RelationshipName'),
+    ) || '—';
   const status = overview.status?.trim() || detail?.summary.status?.trim() || 'Active';
-  const contact = overview.contactName?.trim() || '—';
-  const deployedPct = deploymentPercent(kpi.netInvestedCapital, kpi.totalCommitment);
-  const remaining = Math.max(0, kpi.totalCommitment - kpi.netInvestedCapital);
-
-  const membershipItems = investments
-    .map((item) => ({
-      fundKey: readInvestmentFundKey(item),
-      name: resolveInvestmentFundName(item, capitalActivities, distributionTable),
-    }))
-    .filter((item) => item.fundKey > 0 && item.name)
-    .slice(0, 5);
-  const fundCount = kpi.fundsCount || investments.length;
+  const contact = resolveInvestorContact(detail, overview);
+  const address = formatInvestorAddress(detail, overview.address ?? '');
+  const addressDisplay = address.trim() || '—';
 
   return {
     kind: 'entity-overview',
     id: 'investor-overview',
     title: 'Investor Overview',
     variant: 'investor',
-    collapsible: false,
+    collapsible: true,
     defaultExpanded: true,
-    deploymentBarPlacement: 'full',
     columns: [
       {
-        title: 'Identity',
         fields: [
-          { label: 'Investor Name', value: investorName },
           { label: 'Investor Type', value: investorType },
           { label: 'Relationship', value: relationship },
           { label: 'Status', value: status, tone: status.toLowerCase() === 'active' ? 'positive' : 'default' },
           { label: 'Contact', value: contact },
-        ],
-      },
-      {
-        title: 'Capital Summary',
-        fields: [
-          { label: 'Total Commitment', value: formatCurrencyCompact(kpi.totalCommitment) },
-          { label: 'Net Invested', value: formatCurrencyCompact(kpi.netInvestedCapital) },
-          { label: 'Reserved', value: formatCurrencyCompact(kpi.reservedUncalled) },
-          { label: 'Unfunded', value: formatCurrencyCompact(kpi.unfunded) },
-          { label: 'Net Distributed', value: formatCurrencyCompact(kpi.netDistributed) },
-          { label: 'Released Capital', value: formatCurrencyCompact(kpi.releasedCapital) },
+          {
+            label: 'Address',
+            value: addressDisplay,
+            multiline: addressDisplay !== '—',
+          },
         ],
       },
     ],
-    fundMembership: {
-      count: fundCount,
-      items: membershipItems,
-      moreCount: Math.max(0, fundCount - membershipItems.length),
-    },
-    deploymentBar: {
-      label: 'Capital Deployment',
-      percent: deployedPct,
-      leftLabel: `${formatCurrencyCompact(kpi.netInvestedCapital)} Invested`,
-      rightLabel: deploymentRemainingLabel(remaining),
-    },
   };
 }
 
@@ -933,6 +977,7 @@ export function buildBlocksForSection(
               relationship: '—',
               contactName: '—',
               status: 'Active',
+              address: '',
             }),
           ];
     case 'fund-exposure':

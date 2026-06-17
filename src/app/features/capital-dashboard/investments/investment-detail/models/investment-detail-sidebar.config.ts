@@ -6,13 +6,6 @@ export const INVESTMENT_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] 
     items: [{ id: 'overview', label: 'Overview' }],
   },
   {
-    title: 'Details',
-    items: [
-      { id: 'capital-account', label: 'Capital Account' },
-      { id: 'performance', label: 'Performance' },
-    ],
-  },
-  {
     title: 'Data',
     items: [
       { id: 'assets', label: 'Assets' },

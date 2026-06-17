@@ -26,6 +26,7 @@ import {
   InvestorDetailTableColumn,
   InvestorDetailTableRow,
 } from '../../../investors/investor-detail/models/investor-detail-table.models';
+import { createDetailTableBlock } from '../../../shared/utils/investor-detail-table-block.util';
 import { INVESTMENT_DETAIL_SIDEBAR_SECTIONS } from '../models/investment-detail-sidebar.config';
 import {
   INVESTMENT_DETAIL_DUMMY,
@@ -146,7 +147,7 @@ function formatPercentValue(value: number): string {
 }
 
 function tableBlock(config: Omit<InvestorDetailTableBlock, 'kind'>): InvestorDetailTableBlock {
-  return { kind: 'table', ...config };
+  return createDetailTableBlock(config);
 }
 
 function occupancyTone(value: number | null | undefined): InvestorDetailColumnTone {
@@ -190,19 +191,6 @@ export function kpiCardsFromListRow(
   };
 }
 
-function formatCurrencyCompactOrDash(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value) || value === 0) {
-    return '—';
-  }
-  return formatCurrencyCompact(value);
-}
-
-function deploymentRemainingLabel(remaining: number): string {
-  if (remaining <= 0) {
-    return 'fully deployed';
-  }
-  return `${formatCurrencyCompact(remaining)} remaining`;
-}
 
 export interface FundOverviewInput {
   fundName: string;
@@ -218,56 +206,23 @@ function formatReleasedCapital(value: number | null | undefined): string {
   return formatCurrencyCompact(value);
 }
 
-function buildFundOverviewBlock(
-  kpi: InvestmentDetailKpiCards,
-  overview: FundOverviewInput,
-): InvestorDetailEntityOverviewBlock {
-  const deployedPct = kpi.investedPercent;
-  const remaining = Math.max(0, kpi.totalCommitment - kpi.netInvestedCapital);
-  const distributedLtd = kpi.netDistributed;
-  const dpi = kpi.netInvestedCapital > 0 ? distributedLtd / kpi.netInvestedCapital : 0;
-
+function buildFundOverviewBlock(overview: FundOverviewInput): InvestorDetailEntityOverviewBlock {
   return {
     kind: 'entity-overview',
     id: 'fund-overview',
     title: 'Fund Overview',
     variant: 'fund',
-    collapsible: false,
+    collapsible: true,
     defaultExpanded: true,
-    deploymentBarPlacement: 'performance-column',
     columns: [
       {
-        title: 'Fund Identity',
         fields: [
-          { label: 'Fund Name', value: overview.fundName },
           { label: 'Fund ID', value: String(overview.fundId) },
           { label: 'Fund Type', value: pickOverviewLabel(overview.fundType) },
           { label: 'Strategy', value: pickOverviewLabel(overview.strategy) },
         ],
       },
-      {
-        title: 'Capital Structure',
-        fields: [
-          { label: 'Total Commitment', value: formatCurrencyCompact(kpi.totalCommitment) },
-          { label: 'Net Invested Capital', value: formatCurrencyCompact(kpi.netInvestedCapital) },
-          { label: 'Reserved / Uncalled', value: formatCurrencyCompactOrDash(kpi.reservedUncalled) },
-          { label: 'Net Distributed', value: formatCurrencyCompact(kpi.netDistributed) },
-          { label: 'Released Capital', value: formatReleasedCapital(kpi.releasedCapital) },
-        ],
-      },
     ],
-    performanceMiniKpis: [
-      { label: 'TVPI', value: formatPerformanceMultiple(kpi.tvpi) },
-      { label: 'DPI', value: formatPerformanceMultiple(dpi) },
-      { label: '% Invested', value: formatPercentValue(deployedPct) },
-      { label: 'Reserved', value: formatCurrencyCompactOrDash(kpi.reservedUncalled) },
-    ],
-    deploymentBar: {
-      label: 'Deployment',
-      percent: deployedPct,
-      leftLabel: `${formatCurrencyCompact(kpi.netInvestedCapital)} invested`,
-      rightLabel: deploymentRemainingLabel(remaining),
-    },
   };
 }
 
@@ -410,8 +365,6 @@ function mapAssetsTable(assets: FundAssetTabRow[]): InvestorDetailTableBlock {
     subtitle: 'Properties and assets held within this fund',
     columns,
     rows,
-    collapsible: false,
-    defaultExpanded: true,
     variant: 'investments',
   });
 }
@@ -441,8 +394,6 @@ function fundToolbarTableBlock(
 ): InvestorDetailTableBlock {
   return tableBlock({
     ...config,
-    collapsible: false,
-    defaultExpanded: true,
     variant: 'transactions',
     showToolbar: true,
   });
@@ -575,7 +526,7 @@ function buildDocumentsList(detail: FundDetailDto | null): InvestorDetailDocumen
     id: 'documents',
     title: 'Documents',
     subtitle: 'Financial statements, reports, and fund agreements',
-    collapsible: false,
+    collapsible: true,
     defaultExpanded: true,
     documents: [...documents],
   };
@@ -635,9 +586,9 @@ export function buildBlocksForSection(
   switch (sectionId) {
     case 'overview':
       return overview
-        ? [buildFundOverviewBlock(kpi, overview)]
+        ? [buildFundOverviewBlock(overview)]
         : [
-            buildFundOverviewBlock(kpi, {
+            buildFundOverviewBlock({
               fundName: pickOverviewLabel(detail?.summary.fundName),
               fundType: pickOverviewLabel(
                 readFundDetailSummaryString(detail, 'fund_type', 'fundType', 'FundType'),

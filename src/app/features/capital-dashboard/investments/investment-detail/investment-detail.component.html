@@ -16,13 +16,7 @@
 
       <header class="inv-detail__header">
       <div class="inv-detail__heading">
-        <div class="inv-detail__title-row">
-          <h1 class="inv-detail__title">{{ fundName() }}</h1>
-          @if (strategyLabel()) {
-            <span class="inv-detail__chip inv-detail__chip--strategy">{{ strategyLabel() }}</span>
-          }
-        </div>
-        <p class="inv-detail__subtitle">{{ subtitleText() }}</p>
+        <h1 class="inv-detail__title">{{ fundName() }}</h1>
       </div>
 
       <div class="inv-detail__actions">
@@ -104,8 +98,8 @@
         <p class="cdt-kpi__value">{{ kpiCards().netDistributed | ksCurrency: 'USD' : 2 : true }}</p>
         <p class="cdt-kpi__hint">{{ periodLabel() }}</p>
       </article>
-      <article class="cdt-kpi cdt-kpi--gold">
-        <p class="cdt-kpi__label">Reserved / Uncalled</p>
+      <article class="cdt-kpi cdt-kpi--metric-reserved">
+        <p class="cdt-kpi__label">Reserved</p>
         <p class="cdt-kpi__value">
           @if (kpiCards().reservedUncalled != null) {
             {{ kpiCards().reservedUncalled | ksCurrency: 'USD' : 2 : true }}

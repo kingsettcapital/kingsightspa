@@ -238,6 +238,7 @@ export class InvestorDetailComponent {
       relationship: this.relationshipLabel(),
       contactName: this.contactName(),
       status: this.detail()?.summary.status ?? 'Active',
+      address: this.listRow()?.address ?? '',
     };
     return buildFlatInvestorBlocks(
       state.detail,

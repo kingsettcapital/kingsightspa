@@ -17,6 +17,7 @@ export interface InvestorTableRow {
   unfunded: number;
   releasedCapital: number | null;
   contactName: string;
+  address: string;
 }
 
 function readRecord(dto: InvestorListItemDto): Record<string, unknown> {
@@ -147,6 +148,7 @@ export function mapInvestorListItemToRow(dto: InvestorListItemDto, index: number
   const contactName =
     readString(record, 'contactName', 'ContactName', 'contact', 'Contact') ||
     [contactFirst, contactLast].filter(Boolean).join(' ').trim();
+  const address = formatAddressFromRecord(record);
 
   const avatar = kingsettAvatarColor(index);
 
@@ -166,7 +168,32 @@ export function mapInvestorListItemToRow(dto: InvestorListItemDto, index: number
     unfunded,
     releasedCapital,
     contactName: contactName || '—',
+    address,
   };
+}
+
+function formatAddressFromRecord(record: Record<string, unknown>): string {
+  const line1 = readString(record, 'address_line1', 'addressLine1', 'AddressLine1');
+  const line2 = readString(record, 'address_line2', 'addressLine2', 'AddressLine2');
+  const city = readString(record, 'city', 'City');
+  const provinceCode = readString(record, 'province_code', 'provinceCode', 'ProvinceCode');
+  const province = readString(record, 'province', 'Province');
+  const region = provinceCode || province;
+  const parts: string[] = [];
+
+  if (line1) {
+    parts.push(line1);
+  }
+  if (line2) {
+    parts.push(line2);
+  }
+
+  const cityLine = [city, region].filter(Boolean).join(', ');
+  if (cityLine) {
+    parts.push(cityLine);
+  }
+
+  return parts.join('\n');
 }
 
 export function extractInvestorsListSummary(result: unknown): InvestorsListSummaryDto | null {
