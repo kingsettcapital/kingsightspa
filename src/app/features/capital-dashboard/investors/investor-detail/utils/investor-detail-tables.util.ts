@@ -302,8 +302,8 @@ export function buildFundExposureTable(
   });
 
   return tableBlock({
-    id: 'fund-holdings-summary',
-    title: 'Fund Holdings Summary',
+    id: 'fund-exposure',
+    title: 'Fund Exposure',
     columns,
     rows,
     totals: rows.length ? buildTotalsRow(columns, rows) : null,

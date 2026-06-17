@@ -8,7 +8,7 @@
       @if (hasQuery()) {
         <div class="de-explorer__topbar-stats">
           <span class="de-explorer__stat">{{ selectedFieldIds().length }} cols</span>
-          <span class="de-explorer__stat">{{ totalRecords() }} rows</span>
+          <span class="de-explorer__stat">{{ totalRecords() }} / {{ totalCount() || totalRecords() }} rows</span>
         </div>
 
         <span class="de-explorer__topbar-divider" aria-hidden="true"></span>
@@ -143,6 +143,31 @@
         </p>
 
         <div class="de-explorer__products">
+          @if (columnsLoading()) {
+            <div class="de-explorer__panel-skeleton" role="status" aria-live="polite" aria-label="Loading columns">
+              @for (group of skeletonPanelGroups; track group) {
+                <div class="de-explorer__skeleton-group">
+                  <span class="de-explorer__skeleton de-explorer__skeleton--product"></span>
+                  @for (field of skeletonPanelFields; track field) {
+                    <div class="de-explorer__skeleton-field">
+                      <span class="de-explorer__skeleton de-explorer__skeleton--checkbox"></span>
+                      <span
+                        class="de-explorer__skeleton de-explorer__skeleton--label"
+                        [style.width]="skeletonCellWidth(group, field)"
+                      ></span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          } @else if (columnsError()) {
+            <div class="de-explorer__panel-error" role="alert">
+              <p>{{ columnsError() }}</p>
+              <button type="button" class="de-explorer__retry-btn" (click)="reloadColumns()">
+                Retry
+              </button>
+            </div>
+          } @else {
           @for (product of filteredFieldsForSearch(); track product.id) {
             <div class="de-explorer__product">
               <div class="de-explorer__product-row">
@@ -220,6 +245,7 @@
               }
             </div>
           }
+          }
         </div>
       </aside>
     }
@@ -232,10 +258,10 @@
           </span>
           <h2 class="de-explorer__empty-title">Build Your Query</h2>
           <p class="de-explorer__empty-text">
-            Select data products and columns from the left panel, or choose a quick start template below.
+            Select data products and columns from the left panel.
           </p>
 
-          <div class="de-explorer__templates">
+          <!-- <div class="de-explorer__templates">
             @for (template of quickStartTemplates; track template.id) {
               <button
                 type="button"
@@ -250,97 +276,215 @@
 
           <p class="de-explorer__empty-footer">
             <span class="de-explorer__dot" aria-hidden="true"></span>
-            {{ totalAvailableRecords }} records across {{ totalDataProducts }} data products available
-          </p>
+            {{ totalAvailableRecords() }} records across {{ totalDataProducts() }} data products available
+          </p> -->
         </div>
       } @else {
         <div class="de-explorer__table-wrap">
-          <table class="de-explorer__table">
-            <thead>
-              <tr>
-                <th class="de-explorer__th de-explorer__th--index">#</th>
-                @for (field of displayColumns(); track field.id) {
-                  <th class="de-explorer__th de-explorer__th--{{ field.id }}">
-                    <button type="button" class="de-explorer__sort-btn" (click)="toggleSort(field.id)">
-                      {{ field.label }}
-                      <span
-                        class="de-explorer__sort-icon"
-                        [class.de-explorer__sort-icon--asc]="sortFieldId() === field.id && sortDirection() === 'asc'"
-                        [class.de-explorer__sort-icon--desc]="sortFieldId() === field.id && sortDirection() === 'desc'"
-                        aria-hidden="true"
-                      >
-                        <span class="de-explorer__sort-caret de-explorer__sort-caret--up"></span>
-                        <span class="de-explorer__sort-caret de-explorer__sort-caret--down"></span>
-                      </span>
-                    </button>
-                  </th>
-                }
-              </tr>
-            </thead>
-            <tbody>
-              @for (group of tableGroups(); track group.key) {
-                @if (groupByFieldId()) {
-                  <tr class="de-explorer__group-row">
-                    <td [attr.colspan]="displayColumns().length + 1">
-                      <button
-                        type="button"
-                        class="de-explorer__group-toggle"
-                        (click)="toggleGroupExpanded(group.key)"
-                      >
-                        @if (group.expanded) {
-                          <lucide-icon [img]="chevronDownIcon" [size]="14" color="currentColor"></lucide-icon>
-                        } @else {
-                          <lucide-icon [img]="chevronRightIcon" [size]="14" color="currentColor"></lucide-icon>
-                        }
-                        <span>{{ group.label }} ({{ group.records.length }} records)</span>
-                      </button>
-                    </td>
-                  </tr>
-                }
+          @if (dataError()) {
+            <div class="de-explorer__table-error" role="alert">
+              <p>{{ dataError() }}</p>
+            </div>
+          } @else {
+            <div class="de-explorer__table-card">
+              @if (dataLoading()) {
+                <div class="de-explorer__table-progress" aria-hidden="true">
+                  <span class="de-explorer__table-progress-bar"></span>
+                </div>
+              }
 
-                @if (!groupByFieldId() || group.expanded) {
-                  @for (record of group.records; track record.propertyId; let idx = $index) {
-                    <tr
-                      class="de-explorer__row"
-                      [class.de-explorer__row--alt]="idx % 2 === 1"
-                      [class.de-explorer__row--highlight]="highlightedRowId() === record.propertyId"
-                      (click)="selectRow(record.propertyId)"
-                    >
-                      <td class="de-explorer__td de-explorer__td--index">{{ idx + 1 }}</td>
+              <div class="de-explorer__table-scroll">
+                <table class="de-explorer__table">
+                  <thead>
+                    <tr>
+                      <th class="de-explorer__th de-explorer__th--index">#</th>
                       @for (field of displayColumns(); track field.id) {
-                        <td class="de-explorer__td de-explorer__td--{{ field.id }}">
-                          @switch (field.type) {
-                            @case ('currency') {
-                              @if (getNumericCellValue(record, field); as amount) {
-                                <span
-                                  class="de-explorer__currency-value"
-                                  [class.ks-currency--negative]="amount < 0"
-                                >
-                                  {{ amount | ksCurrency }}
-                                </span>
-                              } @else {
-                                —
-                              }
-                            }
-                            @case ('percent') {
-                              @if (getNumericCellValue(record, field); as pct) {
-                                <span class="de-explorer__percent-value">{{ formatPercentCell(pct) }}</span>
-                              } @else {
-                                —
-                              }
-                            }
-                            @default {
-                              {{ formatValue(record, field) }}
-                            }
-                          }
-                        </td>
+                        <th class="de-explorer__th de-explorer__th--{{ field.id }}">
+                          <button type="button" class="de-explorer__sort-btn" (click)="toggleSort(field.id)">
+                            {{ field.label }}
+                            <span
+                              class="de-explorer__sort-icon"
+                              [class.de-explorer__sort-icon--asc]="sortFieldId() === field.id && sortDirection() === 'asc'"
+                              [class.de-explorer__sort-icon--desc]="sortFieldId() === field.id && sortDirection() === 'desc'"
+                              aria-hidden="true"
+                            >
+                              <span class="de-explorer__sort-caret de-explorer__sort-caret--up"></span>
+                              <span class="de-explorer__sort-caret de-explorer__sort-caret--down"></span>
+                            </span>
+                          </button>
+                        </th>
                       }
                     </tr>
-                  }
-                }
+                  </thead>
+                  <tbody>
+                    @if (dataLoading()) {
+                      @for (row of skeletonRowIndices(); track row) {
+                        <tr
+                          class="de-explorer__row de-explorer__row--skeleton"
+                          [class.de-explorer__row--alt]="row % 2 === 1"
+                        >
+                          <td class="de-explorer__td de-explorer__td--index">
+                            <span class="de-explorer__skeleton de-explorer__skeleton--index"></span>
+                          </td>
+                          @for (field of displayColumns(); track field.id; let col = $index) {
+                            <td class="de-explorer__td">
+                              <span
+                                class="de-explorer__skeleton"
+                                [style.width]="skeletonCellWidth(row, col)"
+                              ></span>
+                            </td>
+                          }
+                        </tr>
+                      }
+                    } @else if (showTableEmpty()) {
+                      <tr class="de-explorer__table-empty-row">
+                        <td [attr.colspan]="displayColumns().length + 1">
+                          <div class="de-explorer__table-empty">
+                            <lucide-icon [img]="searchIcon" [size]="28" color="currentColor"></lucide-icon>
+                            <p class="de-explorer__table-empty-title">No data found</p>
+                            @if (appliedFilterCount() > 0) {
+                              <p class="de-explorer__table-empty-hint">
+                                No rows match your filters. Try adjusting or clearing them.
+                              </p>
+                            } @else {
+                              <p class="de-explorer__table-empty-hint">
+                                No records are available for the selected columns.
+                              </p>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    } @else {
+                    @for (group of tableGroups(); track group.key) {
+                      @if (groupByFieldId()) {
+                        <tr class="de-explorer__group-row">
+                          <td [attr.colspan]="displayColumns().length + 1">
+                            <button
+                              type="button"
+                              class="de-explorer__group-toggle"
+                              (click)="toggleGroupExpanded(group.key)"
+                            >
+                              @if (group.expanded) {
+                                <lucide-icon [img]="chevronDownIcon" [size]="14" color="currentColor"></lucide-icon>
+                              } @else {
+                                <lucide-icon [img]="chevronRightIcon" [size]="14" color="currentColor"></lucide-icon>
+                              }
+                              <span>{{ group.label }} ({{ group.records.length }} records)</span>
+                            </button>
+                          </td>
+                        </tr>
+                      }
+
+                      @if (!groupByFieldId() || group.expanded) {
+                        @for (record of group.records; track getRowKey(record, $index); let idx = $index) {
+                          <tr
+                            class="de-explorer__row"
+                            [class.de-explorer__row--alt]="idx % 2 === 1"
+                          >
+                            <td class="de-explorer__td de-explorer__td--index">{{ rowNumber(idx) }}</td>
+                            @for (field of displayColumns(); track field.id) {
+                              <td class="de-explorer__td de-explorer__td--{{ field.id }}">
+                                @switch (field.type) {
+                                  @case ('currency') {
+                                    @if (getNumericCellValue(record, field); as amount) {
+                                      <span
+                                        class="de-explorer__currency-value"
+                                        [class.ks-currency--negative]="amount < 0"
+                                      >
+                                        {{ amount | ksCurrency }}
+                                      </span>
+                                    } @else {
+                                      —
+                                    }
+                                  }
+                                  @case ('percent') {
+                                    @if (getNumericCellValue(record, field); as pct) {
+                                      <span class="de-explorer__percent-value">{{ formatPercentCell(pct) }}</span>
+                                    } @else {
+                                      —
+                                    }
+                                  }
+                                  @default {
+                                    {{ formatValue(record, field) }}
+                                  }
+                                }
+                              </td>
+                            }
+                          </tr>
+                        }
+                      }
+                    }
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              @if (hasQuery() && !dataLoading() && !dataError()) {
+                <footer class="de-explorer__pagination">
+                  <p class="de-explorer__pagination-summary">
+                    @if (showTableEmpty() && appliedFilterCount() > 0) {
+                      Showing
+                      <strong>0</strong>
+                      matching rows of
+                      <strong>{{ totalCount() }}</strong>
+                    } @else {
+                      Showing
+                      <strong>{{ showingFrom() }}-{{ showingTo() }}</strong>
+                      of
+                      <strong>{{ totalCount() }}</strong>
+                    }
+                  </p>
+                  <div class="de-explorer__pagination-controls">
+                    <div class="de-explorer__page-size" aria-label="Rows per page">
+                      <span class="de-explorer__page-size-label">Rows</span>
+                      @for (size of pageSizeOptions; track size) {
+                        <button
+                          type="button"
+                          class="de-explorer__pagination-page"
+                          [class.de-explorer__pagination-page--active]="pageSize() === size"
+                          [disabled]="dataLoading()"
+                          (click)="setPageSize(size)"
+                        >
+                          {{ size }}
+                        </button>
+                      }
+                    </div>
+                    <nav class="de-explorer__pagination-nav" aria-label="Data table pagination">
+                    <button
+                      type="button"
+                      class="de-explorer__pagination-arrow"
+                      [disabled]="currentPage() <= 1 || dataLoading()"
+                      (click)="goToPage(currentPage() - 1)"
+                      aria-label="Previous page"
+                    >
+                      <lucide-icon [img]="chevronLeftIcon" [size]="16" color="currentColor"></lucide-icon>
+                    </button>
+                    @for (page of pageNumbers(); track page) {
+                      <button
+                        type="button"
+                        class="de-explorer__pagination-page"
+                        [class.de-explorer__pagination-page--active]="page === currentPage()"
+                        [disabled]="dataLoading()"
+                        (click)="goToPage(page)"
+                      >
+                        {{ page }}
+                      </button>
+                    }
+                    <button
+                      type="button"
+                      class="de-explorer__pagination-arrow"
+                      [disabled]="currentPage() >= totalPages() || dataLoading()"
+                      (click)="goToPage(currentPage() + 1)"
+                      aria-label="Next page"
+                    >
+                      <lucide-icon [img]="chevronRightIcon" [size]="16" color="currentColor"></lucide-icon>
+                    </button>
+                  </nav>
+                  </div>
+                </footer>
               }
-            </tbody>
-          </table>
+            </div>
+          }
         </div>
       }
     </main>

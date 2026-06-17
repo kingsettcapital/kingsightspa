@@ -1,10 +1,13 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, signal, ViewEncapsulation } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { Store } from '@ngrx/store';
 import {
   ArrowLeftRight,
   BookOpen,
   Building2,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Columns3,
   Download,
@@ -24,12 +27,13 @@ import {
 
 import { ExcelService } from '../../../core/services/excel.service';
 import {
-  DATA_PRODUCTS,
   FILTER_OPERATORS,
   QUICK_START_TEMPLATES,
+  DATA_EXPLORER_DEFAULT_PAGE_SIZE,
+  DATA_EXPLORER_PAGE_SIZE_OPTIONS,
 } from '../constants/data-explorer.constants';
+import { DataExplorerRow } from '../interfaces/data-explorer-api.models';
 import {
-  DataExplorerRecord,
   DataGroup,
   DataProduct,
   DataProductField,
@@ -37,16 +41,26 @@ import {
   FilterOperator,
   QueryFilter,
   QuickStartTemplate,
-  SaveQueryPayload,
   SavedQuery,
+  SaveQueryPayload,
 } from '../interfaces/data-explorer.interfaces';
 import { DataExplorerService } from '../services/data-explorer.service';
+import {
+  DataExplorerCacheActions,
+  DataExplorerColumnsApiActions,
+  DataExplorerRowsApiActions,
+} from '../store/data-explorer.actions';
+import {
+  selectDataExplorerColumns,
+  selectDataExplorerRowsList,
+} from '../store/data-explorer.selectors';
 import {
   applyFilters,
   formatCellValue,
   generateFilterId,
   getFieldById,
   getRecordValue,
+  getRowKey,
   getTypeBadge,
   getTypeBadgeClass,
   groupRecords,
@@ -55,6 +69,8 @@ import {
 import { KsCurrencyPipe } from '../../../shared/pipes/ks-currency.pipe';
 import { SaveQueryModalComponent } from './save-query-modal/save-query-modal.component';
 import { SavedQueriesModalComponent } from './saved-queries-modal/saved-queries-modal.component';
+
+const VISIBLE_PAGE_BUTTON_COUNT = 3;
 
 @Component({
   selector: 'app-data-explorer',
@@ -78,6 +94,7 @@ import { SavedQueriesModalComponent } from './saved-queries-modal/saved-queries-
         SlidersHorizontal,
         Search,
         ChevronDown,
+        ChevronLeft,
         ChevronRight,
         LayoutGrid,
         Layers,
@@ -91,14 +108,35 @@ import { SavedQueriesModalComponent } from './saved-queries-modal/saved-queries-
   ],
   templateUrl: './data-explorer.component.html',
   styleUrl: './data-explorer.component.scss',
+  encapsulation: ViewEncapsulation.None,
 })
 export class DataExplorerComponent {
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly store = inject(Store);
   private readonly dataExplorerService = inject(DataExplorerService);
   private readonly excelService = inject(ExcelService);
 
-  readonly dataProducts = DATA_PRODUCTS;
-  readonly quickStartTemplates = QUICK_START_TEMPLATES;
+  private readonly columnsState = this.store.selectSignal(selectDataExplorerColumns);
+  private readonly rowsState = this.store.selectSignal(selectDataExplorerRowsList);
+
   readonly filterOperators = FILTER_OPERATORS;
+  readonly pageSizeOptions = DATA_EXPLORER_PAGE_SIZE_OPTIONS;
+
+  readonly dataProducts = computed(() => this.columnsState().products);
+  readonly columnsLoading = computed(() => this.columnsState().loading);
+  readonly columnsError = computed(() => this.columnsState().error);
+  readonly apiRows = computed(() => this.rowsState().rows);
+  readonly dataLoading = computed(() => this.rowsState().loading);
+  readonly dataError = computed(() => this.rowsState().error);
+  readonly totalCount = computed(() => this.rowsState().totalCount);
+  readonly totalPages = computed(() => this.rowsState().totalPages);
+
+  readonly quickStartTemplates = computed(() => {
+    const availableFieldIds = new Set(this.allFields().map((field) => field.id));
+    return QUICK_START_TEMPLATES.filter((template) =>
+      template.fieldIds.every((fieldId) => availableFieldIds.has(fieldId)),
+    );
+  });
 
   readonly resetIcon = RotateCcw;
   readonly savedIcon = BookOpen;
@@ -109,6 +147,7 @@ export class DataExplorerComponent {
   readonly trashIcon = Trash2;
   readonly searchIcon = Search;
   readonly chevronDownIcon = ChevronDown;
+  readonly chevronLeftIcon = ChevronLeft;
   readonly chevronRightIcon = ChevronRight;
   readonly gridIcon = LayoutGrid;
   readonly dataProductsIcon = Layers;
@@ -118,6 +157,9 @@ export class DataExplorerComponent {
   readonly transactionsIcon = ArrowLeftRight;
 
   readonly productIcons: Record<string, typeof Building2> = {
+    investors: Users,
+    fund: Building2,
+    capital: LineChart,
     properties: Building2,
     tenants: Users,
     financials: LineChart,
@@ -125,12 +167,12 @@ export class DataExplorerComponent {
   };
 
   readonly allFields = computed(() =>
-    this.dataProducts.flatMap((product) => product.fields),
+    this.dataProducts().flatMap((product) => product.fields),
   );
 
   readonly selectedFieldIds = signal<string[]>([]);
   readonly columnSearch = signal('');
-  readonly expandedProducts = signal<string[]>(['properties']);
+  readonly expandedProducts = signal<string[]>([]);
   readonly filters = signal<QueryFilter[]>([]);
   readonly filterLogic = signal<FilterLogic>('and');
   readonly groupByFieldId = signal<string | null>(null);
@@ -144,7 +186,15 @@ export class DataExplorerComponent {
   readonly isSaveModalOpen = signal(false);
   readonly isSavedModalOpen = signal(false);
   readonly savedQueries = signal<SavedQuery[]>([]);
-  readonly highlightedRowId = signal<string | null>(null);
+  readonly currentPage = signal(1);
+  readonly pageSize = signal(DATA_EXPLORER_DEFAULT_PAGE_SIZE);
+
+  readonly skeletonPanelGroups = [0, 1, 2];
+  readonly skeletonPanelFields = [0, 1, 2, 3];
+
+  readonly skeletonRowIndices = computed(() =>
+    Array.from({ length: Math.min(this.pageSize(), 12) }, (_, index) => index),
+  );
 
   readonly hasQuery = computed(() => this.selectedFieldIds().length > 0);
   readonly selectedFields = computed(() => {
@@ -154,7 +204,7 @@ export class DataExplorerComponent {
 
   readonly selectedFieldsByProduct = computed(() => {
     const ids = new Set(this.selectedFieldIds());
-    return this.dataProducts
+    return this.dataProducts()
       .map((product) => ({
         ...product,
         fields: product.fields.filter((field) => ids.has(field.id)),
@@ -164,11 +214,12 @@ export class DataExplorerComponent {
 
   readonly filteredFieldsForSearch = computed(() => {
     const query = this.columnSearch().trim().toLowerCase();
+    const products = this.dataProducts();
     if (!query) {
-      return this.dataProducts;
+      return products;
     }
 
-    return this.dataProducts
+    return products
       .map((product) => ({
         ...product,
         fields: product.fields.filter((field) =>
@@ -200,7 +251,7 @@ export class DataExplorerComponent {
   });
 
   readonly filteredRecords = computed(() => {
-    const records = this.dataExplorerService.getRecords();
+    const records = this.apiRows();
     return applyFilters(records, this.filters(), this.filterLogic(), this.allFields());
   });
 
@@ -259,11 +310,120 @@ export class DataExplorerComponent {
   );
 
   readonly totalRecords = computed(() => this.filteredRecords().length);
-  readonly totalDataProducts = this.dataProducts.length;
-  readonly totalAvailableRecords = this.dataExplorerService.getRecords().length;
+  readonly totalDataProducts = computed(() => this.dataProducts().length);
+  readonly totalAvailableRecords = computed(() => this.totalCount() || this.apiRows().length);
+  readonly showTableEmpty = computed(
+    () =>
+      this.hasQuery() &&
+      !this.dataLoading() &&
+      !this.dataError() &&
+      this.totalRecords() === 0,
+  );
+
+  readonly pageNumbers = computed(() => {
+    const total = this.totalPages();
+    const current = this.currentPage();
+
+    if (total <= VISIBLE_PAGE_BUTTON_COUNT) {
+      return Array.from({ length: total }, (_, index) => index + 1);
+    }
+
+    let start = Math.max(1, current - 1);
+    if (start + VISIBLE_PAGE_BUTTON_COUNT - 1 > total) {
+      start = total - VISIBLE_PAGE_BUTTON_COUNT + 1;
+    }
+
+    return Array.from({ length: VISIBLE_PAGE_BUTTON_COUNT }, (_, index) => start + index);
+  });
+
+  readonly showingFrom = computed(() => {
+    if (this.totalRecords() === 0 || this.totalCount() === 0) {
+      return 0;
+    }
+    return (this.currentPage() - 1) * this.pageSize() + 1;
+  });
+
+  readonly showingTo = computed(() => {
+    if (this.totalRecords() === 0) {
+      return 0;
+    }
+    return Math.min(this.currentPage() * this.pageSize(), this.totalCount());
+  });
 
   constructor() {
-    this.savedQueries.set(this.dataExplorerService.getSavedQueries());
+    document.body.setAttribute('data-ks-data-explorer', 'true');
+    this.destroyRef.onDestroy(() => {
+      document.body.removeAttribute('data-ks-data-explorer');
+      this.store.dispatch(DataExplorerCacheActions.resetAll());
+    });
+
+    this.store.dispatch(DataExplorerColumnsApiActions.loadColumns());
+    this.refreshSavedQueries();
+
+    effect(() => {
+      const products = this.dataProducts();
+      if (products.length > 0 && this.expandedProducts().length === 0) {
+        this.expandedProducts.set([products[0].id]);
+      }
+    });
+  }
+
+  getRowKey = getRowKey;
+
+  skeletonCellWidth(rowIndex: number, colIndex: number): string {
+    const widths = ['42%', '68%', '55%', '78%', '36%', '62%', '48%', '72%'];
+    return widths[(rowIndex + colIndex) % widths.length];
+  }
+
+  reloadColumns(): void {
+    this.store.dispatch(DataExplorerCacheActions.resetAll());
+    this.store.dispatch(DataExplorerColumnsApiActions.loadColumns());
+  }
+
+  private dispatchLoadRows(resetPage = false): void {
+    const columns = this.selectedFieldIds();
+    if (columns.length === 0) {
+      this.currentPage.set(1);
+      this.store.dispatch(DataExplorerRowsApiActions.clearRows());
+      return;
+    }
+
+    if (resetPage) {
+      this.currentPage.set(1);
+    }
+
+    this.store.dispatch(
+      DataExplorerRowsApiActions.loadRows({
+        columns: [...columns],
+        sortBy: this.sortFieldId() ?? '',
+        sortDir: this.sortDirection(),
+        page: this.currentPage(),
+        pageSize: this.pageSize(),
+      }),
+    );
+  }
+
+  setPageSize(size: number): void {
+    if (size === this.pageSize() || !this.pageSizeOptions.some((option) => option === size)) {
+      return;
+    }
+
+    this.pageSize.set(size);
+    this.currentPage.set(1);
+    this.dispatchLoadRows();
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages() || page === this.currentPage()) {
+      return;
+    }
+
+    this.currentPage.set(page);
+    this.dispatchLoadRows();
+  }
+
+  rowNumber(index: number): number {
+    return (this.currentPage() - 1) * this.pageSize() + index + 1;
   }
 
   getTypeBadge = getTypeBadge;
@@ -299,13 +459,13 @@ export class DataExplorerComponent {
     return selectedCount > 0 && selectedCount < fieldIds.length;
   }
 
-  formatValue(record: DataExplorerRecord, field: DataProductField): string {
-    const value = record[field.dataKey as keyof DataExplorerRecord];
+  formatValue(record: DataExplorerRow, field: DataProductField): string {
+    const value = record[field.dataKey];
     return formatCellValue(value as string | number, field.type);
   }
 
-  getNumericCellValue(record: DataExplorerRecord, field: DataProductField): number | null {
-    const value = record[field.dataKey as keyof DataExplorerRecord];
+  getNumericCellValue(record: DataExplorerRow, field: DataProductField): number | null {
+    const value = record[field.dataKey];
     return typeof value === 'number' && Number.isFinite(value) ? value : null;
   }
 
@@ -327,6 +487,15 @@ export class DataExplorerComponent {
     );
   }
 
+  private syncDerivedQueryState(selectedIds: string[]): void {
+    if (!selectedIds.includes(this.groupByFieldId() ?? '')) {
+      this.groupByFieldId.set(null);
+    }
+    if (!selectedIds.includes(this.sortFieldId() ?? '')) {
+      this.sortFieldId.set(null);
+    }
+  }
+
   toggleProductFields(product: DataProduct, event: Event): void {
     event.stopPropagation();
     const fieldIds = this.getProductFieldIds(product);
@@ -337,12 +506,10 @@ export class DataExplorerComponent {
         ? ids.filter((id) => !fieldIds.includes(id))
         : [...new Set([...ids, ...fieldIds])];
 
-      if (!next.includes(this.groupByFieldId() ?? '')) {
-        this.groupByFieldId.set(null);
-      }
-
+      this.syncDerivedQueryState(next);
       return next;
     });
+    this.dispatchLoadRows(true);
   }
 
   toggleField(fieldId: string): void {
@@ -351,12 +518,10 @@ export class DataExplorerComponent {
         ? ids.filter((id) => id !== fieldId)
         : [...ids, fieldId];
 
-      if (!next.includes(this.groupByFieldId() ?? '')) {
-        this.groupByFieldId.set(null);
-      }
-
+      this.syncDerivedQueryState(next);
       return next;
     });
+    this.dispatchLoadRows(true);
   }
 
   toggleColumnsPanel(): void {
@@ -386,6 +551,7 @@ export class DataExplorerComponent {
     this.groupByFieldId.set(null);
     this.filters.set([]);
     this.isColumnsPanelOpen.set(true);
+    this.dispatchLoadRows(true);
   }
 
   addFilter(): void {
@@ -443,15 +609,11 @@ export class DataExplorerComponent {
   toggleSort(fieldId: string): void {
     if (this.sortFieldId() === fieldId) {
       this.sortDirection.update((dir) => (dir === 'asc' ? 'desc' : 'asc'));
-      return;
+    } else {
+      this.sortFieldId.set(fieldId);
+      this.sortDirection.set('asc');
     }
-
-    this.sortFieldId.set(fieldId);
-    this.sortDirection.set('asc');
-  }
-
-  selectRow(propertyId: string): void {
-    this.highlightedRowId.set(propertyId);
+    this.dispatchLoadRows(true);
   }
 
   resetQuery(): void {
@@ -463,7 +625,7 @@ export class DataExplorerComponent {
     this.sortDirection.set('asc');
     this.columnSearch.set('');
     this.expandedGroupKeys.set([]);
-    this.highlightedRowId.set(null);
+    this.dispatchLoadRows(true);
   }
 
   openSaveModal(): void {
@@ -475,6 +637,7 @@ export class DataExplorerComponent {
   }
 
   openSavedModal(): void {
+    this.refreshSavedQueries();
     this.isSavedModalOpen.set(true);
   }
 
@@ -483,28 +646,44 @@ export class DataExplorerComponent {
   }
 
   onSaveQuery(payload: SaveQueryPayload): void {
-    const saved = this.dataExplorerService.saveQuery(payload, {
+    this.dataExplorerService.saveQuery(payload, {
       selectedFieldIds: [...this.selectedFieldIds()],
       filters: [...this.filters()],
       filterLogic: this.filterLogic(),
       groupByFieldId: this.groupByFieldId(),
     });
-    this.savedQueries.set(this.dataExplorerService.getSavedQueries());
+    this.refreshSavedQueries();
     this.closeSaveModal();
-    void saved;
   }
 
   loadSavedQuery(query: SavedQuery): void {
-    this.selectedFieldIds.set([...query.selectedFieldIds]);
-    this.filters.set(query.filters.map((filter) => ({ ...filter })));
+    const availableFieldIds = new Set(this.allFields().map((field) => field.id));
+    const selectedFieldIds = query.selectedFieldIds.filter((id) => availableFieldIds.has(id));
+    const filters = query.filters
+      .filter((filter) => availableFieldIds.has(filter.fieldId))
+      .map((filter) => ({ ...filter }));
+
+    this.selectedFieldIds.set(selectedFieldIds);
+    this.filters.set(filters);
     this.filterLogic.set(query.filterLogic);
-    this.groupByFieldId.set(query.groupByFieldId);
+    this.groupByFieldId.set(
+      query.groupByFieldId && availableFieldIds.has(query.groupByFieldId)
+        ? query.groupByFieldId
+        : null,
+    );
+    this.sortFieldId.set(null);
+    this.sortDirection.set('asc');
     this.expandedGroupKeys.set([]);
     this.isColumnsPanelOpen.set(true);
+    this.dispatchLoadRows(true);
   }
 
   onDeleteSavedQuery(query: SavedQuery): void {
     this.dataExplorerService.deleteQuery(query.id);
+    this.refreshSavedQueries();
+  }
+
+  private refreshSavedQueries(): void {
     this.savedQueries.set(this.dataExplorerService.getSavedQueries());
   }
 
@@ -516,13 +695,13 @@ export class DataExplorerComponent {
       return;
     }
 
-    this.excelService.export<DataExplorerRecord>({
+    this.excelService.export<DataExplorerRow>({
       filename: `data-explorer-${new Date().toISOString().slice(0, 10)}.xlsx`,
       sheetName: 'Data Explorer',
       title: 'Data Explorer',
       columns: columns.map((field) => ({
         header: field.label,
-        value: (row: DataExplorerRecord) => this.formatValue(row, field),
+        value: (row: DataExplorerRow) => this.formatValue(row, field),
       })),
       rows,
     });

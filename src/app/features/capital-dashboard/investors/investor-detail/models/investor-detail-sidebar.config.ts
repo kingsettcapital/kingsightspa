@@ -8,7 +8,7 @@ export const INVESTOR_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] = 
   {
     title: 'Details',
     items: [
-      { id: 'fund-holdings-summary', label: 'Fund Holdings Summary' },
+      { id: 'fund-exposure', label: 'Fund Exposure' },
       { id: 'capital-activities', label: 'Capital Activities' },
       { id: 'distributions', label: 'Distributions' },
       { id: 'irrs', label: 'IRR' },

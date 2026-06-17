@@ -1,38 +1,29 @@
 import { Injectable } from '@angular/core';
 
-import {
-  DEFAULT_SAVED_QUERIES,
-  MOCK_PROPERTY_RECORDS,
-  SAVED_QUERIES_STORAGE_KEY,
-} from '../constants/data-explorer.constants';
-import { DataExplorerRecord, SavedQuery, SaveQueryPayload } from '../interfaces/data-explorer.interfaces';
+import { SAVED_QUERIES_STORAGE_KEY, LEGACY_SEEDED_SAVED_QUERY_IDS } from '../constants/data-explorer.constants';
+import { SavedQuery, SaveQueryPayload } from '../interfaces/data-explorer.interfaces';
 import { generateQueryId } from '../utils/data-explorer.utils';
 
 @Injectable({
   providedIn: 'root',
 })
 export class DataExplorerService {
-  getRecords(): DataExplorerRecord[] {
-    return [...MOCK_PROPERTY_RECORDS];
-  }
-
   getSavedQueries(): SavedQuery[] {
     const stored = localStorage.getItem(SAVED_QUERIES_STORAGE_KEY);
     if (!stored) {
-      this.persistSavedQueries(DEFAULT_SAVED_QUERIES);
-      return [...DEFAULT_SAVED_QUERIES];
+      return [];
     }
 
     try {
-      return JSON.parse(stored) as SavedQuery[];
+      const queries = JSON.parse(stored) as SavedQuery[];
+      const withoutLegacy = queries.filter((query) => !LEGACY_SEEDED_SAVED_QUERY_IDS.has(query.id));
+      if (withoutLegacy.length !== queries.length) {
+        this.persistSavedQueries(withoutLegacy);
+      }
+      return withoutLegacy;
     } catch {
-      return [...DEFAULT_SAVED_QUERIES];
+      return [];
     }
-  }
-
-  deleteQuery(queryId: string): void {
-    const queries = this.getSavedQueries().filter((query) => query.id !== queryId);
-    this.persistSavedQueries(queries);
   }
 
   saveQuery(payload: SaveQueryPayload, state: Omit<SavedQuery, 'id' | 'name' | 'description' | 'savedAt'>): SavedQuery {
@@ -48,6 +39,11 @@ export class DataExplorerService {
     queries.unshift(newQuery);
     this.persistSavedQueries(queries);
     return newQuery;
+  }
+
+  deleteQuery(queryId: string): void {
+    const queries = this.getSavedQueries().filter((query) => query.id !== queryId);
+    this.persistSavedQueries(queries);
   }
 
   private persistSavedQueries(queries: SavedQuery[]): void {

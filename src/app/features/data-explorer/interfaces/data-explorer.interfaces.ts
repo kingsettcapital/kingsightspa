@@ -1,3 +1,7 @@
+import { DataExplorerRow } from './data-explorer-api.models';
+
+export type { DataExplorerRow };
+
 export type DataColumnType = 'text' | 'number' | 'currency' | 'percent' | 'date';
 
 export interface DataProductField {
@@ -51,32 +55,6 @@ export interface QuickStartTemplate {
   fieldIds: string[];
 }
 
-export interface DataExplorerRecord {
-  propertyId: string;
-  propertyName: string;
-  address: string;
-  city: string;
-  province: string;
-  assetClass: string;
-  gla: number;
-  status: string;
-  acquisitionDate: string;
-  marketValue: number;
-  occupancy: number;
-  noi: number;
-  tenantName: string;
-  leaseStart: string;
-  leaseEnd: string;
-  monthlyRent: number;
-  revenue: number;
-  expenses: number;
-  noiFinancial: number;
-  capRate: number;
-  transactionType: string;
-  transactionDate: string;
-  transactionValue: number;
-}
-
 export interface SaveQueryPayload {
   name: string;
   description?: string;
@@ -90,6 +68,6 @@ export interface FilterOperatorOption {
 export interface DataGroup {
   key: string;
   label: string;
-  records: DataExplorerRecord[];
+  records: DataExplorerRow[];
   expanded: boolean;
 }

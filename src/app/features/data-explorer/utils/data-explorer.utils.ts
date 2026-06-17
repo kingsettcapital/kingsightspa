@@ -1,4 +1,4 @@
-import { DataProductField, DataExplorerRecord, FilterLogic, QueryFilter } from '../interfaces/data-explorer.interfaces';
+import { DataProductField, DataExplorerRow, FilterLogic, QueryFilter } from '../interfaces/data-explorer.interfaces';
 
 export function getFieldById(
   fields: DataProductField[],
@@ -7,8 +7,8 @@ export function getFieldById(
   return fields.find((f) => f.id === fieldId);
 }
 
-export function getRecordValue(record: DataExplorerRecord, field: DataProductField): string {
-  const value = record[field.dataKey as keyof DataExplorerRecord];
+export function getRecordValue(record: DataExplorerRow, field: DataProductField): string {
+  const value = record[field.dataKey];
   if (value === null || value === undefined) {
     return '';
   }
@@ -102,8 +102,8 @@ function parseFilterNumber(value: string, type: DataProductField['type']): numbe
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function getComparableValues(record: DataExplorerRecord, field: DataProductField): string[] {
-  const rawValue = record[field.dataKey as keyof DataExplorerRecord];
+function getComparableValues(record: DataExplorerRow, field: DataProductField): string[] {
+  const rawValue = record[field.dataKey];
   const raw = getRecordValue(record, field);
   const values = new Set<string>([raw.toLowerCase()]);
 
@@ -141,11 +141,11 @@ function textEquals(cell: string, query: string): boolean {
 }
 
 function numericEquals(
-  record: DataExplorerRecord,
+  record: DataExplorerRow,
   field: DataProductField,
   query: string,
 ): boolean | null {
-  const rawValue = record[field.dataKey as keyof DataExplorerRecord];
+  const rawValue = record[field.dataKey];
   if (typeof rawValue !== 'number') {
     return null;
   }
@@ -159,7 +159,7 @@ function numericEquals(
 }
 
 function equalsMatch(
-  record: DataExplorerRecord,
+  record: DataExplorerRow,
   field: DataProductField,
   query: string,
 ): boolean {
@@ -187,7 +187,7 @@ function equalsMatch(
 }
 
 function matchesFilter(
-  record: DataExplorerRecord,
+  record: DataExplorerRow,
   filter: QueryFilter,
   field: DataProductField,
 ): boolean {
@@ -230,11 +230,11 @@ export function isFilterApplied(filter: QueryFilter): boolean {
 }
 
 export function applyFilters(
-  records: DataExplorerRecord[],
+  records: DataExplorerRow[],
   filters: QueryFilter[],
   filterLogic: FilterLogic,
   fields: DataProductField[],
-): DataExplorerRecord[] {
+): DataExplorerRow[] {
   const activeFilters = filters.filter((f) => isFilterApplied(f));
   if (!activeFilters.length) {
     return records;
@@ -254,14 +254,14 @@ export function applyFilters(
 }
 
 export function groupRecords(
-  records: DataExplorerRecord[],
+  records: DataExplorerRow[],
   groupByField: DataProductField | null,
-): Map<string, DataExplorerRecord[]> {
+): Map<string, DataExplorerRow[]> {
   if (!groupByField) {
     return new Map([['', records]]);
   }
 
-  const groups = new Map<string, DataExplorerRecord[]>();
+  const groups = new Map<string, DataExplorerRow[]>();
   for (const record of records) {
     const key = getRecordValue(record, groupByField);
     const existing = groups.get(key) ?? [];
@@ -278,4 +278,12 @@ export function generateFilterId(): string {
 
 export function generateQueryId(): string {
   return `query-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+export function getRowKey(record: DataExplorerRow, index: number): string {
+  const parts = Object.entries(record)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}:${value ?? ''}`);
+
+  return parts.length > 0 ? parts.join('|') : `row-${index}`;
 }
