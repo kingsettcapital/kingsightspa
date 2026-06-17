@@ -9,6 +9,9 @@ import {
   InvestorDetailFieldItem,
 } from '../models/investor-detail-block.models';
 import {
+  InvestorTransactionCategoryId,
+} from '../models/investor-transaction-hub.models';
+import {
   INVESTOR_DETAIL_CELL_TONES_KEY,
   InvestorDetailColumnTone,
   InvestorDetailTableColumn,
@@ -39,6 +42,15 @@ export class InvestorDetailBlockComponent {
   }>();
   readonly fundExposureRowClick = output<{ row: InvestorDetailTableRow; rowIndex: number }>();
   readonly overviewFundClick = output<{ fundKey: number }>();
+  readonly transactionHubCategoryChange = output<InvestorTransactionCategoryId>();
+  readonly transactionHubPageChange = output<number>();
+  readonly hubFundFilterChange = output<string>();
+
+  readonly hubFundFilter = input('all');
+
+  readonly Math = Math;
+
+  readonly hubFiltersPanelVisible = signal(false);
 
   readonly expanded = signal(true);
   readonly searchQuery = signal('');
@@ -63,16 +75,49 @@ export class InvestorDetailBlockComponent {
       this.tableContextKey();
       this.searchQuery.set('');
       this.minCommitmentFilter.set('');
+      this.hubFiltersPanelVisible.set(false);
     });
   }
 
   onTransactionSearchInput(value: string): void {
     this.searchQuery.set(value);
     const block = this.block();
-    if (block.kind !== 'table') {
+    if (block.kind !== 'table' && block.kind !== 'transaction-hub') {
       return;
     }
     this.transactionSearchChange.emit({ blockId: block.id, search: value });
+  }
+
+  isTransactionHubBlock(): boolean {
+    return this.block().kind === 'transaction-hub';
+  }
+
+  toggleHubFiltersPanel(): void {
+    this.hubFiltersPanelVisible.update((visible) => !visible);
+  }
+
+  hubActiveFilterCount(): number {
+    return this.hubFundFilter() !== 'all' ? 1 : 0;
+  }
+
+  hubFiltersActive(): boolean {
+    return this.hubFiltersPanelVisible() || this.hubActiveFilterCount() > 0;
+  }
+
+  clearHubFilters(): void {
+    this.hubFundFilterChange.emit('all');
+  }
+
+  hubPageNumbers(current: { uiPageCount: number }): number[] {
+    return Array.from({ length: current.uiPageCount }, (_, index) => index + 1);
+  }
+
+  isHubTable(): boolean {
+    return this.block().kind === 'transaction-hub';
+  }
+
+  hubShowAmount(value: InvestorDetailTableCellValue): boolean {
+    return this.showAmount(value, this.isHubTable());
   }
 
   isFundExposureTable(): boolean {
@@ -115,7 +160,7 @@ export class InvestorDetailBlockComponent {
     }
 
     const block = this.block();
-    if (block.kind !== 'table') {
+    if (block.kind !== 'table' && block.kind !== 'transaction-hub') {
       return;
     }
 
@@ -201,6 +246,8 @@ export class InvestorDetailBlockComponent {
       column.key === 'fund' ||
       column.key === 'property' ||
       column.key === 'description' ||
+      column.key === 'period' ||
+      column.key === 'type' ||
       column.key === 'date' ||
       column.key === 'investorCode' ||
       column.key === 'investorName'

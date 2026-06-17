@@ -64,9 +64,7 @@ export type InvestmentDetailSectionId =
   | 'capital-account'
   | 'performance'
   | 'assets'
-  | 'capital-activities'
-  | 'distributions'
-  | 'irrs'
+  | 'fund-transactions'
   | 'documents'
   | 'esg-reporting'
   | 'debt-financing';
@@ -94,6 +92,16 @@ function sumColumn(rows: InvestorDetailTableRow[], key: string): number {
   }, 0);
 }
 
+function averageColumn(rows: InvestorDetailTableRow[], key: string): number | null {
+  const values = rows
+    .map((row) => row[key])
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+  if (!values.length) {
+    return null;
+  }
+  return values.reduce((total, value) => total + value, 0) / values.length;
+}
+
 function buildTotalsRow(
   columns: InvestorDetailTableColumn[],
   rows: InvestorDetailTableRow[],
@@ -110,10 +118,27 @@ function buildTotalsRow(
       totals[column.key] = sumColumn(rows, column.key);
       continue;
     }
+    if (column.type === 'percent') {
+      const average = averageColumn(rows, column.key);
+      totals[column.key] = average ?? '—';
+      continue;
+    }
     totals[column.key] = '—';
   }
 
   return totals;
+}
+
+export function buildTableTotalsRow(
+  columns: InvestorDetailTableColumn[],
+  rows: InvestorDetailTableRow[],
+  labelKey = 'investorCode',
+  label?: string,
+): InvestorDetailTableRow | null {
+  if (!rows.length) {
+    return null;
+  }
+  return buildTotalsRow(columns, rows, labelKey, label ?? `Total — ${rows.length}`);
 }
 
 function formatCurrencyCompact(value: number | null | undefined): string {
@@ -437,7 +462,7 @@ function irrRowsToTableRows(rows: FundInvestorIrrTabRow[]): InvestorDetailTableR
   }));
 }
 
-function buildCapitalActivitiesTable(
+export function buildCapitalActivitiesTable(
   rows: FundInvestorCapitalActivityTabRow[],
   periodLabel: string,
 ): InvestorDetailTableBlock {
@@ -462,7 +487,7 @@ function buildCapitalActivitiesTable(
   });
 }
 
-function buildDistributionsTable(
+export function buildDistributionsTable(
   rows: FundInvestorDistributionTableTabRow[],
   periodLabel: string,
 ): InvestorDetailTableBlock {
@@ -490,7 +515,7 @@ function buildDistributionsTable(
   });
 }
 
-function buildIrrsTable(rows: FundInvestorIrrTabRow[], periodLabel: string): InvestorDetailTableBlock {
+export function buildIrrsTable(rows: FundInvestorIrrTabRow[], periodLabel: string): InvestorDetailTableBlock {
   const tableRows = irrRowsToTableRows(rows);
   const columns: InvestorDetailTableColumn[] = [
     { key: 'investorCode', label: 'Investor Code', type: 'link', align: 'left', sortBy: 'investor_code' },
@@ -510,7 +535,7 @@ function buildIrrsTable(rows: FundInvestorIrrTabRow[], periodLabel: string): Inv
     subtitleAccent: periodLabel,
     columns,
     rows: tableRows,
-    totals: null,
+    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorCode', `Total — ${tableRows.length}`) : null,
   });
 }
 
@@ -614,12 +639,29 @@ export function buildBlocksForSection(
       return [buildPerformanceKpiRow(kpi, timeframe)];
     case 'assets':
       return [mapAssetsTable(assets)];
-    case 'capital-activities':
-      return [buildCapitalActivitiesTable(capitalActivities, periodLabel)];
-    case 'distributions':
-      return [buildDistributionsTable(distributionTable, periodLabel)];
-    case 'irrs':
-      return [buildIrrsTable(irr, periodLabel)];
+    case 'fund-transactions':
+      return [
+        {
+          kind: 'transaction-hub',
+          id: 'fund-transactions',
+          title: 'Fund Transactions',
+          collapsible: true,
+          defaultExpanded: true,
+          activeCategoryId: 'capital-activities',
+          categories: [],
+          columns: [],
+          rows: [],
+          totals: null,
+          loading: false,
+          periodSummary: periodLabel,
+          recordCount: 0,
+          uiPage: 1,
+          uiPageSize: 10,
+          uiPageCount: 1,
+          hasNextApiPage: false,
+          fundCodeOptions: [],
+        },
+      ];
     case 'documents':
       return [buildDocumentsList(detail)];
     case 'esg-reporting':

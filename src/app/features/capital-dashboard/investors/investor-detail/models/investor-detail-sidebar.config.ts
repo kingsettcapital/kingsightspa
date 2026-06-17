@@ -9,9 +9,6 @@ export const INVESTOR_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] = 
     title: 'Details',
     items: [
       { id: 'fund-exposure', label: 'Fund Exposure' },
-      { id: 'capital-activities', label: 'Capital Activities' },
-      { id: 'distributions', label: 'Distributions' },
-      { id: 'irrs', label: 'IRR' },
       { id: 'capital-account', label: 'Capital Account' },
       { id: 'performance', label: 'Performance' },
     ],
@@ -20,6 +17,7 @@ export const INVESTOR_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] = 
     title: 'Data',
     items: [
       { id: 'investments', label: 'Investments' },
+      { id: 'investor-transactions', label: 'Transactions' },
       { id: 'documents', label: 'Documents' },
     ],
   },

@@ -147,8 +147,11 @@
               [tableSearchActive]="tableSearchActiveForBlock(item.block)"
               [sortColumn]="tableSortColumnForBlock(item.block)"
               [sortDir]="tableSortDirForBlock(item.block)"
+              [hubFundFilter]="transactionHubFundFilter()"
               (transactionSearchChange)="onTransactionSearch($event)"
               (transactionSortChange)="onTransactionSort($event)"
+              (transactionHubCategoryChange)="onTransactionHubCategoryChange($event)"
+              (hubFundFilterChange)="onTransactionHubFundFilter($event)"
             />
           </div>
         }

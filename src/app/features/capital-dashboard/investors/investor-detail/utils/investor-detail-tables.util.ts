@@ -37,6 +37,16 @@ function sumColumn(rows: InvestorDetailTableRow[], key: string): number {
   }, 0);
 }
 
+function averageColumn(rows: InvestorDetailTableRow[], key: string): number | null {
+  const values = rows
+    .map((row) => row[key])
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+  if (!values.length) {
+    return null;
+  }
+  return values.reduce((total, value) => total + value, 0) / values.length;
+}
+
 function buildTotalsRow(
   columns: InvestorDetailTableColumn[],
   rows: InvestorDetailTableRow[],
@@ -53,10 +63,27 @@ function buildTotalsRow(
       totals[column.key] = sumColumn(rows, column.key);
       continue;
     }
+    if (column.type === 'percent') {
+      const average = averageColumn(rows, column.key);
+      totals[column.key] = average ?? '—';
+      continue;
+    }
     totals[column.key] = '—';
   }
 
   return totals;
+}
+
+export function buildTableTotalsRow(
+  columns: InvestorDetailTableColumn[],
+  rows: InvestorDetailTableRow[],
+  labelKey = 'fundCode',
+  label?: string,
+): InvestorDetailTableRow | null {
+  if (!rows.length) {
+    return null;
+  }
+  return buildTotalsRow(columns, rows, labelKey, label ?? `Total — ${rows.length}`);
 }
 
 function amountByFundCode(rows: FundAmountTabRow[]): Map<string, number> {
@@ -710,7 +737,7 @@ function irrRowsToTableRows(rows: InvestorIrrTabRow[]): InvestorDetailTableRow[]
   }));
 }
 
-function buildCapitalActivitiesTable(
+export function buildCapitalActivitiesTable(
   rows: InvestorCapitalActivityTabRow[],
   periodLabel: string,
 ): InvestorDetailTableBlock {
@@ -735,7 +762,7 @@ function buildCapitalActivitiesTable(
   });
 }
 
-function buildDistributionsTable(
+export function buildDistributionsTable(
   rows: InvestorDistributionTableTabRow[],
   periodLabel: string,
 ): InvestorDetailTableBlock {
@@ -760,7 +787,7 @@ function buildDistributionsTable(
   });
 }
 
-function buildIrrsTable(
+export function buildIrrsTable(
   rows: InvestorIrrTabRow[],
   periodLabel: string,
 ): InvestorDetailTableBlock {
@@ -783,7 +810,7 @@ function buildIrrsTable(
     subtitleAccent: periodLabel,
     columns,
     rows: tableRows,
-    totals: null,
+    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'fundCode', `Total — ${tableRows.length}`) : null,
   });
 }
 
@@ -921,12 +948,10 @@ function buildContactFieldGrid(fields: DynamicFieldDto[] | null | undefined): In
 export type InvestorDetailSectionId =
   | 'overview'
   | 'fund-exposure'
+  | 'investor-transactions'
   | 'capital-account'
   | 'performance'
   | 'investments'
-  | 'capital-activities'
-  | 'distributions'
-  | 'irrs'
   | 'documents'
   | 'risk-compliance'
   | 'communications';
@@ -999,12 +1024,29 @@ export function buildBlocksForSection(
               defaultExpanded: true,
             }),
           ];
-    case 'capital-activities':
-      return [buildCapitalActivitiesTable(capitalActivities, periodLabel)];
-    case 'distributions':
-      return [buildDistributionsTable(distributionTable, periodLabel)];
-    case 'irrs':
-      return [buildIrrsTable(irr, periodLabel)];
+    case 'investor-transactions':
+      return [
+        {
+          kind: 'transaction-hub',
+          id: 'investor-transactions',
+          title: 'Investor Transactions',
+          collapsible: true,
+          defaultExpanded: true,
+          activeCategoryId: 'capital-activities',
+          categories: [],
+          columns: [],
+          rows: [],
+          totals: null,
+          loading: false,
+          periodSummary: periodLabel,
+          recordCount: 0,
+          uiPage: 1,
+          uiPageSize: 10,
+          uiPageCount: 1,
+          hasNextApiPage: false,
+          fundCodeOptions: [],
+        },
+      ];
     case 'documents':
       return [buildDocumentsList(detail)];
     case 'risk-compliance':

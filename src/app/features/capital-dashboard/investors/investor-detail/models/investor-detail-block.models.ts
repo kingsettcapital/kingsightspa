@@ -4,6 +4,8 @@ import {
   InvestorDetailTableRow,
 } from './investor-detail-table.models';
 
+import { InvestorDetailTransactionHubBlock } from './investor-transaction-hub.models';
+
 export type InvestorDetailTableVariant =
   | 'default'
   | 'transactions'
@@ -194,7 +196,8 @@ export type InvestorDetailBlock =
   | InvestorDetailDocumentListBlock
   | InvestorDetailDebtFinancingBlock
   | InvestorDetailLeasingSummaryBlock
-  | InvestorDetailRiskInsuranceBlock;
+  | InvestorDetailRiskInsuranceBlock
+  | InvestorDetailTransactionHubBlock;
 
 export interface InvestorDetailSectionBlock {
   sectionId: string;

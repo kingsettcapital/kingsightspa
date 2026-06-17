@@ -147,10 +147,14 @@
               [tableSearchActive]="tableSearchActiveForBlock(item.block)"
               [sortColumn]="tableSortColumnForBlock(item.block)"
               [sortDir]="tableSortDirForBlock(item.block)"
+              [hubFundFilter]="transactionHubFundFilter()"
               (transactionSearchChange)="onTransactionSearch($event)"
               (transactionSortChange)="onTransactionSort($event)"
               (fundExposureRowClick)="openFundFromExposure($event)"
               (overviewFundClick)="openFundFromOverview($event)"
+              (transactionHubCategoryChange)="onTransactionHubCategoryChange($event)"
+              (transactionHubPageChange)="onTransactionHubPageChange($event)"
+              (hubFundFilterChange)="onTransactionHubFundFilter($event)"
             />
           </div>
         }

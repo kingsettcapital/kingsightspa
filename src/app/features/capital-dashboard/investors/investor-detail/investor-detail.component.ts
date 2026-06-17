@@ -49,6 +49,14 @@ import {
   readInvestmentFundKey,
   readInvestmentString,
 } from './utils/investor-detail-tables.util';
+import {
+  buildInvestorTransactionHubBlock,
+  hubCategorySearchKey,
+  hubSortBlockId,
+} from './utils/investor-transaction-hub.util';
+import {
+  InvestorTransactionCategoryId,
+} from './models/investor-transaction-hub.models';
 
 type DetailTimeframe = 'ltd' | 'quarterly' | 'daily';
 type TransactionTableSortDir = 'asc' | 'desc';
@@ -200,6 +208,16 @@ export class InvestorDetailComponent {
     }
   });
 
+  readonly transactionHubPeriodSummary = computed(() => {
+    if (this.timeframe() === 'ltd') {
+      return 'ITD';
+    }
+    if (this.timeframe() === 'daily') {
+      return 'Daily';
+    }
+    return this.periodLabel();
+  });
+
   readonly fundExposureTable = computed(() => {
     const state = this.detailState();
     return buildFundExposureTable(
@@ -229,6 +247,9 @@ export class InvestorDetailComponent {
 
   private readonly transactionSearch$ = new Subject<{ blockId: string; search: string }>();
   private readonly transactionSort = signal<Record<string, TransactionTableSort>>({});
+  readonly transactionHubCategory = signal<InvestorTransactionCategoryId>('capital-activities');
+  readonly transactionHubPage = signal(1);
+  readonly transactionHubFundFilter = signal('all');
 
   readonly flatBlocks = computed(() => {
     const state = this.detailState();
@@ -240,7 +261,7 @@ export class InvestorDetailComponent {
       status: this.detail()?.summary.status ?? 'Active',
       address: this.listRow()?.address ?? '',
     };
-    return buildFlatInvestorBlocks(
+    const base = buildFlatInvestorBlocks(
       state.detail,
       state.investments,
       state.commitments,
@@ -255,6 +276,24 @@ export class InvestorDetailComponent {
       this.periodLabel(),
       overview,
     );
+
+    return base.map((item) => {
+      if (item.block.kind !== 'transaction-hub') {
+        return item;
+      }
+      return {
+        ...item,
+        block: buildInvestorTransactionHubBlock(
+          state,
+          this.transactionHubCategory(),
+          this.transactionHubPeriodSummary(),
+          this.transactionHubPage(),
+          {
+            fundCode: this.transactionHubFundFilter(),
+          },
+        ),
+      };
+    });
   });
 
   constructor() {
@@ -265,6 +304,10 @@ export class InvestorDetailComponent {
         takeUntilDestroyed(),
       )
       .subscribe(({ blockId, search }) => {
+        if (blockId === 'investor-transactions') {
+          this.loadTransactionHubCategory(this.transactionHubCategory(), search);
+          return;
+        }
         this.loadTransactionTable(blockId, search);
       });
 
@@ -386,6 +429,8 @@ export class InvestorDetailComponent {
     effect(() => {
       this.tableContextKey();
       this.transactionSort.set({});
+      this.transactionHubPage.set(1);
+      this.transactionHubFundFilter.set('all');
     });
   }
 
@@ -407,11 +452,34 @@ export class InvestorDetailComponent {
   }
 
   onTransactionSearch(event: { blockId: string; search: string }): void {
+    if (event.blockId === 'investor-transactions') {
+      this.transactionHubPage.set(1);
+    }
     this.transactionSearch$.next(event);
   }
 
+  onTransactionHubCategoryChange(categoryId: InvestorTransactionCategoryId): void {
+    this.transactionHubCategory.set(categoryId);
+    this.transactionHubPage.set(1);
+    this.transactionHubFundFilter.set('all');
+    this.loadTransactionHubCategory(categoryId, hubCategorySearchKey(categoryId, this.detailState()));
+  }
+
+  onTransactionHubPageChange(page: number): void {
+    this.transactionHubPage.set(page);
+  }
+
+  onTransactionHubFundFilter(value: string): void {
+    this.transactionHubFundFilter.set(value);
+    this.transactionHubPage.set(1);
+  }
+
   onTransactionSort(event: { blockId: string; sortBy: string; defaultDir: TransactionTableSortDir }): void {
-    const current = this.transactionSort()[event.blockId];
+    const blockId =
+      event.blockId === 'investor-transactions'
+        ? hubSortBlockId(this.transactionHubCategory())
+        : event.blockId;
+    const current = this.transactionSort()[blockId];
     const nextDir: TransactionTableSortDir =
       current?.sortBy === event.sortBy
         ? current.sortDir === 'asc'
@@ -421,11 +489,18 @@ export class InvestorDetailComponent {
 
     this.transactionSort.update((state) => ({
       ...state,
-      [event.blockId]: { sortBy: event.sortBy, sortDir: nextDir },
+      [blockId]: { sortBy: event.sortBy, sortDir: nextDir },
     }));
 
-    if (this.isServerSortedTable(event.blockId)) {
-      this.reloadTransactionTable(event.blockId);
+    if (this.isServerSortedTable(blockId)) {
+      if (event.blockId === 'investor-transactions') {
+        this.loadTransactionHubCategory(
+          this.transactionHubCategory(),
+          hubCategorySearchKey(this.transactionHubCategory(), this.detailState()),
+        );
+      } else {
+        this.reloadTransactionTable(blockId);
+      }
     }
   }
 
@@ -434,6 +509,9 @@ export class InvestorDetailComponent {
   }
 
   tableSortColumnForBlock(block: InvestorDetailBlock): string | null {
+    if (block.kind === 'transaction-hub') {
+      return this.transactionSort()[hubSortBlockId(this.transactionHubCategory())]?.sortBy ?? null;
+    }
     if (block.kind !== 'table' || !this.hasSortableColumns(block)) {
       return null;
     }
@@ -441,6 +519,9 @@ export class InvestorDetailComponent {
   }
 
   tableSortDirForBlock(block: InvestorDetailBlock): TransactionTableSortDir {
+    if (block.kind === 'transaction-hub') {
+      return this.transactionSort()[hubSortBlockId(this.transactionHubCategory())]?.sortDir ?? 'desc';
+    }
     if (block.kind !== 'table' || !this.hasSortableColumns(block)) {
       return 'desc';
     }
@@ -452,6 +533,9 @@ export class InvestorDetailComponent {
   }
 
   tableLoadingForBlock(block: InvestorDetailBlock): boolean {
+    if (block.kind === 'transaction-hub') {
+      return block.loading;
+    }
     if (block.kind !== 'table' || !block.showToolbar) {
       return false;
     }
@@ -470,6 +554,9 @@ export class InvestorDetailComponent {
   }
 
   tableSearchActiveForBlock(block: InvestorDetailBlock): boolean {
+    if (block.kind === 'transaction-hub') {
+      return !!hubCategorySearchKey(this.transactionHubCategory(), this.detailState()).trim();
+    }
     if (block.kind !== 'table' || !block.showToolbar) {
       return false;
     }
@@ -655,6 +742,46 @@ export class InvestorDetailComponent {
     const request = this.buildTransactionTableRequest(investorKey, timeframe, blockId, search);
 
     switch (blockId) {
+      case 'capital-activities':
+        this.store.dispatch(InvestorsApiActions.loadInvestorCapitalActivitiesPage(request));
+        break;
+      case 'distributions':
+        this.store.dispatch(InvestorsApiActions.loadInvestorDistributionTablePage(request));
+        break;
+      case 'irrs':
+        this.store.dispatch(InvestorsApiActions.loadInvestorIrrPage(request));
+        break;
+    }
+  }
+
+  private loadTransactionHubCategory(
+    categoryId: InvestorTransactionCategoryId,
+    search: string,
+    page = 1,
+  ): void {
+    const investorKey = this.investorKey();
+    if (investorKey == null) {
+      return;
+    }
+
+    const timeframe = this.timeframe();
+    if (timeframe === 'quarterly' && this.dateKey() == null) {
+      return;
+    }
+
+    const sortBlockId = hubSortBlockId(categoryId);
+    const sort = untracked(() => this.transactionSort()[sortBlockId]);
+    const request = {
+      investorKey,
+      timeframe,
+      page,
+      search,
+      replace: page === 1,
+      ...(timeframe === 'quarterly' && this.dateKey() != null ? { dateKey: this.dateKey()! } : {}),
+      ...(sort?.sortBy ? { sortBy: sort.sortBy, sortDir: sort.sortDir } : {}),
+    };
+
+    switch (categoryId) {
       case 'capital-activities':
         this.store.dispatch(InvestorsApiActions.loadInvestorCapitalActivitiesPage(request));
         break;
