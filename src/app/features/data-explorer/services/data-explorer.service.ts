@@ -1,52 +1,60 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
+import { catchError, map, Observable, throwError } from 'rxjs';
 
-import { SAVED_QUERIES_STORAGE_KEY, LEGACY_SEEDED_SAVED_QUERY_IDS } from '../constants/data-explorer.constants';
 import { SavedQuery, SaveQueryPayload } from '../interfaces/data-explorer.interfaces';
-import { generateQueryId } from '../utils/data-explorer.utils';
+import {
+  mapSavedQueryStateToTemplateRequest,
+  mapTemplateListItemToSavedQuery,
+  mapTemplateToSavedQuery,
+} from '../utils/data-explorer.mapper';
+import { DataExplorerApiService } from './data-explorer-api.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class DataExplorerService {
-  getSavedQueries(): SavedQuery[] {
-    const stored = localStorage.getItem(SAVED_QUERIES_STORAGE_KEY);
-    if (!stored) {
-      return [];
-    }
+  private readonly api = inject(DataExplorerApiService);
 
-    try {
-      const queries = JSON.parse(stored) as SavedQuery[];
-      const withoutLegacy = queries.filter((query) => !LEGACY_SEEDED_SAVED_QUERY_IDS.has(query.id));
-      if (withoutLegacy.length !== queries.length) {
-        this.persistSavedQueries(withoutLegacy);
-      }
-      return withoutLegacy;
-    } catch {
-      return [];
-    }
+  getSavedQueries(): Observable<SavedQuery[]> {
+    return this.api.listTemplates().pipe(
+      map((items) => items.map(mapTemplateListItemToSavedQuery)),
+      catchError(() => throwError(() => new Error('Unable to load saved queries. Please try again.'))),
+    );
   }
 
-  saveQuery(payload: SaveQueryPayload, state: Omit<SavedQuery, 'id' | 'name' | 'description' | 'savedAt'>): SavedQuery {
-    const queries = this.getSavedQueries();
-    const newQuery: SavedQuery = {
-      id: generateQueryId(),
-      name: payload.name.trim(),
-      description: payload.description?.trim() || undefined,
-      savedAt: new Date().toISOString(),
-      ...state,
-    };
-
-    queries.unshift(newQuery);
-    this.persistSavedQueries(queries);
-    return newQuery;
+  getQuery(templateId: string): Observable<SavedQuery> {
+    return this.api.getTemplate(templateId).pipe(
+      map(mapTemplateToSavedQuery),
+      catchError(() => throwError(() => new Error('Unable to load saved query. Please try again.'))),
+    );
   }
 
-  deleteQuery(queryId: string): void {
-    const queries = this.getSavedQueries().filter((query) => query.id !== queryId);
-    this.persistSavedQueries(queries);
+  saveQuery(
+    payload: SaveQueryPayload,
+    state: Omit<SavedQuery, 'id' | 'name' | 'description' | 'savedAt'>,
+  ): Observable<SavedQuery> {
+    const request = mapSavedQueryStateToTemplateRequest(payload, state);
+    return this.api.createTemplate(request).pipe(
+      map(mapTemplateToSavedQuery),
+      catchError(() => throwError(() => new Error('Unable to save query. Please try again.'))),
+    );
   }
 
-  private persistSavedQueries(queries: SavedQuery[]): void {
-    localStorage.setItem(SAVED_QUERIES_STORAGE_KEY, JSON.stringify(queries));
+  updateQuery(
+    templateId: string,
+    payload: SaveQueryPayload,
+    state: Omit<SavedQuery, 'id' | 'name' | 'description' | 'savedAt'>,
+  ): Observable<SavedQuery> {
+    const request = mapSavedQueryStateToTemplateRequest(payload, state);
+    return this.api.updateTemplate(templateId, request).pipe(
+      map(mapTemplateToSavedQuery),
+      catchError(() => throwError(() => new Error('Unable to update query. Please try again.'))),
+    );
+  }
+
+  deleteQuery(templateId: string): Observable<void> {
+    return this.api.deleteTemplate(templateId).pipe(
+      catchError(() => throwError(() => new Error('Unable to delete query. Please try again.'))),
+    );
   }
 }

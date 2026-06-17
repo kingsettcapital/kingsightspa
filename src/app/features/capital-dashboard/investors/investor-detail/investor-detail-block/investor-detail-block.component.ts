@@ -458,9 +458,14 @@ export class InvestorDetailBlockComponent {
     const minCommitment = Number(this.minCommitmentFilter());
     let rows = block.rows;
 
-    if (query && !this.isTransactionsVariant()) {
+    if (query) {
       rows = rows.filter((row) =>
-        Object.values(row).some((value) => String(value ?? '').toLowerCase().includes(query)),
+        Object.entries(row).some(([key, value]) => {
+          if (key === INVESTOR_DETAIL_CELL_TONES_KEY || value == null || typeof value === 'object') {
+            return false;
+          }
+          return String(value).toLowerCase().includes(query);
+        }),
       );
     }
 

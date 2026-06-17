@@ -17,6 +17,7 @@ import {
   LUCIDE_ICONS,
   LucideAngularModule,
   LucideIconProvider,
+  PenLine,
   RotateCcw,
   Save,
   Search,
@@ -87,6 +88,7 @@ const VISIBLE_PAGE_BUTTON_COUNT = 3;
       provide: LUCIDE_ICONS,
       useValue: new LucideIconProvider({
         RotateCcw,
+        PenLine,
         BookOpen,
         Save,
         Download,
@@ -139,6 +141,7 @@ export class DataExplorerComponent {
   });
 
   readonly resetIcon = RotateCcw;
+  readonly editIcon = PenLine;
   readonly savedIcon = BookOpen;
   readonly saveIcon = Save;
   readonly exportIcon = Download;
@@ -184,8 +187,14 @@ export class DataExplorerComponent {
   readonly isFiltersPanelOpen = signal(false);
   readonly isGroupByOpen = signal(false);
   readonly isSaveModalOpen = signal(false);
+  readonly saveModalMode = signal<'create' | 'update'>('create');
   readonly isSavedModalOpen = signal(false);
   readonly savedQueries = signal<SavedQuery[]>([]);
+  readonly savedQueriesLoading = signal(false);
+  readonly savedQueriesError = signal<string | null>(null);
+  readonly savedQueryActionLoading = signal(false);
+  readonly loadingSavedQuery = signal<{ id: string; name: string; mode: 'run' | 'edit' } | null>(null);
+  readonly editingSavedQuery = signal<Pick<SavedQuery, 'id' | 'name' | 'description'> | null>(null);
   readonly currentPage = signal(1);
   readonly pageSize = signal(DATA_EXPLORER_DEFAULT_PAGE_SIZE);
 
@@ -197,6 +206,7 @@ export class DataExplorerComponent {
   );
 
   readonly hasQuery = computed(() => this.selectedFieldIds().length > 0);
+  readonly isEditingSavedQuery = computed(() => this.editingSavedQuery() != null);
   readonly selectedFields = computed(() => {
     const ids = new Set(this.selectedFieldIds());
     return this.allFields().filter((field) => ids.has(field.id));
@@ -580,10 +590,14 @@ export class DataExplorerComponent {
 
   removeFilter(filterId: string): void {
     this.filters.update((items) => items.filter((item) => item.id !== filterId));
+    if (this.filters().length <= 1) {
+      this.filterLogic.set('and');
+    }
   }
 
   clearFilters(): void {
     this.filters.set([]);
+    this.filterLogic.set('and');
   }
 
   setFilterLogic(logic: FilterLogic): void {
@@ -617,6 +631,7 @@ export class DataExplorerComponent {
   }
 
   resetQuery(): void {
+    this.editingSavedQuery.set(null);
     this.selectedFieldIds.set([]);
     this.filters.set([]);
     this.filterLogic.set('and');
@@ -629,10 +644,14 @@ export class DataExplorerComponent {
   }
 
   openSaveModal(): void {
+    this.saveModalMode.set(this.isEditingSavedQuery() ? 'update' : 'create');
     this.isSaveModalOpen.set(true);
   }
 
   closeSaveModal(): void {
+    if (this.savedQueryActionLoading()) {
+      return;
+    }
     this.isSaveModalOpen.set(false);
   }
 
@@ -642,21 +661,121 @@ export class DataExplorerComponent {
   }
 
   closeSavedModal(): void {
+    if (this.savedQueryActionLoading()) {
+      return;
+    }
     this.isSavedModalOpen.set(false);
   }
 
+  onSaveModalSubmit(payload: SaveQueryPayload): void {
+    if (this.saveModalMode() === 'update') {
+      this.onUpdateQuery(payload);
+      return;
+    }
+    this.onSaveQuery(payload);
+  }
+
+  onUpdateQuery(payload: SaveQueryPayload): void {
+    const editing = this.editingSavedQuery();
+    if (editing == null || !this.hasQuery()) {
+      return;
+    }
+
+    this.savedQueryActionLoading.set(true);
+    this.dataExplorerService
+      .updateQuery(
+        editing.id,
+        payload,
+        {
+          selectedFieldIds: [...this.selectedFieldIds()],
+          filters: [...this.filters()],
+          filterLogic: this.filterLogic(),
+          groupByFieldId: this.groupByFieldId(),
+        },
+      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.savedQueryActionLoading.set(false);
+          this.editingSavedQuery.set(null);
+          this.refreshSavedQueries();
+          this.closeSaveModal();
+        },
+        error: () => {
+          this.savedQueryActionLoading.set(false);
+        },
+      });
+  }
+
   onSaveQuery(payload: SaveQueryPayload): void {
-    this.dataExplorerService.saveQuery(payload, {
-      selectedFieldIds: [...this.selectedFieldIds()],
-      filters: [...this.filters()],
-      filterLogic: this.filterLogic(),
-      groupByFieldId: this.groupByFieldId(),
-    });
-    this.refreshSavedQueries();
-    this.closeSaveModal();
+    this.savedQueryActionLoading.set(true);
+    this.dataExplorerService
+      .saveQuery(payload, {
+        selectedFieldIds: [...this.selectedFieldIds()],
+        filters: [...this.filters()],
+        filterLogic: this.filterLogic(),
+        groupByFieldId: this.groupByFieldId(),
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.savedQueryActionLoading.set(false);
+          this.refreshSavedQueries();
+          this.closeSaveModal();
+        },
+        error: () => {
+          this.savedQueryActionLoading.set(false);
+        },
+      });
   }
 
   loadSavedQuery(query: SavedQuery): void {
+    this.editingSavedQuery.set(null);
+    this.loadingSavedQuery.set({ id: query.id, name: query.name, mode: 'run' });
+    this.savedQueryActionLoading.set(true);
+    this.dataExplorerService
+      .getQuery(query.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (fullQuery) => {
+          this.savedQueryActionLoading.set(false);
+          this.loadingSavedQuery.set(null);
+          this.applySavedQuery(fullQuery);
+          this.closeSavedModal();
+        },
+        error: () => {
+          this.savedQueryActionLoading.set(false);
+          this.loadingSavedQuery.set(null);
+        },
+      });
+  }
+
+  editSavedQuery(query: SavedQuery): void {
+    this.loadingSavedQuery.set({ id: query.id, name: query.name, mode: 'edit' });
+    this.savedQueryActionLoading.set(true);
+    this.dataExplorerService
+      .getQuery(query.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (fullQuery) => {
+          this.savedQueryActionLoading.set(false);
+          this.loadingSavedQuery.set(null);
+          this.applySavedQuery(fullQuery);
+          this.editingSavedQuery.set({
+            id: fullQuery.id,
+            name: fullQuery.name,
+            description: fullQuery.description,
+          });
+          this.closeSavedModal();
+        },
+        error: () => {
+          this.savedQueryActionLoading.set(false);
+          this.loadingSavedQuery.set(null);
+        },
+      });
+  }
+
+  private applySavedQuery(query: SavedQuery): void {
     const availableFieldIds = new Set(this.allFields().map((field) => field.id));
     const selectedFieldIds = query.selectedFieldIds.filter((id) => availableFieldIds.has(id));
     const filters = query.filters
@@ -679,12 +798,41 @@ export class DataExplorerComponent {
   }
 
   onDeleteSavedQuery(query: SavedQuery): void {
-    this.dataExplorerService.deleteQuery(query.id);
-    this.refreshSavedQueries();
+    this.savedQueryActionLoading.set(true);
+    this.dataExplorerService
+      .deleteQuery(query.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.savedQueryActionLoading.set(false);
+          if (this.editingSavedQuery()?.id === query.id) {
+            this.editingSavedQuery.set(null);
+          }
+          this.refreshSavedQueries();
+        },
+        error: () => {
+          this.savedQueryActionLoading.set(false);
+        },
+      });
   }
 
   private refreshSavedQueries(): void {
-    this.savedQueries.set(this.dataExplorerService.getSavedQueries());
+    this.savedQueriesLoading.set(true);
+    this.savedQueriesError.set(null);
+    this.dataExplorerService
+      .getSavedQueries()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (queries) => {
+          this.savedQueries.set(queries);
+          this.savedQueriesLoading.set(false);
+        },
+        error: (error: Error) => {
+          this.savedQueries.set([]);
+          this.savedQueriesLoading.set(false);
+          this.savedQueriesError.set(error.message);
+        },
+      });
   }
 
   exportData(): void {

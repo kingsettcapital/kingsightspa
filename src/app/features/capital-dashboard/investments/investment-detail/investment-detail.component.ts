@@ -78,6 +78,9 @@ export class InvestmentDetailComponent {
   private readonly fundsApi = inject(CapitalFundsApiService);
 
   private readonly mainContentRef = viewChild<ElementRef<HTMLElement>>('mainContent');
+  private readonly stickyChromeRef = viewChild<ElementRef<HTMLElement>>('stickyChrome');
+
+  private static readonly SECTION_SCROLL_GAP_PX = 8;
 
   readonly sidebarSections = INVESTMENT_DETAIL_SIDEBAR_SECTIONS;
   readonly activeSectionId = signal<InvestmentDetailSectionId>('overview');
@@ -321,8 +324,23 @@ export class InvestmentDetailComponent {
       this.flatBlocks();
 
       const main = this.mainContentRef()?.nativeElement;
+      const sticky = this.stickyChromeRef()?.nativeElement;
       if (!main) {
         return;
+      }
+
+      const syncStickyOffset = (): void => {
+        const offset = sticky?.offsetHeight ?? 0;
+        main.style.setProperty('--inv-detail-sticky-offset', `${offset}px`);
+        main.dispatchEvent(new Event('scroll'));
+      };
+
+      syncStickyOffset();
+
+      let resizeObserver: ResizeObserver | undefined;
+      if (sticky && typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(() => syncStickyOffset());
+        resizeObserver.observe(sticky);
       }
 
       let detachSpy: (() => void) | undefined;
@@ -332,12 +350,15 @@ export class InvestmentDetailComponent {
           sectionIds: flattenSidebarSectionIds(this.sidebarSections),
           activeSectionId: this.activeSectionId,
           isPaused: () => this.scrollSpyPaused(),
+          sectionActivationOffset: () =>
+            this.getStickyScrollOffset() + InvestmentDetailComponent.SECTION_SCROLL_GAP_PX,
         });
       });
 
       onCleanup(() => {
         cancelAnimationFrame(frame);
         detachSpy?.();
+        resizeObserver?.disconnect();
       });
     });
 
@@ -474,13 +495,19 @@ export class InvestmentDetailComponent {
         if (target) {
           const mainRect = main.getBoundingClientRect();
           const targetRect = target.getBoundingClientRect();
-          const top = main.scrollTop + (targetRect.top - mainRect.top);
-          main.scrollTo({ top, behavior: 'smooth' });
+          const stickyOffset =
+            this.getStickyScrollOffset() + InvestmentDetailComponent.SECTION_SCROLL_GAP_PX;
+          const top = main.scrollTop + (targetRect.top - mainRect.top) - stickyOffset;
+          main.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
         }
       }
 
       window.setTimeout(() => this.scrollSpyPaused.set(false), 800);
     });
+  }
+
+  private getStickyScrollOffset(): number {
+    return this.stickyChromeRef()?.nativeElement.offsetHeight ?? 0;
   }
 
   backToList(): void {

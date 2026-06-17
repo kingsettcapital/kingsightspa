@@ -32,10 +32,5 @@ export const QUICK_START_TEMPLATES: QuickStartTemplate[] = [
   },
 ];
 
-export const SAVED_QUERIES_STORAGE_KEY = 'kingsight-data-explorer-saved-queries-v2';
-
-/** Seeded demo queries from earlier builds — stripped on load. */
-export const LEGACY_SEEDED_SAVED_QUERY_IDS = new Set(['sq-1', 'sq-2']);
-
 export const DATA_EXPLORER_DEFAULT_PAGE_SIZE = 20;
 export const DATA_EXPLORER_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;

@@ -34,3 +34,45 @@ export interface DataExplorerDataResponse {
 }
 
 export type DataExplorerRow = Record<string, string | number | boolean | null | undefined>;
+
+export interface DataExplorerTemplateFilterDto {
+  field: string;
+  operator: string;
+  value: string;
+}
+
+export interface DataExplorerTemplateListItemDto {
+  templateId: string;
+  name: string;
+  description?: string | null;
+  columnCount: number;
+  filterCount: number;
+  groupByField?: string | null;
+  createdBy?: string | null;
+  createdAt: string;
+  modifiedAt?: string | null;
+}
+
+export interface DataExplorerTemplateDto {
+  templateId: string;
+  name: string;
+  description?: string | null;
+  sourceView?: string | null;
+  columns: string[];
+  filters: DataExplorerTemplateFilterDto[];
+  filterLogic: string;
+  groupByField?: string | null;
+  createdBy?: string | null;
+  createdAt: string;
+  modifiedBy?: string | null;
+  modifiedAt?: string | null;
+}
+
+export interface DataExplorerTemplateUpsertRequest {
+  name: string;
+  description?: string;
+  columns: string[];
+  filters: DataExplorerTemplateFilterDto[];
+  filterLogic: string;
+  groupByField?: string;
+}

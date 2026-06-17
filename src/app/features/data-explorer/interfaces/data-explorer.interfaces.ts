@@ -46,6 +46,9 @@ export interface SavedQuery {
   filterLogic: FilterLogic;
   groupByFieldId: string | null;
   savedAt: string;
+  /** Present on list responses before full template is loaded. */
+  columnCount?: number;
+  filterCount?: number;
 }
 
 export interface QuickStartTemplate {

@@ -8,12 +8,13 @@
   </aside>
 
   <div #mainContent class="inv-detail__main">
-    <button type="button" class="inv-detail__back" (click)="backToList()">
-      <mat-icon aria-hidden="true">chevron_left</mat-icon>
-      Back to Assets
-    </button>
+    <div #stickyChrome class="inv-detail__sticky-chrome">
+      <button type="button" class="inv-detail__back" (click)="backToList()">
+        <mat-icon aria-hidden="true">chevron_left</mat-icon>
+        Back to Assets
+      </button>
 
-    <header class="inv-detail__header">
+      <header class="inv-detail__header">
       <div class="inv-detail__heading">
         <div class="inv-detail__title-row">
           <h1 class="inv-detail__title">{{ propertyName() }}</h1>
@@ -58,6 +59,7 @@
         <p class="cdt-kpi__value">{{ kpiCards().marketValue | ksCurrency: 'USD' : 2 : true }}</p>
         <p class="cdt-kpi__hint">{{ formatAssetKpiHint('value', kpiCards()) }}</p>
       </article>
+    </div>
     </div>
 
     @if (loading()) {

@@ -229,6 +229,15 @@ export function isFilterApplied(filter: QueryFilter): boolean {
   return filter.value.trim().length > 0;
 }
 
+/** API expects empty string when 0–1 filters; `and`/`or` only when combining 2+. */
+export function resolveApiFilterLogic(
+  filters: QueryFilter[],
+  filterLogic: FilterLogic,
+): '' | FilterLogic {
+  const appliedCount = filters.filter((filter) => isFilterApplied(filter)).length;
+  return appliedCount <= 1 ? '' : filterLogic;
+}
+
 export function applyFilters(
   records: DataExplorerRow[],
   filters: QueryFilter[],

@@ -15,19 +15,35 @@
       }
 
       <div class="de-explorer__topbar-buttons">
+        @if (isEditingSavedQuery()) {
+          <span class="de-explorer__editing-chip" [title]="'Editing ' + editingSavedQuery()!.name">
+            <span class="de-explorer__editing-chip-prefix">Editing:</span>
+            <span class="de-explorer__editing-chip-name">{{ editingSavedQuery()!.name }}</span>
+          </span>
+          <span class="de-explorer__topbar-divider" aria-hidden="true"></span>
+        }
+
         <button type="button" class="de-explorer__action-btn" (click)="resetQuery()">
           <lucide-icon [img]="resetIcon" [size]="16" color="currentColor"></lucide-icon>
-          Reset
+          <span class="de-explorer__action-btn-label">Reset</span>
         </button>
 
         <button
           type="button"
           class="de-explorer__action-btn de-explorer__action-btn--saved"
+          [class.de-explorer__action-btn--saved-loading]="savedQueriesLoading()"
+          [disabled]="savedQueriesLoading()"
+          [attr.aria-busy]="savedQueriesLoading()"
+          [attr.aria-label]="savedQueriesLoading() ? 'Loading saved queries' : 'Saved queries'"
           (click)="openSavedModal()"
         >
           <lucide-icon [img]="savedIcon" [size]="16" color="currentColor"></lucide-icon>
-          Saved
-          @if (savedQueries().length > 0) {
+          <span class="de-explorer__action-btn-label">Saved</span>
+          @if (savedQueriesLoading()) {
+            <span class="de-explorer__badge de-explorer__badge--count de-explorer__badge--loading" aria-hidden="true">
+              <span class="de-explorer__badge-spinner"></span>
+            </span>
+          } @else if (savedQueries().length > 0) {
             <span class="de-explorer__badge de-explorer__badge--count">{{ savedQueries().length }}</span>
           }
         </button>
@@ -35,11 +51,17 @@
         <button
           type="button"
           class="de-explorer__action-btn"
-          [disabled]="!hasQuery()"
+          [class.de-explorer__action-btn--update]="isEditingSavedQuery()"
+          [disabled]="!hasQuery() || savedQueryActionLoading()"
           (click)="openSaveModal()"
         >
-          <lucide-icon [img]="saveIcon" [size]="16" color="currentColor"></lucide-icon>
-          Save
+          @if (isEditingSavedQuery()) {
+            <lucide-icon [img]="editIcon" [size]="16" color="currentColor"></lucide-icon>
+            <span class="de-explorer__action-btn-label">Update</span>
+          } @else {
+            <lucide-icon [img]="saveIcon" [size]="16" color="currentColor"></lucide-icon>
+            <span class="de-explorer__action-btn-label">Save</span>
+          }
         </button>
 
         <button
@@ -49,7 +71,7 @@
           (click)="exportData()"
         >
           <lucide-icon [img]="exportIcon" [size]="16" color="currentColor"></lucide-icon>
-          Export
+          <span class="de-explorer__action-btn-label">Export</span>
         </button>
       </div>
     </div>
@@ -64,7 +86,7 @@
         (click)="toggleColumnsPanel()"
       >
         <lucide-icon [img]="columnsIcon" [size]="14" color="currentColor"></lucide-icon>
-        Columns
+        <span class="de-explorer__toolbar-btn-label">Columns</span>
       </button>
 
       <div class="de-explorer__group-by">
@@ -107,7 +129,7 @@
       (click)="toggleFiltersPanel()"
     >
       <lucide-icon [img]="filtersIcon" [size]="14" color="currentColor"></lucide-icon>
-      Filters
+      <span class="de-explorer__toolbar-btn-label">Filters</span>
       @if (filterCardsCount() > 0) {
         <span class="de-explorer__badge de-explorer__badge--count">{{ filterCardsCount() }}</span>
       }
@@ -627,14 +649,23 @@
 
 <app-save-query-modal
   [isOpen]="isSaveModalOpen()"
+  [mode]="saveModalMode()"
+  [initialName]="editingSavedQuery()?.name ?? ''"
+  [initialDescription]="editingSavedQuery()?.description ?? ''"
+  [saving]="savedQueryActionLoading()"
   (closed)="closeSaveModal()"
-  (submitted)="onSaveQuery($event)"
+  (submitted)="onSaveModalSubmit($event)"
 />
 
 <app-saved-queries-modal
   [isOpen]="isSavedModalOpen()"
   [queries]="savedQueries()"
+  [loading]="savedQueriesLoading()"
+  [actionLoading]="savedQueryActionLoading()"
+  [loadingQuery]="loadingSavedQuery()"
+  [error]="savedQueriesError()"
   (closed)="closeSavedModal()"
   (querySelected)="loadSavedQuery($event)"
+  (queryEdit)="editSavedQuery($event)"
   (queryDeleted)="onDeleteSavedQuery($event)"
 />
