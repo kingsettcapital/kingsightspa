@@ -489,7 +489,8 @@ function buildInvestorOverviewBlock(
         fields: [
           { label: 'Total Commitment', value: formatCurrencyCompact(kpi.totalCommitment) },
           { label: 'Net Invested', value: formatCurrencyCompact(kpi.netInvestedCapital) },
-          { label: 'Reserved / Uncalled', value: formatCurrencyCompact(kpi.reservedUncalled) },
+          { label: 'Reserved', value: formatCurrencyCompact(kpi.reservedUncalled) },
+          { label: 'Unfunded', value: formatCurrencyCompact(kpi.unfunded) },
           { label: 'Net Distributed', value: formatCurrencyCompact(kpi.netDistributed) },
           { label: 'Released Capital', value: formatCurrencyCompact(kpi.releasedCapital) },
         ],
