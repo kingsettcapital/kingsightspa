@@ -514,7 +514,24 @@ export class InvestorDetailComponent {
     };
 
     const investorKey = this.investorKey();
-    void this.router.navigate(['/capital-dashboard/investment', fundKey], {
+    if (investorKey == null || investorKey <= 0) {
+      return;
+    }
+
+    const investment = this.detailState().investments.find((item) => item.fundKey === fundKey);
+    const fundCodeRecord = investment as (typeof investment & Record<string, unknown>) | undefined;
+    let fundCode: string | null = null;
+    if (fundCodeRecord) {
+      for (const key of ['fund_code', 'fundCode', 'FundCode']) {
+        const value = fundCodeRecord[key];
+        if (typeof value === 'string' && value.trim()) {
+          fundCode = value.trim();
+          break;
+        }
+      }
+    }
+
+    void this.router.navigate(['/capital-dashboard/investor', investorKey, 'fund', fundKey], {
       state: {
         fundRow: fundTableRowFromFundExposure({
           fundKey,
@@ -526,15 +543,8 @@ export class InvestorDetailComponent {
           releasedCapital: readNullableAmount('releasedCapital'),
           index: event.rowIndex,
         }),
-        ...(investorKey != null && investorKey > 0
-          ? {
-              returnToInvestor: {
-                investorKey,
-                investorName: this.investorName(),
-                investorRow: this.listRow(),
-              },
-            }
-          : {}),
+        investorRow: this.listRow(),
+        fundCode,
       },
     });
   }
