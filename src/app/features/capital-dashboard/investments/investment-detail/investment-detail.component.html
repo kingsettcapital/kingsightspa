@@ -15,72 +15,10 @@
       </button>
 
       <header class="inv-detail__header">
-      <div class="inv-detail__heading">
-        <h1 class="inv-detail__title">{{ fundName() }}</h1>
-      </div>
-
-      <div class="inv-detail__actions">
-        <div class="cdt-toggle" role="group" aria-label="Reporting period">
-          <button
-            type="button"
-            class="cdt-toggle__btn"
-            [class.cdt-toggle__btn--active]="timeframe() === 'ltd'"
-            (click)="setTimeframe('ltd')"
-          >
-            ITD
-          </button>
-          <button
-            type="button"
-            class="cdt-toggle__btn"
-            [class.cdt-toggle__btn--active]="timeframe() === 'quarterly'"
-            (click)="setTimeframe('quarterly')"
-          >
-            Quarterly
-          </button>
-          <button
-            type="button"
-            class="cdt-toggle__btn"
-            [class.cdt-toggle__btn--active]="timeframe() === 'daily'"
-            (click)="setTimeframe('daily')"
-          >
-            Daily
-          </button>
+        <div class="inv-detail__heading">
+          <h1 class="inv-detail__title">{{ fundName() }}</h1>
         </div>
-
-        @if (timeframe() === 'quarterly') {
-          <div class="cdt-period-select">
-            <mat-icon class="cdt-period-select__calendar" aria-hidden="true">calendar_today</mat-icon>
-            <label class="cdt-period-select__field">
-              <select [ngModel]="quarter()" (ngModelChange)="setQuarter(+$event)" aria-label="Quarter">
-                @for (option of availableQuarters(); track option) {
-                  <option [ngValue]="option">Q{{ option }}</option>
-                }
-              </select>
-              <mat-icon class="cdt-period-select__chevron" aria-hidden="true">expand_more</mat-icon>
-            </label>
-            <label class="cdt-period-select__field">
-              <select [ngModel]="year()" (ngModelChange)="setYear(+$event)" aria-label="Year">
-                @for (option of availableYears(); track option) {
-                  <option [ngValue]="option">{{ option }}</option>
-                }
-              </select>
-              <mat-icon class="cdt-period-select__chevron" aria-hidden="true">expand_more</mat-icon>
-            </label>
-          </div>
-        }
-
-        <button type="button" class="cdt-btn cdt-btn--download">
-          <span class="cdt-btn__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 15V3" />
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <path d="m7 10 5 5 5-5" />
-            </svg>
-          </span>
-          Download
-        </button>
-      </div>
-    </header>
+      </header>
 
     <div class="inv-detail__kpi-row">
       <article class="cdt-kpi cdt-kpi--navy">
@@ -148,10 +86,19 @@
               [sortColumn]="tableSortColumnForBlock(item.block)"
               [sortDir]="tableSortDirForBlock(item.block)"
               [hubFundFilter]="transactionHubFundFilter()"
+              [hubTimeframe]="timeframe()"
+              [hubQuarter]="quarter()"
+              [hubYear]="year()"
+              [hubAvailableQuarters]="availableQuarters()"
+              [hubAvailableYears]="availableYears()"
               (transactionSearchChange)="onTransactionSearch($event)"
               (transactionSortChange)="onTransactionSort($event)"
               (transactionHubCategoryChange)="onTransactionHubCategoryChange($event)"
+              (transactionHubPageChange)="onTransactionHubPageChange($event)"
               (hubFundFilterChange)="onTransactionHubFundFilter($event)"
+              (hubTimeframeChange)="setTransactionTimeframe($event)"
+              (hubQuarterChange)="setQuarter($event)"
+              (hubYearChange)="setYear($event)"
             />
           </div>
         }

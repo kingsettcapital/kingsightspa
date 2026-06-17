@@ -239,7 +239,15 @@ export class InvestmentDetailComponent {
     }
   });
 
-  readonly transactionHubPeriodSummary = computed(() => this.periodLabel());
+  readonly transactionHubPeriodSummary = computed(() => {
+    if (this.timeframe() === 'ltd') {
+      return 'ITD';
+    }
+    if (this.timeframe() === 'daily') {
+      return 'Daily';
+    }
+    return this.periodLabel();
+  });
 
   readonly netInvestedHint = computed(() => {
     if (this.timeframe() === 'daily') {
@@ -469,6 +477,11 @@ export class InvestmentDetailComponent {
     }
   }
 
+  setTransactionTimeframe(view: InvestmentDetailTimeframe): void {
+    this.setTimeframe(view);
+    this.transactionHubPage.set(1);
+  }
+
   setQuarter(quarter: number): void {
     this.quarter.set(quarter);
     this.alignYearToQuarter();
@@ -491,6 +504,10 @@ export class InvestmentDetailComponent {
     this.transactionHubPage.set(1);
     this.transactionHubFundFilter.set('all');
     this.loadTransactionHubCategory(categoryId, fundHubCategorySearchKey(categoryId, this.detailState()));
+  }
+
+  onTransactionHubPageChange(page: number): void {
+    this.transactionHubPage.set(page);
   }
 
   onTransactionHubFundFilter(value: string): void {

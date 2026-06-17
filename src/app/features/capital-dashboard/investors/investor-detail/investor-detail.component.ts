@@ -441,6 +441,11 @@ export class InvestorDetailComponent {
     }
   }
 
+  setTransactionTimeframe(view: DetailTimeframe): void {
+    this.setTimeframe(view);
+    this.transactionHubPage.set(1);
+  }
+
   setQuarter(quarter: number): void {
     this.quarter.set(quarter);
     this.alignYearToQuarter();

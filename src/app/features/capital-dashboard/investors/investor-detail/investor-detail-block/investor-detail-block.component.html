@@ -136,29 +136,24 @@
       [class.inv-detail-block__header--investments]="isInvestmentsVariant()"
       [class.inv-detail-block__header--entity-overview]="isEntityOverviewBlock()"
       [class.inv-detail-block__header--transactions]="isTransactionHubBlock()"
+      [class.inv-detail-block__header--stacked]="isTransactionHubBlock()"
     >
-      <div class="inv-detail-block__heading">
-        <h2 class="inv-detail-block__title" [id]="'inv-detail-block-' + current.id">
-          {{ current.title }}
-        </h2>
-        @if (current.kind === 'transaction-hub') {
-          <p class="inv-detail-transactions__period inv-detail-transactions__period--header">
-            Period: <strong>{{ current.periodSummary }}</strong>
-            <span class="inv-detail-transactions__meta-sep">·</span>
-            {{ current.recordCount }} records
-          </p>
-        }
-        @if (current.kind === 'table' && current.subtitle) {
-          <p class="inv-detail-block__subtitle">
-            {{ current.subtitle }}
-            @if (current.subtitleAccent) {
-              <span class="inv-detail-block__subtitle-accent">{{ current.subtitleAccent }}</span>
-            }
-          </p>
-        }
-      </div>
+      <div class="inv-detail-block__header-top">
+        <div class="inv-detail-block__heading">
+          <h2 class="inv-detail-block__title" [id]="'inv-detail-block-' + current.id">
+            {{ current.title }}
+          </h2>
+          @if (current.kind === 'table' && current.subtitle) {
+            <p class="inv-detail-block__subtitle">
+              {{ current.subtitle }}
+              @if (current.subtitleAccent) {
+                <span class="inv-detail-block__subtitle-accent">{{ current.subtitleAccent }}</span>
+              }
+            </p>
+          }
+        </div>
 
-      <div class="inv-detail-block__header-actions">
+        <div class="inv-detail-block__header-actions">
         @if (current.kind === 'transaction-hub') {
           <label class="inv-detail-block__search inv-detail-block__search--pill inv-detail-block__search--white">
             <mat-icon aria-hidden="true">search</mat-icon>
@@ -182,6 +177,16 @@
             @if (hubActiveFilterCount() > 0) {
               <span class="cdt-btn__badge">{{ hubActiveFilterCount() }}</span>
             }
+          </button>
+          <button type="button" class="cdt-btn cdt-btn--download inv-detail-transactions__download">
+            <span class="cdt-btn__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 15V3" />
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <path d="m7 10 5 5 5-5" />
+              </svg>
+            </span>
+            Download
           </button>
         }
         @if (current.kind === 'table' && current.showToolbar) {
@@ -207,7 +212,68 @@
             <mat-icon aria-hidden="true">{{ isExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
           </button>
         }
+        </div>
       </div>
+
+      @if (current.kind === 'transaction-hub') {
+        <div class="inv-detail-transactions__header-meta">
+          <p class="inv-detail-transactions__period inv-detail-transactions__period--header">
+            Period: <strong>{{ current.periodSummary }}</strong>
+            <span class="inv-detail-transactions__meta-sep">·</span>
+            {{ current.recordCount }} records
+          </p>
+          <div class="inv-detail-transactions__period-controls">
+            <div class="cdt-toggle cdt-toggle--compact" role="group" aria-label="Transaction period">
+              <button
+                type="button"
+                class="cdt-toggle__btn"
+                [class.cdt-toggle__btn--active]="hubTimeframe() === 'ltd'"
+                (click)="hubTimeframeChange.emit('ltd')"
+              >
+                ITD
+              </button>
+              <button
+                type="button"
+                class="cdt-toggle__btn"
+                [class.cdt-toggle__btn--active]="hubTimeframe() === 'quarterly'"
+                (click)="hubTimeframeChange.emit('quarterly')"
+              >
+                Quarterly
+              </button>
+              <button
+                type="button"
+                class="cdt-toggle__btn"
+                [class.cdt-toggle__btn--active]="hubTimeframe() === 'daily'"
+                (click)="hubTimeframeChange.emit('daily')"
+              >
+                Daily
+              </button>
+            </div>
+
+            @if (hubTimeframe() === 'quarterly') {
+              <div class="cdt-period-select cdt-period-select--compact">
+                <mat-icon class="cdt-period-select__calendar" aria-hidden="true">calendar_today</mat-icon>
+                <label class="cdt-period-select__field">
+                  <select [ngModel]="hubQuarter()" (ngModelChange)="hubQuarterChange.emit(+$event)" aria-label="Quarter">
+                    @for (option of hubAvailableQuarters(); track option) {
+                      <option [ngValue]="option">Q{{ option }}</option>
+                    }
+                  </select>
+                  <mat-icon class="cdt-period-select__chevron" aria-hidden="true">expand_more</mat-icon>
+                </label>
+                <label class="cdt-period-select__field">
+                  <select [ngModel]="hubYear()" (ngModelChange)="hubYearChange.emit(+$event)" aria-label="Year">
+                    @for (option of hubAvailableYears(); track option) {
+                      <option [ngValue]="option">{{ option }}</option>
+                    }
+                  </select>
+                  <mat-icon class="cdt-period-select__chevron" aria-hidden="true">expand_more</mat-icon>
+                </label>
+              </div>
+            }
+          </div>
+        </div>
+      }
     </header>
 
     @if (isExpanded()) {
