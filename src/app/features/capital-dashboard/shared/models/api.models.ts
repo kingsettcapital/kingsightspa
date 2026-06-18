@@ -452,23 +452,29 @@ export interface FundGranularRowDto {
   findCode?: string | null;
 }
 
-/** GET api/CapitalInvestors/{investorKey}/investments */
+/** GET api/CapitalInvestors/{investorKey}/underlying-assets — dbo.view_investor_fund_asset (is_current = 1) */
 export interface InvestorUnderlyingInvestmentDto {
-  findcode?: string | null;
-  findCode?: string | null;
-  description?: string | null;
-  invested_amount?: number | null;
-  investedAmount?: number | null;
-  period?: string | null;
-  date?: string | null;
+  property_name?: string | null;
+  propertyName?: string | null;
+  city?: string | null;
+  province?: string | null;
+  geography?: string | null;
+  asset_type?: string | null;
+  assetType?: string | null;
+  asset_sub_type?: string | null;
+  assetSubType?: string | null;
+  investment_type?: string | null;
+  investmentType?: string | null;
 }
 
 export interface InvestorUnderlyingInvestmentTabRow {
-  findCode: string;
-  description: string;
-  investedAmount: number;
-  period: string;
-  date: string;
+  propertyName: string;
+  city: string;
+  province: string;
+  geography: string;
+  assetType: string;
+  assetSubType: string;
+  investmentType: string;
 }
 
 /** LTD / quarterly commitment row */
@@ -628,7 +634,17 @@ export interface InvestorFundHoldingDto {
   unfunded?: number | null;
   net_invested?: number | null;
   netInvested?: number | null;
+  net_invested_capital?: number | null;
+  netInvestedCapital?: number | null;
   distributed?: number | null;
+  net_distributed?: number | null;
+  netDistributed?: number | null;
+  reserved?: number | null;
+  reserved_uncalled?: number | null;
+  reservedUncalled?: number | null;
+  released?: number | null;
+  released_capital?: number | null;
+  releasedCapital?: number | null;
 }
 
 export interface InvestorFundHoldingsResponseDto {
@@ -642,9 +658,11 @@ export interface InvestorFundHoldingTabRow {
   fundName: string;
   since: string;
   commitment: number;
+  netInvestedCapital: number;
+  netDistributed: number;
+  reservedUncalled: number;
   unfunded: number;
-  netInvested: number;
-  distributed: number;
+  releasedCapital: number;
 }
 
 /** @deprecated Fund holdings no longer accepts query params. */

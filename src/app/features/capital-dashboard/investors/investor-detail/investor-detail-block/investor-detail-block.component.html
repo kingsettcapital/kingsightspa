@@ -6,7 +6,7 @@
     [attr.aria-labelledby]="'inv-detail-block-' + current.id"
   >
     <div class="inv-detail-documents__card" [id]="'inv-detail-block-body-' + current.id">
-      <header class="inv-detail-documents__header">
+      <header class="inv-detail-block__header inv-detail-documents__header">
         <div class="inv-detail-block__heading">
           <h2 class="inv-detail-block__title" [id]="'inv-detail-block-' + current.id">
             {{ current.title }}
@@ -177,14 +177,16 @@
               >
                 Quarterly
               </button>
-              <button
-                type="button"
-                class="cdt-toggle__btn"
-                [class.cdt-toggle__btn--active]="hubTimeframe() === 'daily'"
-                (click)="hubTimeframeChange.emit('daily')"
-              >
-                Daily
-              </button>
+              @if (hubShowDailyTimeframe()) {
+                <button
+                  type="button"
+                  class="cdt-toggle__btn"
+                  [class.cdt-toggle__btn--active]="hubTimeframe() === 'daily'"
+                  (click)="hubTimeframeChange.emit('daily')"
+                >
+                  Daily
+                </button>
+              }
             </div>
 
             @if (hubTimeframe() === 'quarterly') {
@@ -258,7 +260,7 @@
             />
           </label>
         }
-        @if (current.collapsible && !isEntityOverviewBlock()) {
+        @if (current.collapsible) {
           <button
             type="button"
             class="inv-detail-block__toggle"
@@ -401,7 +403,7 @@
                                       @if (hubShowAmount(cellValue(row, column.key))) {
                                         {{ displayAmountValue(cellValue(row, column.key)) | ksCurrency: 'USD' : 2 : true }}
                                       } @else {
-                                        <span class="inv-detail-table__empty">--</span>
+                                        <span class="inv-detail-table__empty">—</span>
                                       }
                                     }
                                     @case ('number') {
@@ -435,7 +437,7 @@
                               <td [class]="cellClass(column, current.totals ?? undefined)">
                                 @switch (column.type) {
                                   @case ('amount') {
-                                    @if (showAmount(cellValue(current.totals, column.key), false)) {
+                                    @if (showAmount(cellValue(current.totals, column.key))) {
                                       {{ amountValue(cellValue(current.totals, column.key)) | ksCurrency: 'USD' : 2 : true }}
                                     } @else {
                                       <span class="inv-detail-table__empty">—</span>
@@ -501,7 +503,109 @@
           }
 
           @case ('table') {
-            @if (isFundHoldingsTableVariant()) {
+            @if (isFundHoldingsVariant()) {
+              <div class="inv-detail-block__fund-holdings-panel">
+                <div
+                  class="inv-detail-table-wrap inv-detail-table-wrap--fund-holdings"
+                  [class.inv-detail-table-wrap--loading]="tableLoading()"
+                >
+                  @if (tableLoading()) {
+                    <div class="inv-detail-block__fund-holdings-overlay" role="status" aria-live="polite">
+                      <div class="inv-detail-table__spinner" aria-hidden="true"></div>
+                      <p>{{ pagedTableLoadingMessage() }}</p>
+                    </div>
+                  }
+                  @if (!tableLoading() && !filteredTableRows().length) {
+                    <div class="inv-detail-block__fund-holdings-empty" role="status">
+                      <mat-icon aria-hidden="true">inventory_2</mat-icon>
+                      <p>{{ emptyStateMessage() }}</p>
+                    </div>
+                  } @else {
+                    <table class="cdt-table inv-detail-block__fund-holdings-grid">
+                      <thead>
+                        <tr>
+                          @for (column of current.columns; track column.key) {
+                            <th [class]="fundHoldingsHeadClass(column)">
+                              @if (column.sortBy) {
+                                <button
+                                  type="button"
+                                  class="cdt-table__sort"
+                                  [class.cdt-table__sort--active]="isSortActive(column)"
+                                  [class.cdt-table__sort--right]="column.align === 'right'"
+                                  (click)="toggleSort(column); $event.stopPropagation()"
+                                >
+                                  <span class="cdt-table__sort-label">{{ column.label }}</span>
+                                  @if (sortIcon(column); as icon) {
+                                    <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+                                  }
+                                </button>
+                              } @else {
+                                {{ column.label }}
+                              }
+                            </th>
+                          }
+                          <th class="cdt-table__chevron-col" aria-hidden="true"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of filteredTableRows(); track $index) {
+                          <tr
+                            class="cdt-table__row"
+                            [class.cdt-table__row--clickable]="canDrillDownFundHoldingsRow(row)"
+                            (click)="canDrillDownFundHoldingsRow(row) && onFundExposureRowClick(row, $index)"
+                          >
+                            @for (column of current.columns; track column.key) {
+                              @if (column.type === 'amount') {
+                                <td [class]="fundHoldingsNumClass(column)">
+                                  @if (showAmount(cellValue(row, column.key))) {
+                                    {{ displayAmountValue(cellValue(row, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                                  } @else {
+                                    <span class="cdt-table__muted">—</span>
+                                  }
+                                </td>
+                              } @else if (column.key === 'fund') {
+                                <td>
+                                  <span class="cdt-fund-cell__name">{{ cellValue(row, column.key) ?? '—' }}</span>
+                                </td>
+                              } @else {
+                                <td>{{ cellValue(row, column.key) ?? '—' }}</td>
+                              }
+                            }
+                            <td class="cdt-table__chevron-col">
+                              @if (canDrillDownFundHoldingsRow(row)) {
+                                <mat-icon aria-hidden="true">chevron_right</mat-icon>
+                              }
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                      @if (current.totals && filteredTableRows().length) {
+                        <tfoot>
+                          <tr class="cdt-table__total-row">
+                            @for (column of current.columns; track column.key) {
+                              @if (column.type === 'amount') {
+                                <td [class]="fundHoldingsNumClass(column)">
+                                  @if (showAmount(cellValue(current.totals, column.key))) {
+                                    {{ amountValue(cellValue(current.totals, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                                  } @else {
+                                    <span class="cdt-table__muted">—</span>
+                                  }
+                                </td>
+                              } @else if ($first) {
+                                <td>{{ cellValue(current.totals, column.key) ?? 'Total' }}</td>
+                              } @else {
+                                <td>{{ cellValue(current.totals, column.key) ?? '—' }}</td>
+                              }
+                            }
+                            <td class="cdt-table__chevron-col" aria-hidden="true"></td>
+                          </tr>
+                        </tfoot>
+                      }
+                    </table>
+                  }
+                </div>
+              </div>
+            } @else if (isUnderlyingInvestmentsVariant()) {
               <div class="inv-detail-block__fund-holdings-panel">
                 <div
                   class="inv-detail-table-wrap inv-detail-table-wrap--fund-holdings"
@@ -520,8 +624,7 @@
                     </div>
                   } @else {
                     <table
-                      class="inv-detail-table inv-detail-table--data-grid inv-detail-table--fund-holdings"
-                      [class.inv-detail-table--underlying-investments]="isUnderlyingInvestmentsVariant()"
+                      class="inv-detail-table inv-detail-table--data-grid inv-detail-table--underlying-investments"
                     >
                       <thead>
                         <tr>
@@ -554,31 +657,13 @@
                               <td [class]="cellClass(column, row)">
                                 @switch (column.type) {
                                   @case ('amount') {
-                                    @if (cellValue(row, column.key) === '--') {
-                                      <span class="inv-detail-table__empty">--</span>
-                                    } @else if (showAmount(cellValue(row, column.key), isTransactionsVariant())) {
+                                    @if (showAmount(cellValue(row, column.key))) {
                                       <span [class]="amountCellClass(column)">
                                         {{ displayAmountValue(cellValue(row, column.key)) | ksCurrency: 'USD' : 2 : true }}
                                       </span>
                                     } @else {
                                       <span class="inv-detail-table__empty">—</span>
                                     }
-                                  }
-                                  @case ('link') {
-                                    @if (column.key === 'fund' && row['fundKey']) {
-                                      <button
-                                        type="button"
-                                        class="inv-detail-table__fund-link"
-                                        (click)="onFundHoldingsFundClick(row)"
-                                      >
-                                        {{ cellValue(row, column.key) ?? '—' }}
-                                      </button>
-                                    } @else {
-                                      {{ cellValue(row, column.key) ?? '—' }}
-                                    }
-                                  }
-                                  @case ('date') {
-                                    {{ cellValue(row, column.key) ?? '—' }}
                                   }
                                   @default {
                                     {{ cellValue(row, column.key) ?? '—' }}
@@ -596,9 +681,7 @@
                               <td [class]="cellClass(column, current.totals ?? undefined)">
                                 @switch (column.type) {
                                   @case ('amount') {
-                                    @if (cellValue(current.totals, column.key) === '--') {
-                                      <span class="inv-detail-table__empty">--</span>
-                                    } @else if (showAmount(cellValue(current.totals, column.key), isTransactionsVariant())) {
+                                    @if (showAmount(cellValue(current.totals, column.key))) {
                                       <span [class]="amountCellClass(column)">
                                         {{ amountValue(cellValue(current.totals, column.key)) | ksCurrency: 'USD' : 2 : true }}
                                       </span>
@@ -621,7 +704,7 @@
                 @if (current.pagination) {
                   <footer class="inv-detail-block__table-footer inv-detail-block__table-footer--fund-holdings">
                     <p class="inv-detail-block__table-summary">{{ pagedTableSummary() }}</p>
-                    <nav class="inv-detail-block__pagination" [attr.aria-label]="isUnderlyingInvestmentsVariant() ? 'Underlying investments pagination' : 'Fund holdings pagination'">
+                    <nav class="inv-detail-block__pagination" aria-label="Underlying assets pagination">
                       <button
                         type="button"
                         class="inv-detail-block__page-btn"
@@ -716,9 +799,7 @@
                         <td [class]="cellClass(column, row)">
                           @switch (column.type) {
                             @case ('amount') {
-                              @if (cellValue(row, column.key) === '--') {
-                                <span class="inv-detail-table__empty">--</span>
-                              } @else if (showAmount(cellValue(row, column.key), isTransactionsVariant())) {
+                              @if (showAmount(cellValue(row, column.key))) {
                                 {{ displayAmountValue(cellValue(row, column.key)) | ksCurrency: 'USD' : 2 : true }}
                               } @else {
                                 <span class="inv-detail-table__empty">—</span>
@@ -770,9 +851,7 @@
                         <td [class]="cellClass(column, current.totals ?? undefined)">
                           @switch (column.type) {
                             @case ('amount') {
-                              @if (cellValue(current.totals, column.key) === '--') {
-                                <span class="inv-detail-table__empty">--</span>
-                              } @else if (showAmount(cellValue(current.totals, column.key), isTransactionsVariant())) {
+                              @if (showAmount(cellValue(current.totals, column.key))) {
                                 {{ amountValue(cellValue(current.totals, column.key)) | ksCurrency: 'USD' : 2 : true }}
                               } @else {
                                 <span class="inv-detail-table__empty">—</span>
@@ -803,6 +882,9 @@
               class="inv-detail-block__entity-overview"
               [class.inv-detail-block__entity-overview--fund]="current.variant === 'fund'"
               [class.inv-detail-block__entity-overview--investor]="current.variant === 'investor'"
+              [class.inv-detail-block__entity-overview--investor-highlights]="
+                current.variant === 'investor' && !!current.highlights
+              "
               [class.inv-detail-block__entity-overview--profile]="
                 current.variant === 'fund' && !current.performanceMiniKpis?.length
               "
@@ -815,6 +897,59 @@
                 isFundOverviewTwoColumnLayout(current.columns)
               "
             >
+              @if (current.variant === 'investor' && current.highlights; as highlights) {
+                <div class="inv-detail-block__overview-highlights">
+                  <div class="inv-detail-block__overview-highlights-row">
+                    @for (metric of highlights.topRow; track metric.label) {
+                      <article class="inv-detail-block__overview-highlight">
+                        <p class="inv-detail-block__overview-highlight-label">{{ metric.label }}</p>
+                        <div class="inv-detail-block__overview-highlight-value-row">
+                          <p
+                            [class]="overviewHighlightValueClass(metric)"
+                            [class.inv-detail-block__overview-highlight-value--multiline]="metric.multiline"
+                          >
+                            {{ metric.value }}
+                          </p>
+                          @if (metric.inlineHint) {
+                            <span [class]="overviewHighlightInlineHintClass(metric)">{{ metric.inlineHint }}</span>
+                          }
+                        </div>
+                        @if (metric.subtext) {
+                          <p [class]="overviewHighlightSubtextClass(metric)">{{ metric.subtext }}</p>
+                        }
+                      </article>
+                    }
+                  </div>
+
+                  @if (highlights.bottomRow.length) {
+                  <div class="inv-detail-block__overview-highlights-row inv-detail-block__overview-highlights-row--bottom">
+                    @for (metric of highlights.bottomRow; track metric.label) {
+                      <article
+                        class="inv-detail-block__overview-highlight"
+                        [class.inv-detail-block__overview-highlight--separated]="!!metric.gridColumn && metric.gridColumn > 1"
+                        [style.grid-column]="metric.gridColumn"
+                      >
+                        <p class="inv-detail-block__overview-highlight-label">{{ metric.label }}</p>
+                        <div class="inv-detail-block__overview-highlight-value-row">
+                          <p
+                            [class]="overviewHighlightValueClass(metric)"
+                            [class.inv-detail-block__overview-highlight-value--multiline]="metric.multiline"
+                          >
+                            {{ metric.value }}
+                          </p>
+                          @if (metric.inlineHint) {
+                            <span [class]="overviewHighlightInlineHintClass(metric)">{{ metric.inlineHint }}</span>
+                          }
+                        </div>
+                        @if (metric.subtext) {
+                          <p [class]="overviewHighlightSubtextClass(metric)">{{ metric.subtext }}</p>
+                        }
+                      </article>
+                    }
+                  </div>
+                  }
+                </div>
+              } @else {
               <div class="inv-detail-block__entity-overview-grid">
                 @for (column of current.columns; track column.title ?? $index) {
                   @if (isEntityOverviewColumnVisible(current.variant, column.title)) {
@@ -897,6 +1032,7 @@
                   </div>
                 }
               </div>
+              }
 
               @if (current.deploymentBar; as deploymentBar) {
                 @if (current.deploymentBarPlacement !== 'performance-column' && current.variant !== 'investor') {

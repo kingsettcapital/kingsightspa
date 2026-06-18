@@ -10,6 +10,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -42,6 +43,7 @@ import {
   buildFlatInvestorBlocks,
   buildFundHoldingsTable,
   formatInvestorAddress,
+  InvestorDetailFlatBlock,
   InvestorDetailSectionId,
   InvestorOverviewInput,
   kpiCardsFromListRow,
@@ -50,7 +52,6 @@ import {
 import {
   investorDetailHasProfileData,
   kpiCardsFromInvestorDetail,
-  readInvestorDetailNumber,
   readInvestorDetailString,
 } from './utils/investor-detail-api.util';
 import {
@@ -68,6 +69,10 @@ import {
 type DetailTimeframe = 'ltd' | 'quarterly' | 'daily';
 type TransactionTableSortDir = 'asc' | 'desc';
 
+type InvestorDetailContentItem =
+  | { type: 'overview-group'; blocks: InvestorDetailFlatBlock[] }
+  | { type: 'block'; item: InvestorDetailFlatBlock };
+
 interface TransactionTableSort {
   sortBy: string;
   sortDir: TransactionTableSortDir;
@@ -77,6 +82,7 @@ interface TransactionTableSort {
   selector: 'app-investor-detail',
   standalone: true,
   imports: [
+    NgTemplateOutlet,
     FormsModule,
     RouterModule,
     MatIconModule,
@@ -197,21 +203,6 @@ export class InvestorDetailComponent {
         this.listRow()?.contactName,
       ) || '—',
   );
-  readonly fundsCount = computed(() => {
-    const detail = this.detail();
-    const fromDetail = readInvestorDetailNumber(detail, 'fund_count', 'fundCount');
-    if (fromDetail != null && fromDetail > 0) {
-      return fromDetail;
-    }
-    if ((detail?.funds?.length ?? 0) > 0) {
-      return detail!.funds!.length;
-    }
-    const state = this.detailState();
-    if (state.fundHoldings.length > 0) {
-      return state.fundHoldings.length;
-    }
-    return this.listRow()?.fundsCount ?? detail?.summary?.investmentsCount ?? 0;
-  });
 
   readonly hasMetricData = computed(
     () => investorDetailHasProfileData(this.detail()) || this.listRow() != null,
@@ -220,29 +211,6 @@ export class InvestorDetailComponent {
   readonly fundHoldingsTable = computed(() => {
     const state = this.detailState();
     return buildFundHoldingsTable(state.fundHoldings, state.fundHoldingsDateKey);
-  });
-
-  readonly headerBadgeLabel = computed(() => {
-    const relationship = this.relationshipLabel();
-    return relationship && relationship !== '—' ? relationship : '';
-  });
-
-  readonly subtitleText = computed(() => {
-    const type = this.investorType();
-    const typePart = type && type !== '—' ? type : '';
-    const funds = this.fundsCount();
-    const fundsPart = `${funds} fund${funds === 1 ? '' : 's'}`;
-    return [typePart, fundsPart].filter(Boolean).join(' · ');
-  });
-
-  readonly subtitleAddressLabel = computed(() => {
-    const address = formatInvestorAddress(this.detail(), this.listRow()?.address ?? '');
-    return address.replace(/\s*\n+\s*/g, ', ').trim();
-  });
-
-  readonly subtitleContactLabel = computed(() => {
-    const contact = this.contactName();
-    return contact && contact !== '—' ? contact : '';
   });
 
   readonly periodLabel = computed(() => {
@@ -391,6 +359,30 @@ export class InvestorDetailComponent {
         ),
       };
     });
+  });
+
+  readonly contentLayoutItems = computed((): InvestorDetailContentItem[] => {
+    const flat = this.flatBlocks();
+    const items: InvestorDetailContentItem[] = [];
+    let index = 0;
+    while (index < flat.length) {
+      const current = flat[index];
+      if (current.sectionId === 'overview' && current.isSectionStart) {
+        const blocks = [current];
+        const next = flat[index + 1];
+        if (next?.sectionId === 'overview' && next.block.id === 'fund-exposure') {
+          blocks.push(next);
+          index += 2;
+        } else {
+          index += 1;
+        }
+        items.push({ type: 'overview-group', blocks });
+        continue;
+      }
+      items.push({ type: 'block', item: current });
+      index += 1;
+    }
+    return items;
   });
 
   constructor() {
@@ -769,9 +761,9 @@ export class InvestorDetailComponent {
           fundKey,
           fundName,
           commitment: readAmount('commitment'),
-          netInvestedCapital: readAmount('netInvested') || readAmount('netInvestedCapital'),
-          netDistributed: readAmount('distributed') || readAmount('netDistributed'),
-          reservedUncalled: readAmount('reserved'),
+          netInvestedCapital: readAmount('netInvestedCapital') || readAmount('netInvested'),
+          netDistributed: readAmount('netDistributed') || readAmount('distributed'),
+          reservedUncalled: readAmount('reserved') || readAmount('reservedUncalled'),
           releasedCapital: readAmount('releasedCapital'),
           fundType: null,
           strategy: null,
@@ -823,11 +815,8 @@ export class InvestorDetailComponent {
     void this.router.navigate(['/capital-dashboard/investor']);
   }
 
-  formatKpiAmount(value: number, dashWhenZero = false): string {
+  formatKpiAmount(value: number): string {
     if (!this.hasMetricData()) {
-      return '--';
-    }
-    if (dashWhenZero && value === 0) {
       return '--';
     }
     return this.ksCurrency.transform(value, 'USD', 2, true);

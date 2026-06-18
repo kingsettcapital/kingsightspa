@@ -1062,7 +1062,7 @@ export class CapitalDashboardEffects {
           catchError(() =>
             of(
               InvestorsApiActions.loadInvestorCapitalInvestmentsPageFailure({
-                error: 'Unable to load investments. Please try again.',
+                error: 'Unable to load underlying assets. Please try again.',
               }),
             ),
           ),

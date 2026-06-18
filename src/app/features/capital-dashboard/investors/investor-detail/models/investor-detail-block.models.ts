@@ -81,6 +81,26 @@ export interface InvestorDetailOverviewMiniKpi {
   value: string;
 }
 
+export type InvestorOverviewHighlightTone = 'default' | 'accent' | 'info' | 'positive' | 'muted';
+
+export interface InvestorOverviewHighlightMetric {
+  label: string;
+  value: string;
+  subtext?: string;
+  valueTone?: InvestorOverviewHighlightTone;
+  subtextTone?: InvestorOverviewHighlightTone;
+  inlineHint?: string;
+  inlineHintTone?: 'positive' | 'muted';
+  /** 1-based column placement for sparse bottom rows (Deal Highlights layout). */
+  gridColumn?: 1 | 2 | 3 | 4;
+  multiline?: boolean;
+}
+
+export interface InvestorOverviewHighlights {
+  topRow: InvestorOverviewHighlightMetric[];
+  bottomRow: InvestorOverviewHighlightMetric[];
+}
+
 export interface InvestorDetailEntityOverviewBlock {
   kind: 'entity-overview';
   id: string;
@@ -89,6 +109,7 @@ export interface InvestorDetailEntityOverviewBlock {
   collapsible?: boolean;
   defaultExpanded?: boolean;
   columns: InvestorDetailFieldColumn[];
+  highlights?: InvestorOverviewHighlights;
   fundMembership?: InvestorDetailFundMembership;
   performanceMiniKpis?: InvestorDetailOverviewMiniKpi[];
   deploymentBar?: InvestorDetailDeploymentBar;

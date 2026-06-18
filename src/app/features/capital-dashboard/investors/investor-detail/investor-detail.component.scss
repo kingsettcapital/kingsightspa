@@ -169,6 +169,12 @@ p.inv-detail__subtitle {
   scroll-margin-top: calc(var(--inv-detail-sticky-offset, 14rem) + 0.5rem);
 }
 
+.inv-detail__overview-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .inv-detail__state {
   display: flex;
   flex-direction: column;

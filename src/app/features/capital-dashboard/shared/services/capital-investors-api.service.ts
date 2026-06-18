@@ -128,15 +128,16 @@ export class CapitalInvestorsApiService {
 
   getInvestorCapitalInvestmentsPage(
     investorKey: number,
-    params: { page?: number; pageSize?: number } = {},
+    params: { page?: number; pageSize?: number; search?: string } = {},
     pageSize = LIST_PAGE_SIZE,
   ): Observable<PagedResult<InvestorUnderlyingInvestmentDto>> {
     const query: ListQueryParams = {
       page: params.page ?? 1,
       pageSize: params.pageSize ?? pageSize,
+      ...(params.search?.trim() ? { search: params.search.trim() } : {}),
     };
     return this.api.get<PagedResult<InvestorUnderlyingInvestmentDto>>(
-      `api/CapitalInvestors/${investorKey}/investments`,
+      `api/CapitalInvestors/${investorKey}/underlying-assets`,
       query as any,
     );
   }

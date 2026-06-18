@@ -10,6 +10,7 @@ import {
   InvestorDetailFieldItem,
   InvestorDetailFundMembership,
   InvestorDetailFundMembershipItem,
+  InvestorOverviewHighlightMetric,
 } from '../models/investor-detail-block.models';
 import {
   InvestorTransactionCategoryId,
@@ -49,6 +50,7 @@ export class InvestorDetailBlockComponent {
   readonly transactionHubPageChange = output<number>();
   readonly hubFundFilterChange = output<string>();
   readonly hubTimeframe = input<'ltd' | 'quarterly' | 'daily'>('ltd');
+  readonly hubShowDailyTimeframe = input(true);
   readonly hubTimeframeChange = output<'ltd' | 'quarterly' | 'daily'>();
   readonly hubQuarterChange = output<number>();
   readonly hubYearChange = output<number>();
@@ -181,7 +183,7 @@ export class InvestorDetailBlockComponent {
   }
 
   hubShowAmount(value: InvestorDetailTableCellValue): boolean {
-    return this.showAmount(value, this.isHubTable());
+    return this.showAmount(value);
   }
 
   isFundExposureTable(): boolean {
@@ -234,7 +236,7 @@ export class InvestorDetailBlockComponent {
       return 'Loading fund holdings…';
     }
     if (this.isUnderlyingInvestmentsVariant()) {
-      return 'Loading underlying investments…';
+      return 'Loading underlying assets…';
     }
     return 'Loading…';
   }
@@ -281,7 +283,7 @@ export class InvestorDetailBlockComponent {
       return 'No fund holdings found for the selected date range.';
     }
     if (this.isUnderlyingInvestmentsVariant()) {
-      return 'No underlying investments found.';
+      return 'No underlying assets found.';
     }
     if (this.isTransactionHubBlock()) {
       if (this.tableSearchActive() || this.searchQuery().trim()) {
@@ -421,6 +423,45 @@ export class InvestorDetailBlockComponent {
     return null;
   }
 
+  fundHoldingsHeadClass(column: InvestorDetailTableColumn): string {
+    return column.align === 'right' || column.type === 'amount' ? 'cdt-table__num' : '';
+  }
+
+  fundHoldingsNumClass(column: InvestorDetailTableColumn): string {
+    const classes = ['cdt-table__num'];
+    switch (column.key) {
+      case 'commitment':
+        classes.push('cdt-table__num--commitment');
+        break;
+      case 'netInvested':
+      case 'netInvestedCapital':
+        classes.push('cdt-table__num--net-invested');
+        break;
+      case 'distributed':
+      case 'netDistributed':
+        classes.push('cdt-table__num--net-distributed');
+        break;
+      case 'unfunded':
+        classes.push('cdt-table__num--unfunded');
+        break;
+      case 'reserved':
+      case 'reservedUncalled':
+        classes.push('cdt-table__num--reserved');
+        break;
+      case 'releasedCapital':
+        classes.push('cdt-table__num--released');
+        break;
+      default:
+        break;
+    }
+    return classes.join(' ');
+  }
+
+  canDrillDownFundHoldingsRow(row: InvestorDetailTableRow): boolean {
+    const fundKey = row['fundKey'];
+    return typeof fundKey === 'number' && Number.isFinite(fundKey) && fundKey > 0;
+  }
+
   amountCellClass(column: InvestorDetailTableColumn): string {
     if (!this.isFundHoldingsVariant()) {
       return '';
@@ -442,12 +483,8 @@ export class InvestorDetailBlockComponent {
     return this.isAssetTransactionsVariant() ? Math.abs(amount) : amount;
   }
 
-  showAmount(value: InvestorDetailTableCellValue, dashZero = false): boolean {
-    if (!dashZero) {
-      return this.amountValue(value) != null;
-    }
-    const amount = this.amountValue(value);
-    return amount != null && amount !== 0;
+  showAmount(value: InvestorDetailTableCellValue): boolean {
+    return this.amountValue(value) != null;
   }
 
   isTransactionsVariant(): boolean {
@@ -624,6 +661,21 @@ export class InvestorDetailBlockComponent {
       return 'inv-detail-block__field-value';
     }
     return `inv-detail-block__field-value inv-detail-block__field-value--${tone}`;
+  }
+
+  overviewHighlightValueClass(metric: InvestorOverviewHighlightMetric): string {
+    const tone = metric.valueTone ?? 'default';
+    return `inv-detail-block__overview-highlight-value inv-detail-block__overview-highlight-value--${tone}`;
+  }
+
+  overviewHighlightSubtextClass(metric: InvestorOverviewHighlightMetric): string {
+    const tone = metric.subtextTone ?? 'muted';
+    return `inv-detail-block__overview-highlight-subtext inv-detail-block__overview-highlight-subtext--${tone}`;
+  }
+
+  overviewHighlightInlineHintClass(metric: InvestorOverviewHighlightMetric): string {
+    const tone = metric.inlineHintTone ?? 'positive';
+    return `inv-detail-block__overview-highlight-inline-hint inv-detail-block__overview-highlight-inline-hint--${tone}`;
   }
 
   kpiVariantClass(variant?: string): string {

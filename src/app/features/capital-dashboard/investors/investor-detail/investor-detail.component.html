@@ -1,135 +1,265 @@
 <section class="inv-detail" aria-label="Investor profile">
+
   <aside class="inv-detail__sidebar">
+
     <app-investor-detail-sidebar
+
       [sections]="sidebarSections"
+
       [activeSectionId]="activeSectionId()"
+
       (sectionSelect)="scrollToSection($event)"
+
     />
+
   </aside>
+
+
 
   <div #mainContent class="inv-detail__main">
 
+
+
     <div #stickyChrome class="inv-detail__sticky-chrome">
 
+
+
       <button type="button" class="inv-detail__back" (click)="backToList()">
+
         <mat-icon aria-hidden="true">chevron_left</mat-icon>
+
         Back to Investors
+
       </button>
+
   
+
       <header class="inv-detail__header">
+
         <div class="inv-detail__heading">
-          <div class="inv-detail__title-row">
-            <h1 class="inv-detail__title">{{ investorName() }}</h1>
-            @if (headerBadgeLabel()) {
-              <span class="inv-detail__chip">{{ headerBadgeLabel() }}</span>
-            }
-          </div>
-          <p class="inv-detail__subtitle">
-            @if (subtitleText()) {
-              <span>{{ subtitleText() }}</span>
-            }
-            @if (subtitleAddressLabel()) {
-              @if (subtitleText()) {
-                <span> · </span>
-              }
-              <span>Address: <strong>{{ subtitleAddressLabel() }}</strong></span>
-            }
-            @if (subtitleContactLabel()) {
-              @if (subtitleText() || subtitleAddressLabel()) {
-                <span> · </span>
-              }
-              <span>Contact: <strong>{{ subtitleContactLabel() }}</strong></span>
-            }
-          </p>
+
+          <h1 class="inv-detail__title">{{ investorName() }}</h1>
+
         </div>
+
       </header>
+
   
+
       <div class="inv-detail__kpi-row">
+
         <article class="cdt-kpi cdt-kpi--navy">
+
           <p class="cdt-kpi__label">Total Commitment</p>
+
           <p class="cdt-kpi__value">{{ formatKpiAmount(kpiCards().totalCommitment) }}</p>
+
           <p class="cdt-kpi__hint"></p>
+
         </article>
+
         <article class="cdt-kpi cdt-kpi--blue">
+
           <p class="cdt-kpi__label">Net Invested Capital</p>
+
           <p class="cdt-kpi__value">{{ formatKpiAmount(kpiCards().netInvestedCapital) }}</p>
+
           <p class="cdt-kpi__hint">deployed</p>
+
         </article>
+
         <article class="cdt-kpi cdt-kpi--blue-light">
+
           <p class="cdt-kpi__label">Net Distributed</p>
+
           <p class="cdt-kpi__value">{{ formatKpiAmount(kpiCards().netDistributed) }}</p>
+
           <p class="cdt-kpi__hint">cash returned</p>
+
         </article>
+
         <article class="cdt-kpi cdt-kpi--metric-reserved">
+
           <p class="cdt-kpi__label">Reserved</p>
+
           <p class="cdt-kpi__value">{{ formatKpiAmount(kpiCards().reservedUncalled) }}</p>
+
           <p class="cdt-kpi__hint">Remaining to call</p>
+
         </article>
+
         <article class="cdt-kpi cdt-kpi--metric-unfunded">
+
           <p class="cdt-kpi__label">Unfunded</p>
+
           <p class="cdt-kpi__value">{{ formatKpiAmount(kpiCards().unfunded) }}</p>
+
         </article>
+
         <article class="cdt-kpi cdt-kpi--metric-released">
+
           <p class="cdt-kpi__label">Released Capital</p>
-          <p class="cdt-kpi__value">{{ formatKpiAmount(kpiCards().releasedCapital, true) }}</p>
+
+          <p class="cdt-kpi__value">{{ formatKpiAmount(kpiCards().releasedCapital) }}</p>
+
           <p class="cdt-kpi__hint"></p>
+
         </article>
+
         <article class="cdt-kpi cdt-kpi--gold">
+
           <p class="cdt-kpi__label">Funds</p>
+
           <p class="cdt-kpi__value">{{ formatKpiCount(kpiCards().fundsCount) }}</p>
+
           <p class="cdt-kpi__hint">Active fund subscriptions</p>
+
         </article>
+
       </div>
+
     </div>
 
+
+
     @if (contentLoading()) {
+
       <div class="inv-detail__state" role="status">
+
         <div class="inv-detail__spinner" aria-hidden="true"></div>
+
         <p>{{ contentLoadingMessage() }}</p>
+
       </div>
+
     } @else if (error()) {
+
       <div class="inv-detail__state inv-detail__state--error" role="alert">
+
         <mat-icon aria-hidden="true">error_outline</mat-icon>
+
         <p>{{ error() }}</p>
+
         <button type="button" class="inv-detail__retry" (click)="backToList()">Back to list</button>
+
       </div>
+
     } @else {
+
       <div class="inv-detail__content">
-        @for (item of flatBlocks(); track item.block.id) {
-          <div
-            class="inv-detail__block-wrap"
-            [attr.id]="item.isSectionStart ? 'inv-section-' + item.sectionId : null"
-          >
+
+        <ng-template #detailBlock let-item let-sectionAnchor="sectionAnchor">
+
+          <div class="inv-detail__block-wrap" [attr.id]="sectionAnchor">
+
             <app-investor-detail-block
+
               [block]="item.block"
+
               [tableContextKey]="tableContextKey()"
+
               [tableLoading]="tableLoadingForBlock(item.block)"
+
               [tableSearchActive]="tableSearchActiveForBlock(item.block)"
+
               [sortColumn]="tableSortColumnForBlock(item.block)"
+
               [sortDir]="tableSortDirForBlock(item.block)"
+
               [hubFundFilter]="transactionHubAppliedFundCode()"
+
               [hubQuarterScope]="quarterScope()"
+
               [hubTimeframe]="timeframe()"
+
+              [hubShowDailyTimeframe]="false"
+
               [hubQuarter]="quarter()"
+
               [hubYear]="year()"
+
               [hubAvailableQuarters]="availableQuarters()"
+
               [hubAvailableYears]="availableYears()"
+
               (transactionSearchChange)="onTransactionSearch($event)"
+
               (transactionSortChange)="onTransactionSort($event)"
+
               (fundExposureRowClick)="openFundFromExposure($event)"
+
               (overviewFundClick)="openFundFromOverview($event)"
+
               (transactionHubCategoryChange)="onTransactionHubCategoryChange($event)"
+
               (transactionHubPageChange)="onTransactionHubPageChange($event)"
+
               (hubFundFilterApply)="onTransactionHubFundFilterApply($event)"
+
               (hubQuarterScopeChange)="setQuarterScope($event)"
+
               (hubTimeframeChange)="setTransactionTimeframe($event)"
+
               (hubQuarterChange)="setQuarter($event)"
+
               (hubYearChange)="setYear($event)"
+
               (underlyingInvestmentsPageChange)="onUnderlyingInvestmentsPageChange($event)"
+
             />
+
           </div>
+
+        </ng-template>
+
+
+
+        @for (layout of contentLayoutItems(); track layout.type === 'overview-group' ? 'overview-group' : layout.item.block.id) {
+
+          @if (layout.type === 'overview-group') {
+
+            <div class="inv-detail__overview-group" id="inv-section-overview">
+
+              @for (item of layout.blocks; track item.block.id) {
+
+                <ng-container
+
+                  [ngTemplateOutlet]="detailBlock"
+
+                  [ngTemplateOutletContext]="{ $implicit: item, sectionAnchor: null }"
+
+                />
+
+              }
+
+            </div>
+
+          } @else {
+
+            <ng-container
+
+              [ngTemplateOutlet]="detailBlock"
+
+              [ngTemplateOutletContext]="{
+
+                $implicit: layout.item,
+
+                sectionAnchor: layout.item.isSectionStart ? 'inv-section-' + layout.item.sectionId : null
+
+              }"
+
+            />
+
+          }
+
         }
+
       </div>
+
     }
+
   </div>
+
 </section>
+
+

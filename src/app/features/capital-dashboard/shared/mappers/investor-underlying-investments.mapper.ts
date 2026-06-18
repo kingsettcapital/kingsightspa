@@ -1,14 +1,9 @@
 import {
-  FundGranularRowDto,
   InvestorUnderlyingInvestmentDto,
   InvestorUnderlyingInvestmentTabRow,
 } from '../models/api.models';
 
-const EMPTY = '--';
-
-function num(value: number | null | undefined): number {
-  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
-}
+const EMPTY = '—';
 
 function readString(...candidates: Array<string | null | undefined>): string {
   for (const value of candidates) {
@@ -20,37 +15,32 @@ function readString(...candidates: Array<string | null | undefined>): string {
   return EMPTY;
 }
 
-function formatInvestmentDate(value: string | null | undefined): string {
-  const trimmed = value?.trim();
-  if (!trimmed) {
-    return EMPTY;
-  }
-  const parsed = new Date(trimmed);
-  if (Number.isNaN(parsed.getTime())) {
-    return trimmed.slice(0, 10);
-  }
-  return parsed.toLocaleDateString('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-}
-
-function mapDto(
-  dto: InvestorUnderlyingInvestmentDto | FundGranularRowDto,
-): InvestorUnderlyingInvestmentTabRow {
-  const record = dto as InvestorUnderlyingInvestmentDto & FundGranularRowDto;
+function mapDto(dto: InvestorUnderlyingInvestmentDto): InvestorUnderlyingInvestmentTabRow {
   return {
-    findCode: readString(record.findcode, record.findCode, record.fund_code),
-    description: readString(record.description),
-    investedAmount: num(record.invested_amount ?? record.investedAmount ?? record.amount),
-    period: readString(record.period),
-    date: formatInvestmentDate(record.date),
+    propertyName: readString(dto.property_name, dto.propertyName),
+    city: readString(dto.city),
+    province: readString(dto.province),
+    geography: readString(dto.geography),
+    assetType: readString(dto.asset_type, dto.assetType),
+    assetSubType: readString(dto.asset_sub_type, dto.assetSubType),
+    investmentType: readString(dto.investment_type, dto.investmentType),
   };
 }
 
 export function mapInvestorUnderlyingInvestmentsToTabRows(
-  items: Array<InvestorUnderlyingInvestmentDto | FundGranularRowDto> | null | undefined,
+  items: InvestorUnderlyingInvestmentDto[] | null | undefined,
 ): InvestorUnderlyingInvestmentTabRow[] {
   return (items ?? []).map((item) => mapDto(item));
+}
+
+export function investorUnderlyingAssetSearchText(row: InvestorUnderlyingInvestmentTabRow): string {
+  return [
+    row.propertyName,
+    row.city,
+    row.province,
+    row.geography,
+    row.assetType,
+    row.assetSubType,
+    row.investmentType,
+  ].join(' ');
 }

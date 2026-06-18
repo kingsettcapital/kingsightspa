@@ -41,6 +41,15 @@ function formatSinceDate(iso: string | null | undefined): string {
   });
 }
 
+function readOptionalAmount(...values: Array<number | null | undefined>): number {
+  for (const value of values) {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return 0;
+}
+
 export function mapInvestorFundHoldingsToTabRows(
   items: InvestorFundHoldingDto[] | null | undefined,
 ): InvestorFundHoldingTabRow[] {
@@ -49,9 +58,16 @@ export function mapInvestorFundHoldingsToTabRows(
     fundName: readFundName(dto),
     since: formatSinceDate(dto.since),
     commitment: num(dto.commitment),
+    netInvestedCapital: readOptionalAmount(
+      dto.net_invested_capital,
+      dto.netInvestedCapital,
+      dto.net_invested,
+      dto.netInvested,
+    ),
+    netDistributed: readOptionalAmount(dto.net_distributed, dto.netDistributed, dto.distributed),
+    reservedUncalled: readOptionalAmount(dto.reserved_uncalled, dto.reservedUncalled, dto.reserved),
     unfunded: num(dto.unfunded),
-    netInvested: num(dto.net_invested ?? dto.netInvested),
-    distributed: num(dto.distributed),
+    releasedCapital: readOptionalAmount(dto.released_capital, dto.releasedCapital, dto.released),
   }));
 }
 
