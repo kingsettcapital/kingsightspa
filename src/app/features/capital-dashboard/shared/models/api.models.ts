@@ -178,6 +178,14 @@ export interface InvestorDetailDto {
   relationship?: string | null;
   status?: string | null;
   contact?: string | null;
+  address_line1?: string | null;
+  addressLine1?: string | null;
+  address_line2?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  province?: string | null;
+  province_code?: string | null;
+  provinceCode?: string | null;
   total_commitment?: number | null;
   totalCommitment?: number | null;
   net_invested_capital?: number | null;
@@ -595,12 +603,14 @@ export interface InvestorCapitalActivityDto {
   transferOut?: number | null;
   redemption?: number | null;
   type?: string | null;
+  period?: string | null;
 }
 
 export interface InvestorCapitalActivityTabRow {
   fundCode: string;
   fundName: string;
   type: string;
+  period: string;
   called: number;
   transferIn: number;
   transferOut: number;
@@ -663,12 +673,14 @@ export interface InvestorDistributionTableDto {
   returnOfCapital?: number | null;
   released?: number | null;
   type?: string | null;
+  period?: string | null;
 }
 
 export interface InvestorDistributionTableTabRow {
   fundCode: string;
   fundName: string;
   type: string;
+  period: string;
   committed: number;
   unfunded: number;
   cashDist: number;
@@ -691,12 +703,14 @@ export interface InvestorIrrDto {
   irr_10_year_pct?: number | null;
   irr_ltd_pct?: number | null;
   type?: string | null;
+  period?: string | null;
 }
 
 export interface InvestorIrrTabRow {
   fundCode: string;
   fundName: string;
   type: string;
+  period: string;
   irr1Year: number | null;
   irr3Year: number | null;
   irr5Year: number | null;
@@ -713,6 +727,7 @@ export interface InvestorCapitalObligationDto {
   fundCode?: string | null;
   fund_name?: string | null;
   fundName?: string | null;
+  period?: string | null;
   quarter_year?: string | null;
   quarterYear?: string | null;
   type?: string | null;
@@ -736,6 +751,7 @@ export interface InvestorNetAssetDto {
   fundCode?: string | null;
   fund_name?: string | null;
   fundName?: string | null;
+  period?: string | null;
   quarter_year?: string | null;
   quarterYear?: string | null;
   type?: string | null;
@@ -783,12 +799,14 @@ export interface FundInvestorCapitalActivityDto {
   transferOut?: number | null;
   redemption?: number | null;
   type?: string | null;
+  period?: string | null;
 }
 
 export interface FundInvestorCapitalActivityTabRow {
   investorCode: string;
   investorName: string;
   type: string;
+  period: string;
   called: number;
   transferIn: number;
   transferOut: number;
@@ -813,12 +831,14 @@ export interface FundInvestorDistributionTableDto {
   returnOfCapital?: number | null;
   released?: number | null;
   type?: string | null;
+  period?: string | null;
 }
 
 export interface FundInvestorDistributionTableTabRow {
   investorCode: string;
   investorName: string;
   type: string;
+  period: string;
   committed: number;
   unfunded: number;
   cashDist: number;
@@ -841,12 +861,14 @@ export interface FundInvestorIrrDto {
   irr_10_year_pct?: number | null;
   irr_ltd_pct?: number | null;
   type?: string | null;
+  period?: string | null;
 }
 
 export interface FundInvestorIrrTabRow {
   investorCode: string;
   investorName: string;
   type: string;
+  period: string;
   irr1Year: number | null;
   irr3Year: number | null;
   irr5Year: number | null;
@@ -861,6 +883,7 @@ export interface FundInvestorCapitalObligationDto {
   investorCode?: string | null;
   investor_name?: string | null;
   investorName?: string | null;
+  period?: string | null;
   quarter_year?: string | null;
   quarterYear?: string | null;
   type?: string | null;
@@ -881,6 +904,7 @@ export interface FundInvestorNetAssetDto {
   investorCode?: string | null;
   investor_name?: string | null;
   investorName?: string | null;
+  period?: string | null;
   quarter_year?: string | null;
   quarterYear?: string | null;
   type?: string | null;

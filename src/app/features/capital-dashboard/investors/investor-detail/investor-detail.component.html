@@ -28,8 +28,14 @@
             @if (subtitleText()) {
               <span>{{ subtitleText() }}</span>
             }
-            @if (subtitleContactLabel()) {
+            @if (subtitleAddressLabel()) {
               @if (subtitleText()) {
+                <span> · </span>
+              }
+              <span>Address: <strong>{{ subtitleAddressLabel() }}</strong></span>
+            }
+            @if (subtitleContactLabel()) {
+              @if (subtitleText() || subtitleAddressLabel()) {
                 <span> · </span>
               }
               <span>Contact: <strong>{{ subtitleContactLabel() }}</strong></span>

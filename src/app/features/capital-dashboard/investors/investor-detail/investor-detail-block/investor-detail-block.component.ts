@@ -5,8 +5,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { KsCurrencyPipe } from '../../../../../shared/pipes/ks-currency.pipe';
 import {
   InvestorDetailBlock,
+  InvestorDetailFieldColumn,
   InvestorDetailFieldGridBlock,
   InvestorDetailFieldItem,
+  InvestorDetailFundMembership,
+  InvestorDetailFundMembershipItem,
 } from '../models/investor-detail-block.models';
 import {
   InvestorTransactionCategoryId,
@@ -684,6 +687,49 @@ export class InvestorDetailBlockComponent {
     }
 
     return rows;
+  }
+
+  /** Splits visible fund names into columns (5 per column, up to 2 columns). */
+  fundMembershipFundColumns(
+    membership: InvestorDetailFundMembership,
+  ): InvestorDetailFundMembershipItem[][] {
+    const perColumn = 5;
+    const maxColumns = 2;
+    const columns: InvestorDetailFundMembershipItem[][] = [];
+
+    for (let columnIndex = 0; columnIndex < maxColumns; columnIndex += 1) {
+      const start = columnIndex * perColumn;
+      const columnItems = membership.items.slice(start, start + perColumn);
+      if (columnItems.length > 0) {
+        columns.push(columnItems);
+      }
+    }
+
+    return columns;
+  }
+
+  isEntityOverviewColumnVisible(
+    variant: 'investor' | 'fund',
+    columnTitle: string | undefined,
+  ): boolean {
+    if (!columnTitle) {
+      return true;
+    }
+    if (variant === 'investor' && columnTitle === 'Capital Summary') {
+      return false;
+    }
+    if (variant === 'fund' && columnTitle === 'Capital Structure') {
+      return false;
+    }
+    return true;
+  }
+
+  isFundOverviewTwoColumnLayout(columns: InvestorDetailFieldColumn[]): boolean {
+    return columns.some(
+      (column) =>
+        column.title === 'Capital Structure' &&
+        !this.isEntityOverviewColumnVisible('fund', column.title),
+    );
   }
 }
 

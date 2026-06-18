@@ -1,7 +1,10 @@
 import { InvestorDetailDto, InvestorDetailFundDto } from '../../../shared/models/api.models';
 import { InvestorDetailFundMembership } from '../models/investor-detail-block.models';
 
-const INVESTOR_OVERVIEW_VISIBLE_FUNDS = 5;
+const INVESTOR_OVERVIEW_FUNDS_PER_COLUMN = 5;
+const INVESTOR_OVERVIEW_FUND_COLUMNS = 2;
+const INVESTOR_OVERVIEW_VISIBLE_FUNDS =
+  INVESTOR_OVERVIEW_FUNDS_PER_COLUMN * INVESTOR_OVERVIEW_FUND_COLUMNS;
 
 export interface InvestorDetailKpiCards {
   totalCommitment: number;

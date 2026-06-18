@@ -37,6 +37,14 @@ function transactionType(...values: Array<string | null | undefined>): string {
   return code(...values) || '—';
 }
 
+function periodFromDto(dto: {
+  period?: string | null;
+  quarter_year?: string | null;
+  quarterYear?: string | null;
+}): string {
+  return code(dto.period, dto.quarter_year, dto.quarterYear);
+}
+
 export function mapInvestorCapitalActivitiesToTabRows(
   items: InvestorCapitalActivityDto[] | null | undefined,
 ): InvestorCapitalActivityTabRow[] {
@@ -44,6 +52,7 @@ export function mapInvestorCapitalActivitiesToTabRows(
     fundCode: code(dto.fund_code, dto.fundCode),
     fundName: name(dto.fund_name, dto.fundName),
     type: transactionType(dto.type),
+    period: periodFromDto(dto),
     called: num(dto.called),
     transferIn: num(dto.transfer_in ?? dto.transferIn),
     transferOut: num(dto.transfer_out ?? dto.transferOut),
@@ -58,6 +67,7 @@ export function mapInvestorDistributionTableToTabRows(
     fundCode: code(dto.fund_code, dto.fundCode),
     fundName: name(dto.fund_name, dto.fundName),
     type: transactionType(dto.type),
+    period: periodFromDto(dto),
     preferredReturn: num(dto.preferred_return ?? dto.preferredReturn),
     committed: num(dto.committed),
     unfunded: num(dto.unfunded),
@@ -75,6 +85,7 @@ export function mapInvestorIrrToTabRows(
     fundCode: code(dto.fund_code, dto.fundCode),
     fundName: name(dto.fund_name, dto.fundName),
     type: transactionType(dto.type),
+    period: periodFromDto(dto),
     irr1Year: optNum(dto.irr_1_year_pct),
     irr3Year: optNum(dto.irr_3_year_pct),
     irr5Year: optNum(dto.irr_5_year_pct),
@@ -93,7 +104,7 @@ export function mapInvestorCapitalObligationsToTabRows(
       fundKey: typeof fundKey === 'number' && Number.isFinite(fundKey) ? fundKey : null,
       fundCode: code(dto.fund_code, dto.fundCode),
       fundName: name(dto.fund_name, dto.fundName),
-      period: code(dto.quarter_year, dto.quarterYear) || '—',
+      period: periodFromDto(dto),
       type: transactionType(dto.type),
       amount: num(dto.amount),
     };
@@ -109,7 +120,7 @@ export function mapInvestorNetAssetsToTabRows(
       fundKey: typeof fundKey === 'number' && Number.isFinite(fundKey) ? fundKey : null,
       fundCode: code(dto.fund_code, dto.fundCode),
       fundName: name(dto.fund_name, dto.fundName),
-      period: code(dto.quarter_year, dto.quarterYear) || '—',
+      period: periodFromDto(dto),
       type: transactionType(dto.type),
       ret: optNum(dto.ret),
     };

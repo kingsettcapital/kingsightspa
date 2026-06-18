@@ -17,6 +17,7 @@ import {
 import { formatByFormatType, toFieldLabel } from '../../../shared/utils/dynamic-sections.util';
 import { InvestorTableRow } from '../../../shared/utils/investor-list-row.util';
 import { createDetailTableBlock } from '../../../shared/utils/investor-detail-table-block.util';
+import { withOptionalPeriodColumn } from '../../../shared/utils/transaction-table-period.util';
 import { INVESTOR_DETAIL_SIDEBAR_SECTIONS } from '../models/investor-detail-sidebar.config';
 import {
   InvestorDetailBlock,
@@ -467,7 +468,10 @@ function overviewFieldTone(value: string): 'default' | 'muted' | undefined {
   return value === OVERVIEW_EMPTY ? 'muted' : 'default';
 }
 
-const INVESTOR_OVERVIEW_VISIBLE_FUNDS = 5;
+const INVESTOR_OVERVIEW_FUNDS_PER_COLUMN = 5;
+const INVESTOR_OVERVIEW_FUND_COLUMNS = 2;
+const INVESTOR_OVERVIEW_VISIBLE_FUNDS =
+  INVESTOR_OVERVIEW_FUNDS_PER_COLUMN * INVESTOR_OVERVIEW_FUND_COLUMNS;
 
 interface FundExposureFund {
   fundCode: string;
@@ -919,6 +923,7 @@ function capitalActivityRowsToTableRows(rows: InvestorCapitalActivityTabRow[]): 
     fundCode: row.fundCode,
     fundName: row.fundName,
     type: row.type,
+    period: row.period,
     called: row.called,
     transferIn: row.transferIn,
     transferOut: row.transferOut,
@@ -931,6 +936,7 @@ function distributionTableRowsToTableRows(rows: InvestorDistributionTableTabRow[
     fundCode: row.fundCode,
     fundName: row.fundName,
     type: row.type,
+    period: row.period,
     prefReturn: row.preferredReturn,
     committed: row.committed,
     unfunded: row.unfunded,
@@ -946,6 +952,7 @@ function irrRowsToTableRows(rows: InvestorIrrTabRow[]): InvestorDetailTableRow[]
     fundCode: row.fundCode,
     fundName: row.fundName,
     type: row.type,
+    period: row.period,
     irr1Year: row.irr1Year,
     irr3Year: row.irr3Year,
     irr5Year: row.irr5Year,
@@ -984,7 +991,8 @@ export function buildCapitalActivitiesTable(
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = capitalActivityRowsToTableRows(rows);
-  const columns: InvestorDetailTableColumn[] = [
+  const columns = withOptionalPeriodColumn(
+    [
     { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left', sortBy: 'fund_code' },
     { key: 'fundName', label: 'Fund Name', type: 'text', align: 'left', sortBy: 'fund_name' },
     { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
@@ -992,7 +1000,10 @@ export function buildCapitalActivitiesTable(
     { key: 'transferIn', label: 'Transfer In', type: 'amount', align: 'right', sortBy: 'transfer_in' },
     { key: 'transferOut', label: 'Transfer Out', type: 'amount', align: 'right', tone: 'negative', sortBy: 'transfer_out' },
     { key: 'redemption', label: 'Redemption', type: 'amount', align: 'right', sortBy: 'redemption' },
-  ];
+    ],
+    tableRows,
+    'fundName',
+  );
 
   return fundToolbarTableBlock({
     id: 'capital-activities',
@@ -1010,7 +1021,8 @@ export function buildDistributionsTable(
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = distributionTableRowsToTableRows(rows);
-  const columns: InvestorDetailTableColumn[] = [
+  const columns = withOptionalPeriodColumn(
+    [
     { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left', sortBy: 'fund_code' },
     { key: 'fundName', label: 'Fund Name', type: 'text', align: 'left', sortBy: 'fund_name' },
     { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
@@ -1018,7 +1030,10 @@ export function buildDistributionsTable(
     { key: 'cashDist', label: 'Cash Dist.', type: 'amount', align: 'right', tone: 'positive', sortBy: 'cash_dist' },
     { key: 'gainDist', label: 'Gain Dist.', type: 'amount', align: 'right', tone: 'positive', sortBy: 'gain_dist' },
     { key: 'returnOfCapital', label: 'Return of Capital', type: 'amount', align: 'right', sortBy: 'return_of_capital' },
-  ];
+    ],
+    tableRows,
+    'fundName',
+  );
 
   return fundToolbarTableBlock({
     id: 'distributions',
@@ -1036,7 +1051,8 @@ export function buildIrrsTable(
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = irrRowsToTableRows(rows);
-  const columns: InvestorDetailTableColumn[] = [
+  const columns = withOptionalPeriodColumn(
+    [
     { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left', sortBy: 'fund_code' },
     { key: 'fundName', label: 'Fund Name', type: 'text', align: 'left', sortBy: 'fund_name' },
     { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
@@ -1046,7 +1062,10 @@ export function buildIrrsTable(
     { key: 'irr7Year', label: '7Y IRR', type: 'percent', align: 'right', sortBy: 'irr_7_year_pct' },
     { key: 'irr10Year', label: '10Y IRR', type: 'percent', align: 'right', sortBy: 'irr_10_year_pct' },
     { key: 'irrLtd', label: 'ITD IRR', type: 'percent', align: 'right', tone: 'info', sortBy: 'irr_ltd_pct' },
-  ];
+    ],
+    tableRows,
+    'fundName',
+  );
 
   return fundToolbarTableBlock({
     id: 'irrs',
@@ -1064,12 +1083,15 @@ export function buildCapitalObligationsTable(
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = capitalObligationRowsToTableRows(rows);
-  const columns: InvestorDetailTableColumn[] = [
+  const columns = withOptionalPeriodColumn(
+    [
     { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left', sortBy: 'fund_code' },
-    { key: 'period', label: 'Period', type: 'text', align: 'left', sortBy: 'quarter_year' },
     { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
     { key: 'amount', label: 'Amount', type: 'amount', align: 'right', sortBy: 'amount' },
-  ];
+    ],
+    tableRows,
+    'fundCode',
+  );
 
   return fundToolbarTableBlock({
     id: 'capital-obligations',
@@ -1087,13 +1109,16 @@ export function buildNetAssetsTable(
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = netAssetRowsToTableRows(rows);
-  const columns: InvestorDetailTableColumn[] = [
+  const columns = withOptionalPeriodColumn(
+    [
     { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left', sortBy: 'fund_code' },
     { key: 'fundName', label: 'Fund Name', type: 'text', align: 'left', sortBy: 'fund_name' },
-    { key: 'period', label: 'Period', type: 'text', align: 'left', sortBy: 'quarter_year' },
     { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
     { key: 'ret', label: 'Ret', type: 'percent', align: 'right', sortBy: 'ret' },
-  ];
+    ],
+    tableRows,
+    'fundName',
+  );
 
   return fundToolbarTableBlock({
     id: 'net-assets',

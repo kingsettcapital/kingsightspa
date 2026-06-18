@@ -41,6 +41,7 @@ import { InvestorDetailBlock } from './models/investor-detail-block.models';
 import {
   buildFlatInvestorBlocks,
   buildFundHoldingsTable,
+  formatInvestorAddress,
   InvestorDetailSectionId,
   InvestorOverviewInput,
   kpiCardsFromListRow,
@@ -234,6 +235,11 @@ export class InvestorDetailComponent {
     return [typePart, fundsPart].filter(Boolean).join(' · ');
   });
 
+  readonly subtitleAddressLabel = computed(() => {
+    const address = formatInvestorAddress(this.detail(), this.listRow()?.address ?? '');
+    return address.replace(/\s*\n+\s*/g, ', ').trim();
+  });
+
   readonly subtitleContactLabel = computed(() => {
     const contact = this.contactName();
     return contact && contact !== '—' ? contact : '';
@@ -346,7 +352,7 @@ export class InvestorDetailComponent {
         readInvestorDetailString(this.detail(), 'status', 'Status') ||
         this.detail()?.summary?.status ||
         'Active',
-      address: this.listRow()?.address ?? '',
+      address: formatInvestorAddress(this.detail(), this.listRow()?.address ?? ''),
     };
     const base = buildFlatInvestorBlocks(
       state.detail,

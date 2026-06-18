@@ -776,15 +776,15 @@
     color: #0f172a;
     line-height: 1.25;
 
-    &::before {
-      content: '';
-      display: block;
-      width: 3px;
-      height: 1.125rem;
-      border-radius: 1px;
-      background: #004a99;
-      flex-shrink: 0;
-    }
+    // &::before {
+    //   content: '';
+    //   display: block;
+    //   width: 3px;
+    //   height: 1.125rem;
+    //   border-radius: 1px;
+    //   background: #004a99;
+    //   flex-shrink: 0;
+    // }
   }
 
   .inv-detail-block__body {
@@ -1634,7 +1634,7 @@
 
   .inv-detail-block__field-pair-row {
     gap: 2rem;
-    padding: 1rem 0;
+    padding: 0.8rem 0;
     border-bottom: 1px solid #e5e7eb;
 
     &:last-child {
@@ -2281,6 +2281,9 @@
   }
 
   .inv-detail-block__fund-membership {
+    grid-column: span 2;
+    min-width: 0;
+
     .inv-detail-block__field-column-title {
       margin-bottom: 1rem;
     }
@@ -2392,6 +2395,21 @@
 
     .inv-detail-block__deployment-meta {
       font-size: var(--inv-detail-font-data);
+    }
+  }
+
+  &.inv-detail-block__entity-overview--fund-layout-two-col {
+    .inv-detail-block__entity-overview-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+      gap: 2.5rem;
+    }
+
+    .inv-detail-block__performance-snapshot {
+      min-width: 0;
+    }
+
+    .inv-detail-block__overview-mini-kpis {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
   }
 }
@@ -2513,6 +2531,13 @@
   color: #6b7280;
 }
 
+.inv-detail-block__fund-list-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 2rem;
+  min-width: 0;
+}
+
 .inv-detail-block__fund-list {
   list-style: none;
   margin: 0;
@@ -2520,6 +2545,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .inv-detail-block__fund-list li {
@@ -2545,6 +2571,8 @@
   font-size: 0.8125rem;
   font-weight: 400;
   line-height: 1.4;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .inv-detail-block__fund-more {
@@ -3043,8 +3071,22 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .inv-detail-block__entity-overview--investor .inv-detail-block__fund-membership {
+    grid-column: auto;
+  }
+
+  .inv-detail-block__fund-list-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .inv-detail-block__entity-overview--fund-expanded .inv-detail-block__entity-overview-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inv-detail-block__entity-overview--fund-expanded.inv-detail-block__entity-overview--fund-layout-two-col {
+    .inv-detail-block__overview-mini-kpis {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 
   .inv-detail-block__entity-overview--profile .inv-detail-block__fields {

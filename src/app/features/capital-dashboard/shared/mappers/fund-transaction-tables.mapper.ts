@@ -37,6 +37,14 @@ function transactionType(...values: Array<string | null | undefined>): string {
   return code(...values) || '—';
 }
 
+function periodFromDto(dto: {
+  period?: string | null;
+  quarter_year?: string | null;
+  quarterYear?: string | null;
+}): string {
+  return code(dto.period, dto.quarter_year, dto.quarterYear);
+}
+
 export function mapFundCapitalActivitiesToTabRows(
   items: FundInvestorCapitalActivityDto[] | null | undefined,
 ): FundInvestorCapitalActivityTabRow[] {
@@ -44,6 +52,7 @@ export function mapFundCapitalActivitiesToTabRows(
     investorCode: code(dto.investor_code, dto.investorCode),
     investorName: name(dto.investor_name, dto.investorName),
     type: transactionType(dto.type),
+    period: periodFromDto(dto),
     called: num(dto.called),
     transferIn: num(dto.transfer_in ?? dto.transferIn),
     transferOut: num(dto.transfer_out ?? dto.transferOut),
@@ -58,6 +67,7 @@ export function mapFundDistributionTableToTabRows(
     investorCode: code(dto.investor_code, dto.investorCode),
     investorName: name(dto.investor_name, dto.investorName),
     type: transactionType(dto.type),
+    period: periodFromDto(dto),
     preferredReturn: num(dto.preferred_return ?? dto.preferredReturn),
     committed: num(dto.committed),
     unfunded: num(dto.unfunded),
@@ -75,6 +85,7 @@ export function mapFundIrrToTabRows(
     investorCode: code(dto.investor_code, dto.investorCode),
     investorName: name(dto.investor_name, dto.investorName),
     type: transactionType(dto.type),
+    period: periodFromDto(dto),
     irr1Year: optNum(dto.irr_1_year_pct),
     irr3Year: optNum(dto.irr_3_year_pct),
     irr5Year: optNum(dto.irr_5_year_pct),
@@ -90,7 +101,7 @@ export function mapFundCapitalObligationsToTabRows(
   return (items ?? []).map((dto) => ({
     investorCode: code(dto.investor_code, dto.investorCode),
     investorName: name(dto.investor_name, dto.investorName),
-    period: code(dto.quarter_year, dto.quarterYear) || '—',
+    period: periodFromDto(dto),
     type: transactionType(dto.type),
     amount: num(dto.amount),
   }));
@@ -102,7 +113,7 @@ export function mapFundNetAssetsToTabRows(
   return (items ?? []).map((dto) => ({
     investorCode: code(dto.investor_code, dto.investorCode),
     investorName: name(dto.investor_name, dto.investorName),
-    period: code(dto.quarter_year, dto.quarterYear) || '—',
+    period: periodFromDto(dto),
     type: transactionType(dto.type),
     ret: optNum(dto.ret),
   }));

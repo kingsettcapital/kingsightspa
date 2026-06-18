@@ -295,13 +295,13 @@
                     <div class="cdt-filters-bar">
                       <label class="cdt-filters-bar__field">
                         <span class="cdt-filters-bar__label">{{
-                          current.id === 'fund-transactions' ? 'INVESTOR NAME' : 'FUND CODE'
+                          current.id === 'fund-transactions' ? 'INVESTOR NAME' : 'FUND NAME'
                         }}</span>
                         <div class="cdt-filters-bar__select">
                           <select
                             [ngModel]="hubFundFilterDraft()"
                             (ngModelChange)="hubFundFilterDraft.set($event)"
-                            [attr.aria-label]="current.id === 'fund-transactions' ? 'Investor code' : 'Fund code'"
+                            [attr.aria-label]="current.id === 'fund-transactions' ? 'Investor NAME' : 'Fund NAME'"
                           >
                             <option value="all">{{
                               current.id === 'fund-transactions' ? 'All Investors' : 'All Funds'
@@ -809,9 +809,15 @@
               [class.inv-detail-block__entity-overview--fund-expanded]="
                 current.variant === 'fund' && !!current.performanceMiniKpis?.length
               "
+              [class.inv-detail-block__entity-overview--fund-layout-two-col]="
+                current.variant === 'fund' &&
+                !!current.performanceMiniKpis?.length &&
+                isFundOverviewTwoColumnLayout(current.columns)
+              "
             >
               <div class="inv-detail-block__entity-overview-grid">
                 @for (column of current.columns; track column.title ?? $index) {
+                  @if (isEntityOverviewColumnVisible(current.variant, column.title)) {
                   <div class="inv-detail-block__field-column">
                     @if (column.title) {
                       <h3 class="inv-detail-block__field-column-title">{{ column.title }}</h3>
@@ -828,6 +834,7 @@
                       }
                     </dl>
                   </div>
+                  }
                 }
 
                 @if (current.variant === 'investor' && current.fundMembership) {
@@ -839,13 +846,17 @@
                         active fund{{ current.fundMembership.count === 1 ? '' : 's' }}
                       </span>
                     </div>
-                    <ul class="inv-detail-block__fund-list">
-                      @for (fund of current.fundMembership.items; track fund.fundKey) {
-                        <li>
-                          <span class="inv-detail-block__fund-name">{{ fund.name }}</span>
-                        </li>
+                    <div class="inv-detail-block__fund-list-columns">
+                      @for (column of fundMembershipFundColumns(current.fundMembership); track $index) {
+                        <ul class="inv-detail-block__fund-list">
+                          @for (fund of column; track fund.fundKey) {
+                            <li>
+                              <span class="inv-detail-block__fund-name">{{ fund.name }}</span>
+                            </li>
+                          }
+                        </ul>
                       }
-                    </ul>
+                    </div>
                     @if (current.fundMembership.moreCount > 0) {
                       <p class="inv-detail-block__fund-more">+{{ current.fundMembership.moreCount }} more funds</p>
                     }
@@ -888,7 +899,7 @@
               </div>
 
               @if (current.deploymentBar; as deploymentBar) {
-                @if (current.deploymentBarPlacement !== 'performance-column') {
+                @if (current.deploymentBarPlacement !== 'performance-column' && current.variant !== 'investor') {
                 <div class="inv-detail-block__deployment inv-detail-block__deployment--full">
                   <div class="inv-detail-block__deployment-head">
                     <span class="inv-detail-block__deployment-label">{{ deploymentBar.label }}</span>
