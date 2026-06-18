@@ -14,10 +14,11 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { Store } from '@ngrx/store';
-import { catchError, debounceTime, distinctUntilChanged, map, of, Subject } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, map, Observable, of, Subject } from 'rxjs';
 
 import { KsCurrencyPipe } from '../../../../shared/pipes/ks-currency.pipe';
 import { CapitalInvestorsApiService } from '../../shared/services/capital-investors-api.service';
+import { InvestorTransactionTableFiltersDto } from '../../shared/models/api.models';
 import { InvestorTableRow } from '../../shared/utils/investor-list-row.util';
 import { fundTableRowFromFundExposure } from '../../shared/utils/fund-list-row.util';
 import { InvestorDetailTableRow } from './models/investor-detail-table.models';
@@ -26,6 +27,7 @@ import {
   InvestorsFilterOptions,
   normalizeInvestorsFilterOptions,
 } from '../../shared/utils/investor-filter-options.util';
+import { buildQuarterlyTransactionPeriodParams } from '../../shared/utils/quarterly-transaction-period.util';
 import { InvestorsApiActions } from '../../store';
 import { selectInvestorsDetail } from '../../store/capital-dashboard.selectors';
 import {
@@ -38,24 +40,28 @@ import { InvestorDetailBlockComponent } from './investor-detail-block/investor-d
 import { InvestorDetailBlock } from './models/investor-detail-block.models';
 import {
   buildFlatInvestorBlocks,
-  buildFundExposureTable,
-  distributionAmountRows,
+  buildFundHoldingsTable,
   InvestorDetailSectionId,
   InvestorOverviewInput,
   kpiCardsFromListRow,
-  mergeKpiCardsWithFundExposure,
   pickDisplayLabel,
-  readDetailSummaryString,
-  readInvestmentFundKey,
-  readInvestmentString,
 } from './utils/investor-detail-tables.util';
 import {
+  investorDetailHasProfileData,
+  kpiCardsFromInvestorDetail,
+  readInvestorDetailNumber,
+  readInvestorDetailString,
+} from './utils/investor-detail-api.util';
+import {
   buildInvestorTransactionHubBlock,
+  hubCategoryFundCode,
   hubCategorySearchKey,
   hubSortBlockId,
+  normalizeInvestorTransactionTableFilters,
 } from './utils/investor-transaction-hub.util';
 import {
   InvestorTransactionCategoryId,
+  InvestorTransactionFilterOption,
 } from './models/investor-transaction-hub.models';
 
 type DetailTimeframe = 'ltd' | 'quarterly' | 'daily';
@@ -73,10 +79,10 @@ interface TransactionTableSort {
     FormsModule,
     RouterModule,
     MatIconModule,
-    KsCurrencyPipe,
     InvestorDetailSidebarComponent,
     InvestorDetailBlockComponent,
   ],
+  providers: [KsCurrencyPipe],
   templateUrl: './investor-detail.component.html',
   styleUrl: './investor-detail.component.scss',
 })
@@ -86,6 +92,7 @@ export class InvestorDetailComponent {
   private readonly store = inject(Store);
   private readonly destroyRef = inject(DestroyRef);
   private readonly investorsApi = inject(CapitalInvestorsApiService);
+  private readonly ksCurrency = inject(KsCurrencyPipe);
 
   private readonly mainContentRef = viewChild<ElementRef<HTMLElement>>('mainContent');
   private readonly stickyChromeRef = viewChild<ElementRef<HTMLElement>>('stickyChrome');
@@ -96,6 +103,7 @@ export class InvestorDetailComponent {
   readonly activeSectionId = signal<InvestorDetailSectionId>('overview');
   private readonly scrollSpyPaused = signal(false);
   readonly timeframe = signal<DetailTimeframe>('ltd');
+  readonly quarterScope = signal<number | 'all'>('all');
   readonly quarter = signal<number | null>(null);
   readonly year = signal<number | null>(null);
   readonly filterOptions = signal<InvestorsFilterOptions>(EMPTY_INVESTORS_FILTER_OPTIONS);
@@ -109,19 +117,21 @@ export class InvestorDetailComponent {
   readonly error = computed(() => this.detailState().error);
   readonly detail = computed(() => this.detailState().detail);
 
-  private readonly filterReloading = signal(false);
-
-  readonly contentLoading = computed(() => this.loading() || this.filterReloading());
-  readonly contentLoadingMessage = computed(() =>
-    this.loading() ? 'Loading investor profile…' : 'Loading data…',
+  readonly contentLoading = computed(
+    () => this.loading() && !this.detail() && !this.listRow(),
   );
+  readonly contentLoadingMessage = computed(() => 'Loading investor profile…');
 
   readonly quarterlyPeriodOptions = computed(() => this.filterOptions().quarterlyPeriods);
 
   readonly dateKey = computed(() => {
-    const quarter = this.quarter();
+    if (this.timeframe() !== 'quarterly' || this.quarterScope() === 'all') {
+      return null;
+    }
+
+    const quarter = this.quarterScope();
     const year = this.year();
-    if (quarter == null || year == null) {
+    if (typeof quarter !== 'number' || year == null) {
       return null;
     }
 
@@ -139,58 +149,105 @@ export class InvestorDetailComponent {
 
   readonly availableYears = computed(() => {
     const periods = this.quarterlyPeriodOptions();
-    const selectedQuarter = this.quarter();
-    const scoped =
-      selectedQuarter != null
-        ? periods.filter((period) => period.quarter === selectedQuarter)
-        : periods;
-
-    return [...new Set(scoped.map((period) => period.calendarYear))].sort((a, b) => b - a);
+    return [...new Set(periods.map((period) => period.calendarYear))].sort((a, b) => b - a);
   });
 
   readonly investorName = computed(
     () =>
       pickDisplayLabel(
+        readInvestorDetailString(this.detail(), 'investor_name', 'investorName', 'InvestorName'),
         this.listRow()?.name,
-        readDetailSummaryString(this.detail(), 'investor_name', 'investorName', 'InvestorName'),
-        this.detail()?.summary.investorName,
+        this.detail()?.summary?.investorName,
       ) || 'Investor',
   );
 
   readonly investorType = computed(
     () =>
       pickDisplayLabel(
-        this.listRow()?.investorType,
-        readDetailSummaryString(
+        readInvestorDetailString(
           this.detail(),
           'investor_type',
           'investor_type_name',
           'investorType',
           'InvestorType',
         ),
-        this.detail()?.summary.investorType,
+        this.listRow()?.investorType,
+        this.detail()?.summary?.investorType,
       ) || '—',
   );
 
-  readonly relationshipLabel = computed(() => this.listRow()?.relationship ?? '—');
-  readonly contactName = computed(() => this.listRow()?.contactName ?? '—');
-  readonly fundsCount = computed(
-    () => this.listRow()?.fundsCount ?? this.detail()?.summary.investmentsCount ?? 0,
+  readonly relationshipLabel = computed(
+    () =>
+      pickDisplayLabel(
+        readInvestorDetailString(
+          this.detail(),
+          'relationship',
+          'relationship_name',
+          'relationshipName',
+          'RelationshipName',
+        ),
+        this.listRow()?.relationship,
+      ) || '—',
   );
+  readonly contactName = computed(
+    () =>
+      pickDisplayLabel(
+        readInvestorDetailString(this.detail(), 'contact', 'Contact'),
+        this.listRow()?.contactName,
+      ) || '—',
+  );
+  readonly fundsCount = computed(() => {
+    const detail = this.detail();
+    const fromDetail = readInvestorDetailNumber(detail, 'fund_count', 'fundCount');
+    if (fromDetail != null && fromDetail > 0) {
+      return fromDetail;
+    }
+    if ((detail?.funds?.length ?? 0) > 0) {
+      return detail!.funds!.length;
+    }
+    const state = this.detailState();
+    if (state.fundHoldings.length > 0) {
+      return state.fundHoldings.length;
+    }
+    return this.listRow()?.fundsCount ?? detail?.summary?.investmentsCount ?? 0;
+  });
+
+  readonly hasMetricData = computed(
+    () => investorDetailHasProfileData(this.detail()) || this.listRow() != null,
+  );
+
+  readonly fundHoldingsTable = computed(() => {
+    const state = this.detailState();
+    return buildFundHoldingsTable(state.fundHoldings, state.fundHoldingsDateKey);
+  });
+
+  readonly headerBadgeLabel = computed(() => {
+    const relationship = this.relationshipLabel();
+    return relationship && relationship !== '—' ? relationship : '';
+  });
 
   readonly subtitleText = computed(() => {
     const type = this.investorType();
+    const typePart = type && type !== '—' ? type : '';
     const funds = this.fundsCount();
+    const fundsPart = `${funds} fund${funds === 1 ? '' : 's'}`;
+    return [typePart, fundsPart].filter(Boolean).join(' · ');
+  });
+
+  readonly subtitleContactLabel = computed(() => {
     const contact = this.contactName();
-    const contactPart = contact && contact !== '—' ? `Contact: ${contact}` : '';
-    return [type, `${funds} fund${funds === 1 ? '' : 's'}`, contactPart].filter(Boolean).join(' • ');
+    return contact && contact !== '—' ? contact : '';
   });
 
   readonly periodLabel = computed(() => {
     if (this.timeframe() === 'quarterly') {
-      const quarter = this.quarter();
       const year = this.year();
-      if (quarter == null || year == null) {
+      if (this.quarterScope() === 'all') {
+        return year != null ? `All Quarters ${year}` : 'Quarterly';
+      }
+
+      const quarter = this.quarterScope();
+      if (typeof quarter !== 'number' || year == null) {
         return 'Quarterly';
       }
 
@@ -218,25 +275,14 @@ export class InvestorDetailComponent {
     return this.periodLabel();
   });
 
-  readonly fundExposureTable = computed(() => {
-    const state = this.detailState();
-    return buildFundExposureTable(
-      state.investments,
-      state.commitments,
-      state.unfundedCommitments,
-      state.capitalInvestments,
-      distributionAmountRows(state.investorDistributions),
-      state.capitalActivities,
-      state.distributionTable,
-    );
-  });
 
-  readonly kpiCards = computed(() =>
-    mergeKpiCardsWithFundExposure(
-      kpiCardsFromListRow(this.listRow()),
-      this.fundExposureTable(),
-    ),
-  );
+  readonly kpiCards = computed(() => {
+    const detail = this.detail();
+    if (investorDetailHasProfileData(detail)) {
+      return kpiCardsFromInvestorDetail(detail);
+    }
+    return kpiCardsFromListRow(this.listRow());
+  });
 
   readonly tableContextKey = computed(() => {
     const investorKey = this.investorKey();
@@ -245,11 +291,49 @@ export class InvestorDetailComponent {
     return `${investorKey ?? ''}:${timeframe}:${dateKey ?? ''}`;
   });
 
+  private readonly hubResetKey = computed(
+    () => `${this.investorKey() ?? ''}:${this.timeframe()}`,
+  );
+
+  private static readonly TRANSACTION_HUB_CATEGORIES: InvestorTransactionCategoryId[] = [
+    'capital-activities',
+    'distributions',
+    'irrs',
+    'capital-obligations',
+    'net-assets',
+  ];
+
+  private lastTransactionHubPeriodLoadKey = '';
+
+  private lastTransactionHubFilterPeriodLoadKey = '';
+
+  private lastHubResetKey = '';
+
+  private readonly transactionHubFilterOptions = signal<
+    Record<InvestorTransactionCategoryId, InvestorTransactionFilterOption[]>
+  >({
+    'capital-activities': [],
+    distributions: [],
+    irrs: [],
+    'capital-obligations': [],
+    'net-assets': [],
+  });
+
+  private readonly transactionHubFilterLoadSeq: Record<InvestorTransactionCategoryId, number> = {
+    'capital-activities': 0,
+    distributions: 0,
+    irrs: 0,
+    'capital-obligations': 0,
+    'net-assets': 0,
+  };
+
   private readonly transactionSearch$ = new Subject<{ blockId: string; search: string }>();
   private readonly transactionSort = signal<Record<string, TransactionTableSort>>({});
   readonly transactionHubCategory = signal<InvestorTransactionCategoryId>('capital-activities');
-  readonly transactionHubPage = signal(1);
-  readonly transactionHubFundFilter = signal('all');
+  readonly transactionHubAppliedFundCode = computed(() => {
+    const code = hubCategoryFundCode(this.transactionHubCategory(), this.detailState());
+    return code || 'all';
+  });
 
   readonly flatBlocks = computed(() => {
     const state = this.detailState();
@@ -258,17 +342,25 @@ export class InvestorDetailComponent {
       investorType: this.investorType(),
       relationship: this.relationshipLabel(),
       contactName: this.contactName(),
-      status: this.detail()?.summary.status ?? 'Active',
+      status:
+        readInvestorDetailString(this.detail(), 'status', 'Status') ||
+        this.detail()?.summary?.status ||
+        'Active',
       address: this.listRow()?.address ?? '',
     };
     const base = buildFlatInvestorBlocks(
       state.detail,
-      state.investments,
-      state.commitments,
-      state.unfundedCommitments,
+      state.fundHoldings,
+      state.fundHoldingsDateKey,
       state.capitalInvestments,
-      state.investorDistributions,
-      state.nav,
+      {
+        page: state.capitalInvestmentsPage,
+        pageSize: state.capitalInvestmentsPageSize,
+        totalPages: state.capitalInvestmentsTotalPages,
+        totalCount: state.capitalInvestmentsTotalCount,
+        hasPreviousPage: state.capitalInvestmentsHasPreviousPage,
+        hasNextPage: state.capitalInvestmentsHasNextPage,
+      },
       state.capitalActivities,
       state.distributionTable,
       state.irr,
@@ -281,16 +373,15 @@ export class InvestorDetailComponent {
       if (item.block.kind !== 'transaction-hub') {
         return item;
       }
+      const categoryId = this.transactionHubCategory();
+      const fundCodeOptions = this.transactionHubFilterOptions()[categoryId];
       return {
         ...item,
         block: buildInvestorTransactionHubBlock(
           state,
-          this.transactionHubCategory(),
+          categoryId,
           this.transactionHubPeriodSummary(),
-          this.transactionHubPage(),
-          {
-            fundCode: this.transactionHubFundFilter(),
-          },
+          fundCodeOptions,
         ),
       };
     });
@@ -348,15 +439,54 @@ export class InvestorDetailComponent {
     });
 
     effect(() => {
+      const resetKey = this.hubResetKey();
       const view = this.timeframe();
       const investorKey = this.investorKey();
+
+      untracked(() => {
+        if (resetKey !== this.lastHubResetKey) {
+          this.lastHubResetKey = resetKey;
+          this.transactionSort.set({});
+          this.quarterScope.set('all');
+          this.lastTransactionHubPeriodLoadKey = '';
+          this.lastTransactionHubFilterPeriodLoadKey = '';
+          this.transactionHubFilterOptions.set({
+            'capital-activities': [],
+            distributions: [],
+            irrs: [],
+            'capital-obligations': [],
+            'net-assets': [],
+          });
+        }
+      });
+
       if (investorKey == null) {
         return;
       }
-      if (view === 'quarterly' && this.dateKey() == null) {
+
+      const scope = view === 'quarterly' ? this.quarterScope() : ('all' as const);
+      const year = view === 'quarterly' ? this.year() : null;
+      const dateKey = view === 'quarterly' ? this.dateKey() : null;
+
+      if (view === 'quarterly' && year == null) {
         return;
       }
-      this.loadSectionData(investorKey, view);
+      if (view === 'quarterly' && scope !== 'all' && dateKey == null) {
+        return;
+      }
+
+      const loadKey = [
+        investorKey,
+        view,
+        view === 'quarterly' ? scope : '',
+        view === 'quarterly' ? (year ?? '') : '',
+        view === 'quarterly' ? (dateKey ?? '') : '',
+      ].join('|');
+      if (loadKey === this.lastTransactionHubPeriodLoadKey) {
+        return;
+      }
+      this.lastTransactionHubPeriodLoadKey = loadKey;
+      untracked(() => this.loadAllTransactionHubTables());
     });
 
     effect((onCleanup) => {
@@ -405,78 +535,65 @@ export class InvestorDetailComponent {
       });
     });
 
-    effect(() => {
-      if (!this.filterReloading()) {
-        return;
-      }
-
-      const state = this.detailState();
-      const sectionLoading =
-        state.commitmentsLoading ||
-        state.unfundedCommitmentsLoading ||
-        state.capitalInvestmentsLoading ||
-        state.investorDistributionsLoading ||
-        state.navLoading ||
-        state.capitalActivitiesLoading ||
-        state.distributionTableLoading ||
-        state.irrLoading;
-
-      if (!sectionLoading) {
-        this.filterReloading.set(false);
-      }
-    });
-
-    effect(() => {
-      this.tableContextKey();
-      this.transactionSort.set({});
-      this.transactionHubPage.set(1);
-      this.transactionHubFundFilter.set('all');
-    });
   }
 
   setTimeframe(view: DetailTimeframe): void {
     this.timeframe.set(view);
     if (view === 'quarterly') {
+      this.quarterScope.set('all');
       this.ensureQuarterlySelection(this.filterOptions());
     }
   }
 
   setTransactionTimeframe(view: DetailTimeframe): void {
     this.setTimeframe(view);
-    this.transactionHubPage.set(1);
+  }
+
+  setQuarterScope(scope: number | 'all'): void {
+    this.quarterScope.set(scope);
+    if (scope !== 'all') {
+      this.quarter.set(scope);
+      this.alignYearForQuarterScope(scope);
+    }
   }
 
   setQuarter(quarter: number): void {
+    this.quarterScope.set(quarter);
     this.quarter.set(quarter);
     this.alignYearToQuarter();
   }
 
   setYear(year: number): void {
     this.year.set(year);
-    this.alignQuarterToYear();
+    if (this.timeframe() === 'quarterly' && this.quarterScope() !== 'all') {
+      this.alignQuarterToYear();
+    }
   }
 
   onTransactionSearch(event: { blockId: string; search: string }): void {
-    if (event.blockId === 'investor-transactions') {
-      this.transactionHubPage.set(1);
-    }
     this.transactionSearch$.next(event);
   }
 
   onTransactionHubCategoryChange(categoryId: InvestorTransactionCategoryId): void {
     this.transactionHubCategory.set(categoryId);
-    this.transactionHubPage.set(1);
-    this.transactionHubFundFilter.set('all');
-    this.loadTransactionHubCategory(categoryId, hubCategorySearchKey(categoryId, this.detailState()));
   }
 
   onTransactionHubPageChange(page: number): void {
-    this.transactionHubPage.set(page);
+    this.loadTransactionHubCategory(
+      this.transactionHubCategory(),
+      hubCategorySearchKey(this.transactionHubCategory(), this.detailState()),
+      page,
+    );
   }
 
-  onTransactionHubFundFilter(value: string): void {
-    this.transactionHubFundFilter.set(value);
-    this.transactionHubPage.set(1);
+  onTransactionHubFundFilterApply(value: string): void {
+    const fundCode = value === 'all' ? '' : value;
+    this.loadTransactionHubCategory(
+      this.transactionHubCategory(),
+      hubCategorySearchKey(this.transactionHubCategory(), this.detailState()),
+      1,
+      fundCode,
+    );
   }
 
   onTransactionSort(event: { blockId: string; sortBy: string; defaultDir: TransactionTableSortDir }): void {
@@ -510,7 +627,7 @@ export class InvestorDetailComponent {
   }
 
   private isServerSortedTable(blockId: string): boolean {
-    return blockId === 'capital-activities' || blockId === 'distributions' || blockId === 'irrs';
+    return blockId === 'capital-activities' || blockId === 'distributions' || blockId === 'irrs' || blockId === 'capital-obligations' || blockId === 'net-assets';
   }
 
   tableSortColumnForBlock(block: InvestorDetailBlock): string | null {
@@ -541,6 +658,12 @@ export class InvestorDetailComponent {
     if (block.kind === 'transaction-hub') {
       return block.loading;
     }
+    if (block.kind === 'table' && block.id === 'fund-exposure') {
+      return this.detailState().fundHoldingsLoading;
+    }
+    if (block.kind === 'table' && block.id === 'underlying-investments') {
+      return this.detailState().capitalInvestmentsLoading;
+    }
     if (block.kind !== 'table' || !block.showToolbar) {
       return false;
     }
@@ -553,6 +676,10 @@ export class InvestorDetailComponent {
         return state.distributionTableLoading;
       case 'irrs':
         return state.irrLoading;
+      case 'capital-obligations':
+        return state.capitalObligationsLoading;
+      case 'net-assets':
+        return state.netAssetsLoading;
       default:
         return false;
     }
@@ -574,6 +701,10 @@ export class InvestorDetailComponent {
         return !!state.distributionTableSearch.trim();
       case 'irrs':
         return !!state.irrSearch.trim();
+      case 'capital-obligations':
+        return !!state.capitalObligationsSearch.trim();
+      case 'net-assets':
+        return !!state.netAssetsSearch.trim();
       default:
         return false;
     }
@@ -626,31 +757,18 @@ export class InvestorDetailComponent {
     };
 
     const investorKey = this.investorKey();
-    const investment = this.detailState().investments.find(
-      (item) => readInvestmentFundKey(item) === fundKey,
-    );
     void this.router.navigate(['/capital-dashboard/investment', fundKey], {
       state: {
         fundRow: fundTableRowFromFundExposure({
           fundKey,
           fundName,
           commitment: readAmount('commitment'),
-          netInvestedCapital: readAmount('netInvestedCapital'),
-          netDistributed: readAmount('netDistributed'),
+          netInvestedCapital: readAmount('netInvested') || readAmount('netInvestedCapital'),
+          netDistributed: readAmount('distributed') || readAmount('netDistributed'),
           reservedUncalled: readAmount('reserved'),
           releasedCapital: readAmount('releasedCapital'),
-          fundType: investment
-            ? readInvestmentString(investment, 'fund_type', 'fundType', 'FundType')
-            : null,
-          strategy: investment
-            ? readInvestmentString(
-                investment,
-                'fund_category',
-                'fundCategory',
-                'strategy',
-                'fund_strategy_name',
-              )
-            : null,
+          fundType: null,
+          strategy: null,
           index: event.rowIndex,
         }),
         ...(investorKey != null && investorKey > 0
@@ -667,53 +785,230 @@ export class InvestorDetailComponent {
   }
 
   openFundFromOverview(event: { fundKey: number }): void {
-    const exposure = this.fundExposureTable();
-    const rowIndex = exposure.rows.findIndex((row) => row['fundKey'] === event.fundKey);
+    const holdings = this.fundHoldingsTable();
+    const rowIndex = holdings.rows.findIndex((row) => row['fundKey'] === event.fundKey);
     if (rowIndex < 0) {
-      const investment = this.detailState().investments.find((item) => item.fundKey === event.fundKey);
-      if (!investment) {
-        return;
-      }
-      this.openFundFromExposure({
-        row: {
-          fund: investment.fundName ?? '—',
-          fundKey: event.fundKey,
-          commitment: investment.investedAmount ?? 0,
-          netInvestedCapital: investment.investedAmount ?? 0,
-          netDistributed: 0,
-          reserved: 0,
-          unfunded: 0,
-          releasedCapital: 0,
-        },
-        rowIndex: 0,
-      });
       return;
     }
 
-    this.openFundFromExposure({ row: exposure.rows[rowIndex], rowIndex });
+    this.openFundFromExposure({ row: holdings.rows[rowIndex], rowIndex });
+  }
+
+  private loadInvestorData(investorKey: number): void {
+    this.store.dispatch(InvestorsApiActions.loadDetail({ investorKey }));
+    this.loadFundHoldings();
+    this.loadUnderlyingInvestmentsPage(1);
+  }
+
+  private loadFundHoldings(): void {
+    const investorKey = this.investorKey();
+    if (investorKey == null) {
+      return;
+    }
+
+    this.store.dispatch(
+      InvestorsApiActions.loadInvestorFundHoldings({
+        investorKey,
+      }),
+    );
   }
 
   backToList(): void {
     void this.router.navigate(['/capital-dashboard/investor']);
   }
 
-  private loadInvestorData(investorKey: number): void {
-    this.store.dispatch(InvestorsApiActions.loadDetail({ investorKey }));
-    this.loadSectionData(investorKey, this.timeframe());
+  formatKpiAmount(value: number, dashWhenZero = false): string {
+    if (!this.hasMetricData()) {
+      return '--';
+    }
+    if (dashWhenZero && value === 0) {
+      return '--';
+    }
+    return this.ksCurrency.transform(value, 'USD', 2, true);
   }
 
-  private loadSectionData(investorKey: number, timeframe: DetailTimeframe): void {
-    this.filterReloading.set(true);
-    const request = this.buildTablePageRequest(investorKey, timeframe);
+  formatKpiCount(value: number): string {
+    if (!this.hasMetricData() || value <= 0) {
+      return '--';
+    }
+    return String(value);
+  }
 
-    this.store.dispatch(InvestorsApiActions.loadInvestorCommitmentsPage(request));
-    this.store.dispatch(InvestorsApiActions.loadInvestorUnfundedCommitmentsPage(request));
-    this.store.dispatch(InvestorsApiActions.loadInvestorCapitalInvestmentsPage(request));
-    this.store.dispatch(InvestorsApiActions.loadInvestorDistributionsPage(request));
-    this.store.dispatch(InvestorsApiActions.loadInvestorNavPage(request));
-    this.store.dispatch(InvestorsApiActions.loadInvestorCapitalActivitiesPage(request));
-    this.store.dispatch(InvestorsApiActions.loadInvestorDistributionTablePage(request));
-    this.store.dispatch(InvestorsApiActions.loadInvestorIrrPage(request));
+  onUnderlyingInvestmentsPageChange(page: number): void {
+    this.loadUnderlyingInvestmentsPage(page);
+  }
+
+  private loadUnderlyingInvestmentsPage(page: number): void {
+    const investorKey = this.investorKey();
+    if (investorKey == null) {
+      return;
+    }
+
+    this.store.dispatch(
+      InvestorsApiActions.loadInvestorCapitalInvestmentsPage({
+        investorKey,
+        page,
+        replace: true,
+      }),
+    );
+  }
+
+  private loadAllTransactionHubTables(): void {
+    const state = untracked(() => this.detailState());
+    for (const categoryId of InvestorDetailComponent.TRANSACTION_HUB_CATEGORIES) {
+      this.loadTransactionHubCategory(
+        categoryId,
+        hubCategorySearchKey(categoryId, state),
+        1,
+      );
+    }
+    this.loadAllTransactionHubFilters();
+  }
+
+  private loadAllTransactionHubFilters(): void {
+    const investorKey = this.investorKey();
+    if (investorKey == null) {
+      return;
+    }
+
+    const view = this.timeframe();
+    const scope = this.quarterScope();
+    const year = this.year();
+    const dateKey = this.dateKey();
+
+    if (view === 'quarterly' && year == null) {
+      return;
+    }
+    if (view === 'quarterly' && scope !== 'all' && dateKey == null) {
+      return;
+    }
+
+    const filterLoadKey = [
+      investorKey,
+      view,
+      view === 'quarterly' ? scope : '',
+      view === 'quarterly' ? (year ?? '') : '',
+      view === 'quarterly' ? (dateKey ?? '') : '',
+    ].join('|');
+
+    if (filterLoadKey === this.lastTransactionHubFilterPeriodLoadKey) {
+      return;
+    }
+    this.lastTransactionHubFilterPeriodLoadKey = filterLoadKey;
+
+    for (const categoryId of InvestorDetailComponent.TRANSACTION_HUB_CATEGORIES) {
+      this.loadTransactionHubFilters(categoryId);
+    }
+  }
+
+  private loadTransactionHubFilters(categoryId: InvestorTransactionCategoryId): void {
+    const investorKey = this.investorKey();
+    if (investorKey == null) {
+      return;
+    }
+
+    const timeframe = this.timeframe();
+    if (timeframe === 'quarterly' && this.year() == null) {
+      return;
+    }
+    if (timeframe === 'quarterly' && this.quarterScope() !== 'all' && this.dateKey() == null) {
+      return;
+    }
+
+    const loadSeq = ++this.transactionHubFilterLoadSeq[categoryId];
+    const periodParams = this.quarterlyTransactionPeriodParams();
+
+    this.getTransactionHubFilters$(categoryId, investorKey, timeframe, periodParams)
+      .pipe(
+        catchError(() => of({ items: [] } as InvestorTransactionTableFiltersDto)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((response) => {
+        if (loadSeq !== this.transactionHubFilterLoadSeq[categoryId]) {
+          return;
+        }
+
+        const options = normalizeInvestorTransactionTableFilters(response);
+        this.transactionHubFilterOptions.update((state) => ({
+          ...state,
+          [categoryId]: options,
+        }));
+      });
+  }
+
+  private getTransactionHubFilters$(
+    categoryId: InvestorTransactionCategoryId,
+    investorKey: number,
+    timeframe: DetailTimeframe,
+    periodParams: { dateKey?: number; calendarYear?: number } = {},
+  ): Observable<InvestorTransactionTableFiltersDto> {
+    switch (categoryId) {
+      case 'capital-activities':
+        return this.investorsApi.getInvestorCapitalActivitiesFilters(investorKey, timeframe, periodParams);
+      case 'distributions':
+        return this.investorsApi.getInvestorDistributionTableFilters(investorKey, timeframe, periodParams);
+      case 'irrs':
+        return this.investorsApi.getInvestorIrrFilters(investorKey, timeframe, periodParams);
+      case 'capital-obligations':
+        return this.investorsApi.getInvestorCapitalObligationsFilters(investorKey, timeframe, periodParams);
+      case 'net-assets':
+        return this.investorsApi.getInvestorNetAssetsFilters(investorKey, timeframe, periodParams);
+      default:
+        return of({ items: [] });
+    }
+  }
+
+  private loadTransactionHubCategory(
+    categoryId: InvestorTransactionCategoryId,
+    search: string,
+    page = 1,
+    fundCodeInput?: string,
+  ): void {
+    const investorKey = this.investorKey();
+    if (investorKey == null) {
+      return;
+    }
+
+    const timeframe = this.timeframe();
+    if (timeframe === 'quarterly' && this.year() == null) {
+      return;
+    }
+    if (timeframe === 'quarterly' && this.quarterScope() !== 'all' && this.dateKey() == null) {
+      return;
+    }
+
+    const sortBlockId = hubSortBlockId(categoryId);
+    const sort = untracked(() => this.transactionSort()[sortBlockId]);
+    const fundCode = fundCodeInput ?? hubCategoryFundCode(categoryId, this.detailState());
+    const periodParams = this.quarterlyTransactionPeriodParams();
+    const request = {
+      investorKey,
+      timeframe,
+      page,
+      search,
+      replace: true,
+      ...periodParams,
+      ...(fundCode ? { fundCode } : {}),
+      ...(sort?.sortBy ? { sortBy: sort.sortBy, sortDir: sort.sortDir } : {}),
+    };
+
+    switch (categoryId) {
+      case 'capital-activities':
+        this.store.dispatch(InvestorsApiActions.loadInvestorCapitalActivitiesPage(request));
+        break;
+      case 'distributions':
+        this.store.dispatch(InvestorsApiActions.loadInvestorDistributionTablePage(request));
+        break;
+      case 'irrs':
+        this.store.dispatch(InvestorsApiActions.loadInvestorIrrPage(request));
+        break;
+      case 'capital-obligations':
+        this.store.dispatch(InvestorsApiActions.loadInvestorCapitalObligationsPage(request));
+        break;
+      case 'net-assets':
+        this.store.dispatch(InvestorsApiActions.loadInvestorNetAssetsPage(request));
+        break;
+    }
   }
 
   private reloadTransactionTable(blockId: string): void {
@@ -728,6 +1023,12 @@ export class InvestorDetailComponent {
         break;
       case 'irrs':
         search = state.irrSearch;
+        break;
+      case 'capital-obligations':
+        search = state.capitalObligationsSearch;
+        break;
+      case 'net-assets':
+        search = state.netAssetsSearch;
         break;
     }
     this.loadTransactionTable(blockId, search);
@@ -756,62 +1057,13 @@ export class InvestorDetailComponent {
       case 'irrs':
         this.store.dispatch(InvestorsApiActions.loadInvestorIrrPage(request));
         break;
-    }
-  }
-
-  private loadTransactionHubCategory(
-    categoryId: InvestorTransactionCategoryId,
-    search: string,
-    page = 1,
-  ): void {
-    const investorKey = this.investorKey();
-    if (investorKey == null) {
-      return;
-    }
-
-    const timeframe = this.timeframe();
-    if (timeframe === 'quarterly' && this.dateKey() == null) {
-      return;
-    }
-
-    const sortBlockId = hubSortBlockId(categoryId);
-    const sort = untracked(() => this.transactionSort()[sortBlockId]);
-    const request = {
-      investorKey,
-      timeframe,
-      page,
-      search,
-      replace: page === 1,
-      ...(timeframe === 'quarterly' && this.dateKey() != null ? { dateKey: this.dateKey()! } : {}),
-      ...(sort?.sortBy ? { sortBy: sort.sortBy, sortDir: sort.sortDir } : {}),
-    };
-
-    switch (categoryId) {
-      case 'capital-activities':
-        this.store.dispatch(InvestorsApiActions.loadInvestorCapitalActivitiesPage(request));
+      case 'capital-obligations':
+        this.store.dispatch(InvestorsApiActions.loadInvestorCapitalObligationsPage(request));
         break;
-      case 'distributions':
-        this.store.dispatch(InvestorsApiActions.loadInvestorDistributionTablePage(request));
-        break;
-      case 'irrs':
-        this.store.dispatch(InvestorsApiActions.loadInvestorIrrPage(request));
+      case 'net-assets':
+        this.store.dispatch(InvestorsApiActions.loadInvestorNetAssetsPage(request));
         break;
     }
-  }
-
-  private buildTablePageRequest(
-    investorKey: number,
-    timeframe: DetailTimeframe,
-    search = '',
-  ) {
-    return {
-      investorKey,
-      timeframe,
-      page: 1,
-      search,
-      replace: true,
-      ...(timeframe === 'quarterly' && this.dateKey() != null ? { dateKey: this.dateKey()! } : {}),
-    };
   }
 
   private buildTransactionTableRequest(
@@ -821,15 +1073,25 @@ export class InvestorDetailComponent {
     search = '',
   ) {
     const sort = untracked(() => this.transactionSort()[blockId]);
+    const periodParams = this.quarterlyTransactionPeriodParams();
     return {
       investorKey,
       timeframe,
       page: 1,
       search,
       replace: true,
-      ...(timeframe === 'quarterly' && this.dateKey() != null ? { dateKey: this.dateKey()! } : {}),
+      ...periodParams,
       ...(sort?.sortBy ? { sortBy: sort.sortBy, sortDir: sort.sortDir } : {}),
     };
+  }
+
+  private quarterlyTransactionPeriodParams() {
+    return buildQuarterlyTransactionPeriodParams(
+      this.timeframe(),
+      this.quarterScope(),
+      this.year(),
+      this.dateKey(),
+    );
   }
 
   private ensureQuarterlySelection(options: InvestorsFilterOptions): void {
@@ -855,6 +1117,22 @@ export class InvestorDetailComponent {
     this.year.set(first.calendarYear);
   }
 
+  private alignYearForQuarterScope(quarter: number): void {
+    const periods = this.quarterlyPeriodOptions();
+    const year = this.year();
+    if (
+      year != null &&
+      periods.some((period) => period.quarter === quarter && period.calendarYear === year)
+    ) {
+      return;
+    }
+
+    const match = periods.find((period) => period.quarter === quarter);
+    if (match) {
+      this.year.set(match.calendarYear);
+    }
+  }
+
   private alignYearToQuarter(): void {
     const years = this.availableYears();
     const currentYear = this.year();
@@ -864,10 +1142,21 @@ export class InvestorDetailComponent {
   }
 
   private alignQuarterToYear(): void {
-    const quarters = this.availableQuarters();
+    const year = this.year();
+    const periods = this.quarterlyPeriodOptions();
+    const quartersForYear =
+      year != null
+        ? [...new Set(periods.filter((period) => period.calendarYear === year).map((period) => period.quarter))].sort(
+            (a, b) => a - b,
+          )
+        : this.availableQuarters();
     const currentQuarter = this.quarter();
-    if (currentQuarter == null || !quarters.includes(currentQuarter)) {
-      this.quarter.set(quarters[0] ?? null);
+    if (currentQuarter == null || !quartersForYear.includes(currentQuarter)) {
+      const next = quartersForYear[0] ?? null;
+      this.quarter.set(next);
+      if (next != null && this.quarterScope() !== 'all') {
+        this.quarterScope.set(next);
+      }
     }
   }
 }

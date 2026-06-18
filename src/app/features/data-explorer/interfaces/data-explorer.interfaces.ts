@@ -45,6 +45,7 @@ export interface SavedQuery {
   filters: QueryFilter[];
   filterLogic: FilterLogic;
   groupByFieldId: string | null;
+  product?: string;
   savedAt: string;
   /** Present on list responses before full template is loaded. */
   columnCount?: number;

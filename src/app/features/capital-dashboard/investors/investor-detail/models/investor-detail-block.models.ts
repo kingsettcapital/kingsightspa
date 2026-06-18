@@ -11,7 +11,23 @@ export type InvestorDetailTableVariant =
   | 'transactions'
   | 'communications'
   | 'investments'
-  | 'asset-transactions';
+  | 'asset-transactions'
+  | 'fund-holdings'
+  | 'underlying-investments';
+
+export interface InvestorDetailTablePagination {
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalCount: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+export interface InvestorDetailTableDateFilters {
+  sinceStart: string;
+  sinceEnd: string;
+}
 
 export interface InvestorDetailTableBlock extends InvestorDetailTableConfig {
   kind: 'table';
@@ -19,6 +35,8 @@ export interface InvestorDetailTableBlock extends InvestorDetailTableConfig {
   subtitleAccent?: string;
   variant?: InvestorDetailTableVariant;
   showToolbar?: boolean;
+  pagination?: InvestorDetailTablePagination;
+  dateFilters?: InvestorDetailTableDateFilters;
 }
 
 export interface InvestorDetailFieldItem {

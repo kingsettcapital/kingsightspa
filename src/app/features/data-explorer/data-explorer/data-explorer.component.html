@@ -1,5 +1,13 @@
 <div class="de-explorer">
   <header class="de-explorer__topbar">
+    <a
+      class="de-explorer__home-link"
+      routerLink="/"
+      aria-label="Back to KingSight home"
+    >
+      <lucide-icon [img]="homeIcon" [size]="18" color="currentColor"></lucide-icon>
+    </a>
+
     <h1 class="de-explorer__brand">Data Explorer</h1>
 
     <span class="de-explorer__topbar-divider" aria-hidden="true"></span>
@@ -148,6 +156,27 @@
             <p class="de-explorer__panel-subtitle">Select columns to query</p>
           </div>
         </header>
+
+        <div class="de-explorer__product-select-wrap">
+          <label class="de-explorer__product-select-label" for="de-explorer-product">Data product</label>
+          <select
+            id="de-explorer-product"
+            class="de-explorer__product-select ks-select"
+            [disabled]="productsLoading() || productOptions().length === 0"
+            [ngModel]="selectedProduct()"
+            (ngModelChange)="onProductChange($event)"
+          >
+            @if (productsLoading()) {
+              <option value="">Loading products…</option>
+            } @else if (productOptions().length === 0) {
+              <option value="">No products available</option>
+            } @else {
+              @for (option of productOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            }
+          </select>
+        </div>
 
         <div class="de-explorer__panel-search">
           <lucide-icon [img]="searchIcon" [size]="14" color="currentColor"></lucide-icon>

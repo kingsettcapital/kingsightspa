@@ -22,22 +22,19 @@ export const dataExplorerFeature = createFeature({
 
     on(DataExplorerCacheActions.resetAll, () => initialDataExplorerState),
 
-    on(DataExplorerColumnsApiActions.loadColumns, (state) => {
-      if (state.columns.products.length > 0) {
-        return state;
-      }
-      return {
-        ...state,
-        columns: {
-          ...state.columns,
-          loading: true,
-          error: null,
-        },
-      };
-    }),
-    on(DataExplorerColumnsApiActions.loadColumnsSuccess, (state, { products }) => ({
+    on(DataExplorerColumnsApiActions.loadColumns, (state, { product }) => ({
       ...state,
       columns: {
+        product,
+        products: state.columns.product === product ? state.columns.products : [],
+        loading: true,
+        error: null,
+      },
+    })),
+    on(DataExplorerColumnsApiActions.loadColumnsSuccess, (state, { product, products }) => ({
+      ...state,
+      columns: {
+        product,
         products,
         loading: false,
         error: null,
@@ -56,27 +53,23 @@ export const dataExplorerFeature = createFeature({
       ...state,
       rows: initialDataExplorerState.rows,
     })),
-    on(DataExplorerRowsApiActions.loadRows, (state, { columns, sortBy, sortDir, page, pageSize }) => {
-      const scope = buildDataExplorerQueryScope(columns, sortBy, sortDir);
-      const cached = readDataExplorerRowsCacheEntry(state.cache.rows, scope, page, pageSize);
+    on(DataExplorerRowsApiActions.loadRows, (state, request) => {
+      const scope = buildDataExplorerQueryScope(request);
+      const cached = readDataExplorerRowsCacheEntry(state.cache.rows, scope, request.page, request.pageSize);
       if (cached) {
         return {
           ...state,
-          rows: rowsListStateFromCacheEntry(columns, sortBy, sortDir, page, pageSize, cached),
+          rows: rowsListStateFromCacheEntry(request, cached),
         };
       }
 
       return {
         ...state,
-        rows: rowsListLoadingState(state.rows, columns, sortBy, sortDir, page, pageSize),
+        rows: rowsListLoadingState(state.rows, request),
       };
     }),
     on(DataExplorerRowsApiActions.loadRowsSuccess, (state, { result, request }) => {
-      const scope = buildDataExplorerQueryScope(
-        request.columns,
-        request.sortBy,
-        request.sortDir,
-      );
+      const scope = buildDataExplorerQueryScope(request);
 
       return {
         ...state,

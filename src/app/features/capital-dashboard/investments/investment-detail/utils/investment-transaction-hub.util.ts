@@ -1,18 +1,34 @@
+import { InvestorTransactionTableFiltersDto } from '../../../shared/models/api.models';
 import { FundsDetailState } from '../../../store/capital-dashboard.state';
-import { InvestorDetailTableBlock } from '../../../investors/investor-detail/models/investor-detail-block.models';
-import { InvestorDetailTableRow } from '../../../investors/investor-detail/models/investor-detail-table.models';
+import {
+  InvestorDetailTablePagination,
+  InvestorDetailTableBlock,
+} from '../../../investors/investor-detail/models/investor-detail-block.models';
 import {
   InvestorDetailTransactionHubBlock,
   InvestorTransactionCategory,
   InvestorTransactionCategoryId,
-  InvestorTransactionHubFilters,
+  InvestorTransactionFilterOption,
 } from '../../../investors/investor-detail/models/investor-transaction-hub.models';
 import {
   buildCapitalActivitiesTable,
+  buildCapitalObligationsTable,
   buildDistributionsTable,
   buildIrrsTable,
+  buildNetAssetsTable,
   buildTableTotalsRow,
 } from './investment-detail-tables.util';
+
+export function normalizeFundTransactionTableFilters(
+  response: InvestorTransactionTableFiltersDto | null | undefined,
+): InvestorTransactionFilterOption[] {
+  return (response?.items ?? [])
+    .map((item) => ({
+      value: String(item?.value ?? '').trim(),
+      label: String(item?.label ?? item?.value ?? '').trim(),
+    }))
+    .filter((item) => item.value);
+}
 
 function buildCategoryTable(
   categoryId: InvestorTransactionCategoryId,
@@ -26,6 +42,10 @@ function buildCategoryTable(
       return buildDistributionsTable(state.distributionTable, periodLabel);
     case 'irrs':
       return buildIrrsTable(state.irr, periodLabel);
+    case 'capital-obligations':
+      return buildCapitalObligationsTable(state.capitalObligations, periodLabel);
+    case 'net-assets':
+      return buildNetAssetsTable(state.netAssets, periodLabel);
     default:
       return buildCapitalActivitiesTable(state.capitalActivities, periodLabel);
   }
@@ -39,54 +59,142 @@ function categoryLoading(categoryId: InvestorTransactionCategoryId, state: Funds
       return state.distributionTableLoading;
     case 'irrs':
       return state.irrLoading;
+    case 'capital-obligations':
+      return state.capitalObligationsLoading;
+    case 'net-assets':
+      return state.netAssetsLoading;
     default:
       return false;
   }
 }
 
-function categoryHasNextPage(categoryId: InvestorTransactionCategoryId, state: FundsDetailState): boolean {
+function categoryPagination(
+  categoryId: InvestorTransactionCategoryId,
+  state: FundsDetailState,
+): InvestorDetailTablePagination {
   switch (categoryId) {
     case 'capital-activities':
-      return state.capitalActivitiesHasNextPage;
+      return {
+        page: state.capitalActivitiesPage,
+        pageSize: state.capitalActivitiesPageSize,
+        totalPages: state.capitalActivitiesTotalPages,
+        totalCount: state.capitalActivitiesTotalCount,
+        hasPreviousPage: state.capitalActivitiesHasPreviousPage,
+        hasNextPage: state.capitalActivitiesHasNextPage,
+      };
     case 'distributions':
-      return state.distributionTableHasNextPage;
+      return {
+        page: state.distributionTablePage,
+        pageSize: state.distributionTablePageSize,
+        totalPages: state.distributionTableTotalPages,
+        totalCount: state.distributionTableTotalCount,
+        hasPreviousPage: state.distributionTableHasPreviousPage,
+        hasNextPage: state.distributionTableHasNextPage,
+      };
     case 'irrs':
-      return state.irrHasNextPage;
+      return {
+        page: state.irrPage,
+        pageSize: state.irrPageSize,
+        totalPages: state.irrTotalPages,
+        totalCount: state.irrTotalCount,
+        hasPreviousPage: state.irrHasPreviousPage,
+        hasNextPage: state.irrHasNextPage,
+      };
+    case 'capital-obligations':
+      return {
+        page: state.capitalObligationsPage,
+        pageSize: state.capitalObligationsPageSize,
+        totalPages: state.capitalObligationsTotalPages,
+        totalCount: state.capitalObligationsTotalCount,
+        hasPreviousPage: state.capitalObligationsHasPreviousPage,
+        hasNextPage: state.capitalObligationsHasNextPage,
+      };
+    case 'net-assets':
+      return {
+        page: state.netAssetsPage,
+        pageSize: state.netAssetsPageSize,
+        totalPages: state.netAssetsTotalPages,
+        totalCount: state.netAssetsTotalCount,
+        hasPreviousPage: state.netAssetsHasPreviousPage,
+        hasNextPage: state.netAssetsHasNextPage,
+      };
     default:
-      return false;
+      return {
+        page: 1,
+        pageSize: 25,
+        totalPages: 0,
+        totalCount: 0,
+        hasPreviousPage: false,
+        hasNextPage: false,
+      };
   }
 }
 
-function applyInvestorFilter(rows: InvestorDetailTableRow[], investorCode: string): InvestorDetailTableRow[] {
-  if (investorCode === 'all') {
-    return rows;
-  }
-  return rows.filter((row) => String(row['investorCode'] ?? '') === investorCode);
-}
-
-function uniqueSorted(values: string[]): string[] {
-  return [...new Set(values.filter((value) => value && value !== '—'))].sort((a, b) => a.localeCompare(b));
+function categoryTotalCount(categoryId: InvestorTransactionCategoryId, state: FundsDetailState): number {
+  return categoryPagination(categoryId, state).totalCount;
 }
 
 export function buildFundTransactionCategories(state: FundsDetailState): InvestorTransactionCategory[] {
   return [
-    { id: 'capital-activities', label: 'Capital Activities', count: state.capitalActivities.length },
-    { id: 'distributions', label: 'Distributions', count: state.distributionTable.length },
-    { id: 'irrs', label: 'IRRs', count: state.irr.length },
+    {
+      id: 'capital-activities',
+      label: 'Capital Activities',
+      count: categoryTotalCount('capital-activities', state),
+    },
+    {
+      id: 'distributions',
+      label: 'Distributions',
+      count: categoryTotalCount('distributions', state),
+    },
+    {
+      id: 'irrs',
+      label: 'Performance',
+      count: categoryTotalCount('irrs', state),
+    },
+    {
+      id: 'capital-obligations',
+      label: 'Capital Obligations',
+      count: categoryTotalCount('capital-obligations', state),
+    },
+    {
+      id: 'net-assets',
+      label: 'Net Asset Value',
+      count: categoryTotalCount('net-assets', state),
+    },
   ];
+}
+
+export function fundHubCategoryInvestorName(
+  categoryId: InvestorTransactionCategoryId,
+  state: FundsDetailState,
+): string {
+  switch (categoryId) {
+    case 'capital-activities':
+      return state.capitalActivitiesInvestorName;
+    case 'distributions':
+      return state.distributionTableInvestorName;
+    case 'irrs':
+      return state.irrInvestorName;
+    case 'capital-obligations':
+      return state.capitalObligationsInvestorName;
+    case 'net-assets':
+      return state.netAssetsInvestorName;
+    default:
+      return '';
+  }
 }
 
 export function buildFundTransactionHubBlock(
   state: FundsDetailState,
   categoryId: InvestorTransactionCategoryId,
   periodSummary: string,
-  _uiPage: number,
-  filters: InvestorTransactionHubFilters,
+  fundCodeOptions: InvestorTransactionFilterOption[],
 ): InvestorDetailTransactionHubBlock {
   const table = buildCategoryTable(categoryId, state, periodSummary);
-  const sourceRows = table.rows;
-  const rows = applyInvestorFilter(sourceRows, filters.fundCode);
-  const totals = buildTableTotalsRow(table.columns, rows, 'investorCode');
+  const rows = table.rows;
+  const pagination = categoryPagination(categoryId, state);
+  const labelKey = categoryId === 'capital-obligations' ? 'investorName' : 'investorCode';
+  const totals = rows.length ? buildTableTotalsRow(table.columns, rows, labelKey) : null;
 
   return {
     kind: 'transaction-hub',
@@ -104,12 +212,9 @@ export function buildFundTransactionHubBlock(
     totals,
     loading: categoryLoading(categoryId, state),
     periodSummary,
-    recordCount: rows.length,
-    uiPage: 1,
-    uiPageSize: rows.length || 1,
-    uiPageCount: 1,
-    hasNextApiPage: categoryHasNextPage(categoryId, state),
-    fundCodeOptions: uniqueSorted(sourceRows.map((row) => String(row['investorCode'] ?? ''))),
+    recordCount: pagination.totalCount,
+    pagination,
+    fundCodeOptions,
   };
 }
 
@@ -121,6 +226,10 @@ export function fundHubCategorySearchKey(categoryId: InvestorTransactionCategory
       return state.distributionTableSearch;
     case 'irrs':
       return state.irrSearch;
+    case 'capital-obligations':
+      return state.capitalObligationsSearch;
+    case 'net-assets':
+      return state.netAssetsSearch;
     default:
       return '';
   }
@@ -134,6 +243,10 @@ export function fundHubSortBlockId(categoryId: InvestorTransactionCategoryId): s
       return 'distributions';
     case 'irrs':
       return 'irrs';
+    case 'capital-obligations':
+      return 'capital-obligations';
+    case 'net-assets':
+      return 'net-assets';
     default:
       return 'capital-activities';
   }

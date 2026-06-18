@@ -3,13 +3,17 @@ import { InvestorDetailSidebarSection } from '../../../investors/investor-detail
 export const INVESTMENT_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] = [
   {
     title: 'Overview',
-    items: [{ id: 'overview', label: 'Overview' }],
+    items: [
+      { id: 'overview', label: 'Overview' },
+      { id: 'fund-transactions', label: 'Transactions' },
+      { id: 'capital-account', label: 'Capital Account' },
+      { id: 'performance', label: 'Performance' },
+    ],
   },
   {
     title: 'Data',
     items: [
       { id: 'assets', label: 'Assets' },
-      { id: 'fund-transactions', label: 'Transactions' },
       { id: 'documents', label: 'Documents' },
     ],
   },

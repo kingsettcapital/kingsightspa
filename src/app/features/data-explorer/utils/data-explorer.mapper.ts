@@ -1,5 +1,6 @@
 import { DataExplorerColumnDto, DataExplorerColumnGroupDto } from '../interfaces/data-explorer-api.models';
 import {
+  DataExplorerDataRequest,
   DataExplorerTemplateDto,
   DataExplorerTemplateFilterDto,
   DataExplorerTemplateListItemDto,
@@ -81,6 +82,7 @@ function normalizeTemplateId(templateId: string | number): string {
 
 export function mapTemplateListItemToSavedQuery(dto: DataExplorerTemplateListItemDto): SavedQuery {
   const groupBy = dto.groupByField?.trim();
+  const product = dto.product?.trim();
   return {
     id: normalizeTemplateId(dto.templateId),
     name: dto.name,
@@ -89,6 +91,7 @@ export function mapTemplateListItemToSavedQuery(dto: DataExplorerTemplateListIte
     filters: [],
     filterLogic: 'and',
     groupByFieldId: groupBy ? groupBy : null,
+    product: product || undefined,
     savedAt: dto.modifiedAt ?? dto.createdAt,
     columnCount: dto.columnCount,
     filterCount: dto.filterCount,
@@ -97,6 +100,7 @@ export function mapTemplateListItemToSavedQuery(dto: DataExplorerTemplateListIte
 
 export function mapTemplateToSavedQuery(dto: DataExplorerTemplateDto): SavedQuery {
   const groupBy = dto.groupByField?.trim();
+  const product = dto.product?.trim();
   return {
     id: normalizeTemplateId(dto.templateId),
     name: dto.name,
@@ -105,6 +109,7 @@ export function mapTemplateToSavedQuery(dto: DataExplorerTemplateDto): SavedQuer
     filters: (dto.filters ?? []).map(mapTemplateFilterFromDto),
     filterLogic: parseFilterLogic(dto.filterLogic),
     groupByFieldId: groupBy ? groupBy : null,
+    product: product || undefined,
     savedAt: dto.modifiedAt ?? dto.createdAt,
     columnCount: dto.columns?.length ?? 0,
     filterCount: dto.filters?.length ?? 0,
@@ -118,6 +123,7 @@ export function mapSavedQueryStateToTemplateRequest(
   const appliedFilters = state.filters.filter((filter) => isFilterApplied(filter));
 
   return {
+    product: state.product ?? '',
     name: payload.name.trim(),
     description: payload.description?.trim() || undefined,
     columns: [...state.selectedFieldIds],
@@ -129,4 +135,44 @@ export function mapSavedQueryStateToTemplateRequest(
     filterLogic: resolveApiFilterLogic(state.filters, state.filterLogic),
     groupByField: state.groupByFieldId ?? '',
   };
+}
+
+export function buildDataExplorerDataRequest(input: {
+  product: string;
+  columns: string[];
+  groupByFieldId: string | null;
+  filters: QueryFilter[];
+  filterLogic: FilterLogic;
+  sortBy: string;
+  sortDir: string;
+  page: number;
+  pageSize: number;
+}): DataExplorerDataRequest {
+  const appliedFilters = input.filters.filter((filter) => isFilterApplied(filter));
+  const request: DataExplorerDataRequest = {
+    product: input.product,
+    columns: [...input.columns],
+    page: input.page,
+    pageSize: input.pageSize,
+  };
+
+  if (input.groupByFieldId) {
+    request.groupByField = input.groupByFieldId;
+  }
+
+  if (appliedFilters.length > 0) {
+    request.filters = appliedFilters.map((filter) => ({
+      field: filter.fieldId,
+      operator: filter.operator,
+      value: filter.value ?? '',
+    }));
+    request.filterLogic = resolveApiFilterLogic(input.filters, input.filterLogic);
+  }
+
+  if (input.sortBy.trim()) {
+    request.sortBy = input.sortBy;
+    request.sortDir = input.sortDir;
+  }
+
+  return request;
 }

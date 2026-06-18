@@ -45,22 +45,28 @@ export class InvestorDetailBlockComponent {
   readonly transactionHubCategoryChange = output<InvestorTransactionCategoryId>();
   readonly transactionHubPageChange = output<number>();
   readonly hubFundFilterChange = output<string>();
+  readonly hubTimeframe = input<'ltd' | 'quarterly' | 'daily'>('ltd');
   readonly hubTimeframeChange = output<'ltd' | 'quarterly' | 'daily'>();
   readonly hubQuarterChange = output<number>();
   readonly hubYearChange = output<number>();
 
   readonly hubFundFilter = input('all');
-  readonly hubTimeframe = input<'ltd' | 'quarterly' | 'daily'>('ltd');
+  readonly hubFundFilterApply = output<string>();
+  readonly hubQuarterScope = input<number | 'all'>('all');
+  readonly hubQuarterScopeChange = output<number | 'all'>();
   readonly hubQuarter = input<number | null>(null);
   readonly hubYear = input<number | null>(null);
   readonly hubAvailableQuarters = input<number[]>([]);
   readonly hubAvailableYears = input<number[]>([]);
+  readonly underlyingInvestmentsPageChange = output<number>();
 
   readonly Math = Math;
 
   readonly hubFiltersPanelVisible = signal(false);
-
-  readonly expanded = signal(true);
+  readonly hubFundFilterDraft = signal('all');
+  private readonly expandScopeKey = computed(
+    () => `${this.tableContextKey()}\u0000${this.block().id}`,
+  );
   readonly searchQuery = signal('');
   readonly filtersPanelVisible = signal(false);
   readonly minCommitmentFilter = signal('');
@@ -78,12 +84,26 @@ export class InvestorDetailBlockComponent {
     'Insurance',
   ];
 
+  readonly expanded = signal(true);
+
   constructor() {
     effect(() => {
       this.tableContextKey();
       this.searchQuery.set('');
       this.minCommitmentFilter.set('');
       this.hubFiltersPanelVisible.set(false);
+      this.hubFundFilterDraft.set('all');
+    });
+
+    effect(() => {
+      this.hubFundFilter();
+      this.hubFundFilterDraft.set(this.hubFundFilter());
+    });
+
+    effect(() => {
+      this.expandScopeKey();
+      const block = this.block();
+      this.expanded.set(block.defaultExpanded !== false);
     });
   }
 
@@ -108,16 +128,49 @@ export class InvestorDetailBlockComponent {
     return this.hubFundFilter() !== 'all' ? 1 : 0;
   }
 
+  hubDraftFilterCount(): number {
+    return this.hubFundFilterDraft() !== 'all' ? 1 : 0;
+  }
+
   hubFiltersActive(): boolean {
     return this.hubFiltersPanelVisible() || this.hubActiveFilterCount() > 0;
   }
 
-  clearHubFilters(): void {
-    this.hubFundFilterChange.emit('all');
+  applyHubFilters(): void {
+    this.hubFundFilterApply.emit(this.hubFundFilterDraft());
+    this.hubFiltersPanelVisible.set(false);
   }
 
-  hubPageNumbers(current: { uiPageCount: number }): number[] {
-    return Array.from({ length: current.uiPageCount }, (_, index) => index + 1);
+  clearHubFilters(): void {
+    this.hubFundFilterDraft.set('all');
+    this.hubFundFilterApply.emit('all');
+    this.hubFiltersPanelVisible.set(false);
+  }
+
+  transactionHubPageNumbers(): number[] {
+    const block = this.block();
+    if (block.kind !== 'transaction-hub' || !block.pagination) {
+      return [1];
+    }
+    return Array.from({ length: Math.max(block.pagination.totalPages, 1) }, (_, index) => index + 1);
+  }
+
+  transactionHubSummary(): string {
+    const block = this.block();
+    if (block.kind !== 'transaction-hub' || !block.pagination) {
+      return '';
+    }
+    const { page, pageSize, totalCount } = block.pagination;
+    if (totalCount === 0) {
+      return 'Showing 0 of 0';
+    }
+    const start = (page - 1) * pageSize + 1;
+    const end = Math.min(page * pageSize, totalCount);
+    return `Showing ${start}–${end} of ${totalCount}`;
+  }
+
+  transactionHubLoadingMessage(): string {
+    return 'Loading transactions…';
   }
 
   isHubTable(): boolean {
@@ -133,6 +186,62 @@ export class InvestorDetailBlockComponent {
     return block.kind === 'table' && block.id === 'fund-exposure';
   }
 
+  isFundHoldingsVariant(): boolean {
+    const block = this.block();
+    return block.kind === 'table' && block.variant === 'fund-holdings';
+  }
+
+  isUnderlyingInvestmentsVariant(): boolean {
+    const block = this.block();
+    return block.kind === 'table' && block.variant === 'underlying-investments';
+  }
+
+  isPagedTableVariant(): boolean {
+    return this.isUnderlyingInvestmentsVariant();
+  }
+
+  isFundHoldingsTableVariant(): boolean {
+    return this.isFundHoldingsVariant() || this.isUnderlyingInvestmentsVariant();
+  }
+
+  pagedTablePageNumbers(): number[] {
+    const block = this.block();
+    if (block.kind !== 'table' || !block.pagination) {
+      return [1];
+    }
+    return Array.from({ length: Math.max(block.pagination.totalPages, 1) }, (_, index) => index + 1);
+  }
+
+  pagedTableSummary(): string {
+    const block = this.block();
+    if (block.kind !== 'table' || !block.pagination) {
+      return '';
+    }
+    const { page, pageSize, totalCount } = block.pagination;
+    if (totalCount === 0) {
+      return 'Showing 0 of 0';
+    }
+    const start = (page - 1) * pageSize + 1;
+    const end = Math.min(page * pageSize, totalCount);
+    return `Showing ${start}–${end} of ${totalCount}`;
+  }
+
+  pagedTableLoadingMessage(): string {
+    if (this.isFundHoldingsVariant()) {
+      return 'Loading fund holdings…';
+    }
+    if (this.isUnderlyingInvestmentsVariant()) {
+      return 'Loading underlying investments…';
+    }
+    return 'Loading…';
+  }
+
+  onPagedTablePageChange(page: number): void {
+    if (this.isUnderlyingInvestmentsVariant()) {
+      this.underlyingInvestmentsPageChange.emit(page);
+    }
+  }
+
   onFundExposureRowClick(row: InvestorDetailTableRow, rowIndex: number): void {
     if (!this.isFundExposureTable()) {
       return;
@@ -144,11 +253,17 @@ export class InvestorDetailBlockComponent {
     this.fundExposureRowClick.emit({ row, rowIndex });
   }
 
-  onOverviewFundClick(fundKey: number): void {
-    if (!Number.isFinite(fundKey) || fundKey <= 0) {
+  onFundHoldingsFundClick(row: InvestorDetailTableRow): void {
+    const fundKey = row['fundKey'];
+    if (typeof fundKey !== 'number' || !Number.isFinite(fundKey) || fundKey <= 0) {
       return;
     }
     this.overviewFundClick.emit({ fundKey });
+  }
+
+  isCapitalAccountBlock(): boolean {
+    const block = this.block();
+    return block.kind === 'field-grid' && block.id === 'capital-account';
   }
 
   isEntityOverviewBlock(): boolean {
@@ -156,6 +271,21 @@ export class InvestorDetailBlockComponent {
   }
 
   readonly emptyStateMessage = computed(() => {
+    if (this.isFundHoldingsVariant()) {
+      if (this.tableSearchActive() || this.searchQuery().trim()) {
+        return 'No fund holdings match your filters.';
+      }
+      return 'No fund holdings found for the selected date range.';
+    }
+    if (this.isUnderlyingInvestmentsVariant()) {
+      return 'No underlying investments found.';
+    }
+    if (this.isTransactionHubBlock()) {
+      if (this.tableSearchActive() || this.searchQuery().trim()) {
+        return 'No transactions match your search.';
+      }
+      return 'No transactions found for the selected period.';
+    }
     if (this.tableSearchActive() || this.searchQuery().trim()) {
       return 'No results found for your search.';
     }
@@ -286,6 +416,19 @@ export class InvestorDetailBlockComponent {
       return value;
     }
     return null;
+  }
+
+  amountCellClass(column: InvestorDetailTableColumn): string {
+    if (!this.isFundHoldingsVariant()) {
+      return '';
+    }
+    if (column.key === 'unfunded' || column.tone === 'warning') {
+      return 'inv-detail-table__amount-tone inv-detail-table__amount-tone--unfunded';
+    }
+    if (column.key === 'distributed' || column.tone === 'positive') {
+      return 'inv-detail-table__amount-tone inv-detail-table__amount-tone--distributed';
+    }
+    return '';
   }
 
   displayAmountValue(value: InvestorDetailTableCellValue): number | null {
@@ -430,24 +573,11 @@ export class InvestorDetailBlockComponent {
   }
 
   transactionTypeClass(value: InvestorDetailTableCellValue): string {
-    const type = String(value ?? '').toLowerCase();
-    const base = 'inv-detail-block__tx-type';
-    if (type.includes('acquisition')) {
-      return `${base} ${base}--acquisition`;
+    const type = String(value ?? '').trim();
+    if (!type || type === '—') {
+      return '';
     }
-    if (type.includes('distribution')) {
-      return `${base} ${base}--distribution`;
-    }
-    if (type.includes('capital call')) {
-      return `${base} ${base}--capital-call`;
-    }
-    if (type.includes('refinancing') || type.includes('financing')) {
-      return `${base} ${base}--refinancing`;
-    }
-    if (type.includes('sale') || type.includes('disposition')) {
-      return `${base} ${base}--sale`;
-    }
-    return base;
+    return 'inv-detail-transactions__type-chip';
   }
 
   riskFlagClass(tone?: string): string {

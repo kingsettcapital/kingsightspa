@@ -41,12 +41,42 @@ body[data-ks-data-explorer] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-shrink: 0;
   min-width: 0;
   padding: 0.625rem 1.25rem;
   background: var(--ks-color-navy);
   color: var(--ks-color-text-inverse);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.de-explorer__home-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #e7a614 0%, var(--ks-color-gold) 48%, #a8842f 100%);
+  color: #fff;
+  text-decoration: none;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+
+  &:hover {
+    color: #fff;
+    // filter: brightness(1.05);
+    // transform: translateY(-1px);
+    // box-shadow: 0 4px 12px rgba(197, 160, 72, 0.42);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ks-color-gold);
+    outline-offset: 2px;
+  }
 }
 
 .de-explorer__brand {
@@ -476,6 +506,32 @@ body[data-ks-data-explorer] {
   font-size: 0.6875rem;
   font-weight: var(--ks-font-weight-semibold);
   background: var(--ks-color-gold);
+  color: var(--ks-color-navy);
+}
+
+.de-explorer__product-select-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.625rem 0.75rem 0;
+}
+
+.de-explorer__product-select-label {
+  font-size: 0.6875rem;
+  font-weight: var(--ks-font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ks-color-text-muted);
+}
+
+.de-explorer__product-select {
+  width: 100%;
+  height: 1.75rem;
+  padding: 0 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--ks-color-light-blue) 45%, var(--ks-color-border));
+  border-radius: 0;
+  background: var(--ks-color-white);
+  font-size: 0.75rem;
   color: var(--ks-color-navy);
 }
 
@@ -1457,7 +1513,7 @@ body[data-ks-data-explorer] {
 @media (max-width: 1200px) {
   .de-explorer__topbar {
     flex-wrap: wrap;
-    gap: 0.5rem 0.75rem;
+    gap: 0.5rem 0.625rem;
     padding: 0.5rem 0.75rem;
   }
 
@@ -1465,9 +1521,17 @@ body[data-ks-data-explorer] {
     display: none;
   }
 
+  .de-explorer__brand {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
   .de-explorer__topbar-actions {
+    flex: 1 1 100%;
     width: 100%;
     gap: 0.5rem;
+    margin-left: 0;
+    justify-content: flex-end;
   }
 
   .de-explorer__topbar-buttons .de-explorer__topbar-divider {
@@ -1485,17 +1549,39 @@ body[data-ks-data-explorer] {
 }
 
 @media (max-width: 768px) {
+  .de-explorer__topbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 0.625rem;
+    row-gap: 0.5rem;
+    padding: 0.5rem 0.75rem 0.5rem 0.625rem;
+  }
+
+  .de-explorer__home-link {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
   .de-explorer__brand {
-    flex: 1 1 100%;
-    font-size: 1rem;
+    grid-column: 2;
+    grid-row: 1;
+    flex: unset;
+    font-size: 0.9375rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .de-explorer__topbar-actions {
-    flex: 1 1 100%;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    flex: unset;
+    width: 100%;
     flex-direction: row;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
+    justify-content: flex-end;
+    gap: 0.25rem;
     margin-left: 0;
   }
 
@@ -1503,6 +1589,7 @@ body[data-ks-data-explorer] {
     width: auto;
     flex: 1 1 auto;
     min-width: 0;
+    margin-right: auto;
     justify-content: flex-start;
   }
 
@@ -1530,6 +1617,13 @@ body[data-ks-data-explorer] {
 
   .de-explorer__action-btn--export {
     padding: 0.4375rem;
+    background: transparent;
+    color: var(--ks-color-text-inverse);
+    font-weight: var(--ks-font-weight-medium);
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+    }
   }
 
   .de-explorer__editing-chip {
@@ -1537,7 +1631,7 @@ body[data-ks-data-explorer] {
   }
 
   .de-explorer__toolbar {
-    padding: 0.375rem 0.75rem;
+    padding: 0.375rem 0.625rem;
     gap: 0.5rem;
   }
 

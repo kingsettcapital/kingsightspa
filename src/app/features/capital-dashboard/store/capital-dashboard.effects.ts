@@ -24,12 +24,18 @@ import {
   mapFundCapitalActivitiesToTabRows,
   mapFundDistributionTableToTabRows,
   mapFundIrrToTabRows,
+  mapFundCapitalObligationsToTabRows,
+  mapFundNetAssetsToTabRows,
 } from '../shared/mappers/fund-transaction-tables.mapper';
 import {
   mapInvestorCapitalActivitiesToTabRows,
   mapInvestorDistributionTableToTabRows,
   mapInvestorIrrToTabRows,
+  mapInvestorCapitalObligationsToTabRows,
+  mapInvestorNetAssetsToTabRows,
 } from '../shared/mappers/investor-transaction-tables.mapper';
+import { mapInvestorFundHoldingsResponse } from '../shared/mappers/investor-fund-holdings.mapper';
+import { mapInvestorUnderlyingInvestmentsToTabRows } from '../shared/mappers/investor-underlying-investments.mapper';
 import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
 import {
   readFundCommitmentsPageCache,
@@ -41,6 +47,8 @@ import {
   readFundCapitalActivitiesPageCache,
   readFundDistributionTablePageCache,
   readFundIrrPageCache,
+  readFundCapitalObligationsPageCache,
+  readFundNetAssetsPageCache,
   readInvestorCapitalInvestmentsPageCache,
   readInvestorCommitmentsPageCache,
   readInvestorDistributionsPageCache,
@@ -48,6 +56,9 @@ import {
   readInvestorCapitalActivitiesPageCache,
   readInvestorDistributionTablePageCache,
   readInvestorIrrPageCache,
+  readInvestorCapitalObligationsPageCache,
+  readInvestorNetAssetsPageCache,
+  readInvestorFundHoldingsCache,
   readInvestorPeriodsCache,
   readInvestorUnfundedCommitmentsPageCache,
   readAssetsListCacheEntry,
@@ -117,19 +128,24 @@ export class CapitalDashboardEffects {
       ofType(InvestorsApiActions.loadDetail),
       withLatestFrom(this.store.select(selectInvestors)),
       switchMap(([request, investors]) => {
-        if (investors.cache.details[request.investorKey]) {
-          return EMPTY;
+        const cached = investors.cache.details[request.investorKey];
+        if (cached) {
+          return of(
+            InvestorsApiActions.loadDetailSuccess({
+              investorKey: request.investorKey,
+              detail: cached.detail,
+              investments: cached.investments,
+              investmentsHasNextPage: cached.investmentsHasNextPage,
+            }),
+          );
         }
-        return forkJoin({
-          detail: this.investorsApi.getInvestor(request.investorKey),
-          funds: this.investorsApi.getInvestorFundsPage(request.investorKey, { page: 1 }),
-        }).pipe(
-          map(({ detail, funds }) =>
+        return this.investorsApi.getInvestor(request.investorKey).pipe(
+          map((detail) =>
             InvestorsApiActions.loadDetailSuccess({
               investorKey: request.investorKey,
               detail,
-              investments: extractPagedItems(funds),
-              investmentsHasNextPage: !!funds.hasNextPage,
+              investments: [],
+              investmentsHasNextPage: false,
             }),
           ),
           catchError(() =>
@@ -213,27 +229,13 @@ export class CapitalDashboardEffects {
           return EMPTY;
         }
         return this.fundsApi.getFund(request.fundKey).pipe(
-          switchMap((detail) =>
-            this.fundsApi.getFundAssetsPage(request.fundKey, { page: 1 }).pipe(
-              map((assetsPage) =>
-                FundsApiActions.loadDetailSuccess({
-                  fundKey: request.fundKey,
-                  detail,
-                  assets: mapFundAssetsToTabRows(extractPagedItems(assetsPage)),
-                  assetsHasNextPage: assetsPage.hasNextPage,
-                }),
-              ),
-              catchError(() =>
-                of(
-                  FundsApiActions.loadDetailSuccess({
-                    fundKey: request.fundKey,
-                    detail,
-                    assets: [],
-                    assetsHasNextPage: false,
-                  }),
-                ),
-              ),
-            ),
+          map((detail) =>
+            FundsApiActions.loadDetailSuccess({
+              fundKey: request.fundKey,
+              detail,
+              assets: [],
+              assetsHasNextPage: false,
+            }),
           ),
           catchError(() =>
             of(FundsApiActions.loadDetailFailure({ error: 'Unable to load investment details.' })),
@@ -246,16 +248,21 @@ export class CapitalDashboardEffects {
   readonly loadFundAssetsPage$ = createEffect(() =>
     this.actions$.pipe(
       ofType(FundsApiActions.loadFundAssetsPage),
-      switchMap(({ fundKey, page, search }) =>
+      switchMap(({ fundKey, page, search, replace = true }) =>
         this.fundsApi.getFundAssetsPage(fundKey, { page, search }).pipe(
-          map((result) =>
-            FundsApiActions.loadFundAssetsPageSuccess({
-              page,
-              items: mapFundAssetsToTabRows(extractPagedItems(result)),
-              hasNextPage: result.hasNextPage,
-              append: page > 1,
-            }),
-          ),
+          map((result) => {
+            const items = mapFundAssetsToTabRows(extractPagedItems(result));
+            return FundsApiActions.loadFundAssetsPageSuccess({
+              page: result.page ?? page,
+              pageSize: result.pageSize ?? LIST_PAGE_SIZE,
+              totalCount: result.totalCount ?? items.length,
+              totalPages: result.totalPages ?? 1,
+              items,
+              hasNextPage: !!result.hasNextPage,
+              hasPreviousPage: !!result.hasPreviousPage,
+              replace,
+            });
+          }),
           catchError(() => of(FundsApiActions.loadFundAssetsPageFailure())),
         ),
       ),
@@ -573,6 +580,7 @@ export class CapitalDashboardEffects {
       withLatestFrom(this.store.select(selectFunds)),
       switchMap(([request, funds]) => {
         const search = request.search.trim();
+        const investorName = request.investorName?.trim() ?? '';
         if (
           !search &&
           !request.sortBy &&
@@ -582,6 +590,8 @@ export class CapitalDashboardEffects {
             request.timeframe,
             request.page,
             request.dateKey,
+            investorName,
+            request.calendarYear,
           )
         ) {
           return EMPTY;
@@ -590,7 +600,9 @@ export class CapitalDashboardEffects {
           .getFundCapitalActivitiesPage(request.fundKey, request.timeframe, {
             page: request.page,
             dateKey: request.dateKey,
+            calendarYear: request.calendarYear,
             search: request.search,
+            investorName,
             sortBy: request.sortBy,
             sortDir: request.sortDir,
           })
@@ -600,11 +612,17 @@ export class CapitalDashboardEffects {
               return FundsApiActions.loadFundCapitalActivitiesPageSuccess({
                 timeframe: request.timeframe,
                 page: result.page ?? request.page,
+                pageSize: result.pageSize ?? LIST_PAGE_SIZE,
+                totalCount: result.totalCount ?? items.length,
+                totalPages: result.totalPages ?? 1,
                 items,
                 hasNextPage: !!result.hasNextPage,
+                hasPreviousPage: !!result.hasPreviousPage,
                 replace: request.replace,
                 search: request.search,
                 dateKey: request.dateKey,
+                calendarYear: request.calendarYear,
+                investorName,
                 sortBy: request.sortBy,
               });
             }),
@@ -626,6 +644,7 @@ export class CapitalDashboardEffects {
       withLatestFrom(this.store.select(selectFunds)),
       switchMap(([request, funds]) => {
         const search = request.search.trim();
+        const investorName = request.investorName?.trim() ?? '';
         if (
           !search &&
           !request.sortBy &&
@@ -635,6 +654,8 @@ export class CapitalDashboardEffects {
             request.timeframe,
             request.page,
             request.dateKey,
+            investorName,
+            request.calendarYear,
           )
         ) {
           return EMPTY;
@@ -643,7 +664,9 @@ export class CapitalDashboardEffects {
           .getFundDistributionTablePage(request.fundKey, request.timeframe, {
             page: request.page,
             dateKey: request.dateKey,
+            calendarYear: request.calendarYear,
             search: request.search,
+            investorName,
             sortBy: request.sortBy,
             sortDir: request.sortDir,
           })
@@ -653,11 +676,17 @@ export class CapitalDashboardEffects {
               return FundsApiActions.loadFundDistributionTablePageSuccess({
                 timeframe: request.timeframe,
                 page: result.page ?? request.page,
+                pageSize: result.pageSize ?? LIST_PAGE_SIZE,
+                totalCount: result.totalCount ?? items.length,
+                totalPages: result.totalPages ?? 1,
                 items,
                 hasNextPage: !!result.hasNextPage,
+                hasPreviousPage: !!result.hasPreviousPage,
                 replace: request.replace,
                 search: request.search,
                 dateKey: request.dateKey,
+                calendarYear: request.calendarYear,
+                investorName,
                 sortBy: request.sortBy,
               });
             }),
@@ -679,6 +708,7 @@ export class CapitalDashboardEffects {
       withLatestFrom(this.store.select(selectFunds)),
       switchMap(([request, funds]) => {
         const search = request.search.trim();
+        const investorName = request.investorName?.trim() ?? '';
         if (
           !search &&
           !request.sortBy &&
@@ -688,6 +718,8 @@ export class CapitalDashboardEffects {
             request.timeframe,
             request.page,
             request.dateKey,
+            investorName,
+            request.calendarYear,
           )
         ) {
           return EMPTY;
@@ -696,7 +728,9 @@ export class CapitalDashboardEffects {
           .getFundIrrPage(request.fundKey, request.timeframe, {
             page: request.page,
             dateKey: request.dateKey,
+            calendarYear: request.calendarYear,
             search: request.search,
+            investorName,
             sortBy: request.sortBy,
             sortDir: request.sortDir,
           })
@@ -706,11 +740,17 @@ export class CapitalDashboardEffects {
               return FundsApiActions.loadFundIrrPageSuccess({
                 timeframe: request.timeframe,
                 page: result.page ?? request.page,
+                pageSize: result.pageSize ?? LIST_PAGE_SIZE,
+                totalCount: result.totalCount ?? items.length,
+                totalPages: result.totalPages ?? 1,
                 items,
                 hasNextPage: !!result.hasNextPage,
+                hasPreviousPage: !!result.hasPreviousPage,
                 replace: request.replace,
                 search: request.search,
                 dateKey: request.dateKey,
+                calendarYear: request.calendarYear,
+                investorName,
                 sortBy: request.sortBy,
               });
             }),
@@ -718,6 +758,134 @@ export class CapitalDashboardEffects {
               of(
                 FundsApiActions.loadFundIrrPageFailure({
                   error: 'Unable to load IRR data. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadFundCapitalObligationsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FundsApiActions.loadFundCapitalObligationsPage),
+      withLatestFrom(this.store.select(selectFunds)),
+      switchMap(([request, funds]) => {
+        const search = request.search.trim();
+        const investorName = request.investorName?.trim() ?? '';
+        if (
+          !search &&
+          !request.sortBy &&
+          readFundCapitalObligationsPageCache(
+            funds.cache.capitalObligationsPages,
+            request.fundKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+            investorName,
+            request.calendarYear,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.fundsApi
+          .getFundCapitalObligationsPage(request.fundKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+            calendarYear: request.calendarYear,
+            search: request.search,
+            investorName,
+            sortBy: request.sortBy,
+            sortDir: request.sortDir,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundCapitalObligationsToTabRows(extractPagedItems(result));
+              return FundsApiActions.loadFundCapitalObligationsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                pageSize: result.pageSize ?? LIST_PAGE_SIZE,
+                totalCount: result.totalCount ?? items.length,
+                totalPages: result.totalPages ?? 1,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                hasPreviousPage: !!result.hasPreviousPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+                calendarYear: request.calendarYear,
+                investorName,
+                sortBy: request.sortBy,
+              });
+            }),
+            catchError(() =>
+              of(
+                FundsApiActions.loadFundCapitalObligationsPageFailure({
+                  error: 'Unable to load capital obligations. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadFundNetAssetsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(FundsApiActions.loadFundNetAssetsPage),
+      withLatestFrom(this.store.select(selectFunds)),
+      switchMap(([request, funds]) => {
+        const search = request.search.trim();
+        const investorName = request.investorName?.trim() ?? '';
+        if (
+          !search &&
+          !request.sortBy &&
+          readFundNetAssetsPageCache(
+            funds.cache.netAssetsPages,
+            request.fundKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+            investorName,
+            request.calendarYear,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.fundsApi
+          .getFundNetAssetsPage(request.fundKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+            calendarYear: request.calendarYear,
+            search: request.search,
+            investorName,
+            sortBy: request.sortBy,
+            sortDir: request.sortDir,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapFundNetAssetsToTabRows(extractPagedItems(result));
+              return FundsApiActions.loadFundNetAssetsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                pageSize: result.pageSize ?? LIST_PAGE_SIZE,
+                totalCount: result.totalCount ?? items.length,
+                totalPages: result.totalPages ?? 1,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                hasPreviousPage: !!result.hasPreviousPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+                calendarYear: request.calendarYear,
+                investorName,
+                sortBy: request.sortBy,
+              });
+            }),
+            catchError(() =>
+              of(
+                FundsApiActions.loadFundNetAssetsPageFailure({
+                  error: 'Unable to load net assets. Please try again.',
                 }),
               ),
             ),
@@ -866,45 +1034,39 @@ export class CapitalDashboardEffects {
       ofType(InvestorsApiActions.loadInvestorCapitalInvestmentsPage),
       withLatestFrom(this.store.select(selectInvestors)),
       switchMap(([request, investors]) => {
-        const search = request.search.trim();
         if (
-          !search &&
           readInvestorCapitalInvestmentsPageCache(
             investors.cache.capitalInvestmentPages,
             request.investorKey,
-            request.timeframe,
             request.page,
-            request.dateKey,
           )
         ) {
           return EMPTY;
         }
-        return this.investorsApi
-          .getInvestorInvestmentsPage(request.investorKey, request.timeframe, {
-            page: request.page,
-            dateKey: request.dateKey,
-          })
-          .pipe(
-            map((result) => {
-              const items = mapFundCommitmentsToTabRows(extractPagedItems(result), request.timeframe);
-              return InvestorsApiActions.loadInvestorCapitalInvestmentsPageSuccess({
-                timeframe: request.timeframe,
-                page: result.page ?? request.page,
-                items,
-                hasNextPage: !!result.hasNextPage,
-                replace: request.replace,
-                search: request.search,
-                dateKey: request.dateKey,
-              });
-            }),
-            catchError(() =>
-              of(
-                InvestorsApiActions.loadInvestorCapitalInvestmentsPageFailure({
-                  error: 'Unable to load investments. Please try again.',
-                }),
-              ),
+        return this.investorsApi.getInvestorCapitalInvestmentsPage(request.investorKey, {
+          page: request.page,
+        }).pipe(
+          map((result) => {
+            const items = mapInvestorUnderlyingInvestmentsToTabRows(extractPagedItems(result));
+            return InvestorsApiActions.loadInvestorCapitalInvestmentsPageSuccess({
+              page: result.page ?? request.page,
+              pageSize: result.pageSize ?? LIST_PAGE_SIZE,
+              totalCount: result.totalCount ?? items.length,
+              totalPages: result.totalPages ?? 1,
+              items,
+              hasNextPage: !!result.hasNextPage,
+              hasPreviousPage: !!result.hasPreviousPage,
+              replace: request.replace,
+            });
+          }),
+          catchError(() =>
+            of(
+              InvestorsApiActions.loadInvestorCapitalInvestmentsPageFailure({
+                error: 'Unable to load investments. Please try again.',
+              }),
             ),
-          );
+          ),
+        );
       }),
     ),
   );
@@ -1019,6 +1181,7 @@ export class CapitalDashboardEffects {
       withLatestFrom(this.store.select(selectInvestors)),
       switchMap(([request, investors]) => {
         const search = request.search.trim();
+        const fundCode = request.fundCode?.trim() ?? '';
         if (
           !search &&
           !request.sortBy &&
@@ -1028,6 +1191,8 @@ export class CapitalDashboardEffects {
             request.timeframe,
             request.page,
             request.dateKey,
+            fundCode,
+            request.calendarYear,
           )
         ) {
           return EMPTY;
@@ -1036,7 +1201,9 @@ export class CapitalDashboardEffects {
           .getInvestorCapitalActivitiesPage(request.investorKey, request.timeframe, {
             page: request.page,
             dateKey: request.dateKey,
+            calendarYear: request.calendarYear,
             search: request.search,
+            fundCode,
             sortBy: request.sortBy,
             sortDir: request.sortDir,
           })
@@ -1046,11 +1213,17 @@ export class CapitalDashboardEffects {
               return InvestorsApiActions.loadInvestorCapitalActivitiesPageSuccess({
                 timeframe: request.timeframe,
                 page: result.page ?? request.page,
+                pageSize: result.pageSize ?? LIST_PAGE_SIZE,
+                totalCount: result.totalCount ?? items.length,
+                totalPages: result.totalPages ?? 1,
                 items,
                 hasNextPage: !!result.hasNextPage,
+                hasPreviousPage: !!result.hasPreviousPage,
                 replace: request.replace,
                 search: request.search,
                 dateKey: request.dateKey,
+                calendarYear: request.calendarYear,
+                fundCode,
                 sortBy: request.sortBy,
               });
             }),
@@ -1072,6 +1245,7 @@ export class CapitalDashboardEffects {
       withLatestFrom(this.store.select(selectInvestors)),
       switchMap(([request, investors]) => {
         const search = request.search.trim();
+        const fundCode = request.fundCode?.trim() ?? '';
         if (
           !search &&
           !request.sortBy &&
@@ -1081,6 +1255,8 @@ export class CapitalDashboardEffects {
             request.timeframe,
             request.page,
             request.dateKey,
+            fundCode,
+            request.calendarYear,
           )
         ) {
           return EMPTY;
@@ -1089,7 +1265,9 @@ export class CapitalDashboardEffects {
           .getInvestorDistributionTablePage(request.investorKey, request.timeframe, {
             page: request.page,
             dateKey: request.dateKey,
+            calendarYear: request.calendarYear,
             search: request.search,
+            fundCode,
             sortBy: request.sortBy,
             sortDir: request.sortDir,
           })
@@ -1099,11 +1277,17 @@ export class CapitalDashboardEffects {
               return InvestorsApiActions.loadInvestorDistributionTablePageSuccess({
                 timeframe: request.timeframe,
                 page: result.page ?? request.page,
+                pageSize: result.pageSize ?? LIST_PAGE_SIZE,
+                totalCount: result.totalCount ?? items.length,
+                totalPages: result.totalPages ?? 1,
                 items,
                 hasNextPage: !!result.hasNextPage,
+                hasPreviousPage: !!result.hasPreviousPage,
                 replace: request.replace,
                 search: request.search,
                 dateKey: request.dateKey,
+                calendarYear: request.calendarYear,
+                fundCode,
                 sortBy: request.sortBy,
               });
             }),
@@ -1125,6 +1309,7 @@ export class CapitalDashboardEffects {
       withLatestFrom(this.store.select(selectInvestors)),
       switchMap(([request, investors]) => {
         const search = request.search.trim();
+        const fundCode = request.fundCode?.trim() ?? '';
         if (
           !search &&
           !request.sortBy &&
@@ -1134,6 +1319,8 @@ export class CapitalDashboardEffects {
             request.timeframe,
             request.page,
             request.dateKey,
+            fundCode,
+            request.calendarYear,
           )
         ) {
           return EMPTY;
@@ -1142,7 +1329,9 @@ export class CapitalDashboardEffects {
           .getInvestorIrrPage(request.investorKey, request.timeframe, {
             page: request.page,
             dateKey: request.dateKey,
+            calendarYear: request.calendarYear,
             search: request.search,
+            fundCode,
             sortBy: request.sortBy,
             sortDir: request.sortDir,
           })
@@ -1152,11 +1341,17 @@ export class CapitalDashboardEffects {
               return InvestorsApiActions.loadInvestorIrrPageSuccess({
                 timeframe: request.timeframe,
                 page: result.page ?? request.page,
+                pageSize: result.pageSize ?? LIST_PAGE_SIZE,
+                totalCount: result.totalCount ?? items.length,
+                totalPages: result.totalPages ?? 1,
                 items,
                 hasNextPage: !!result.hasNextPage,
+                hasPreviousPage: !!result.hasPreviousPage,
                 replace: request.replace,
                 search: request.search,
                 dateKey: request.dateKey,
+                calendarYear: request.calendarYear,
+                fundCode,
                 sortBy: request.sortBy,
               });
             }),
@@ -1168,6 +1363,162 @@ export class CapitalDashboardEffects {
               ),
             ),
           );
+      }),
+    ),
+  );
+
+  readonly loadInvestorCapitalObligationsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorCapitalObligationsPage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        const fundCode = request.fundCode?.trim() ?? '';
+        if (
+          !search &&
+          !request.sortBy &&
+          readInvestorCapitalObligationsPageCache(
+            investors.cache.capitalObligationsPages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+            fundCode,
+            request.calendarYear,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorCapitalObligationsPage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+            calendarYear: request.calendarYear,
+            search: request.search,
+            fundCode,
+            sortBy: request.sortBy,
+            sortDir: request.sortDir,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapInvestorCapitalObligationsToTabRows(extractPagedItems(result));
+              return InvestorsApiActions.loadInvestorCapitalObligationsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                pageSize: result.pageSize ?? LIST_PAGE_SIZE,
+                totalCount: result.totalCount ?? items.length,
+                totalPages: result.totalPages ?? 1,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                hasPreviousPage: !!result.hasPreviousPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+                calendarYear: request.calendarYear,
+                fundCode,
+                sortBy: request.sortBy,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorCapitalObligationsPageFailure({
+                  error: 'Unable to load capital obligations. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorNetAssetsPage$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorNetAssetsPage),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        const search = request.search.trim();
+        const fundCode = request.fundCode?.trim() ?? '';
+        if (
+          !search &&
+          !request.sortBy &&
+          readInvestorNetAssetsPageCache(
+            investors.cache.netAssetsPages,
+            request.investorKey,
+            request.timeframe,
+            request.page,
+            request.dateKey,
+            fundCode,
+            request.calendarYear,
+          )
+        ) {
+          return EMPTY;
+        }
+        return this.investorsApi
+          .getInvestorNetAssetsPage(request.investorKey, request.timeframe, {
+            page: request.page,
+            dateKey: request.dateKey,
+            calendarYear: request.calendarYear,
+            search: request.search,
+            fundCode,
+            sortBy: request.sortBy,
+            sortDir: request.sortDir,
+          })
+          .pipe(
+            map((result) => {
+              const items = mapInvestorNetAssetsToTabRows(extractPagedItems(result));
+              return InvestorsApiActions.loadInvestorNetAssetsPageSuccess({
+                timeframe: request.timeframe,
+                page: result.page ?? request.page,
+                pageSize: result.pageSize ?? LIST_PAGE_SIZE,
+                totalCount: result.totalCount ?? items.length,
+                totalPages: result.totalPages ?? 1,
+                items,
+                hasNextPage: !!result.hasNextPage,
+                hasPreviousPage: !!result.hasPreviousPage,
+                replace: request.replace,
+                search: request.search,
+                dateKey: request.dateKey,
+                calendarYear: request.calendarYear,
+                fundCode,
+                sortBy: request.sortBy,
+              });
+            }),
+            catchError(() =>
+              of(
+                InvestorsApiActions.loadInvestorNetAssetsPageFailure({
+                  error: 'Unable to load net assets. Please try again.',
+                }),
+              ),
+            ),
+          );
+      }),
+    ),
+  );
+
+  readonly loadInvestorFundHoldings$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(InvestorsApiActions.loadInvestorFundHoldings),
+      withLatestFrom(this.store.select(selectInvestors)),
+      switchMap(([request, investors]) => {
+        if (readInvestorFundHoldingsCache(investors.cache.fundHoldingsPages, request.investorKey)) {
+          return EMPTY;
+        }
+        return this.investorsApi.getInvestorFundHoldings(request.investorKey).pipe(
+          map((result) => {
+            const mapped = mapInvestorFundHoldingsResponse(result);
+            return InvestorsApiActions.loadInvestorFundHoldingsSuccess({
+              items: mapped.items,
+              dateKey: mapped.dateKey,
+            });
+          }),
+          catchError(() =>
+            of(
+              InvestorsApiActions.loadInvestorFundHoldingsFailure({
+                error: 'Unable to load fund holdings. Please try again.',
+              }),
+            ),
+          ),
+        );
       }),
     ),
   );
@@ -1222,18 +1573,27 @@ export class CapitalDashboardEffects {
       ofType(AssetsApiActions.loadDetail),
       withLatestFrom(this.store.select(selectAssets)),
       switchMap(([request, assets]) => {
-        if (assets.cache.details[request.propertyKey]) {
-          return EMPTY;
+        const cached = assets.cache.details[request.propertyKey];
+        if (cached) {
+          return of(
+            AssetsApiActions.loadDetailSuccess({
+              propertyKey: request.propertyKey,
+              detail: cached.detail,
+              leasingSummary: cached.leasingSummary,
+            }),
+          );
         }
         return forkJoin({
           detail: this.assetsApi.getAsset(request.propertyKey),
-          investments: this.assetsApi.getAssetInvestments(request.propertyKey),
+          leasingSummary: this.assetsApi.getAssetLeasingSummary(request.propertyKey).pipe(
+            catchError(() => of(null)),
+          ),
         }).pipe(
-          map(({ detail, investments }) =>
+          map(({ detail, leasingSummary }) =>
             AssetsApiActions.loadDetailSuccess({
               propertyKey: request.propertyKey,
               detail,
-              investments,
+              leasingSummary,
             }),
           ),
           catchError(() =>

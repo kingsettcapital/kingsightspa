@@ -1,0 +1,107 @@
+body[data-ks-capital-dashboard] {
+  app-investor-detail,
+  app-investment-detail,
+  app-asset-detail {
+    @media (max-width: 900px) {
+      .inv-detail__sidebar {
+        display: block;
+        flex: 0 0 auto;
+        width: 100%;
+        max-width: 100%;
+        padding: 0.625rem 0;
+        border-right: 0;
+        border-bottom: 1px solid #e2e8f0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+          display: none;
+        }
+      }
+
+      .inv-detail-sidebar {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        gap: 0.75rem;
+        width: max-content;
+        min-width: 100%;
+        padding: 0 var(--cdt-content-padding-x, 1rem);
+        box-sizing: border-box;
+      }
+
+      .inv-detail-sidebar__group {
+        flex: 0 0 auto;
+        min-width: 0;
+      }
+
+      .inv-detail-sidebar__heading {
+        display: none;
+      }
+
+      .inv-detail-sidebar__list {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 0.375rem;
+      }
+
+      .inv-detail-sidebar__link {
+        white-space: nowrap;
+        padding: 0.375rem 0.75rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      h1.inv-detail__title {
+        font-size: 1.25rem;
+      }
+
+      .inv-detail__title-row {
+        gap: 0.5rem;
+      }
+
+      p.inv-detail__subtitle {
+        font-size: 0.75rem;
+        line-height: 1.45;
+      }
+
+      .inv-detail__sticky-chrome {
+        gap: 1rem;
+      }
+
+      .inv-detail__main {
+        gap: 1rem;
+      }
+
+      .inv-detail__content {
+        gap: 0.75rem;
+      }
+
+      .inv-detail__kpi-row {
+        gap: 0.75rem;
+
+        .cdt-kpi {
+          min-height: 5.5rem;
+          padding: 0.875rem 1rem;
+        }
+
+        .cdt-kpi__value {
+          font-size: 1.125rem;
+        }
+      }
+    }
+
+    @media (max-width: 480px) {
+      h1.inv-detail__title {
+        font-size: 1.125rem;
+      }
+
+      .inv-detail__chip {
+        font-size: 0.6875rem;
+        padding: 0.125rem 0.5rem;
+      }
+    }
+  }
+}

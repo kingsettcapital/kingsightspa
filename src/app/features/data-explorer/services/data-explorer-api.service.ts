@@ -7,6 +7,7 @@ import {
   DataExplorerColumnGroupDto,
   DataExplorerDataRequest,
   DataExplorerDataResponse,
+  DataExplorerProductDto,
   DataExplorerTemplateDto,
   DataExplorerTemplateListItemDto,
   DataExplorerTemplateUpsertRequest,
@@ -20,16 +21,20 @@ export const DATA_EXPLORER_PAGE_SIZE = DATA_EXPLORER_DEFAULT_PAGE_SIZE;
 export class DataExplorerApiService {
   private readonly api = inject(ApiService);
 
-  getColumns(): Observable<DataExplorerColumnGroupDto[]> {
-    return this.api.get<DataExplorerColumnGroupDto[]>('api/data-explorer/columns');
+  getProducts(): Observable<DataExplorerProductDto[]> {
+    return this.api.get<DataExplorerProductDto[]>('api/data-explorer/products');
+  }
+
+  getColumns(product: string): Observable<DataExplorerColumnGroupDto[]> {
+    return this.api.get<DataExplorerColumnGroupDto[]>('api/data-explorer/columns', { product });
   }
 
   queryData(request: DataExplorerDataRequest): Observable<DataExplorerDataResponse> {
     return this.api.post<DataExplorerDataResponse>('api/data-explorer/data', request);
   }
 
-  listTemplates(): Observable<DataExplorerTemplateListItemDto[]> {
-    return this.api.getText('api/data-explorer/templates').pipe(
+  listTemplates(product: string): Observable<DataExplorerTemplateListItemDto[]> {
+    return this.api.getText('api/data-explorer/templates', { product }).pipe(
       map((json) => parseJsonPreservingLongIds<DataExplorerTemplateListItemDto[]>(json, TEMPLATE_ID_JSON_KEYS)),
     );
   }

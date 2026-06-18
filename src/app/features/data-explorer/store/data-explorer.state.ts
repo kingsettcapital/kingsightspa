@@ -4,6 +4,7 @@ import { DataProduct } from '../interfaces/data-explorer.interfaces';
 import { DataExplorerRowsCacheEntry } from './data-explorer-cache.util';
 
 export interface DataExplorerColumnsState {
+  product: string | null;
   products: DataProduct[];
   loading: boolean;
   error: string | null;
@@ -47,6 +48,7 @@ export const initialDataExplorerRowsListState: DataExplorerRowsListState = {
 
 export const initialDataExplorerState: DataExplorerState = {
   columns: {
+    product: null,
     products: [],
     loading: false,
     error: null,

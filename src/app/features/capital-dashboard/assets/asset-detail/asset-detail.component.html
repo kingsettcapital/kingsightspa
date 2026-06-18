@@ -18,13 +18,27 @@
       <div class="inv-detail__heading">
         <div class="inv-detail__title-row">
           <h1 class="inv-detail__title">{{ propertyName() }}</h1>
-          <span [class]="assetTypeChipClass()">{{ assetType() }}</span>
-          <span [class]="statusChipClass()">{{ statusLabel() }}</span>
+          @if (showAssetTypeChip()) {
+            <span [class]="assetTypeChipClass()">{{ assetType() }}</span>
+          }
+          @if (showStatusChip()) {
+            <span [class]="statusChipClass()">{{ statusLabel() }}</span>
+          }
         </div>
-        <p class="inv-detail__subtitle">{{ subtitleText() }}</p>
+        <p class="inv-detail__subtitle">
+          @if (subtitleLeadText()) {
+            <span>{{ subtitleLeadText() }}</span>
+          }
+          @if (propertyCodeDisplay()) {
+            @if (subtitleLeadText()) {
+              <span> · </span>
+            }
+            <span>Code: <strong>{{ propertyCodeDisplay() }}</strong></span>
+          }
+        </p>
       </div>
 
-      <div class="inv-detail__actions">
+      <!-- <div class="inv-detail__actions">
         <button type="button" class="cdt-btn cdt-btn--download">
           <span class="cdt-btn__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -35,34 +49,34 @@
           </span>
           Download
         </button>
-      </div>
+      </div> -->
     </header>
 
     <div class="inv-detail__kpi-row inv-detail__kpi-row--assets">
       <article class="cdt-kpi cdt-kpi--navy">
         <p class="cdt-kpi__label">Total GLA</p>
-        <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().totalGlaSf, true) }}</p>
+        <p class="cdt-kpi__value">{{ formatKpiSqFt(kpiCards().totalGlaSf) }}</p>
         <p class="cdt-kpi__hint">{{ formatAssetKpiHint('gla', kpiCards()) }}</p>
       </article>
       <article class="cdt-kpi cdt-kpi--blue">
         <p class="cdt-kpi__label">Committed Area</p>
-        <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().committedSf, true) }}</p>
+        <p class="cdt-kpi__value">{{ formatKpiSqFt(kpiCards().committedSf) }}</p>
         <p class="cdt-kpi__hint">{{ formatAssetKpiHint('committed', kpiCards()) }}</p>
       </article>
       <article class="cdt-kpi cdt-kpi--gold">
         <p class="cdt-kpi__label">Vacant Area</p>
-        <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().vacantSf, true) }}</p>
+        <p class="cdt-kpi__value">{{ formatKpiSqFt(kpiCards().vacantSf) }}</p>
         <p class="cdt-kpi__hint">{{ formatAssetKpiHint('vacant', kpiCards()) }}</p>
       </article>
       <article class="cdt-kpi cdt-kpi--blue-light">
         <p class="cdt-kpi__label">Est. Market Value</p>
-        <p class="cdt-kpi__value">{{ kpiCards().marketValue | ksCurrency: 'USD' : 2 : true }}</p>
+        <p class="cdt-kpi__value">{{ formatKpiAmount(kpiCards().marketValue) }}</p>
         <p class="cdt-kpi__hint">{{ formatAssetKpiHint('value', kpiCards()) }}</p>
       </article>
     </div>
     </div>
 
-    @if (loading()) {
+    @if (contentLoading()) {
       <div class="inv-detail__state" role="status">
         <div class="inv-detail__spinner" aria-hidden="true"></div>
         <p>Loading asset profile…</p>

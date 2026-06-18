@@ -14,10 +14,10 @@ body[data-ks-capital-dashboard] {
   .cdt-topbar {
     display: flex;
     align-items: stretch;
-    gap: 1.5rem;
+    gap: 1rem;
     flex-shrink: 0;
     min-height: 3.25rem;
-    padding: 0 var(--cdt-content-padding-x);
+    padding: 0 var(--cdt-content-padding-x) 0 0.75rem;
     background: var(--cdt-surface);
     color: var(--cdt-navy);
     border-bottom: 1px solid var(--cdt-border);
@@ -26,9 +26,46 @@ body[data-ks-capital-dashboard] {
   .cdt-topbar__brand {
     display: flex;
     align-items: center;
-    gap: 0.625rem;
+    align-self: center;
+    gap: 0.75rem;
     flex-shrink: 0;
-    padding: 0.75rem 0;
+    padding: 0;
+  }
+
+  .cdt-topbar__home-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    border-radius: 8px;
+    background: linear-gradient(145deg, #e7a614 0%, var(--cdt-gold) 48%, #a8842f 100%);
+    color: #fff;
+    text-decoration: none;
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease,
+      filter 0.15s ease;
+
+    .mat-icon {
+      width: 1.125rem;
+      height: 1.125rem;
+      font-size: 1.125rem;
+    }
+
+    &:hover {
+      color: #fff;
+      // filter: brightness(1.05);
+      // transform: translateY(-1px);
+      // box-shadow: 0 4px 12px rgba(197, 160, 72, 0.42);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--cdt-gold);
+      outline-offset: 2px;
+    }
   }
 
   .cdt-topbar__mark {
@@ -66,6 +103,7 @@ body[data-ks-capital-dashboard] {
     min-width: 0;
     max-width: 22rem;
     margin-left: auto;
+    align-self: center;
     display: flex;
     align-items: center;
     padding: 0.5rem 0;

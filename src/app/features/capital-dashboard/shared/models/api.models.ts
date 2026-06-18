@@ -160,10 +160,47 @@ export interface InvestorSummaryDto {
   provinceCode?: string | null;
 }
 
+export interface InvestorDetailFundDto {
+  fund_key?: number | null;
+  fundKey?: number | null;
+  fund_code?: string | null;
+  fundCode?: string | null;
+  fund_name?: string | null;
+  fundName?: string | null;
+}
+
+/** GET api/CapitalInvestors/{investorKey} */
 export interface InvestorDetailDto {
-  summary: InvestorSummaryDto;
-  contactInformation: DynamicFieldDto[] | null;
-  portfolioSummary: DynamicFieldDto[] | null;
+  investor_name?: string | null;
+  investorName?: string | null;
+  investor_type?: string | null;
+  investorType?: string | null;
+  relationship?: string | null;
+  status?: string | null;
+  contact?: string | null;
+  total_commitment?: number | null;
+  totalCommitment?: number | null;
+  net_invested_capital?: number | null;
+  netInvestedCapital?: number | null;
+  net_distributed?: number | null;
+  netDistributed?: number | null;
+  reserved_uncalled?: number | null;
+  reservedUncalled?: number | null;
+  released_capital?: number | null;
+  releasedCapital?: number | null;
+  fund_count?: number | null;
+  fundCount?: number | null;
+  funds?: InvestorDetailFundDto[] | null;
+  capital_deployed?: number | null;
+  capitalDeployed?: number | null;
+  tvpi?: number | null;
+  TVPI?: number | null;
+  dpi?: number | null;
+  DPI?: number | null;
+  /** Legacy nested payload (optional). */
+  summary?: InvestorSummaryDto;
+  contactInformation?: DynamicFieldDto[] | null;
+  portfolioSummary?: DynamicFieldDto[] | null;
   sections?: DynamicSectionDto[] | null;
 }
 
@@ -258,11 +295,56 @@ export interface FundSummaryDto {
   investors: number;
 }
 
+/** GET api/Funds/{fundKey} — flat response and legacy nested payload. */
 export interface FundDetailDto {
-  summary: FundSummaryDto;
-  investmentDetails: DynamicFieldDto[] | null;
-  financialSummary: DynamicFieldDto[] | null;
+  summary?: FundSummaryDto;
+  investmentDetails?: DynamicFieldDto[] | null;
+  financialSummary?: DynamicFieldDto[] | null;
   sections?: DynamicSectionDto[] | null;
+  fund_key?: number | null;
+  fundKey?: number | null;
+  fund_code?: string | null;
+  fundCode?: string | null;
+  fund_name?: string | null;
+  fundName?: string | null;
+  fund_type?: string | null;
+  fundType?: string | null;
+  strategy?: string | null;
+  status?: string | null;
+  start_date?: string | null;
+  startDate?: string | null;
+  is_sidecar?: boolean | null;
+  isSidecar?: boolean | null;
+  total_commitment?: number | null;
+  totalCommitment?: number | null;
+  net_invested_capital?: number | null;
+  netInvestedCapital?: number | null;
+  net_distributed?: number | null;
+  netDistributed?: number | null;
+  reserved_uncalled?: number | null;
+  reservedUncalled?: number | null;
+  released_capital?: number | null;
+  releasedCapital?: number | null;
+  capital_deployed?: number | null;
+  capitalDeployed?: number | null;
+  tvpi?: number | null;
+  TVPI?: number | null;
+  dpi?: number | null;
+  DPI?: number | null;
+  rvpi?: number | null;
+  RVPI?: number | null;
+  investor_count?: number | null;
+  investorCount?: number | null;
+  asset_count?: number | null;
+  assetCount?: number | null;
+  investors?: FundDetailInvestorRefDto[] | null;
+}
+
+export interface FundDetailInvestorRefDto {
+  investor_key?: number | null;
+  investorKey?: number | null;
+  investor_name?: string | null;
+  investorName?: string | null;
 }
 
 export interface FundInvestorDto {
@@ -358,6 +440,27 @@ export interface FundGranularRowDto {
   distributed_amount?: number | null;
   units?: number | null;
   description?: string | null;
+  findcode?: string | null;
+  findCode?: string | null;
+}
+
+/** GET api/CapitalInvestors/{investorKey}/investments */
+export interface InvestorUnderlyingInvestmentDto {
+  findcode?: string | null;
+  findCode?: string | null;
+  description?: string | null;
+  invested_amount?: number | null;
+  investedAmount?: number | null;
+  period?: string | null;
+  date?: string | null;
+}
+
+export interface InvestorUnderlyingInvestmentTabRow {
+  findCode: string;
+  description: string;
+  investedAmount: number;
+  period: string;
+  date: string;
 }
 
 /** LTD / quarterly commitment row */
@@ -491,15 +594,55 @@ export interface InvestorCapitalActivityDto {
   transfer_out?: number | null;
   transferOut?: number | null;
   redemption?: number | null;
+  type?: string | null;
 }
 
 export interface InvestorCapitalActivityTabRow {
   fundCode: string;
   fundName: string;
+  type: string;
   called: number;
   transferIn: number;
   transferOut: number;
   redemption: number;
+}
+
+/** GET api/CapitalInvestors/{investorKey}/fund-holdings */
+export interface InvestorFundHoldingDto {
+  fund_key?: number | null;
+  fundKey?: number | null;
+  fund_name?: string | null;
+  fundName?: string | null;
+  since?: string | null;
+  commitment?: number | null;
+  unfunded?: number | null;
+  net_invested?: number | null;
+  netInvested?: number | null;
+  distributed?: number | null;
+}
+
+export interface InvestorFundHoldingsResponseDto {
+  date_key?: number | null;
+  dateKey?: number | null;
+  items?: InvestorFundHoldingDto[] | null;
+}
+
+export interface InvestorFundHoldingTabRow {
+  fundKey: number;
+  fundName: string;
+  since: string;
+  commitment: number;
+  unfunded: number;
+  netInvested: number;
+  distributed: number;
+}
+
+/** @deprecated Fund holdings no longer accepts query params. */
+export interface InvestorFundHoldingsQueryParams {
+  sinceStart?: string;
+  sinceEnd?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 /** GET api/CapitalInvestors/{investorKey}/distributions-table */
@@ -519,11 +662,13 @@ export interface InvestorDistributionTableDto {
   return_of_capital?: number | null;
   returnOfCapital?: number | null;
   released?: number | null;
+  type?: string | null;
 }
 
 export interface InvestorDistributionTableTabRow {
   fundCode: string;
   fundName: string;
+  type: string;
   committed: number;
   unfunded: number;
   cashDist: number;
@@ -545,11 +690,13 @@ export interface InvestorIrrDto {
   irr_7_year_pct?: number | null;
   irr_10_year_pct?: number | null;
   irr_ltd_pct?: number | null;
+  type?: string | null;
 }
 
 export interface InvestorIrrTabRow {
   fundCode: string;
   fundName: string;
+  type: string;
   irr1Year: number | null;
   irr3Year: number | null;
   irr5Year: number | null;
@@ -558,12 +705,69 @@ export interface InvestorIrrTabRow {
   irrLtd: number | null;
 }
 
+/** GET api/CapitalInvestors/{investorKey}/capital-obligations */
+export interface InvestorCapitalObligationDto {
+  fund_key?: number | null;
+  fundKey?: number | null;
+  fund_code?: string | null;
+  fundCode?: string | null;
+  fund_name?: string | null;
+  fundName?: string | null;
+  quarter_year?: string | null;
+  quarterYear?: string | null;
+  type?: string | null;
+  amount?: number | null;
+}
+
+export interface InvestorCapitalObligationTabRow {
+  fundKey: number | null;
+  fundCode: string;
+  fundName: string;
+  period: string;
+  type: string;
+  amount: number;
+}
+
+/** GET api/CapitalInvestors/{investorKey}/net-assets */
+export interface InvestorNetAssetDto {
+  fund_key?: number | null;
+  fundKey?: number | null;
+  fund_code?: string | null;
+  fundCode?: string | null;
+  fund_name?: string | null;
+  fundName?: string | null;
+  quarter_year?: string | null;
+  quarterYear?: string | null;
+  type?: string | null;
+  ret?: number | null;
+}
+
+export interface InvestorNetAssetTabRow {
+  fundKey: number | null;
+  fundCode: string;
+  fundName: string;
+  period: string;
+  type: string;
+  ret: number | null;
+}
+
 export interface InvestorTransactionTableQueryParams extends ListQueryParams {
   view?: FundCommitmentTimeframe;
   dateKey?: number;
+  calendarYear?: number;
   investorKey?: number;
+  fundCode?: string;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
+}
+
+export interface InvestorTransactionTableFilterItemDto {
+  value?: string | null;
+  label?: string | null;
+}
+
+export interface InvestorTransactionTableFiltersDto {
+  items?: InvestorTransactionTableFilterItemDto[] | null;
 }
 
 /** GET api/Funds/{fundKey}/capital-activities */
@@ -578,11 +782,13 @@ export interface FundInvestorCapitalActivityDto {
   transfer_out?: number | null;
   transferOut?: number | null;
   redemption?: number | null;
+  type?: string | null;
 }
 
 export interface FundInvestorCapitalActivityTabRow {
   investorCode: string;
   investorName: string;
+  type: string;
   called: number;
   transferIn: number;
   transferOut: number;
@@ -606,11 +812,13 @@ export interface FundInvestorDistributionTableDto {
   return_of_capital?: number | null;
   returnOfCapital?: number | null;
   released?: number | null;
+  type?: string | null;
 }
 
 export interface FundInvestorDistributionTableTabRow {
   investorCode: string;
   investorName: string;
+  type: string;
   committed: number;
   unfunded: number;
   cashDist: number;
@@ -632,11 +840,13 @@ export interface FundInvestorIrrDto {
   irr_7_year_pct?: number | null;
   irr_10_year_pct?: number | null;
   irr_ltd_pct?: number | null;
+  type?: string | null;
 }
 
 export interface FundInvestorIrrTabRow {
   investorCode: string;
   investorName: string;
+  type: string;
   irr1Year: number | null;
   irr3Year: number | null;
   irr5Year: number | null;
@@ -645,10 +855,52 @@ export interface FundInvestorIrrTabRow {
   irrLtd: number | null;
 }
 
+/** GET api/Funds/{fundKey}/capital-obligations */
+export interface FundInvestorCapitalObligationDto {
+  investor_code?: string | null;
+  investorCode?: string | null;
+  investor_name?: string | null;
+  investorName?: string | null;
+  quarter_year?: string | null;
+  quarterYear?: string | null;
+  type?: string | null;
+  amount?: number | null;
+}
+
+export interface FundInvestorCapitalObligationTabRow {
+  investorCode: string;
+  investorName: string;
+  period: string;
+  type: string;
+  amount: number;
+}
+
+/** GET api/Funds/{fundKey}/net-assets */
+export interface FundInvestorNetAssetDto {
+  investor_code?: string | null;
+  investorCode?: string | null;
+  investor_name?: string | null;
+  investorName?: string | null;
+  quarter_year?: string | null;
+  quarterYear?: string | null;
+  type?: string | null;
+  ret?: number | null;
+}
+
+export interface FundInvestorNetAssetTabRow {
+  investorCode: string;
+  investorName: string;
+  period: string;
+  type: string;
+  ret: number | null;
+}
+
 export interface FundTransactionTableQueryParams extends ListQueryParams {
   view?: FundCommitmentTimeframe;
   dateKey?: number;
+  calendarYear?: number;
   fundKey?: number;
+  investorName?: string;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
 }
@@ -695,11 +947,95 @@ export interface PropertySummaryDto {
 }
 
 export interface PropertyDetailDto {
-  propertyKey?: number;
-  investmentsCount?: number;
+  property_key?: number | null;
+  propertyKey?: number | null;
+  property_code?: string | null;
+  propertyCode?: string | null;
+  property_name?: string | null;
+  propertyName?: string | null;
+  geography?: string | null;
+  city?: string | null;
+  province?: string | null;
+  asset_type?: string | null;
+  assetType?: string | null;
+  investment_type?: string | null;
+  investmentType?: string | null;
+  development_type?: string | null;
+  developmentType?: string | null;
+  status?: string | null;
+  is_portfolio?: boolean | null;
+  isPortfolio?: boolean | null;
+  acquisition_date?: string | null;
+  acquisitionDate?: string | null;
+  total_gla_sf?: number | null;
+  totalGlaSf?: number | null;
+  committed_area_sf?: number | null;
+  committedAreaSf?: number | null;
+  vacant_area_sf?: number | null;
+  vacantAreaSf?: number | null;
+  occupied_area_sf?: number | null;
+  occupiedAreaSf?: number | null;
+  occupancy_rate?: number | null;
+  occupancyRate?: number | null;
+  vacancy_rate?: number | null;
+  vacancyRate?: number | null;
+  est_market_value?: number | null;
+  estMarketValue?: number | null;
+  est_annual_noi?: number | null;
+  estAnnualNoi?: number | null;
+  investment_count?: number | null;
+  investmentCount?: number | null;
+  investmentsCount?: number | null;
   fields?: Record<string, unknown> | null;
   summary?: PropertySummaryDto | null;
   sections?: DynamicSectionDto[] | null;
+}
+
+export interface PropertyLeasingSummaryDto {
+  property_key?: number | null;
+  propertyKey?: number | null;
+  date_key?: number | null;
+  dateKey?: number | null;
+  last_refreshed_date?: string | null;
+  lastRefreshedDate?: string | null;
+  gross_leasable_area_sqft?: number | null;
+  grossLeasableAreaSqft?: number | null;
+  occupied_area_sqft?: number | null;
+  occupiedAreaSqft?: number | null;
+  committed_area_sqft?: number | null;
+  committedAreaSqft?: number | null;
+  vacant_area_sqft?: number | null;
+  vacantAreaSqft?: number | null;
+  total_units?: number | null;
+  totalUnits?: number | null;
+  occupied_units?: number | null;
+  occupiedUnits?: number | null;
+  vacant_units?: number | null;
+  vacantUnits?: number | null;
+  weighted_avg_lease_term_months?: number | null;
+  weightedAvgLeaseTermMonths?: number | null;
+  weighted_avg_lease_term_rent_months?: number | null;
+  weightedAvgLeaseTermRentMonths?: number | null;
+  gla_available_to_lease_sqft?: number | null;
+  glaAvailableToLeaseSqft?: number | null;
+  total_leasing_committed_sqft?: number | null;
+  totalLeasingCommittedSqft?: number | null;
+  new_leasing_committed_sqft?: number | null;
+  newLeasingCommittedSqft?: number | null;
+  renewal_leasing_committed_sqft?: number | null;
+  renewalLeasingCommittedSqft?: number | null;
+  gla_available_to_lease_units?: number | null;
+  glaAvailableToLeaseUnits?: number | null;
+  total_leasing_committed_units?: number | null;
+  totalLeasingCommittedUnits?: number | null;
+  new_leasing_committed_units?: number | null;
+  newLeasingCommittedUnits?: number | null;
+  renewal_leasing_committed_units?: number | null;
+  renewalLeasingCommittedUnits?: number | null;
+  occupancy_rate?: number | null;
+  occupancyRate?: number | null;
+  vacancy_rate?: number | null;
+  vacancyRate?: number | null;
 }
 
 export interface PropertyInvestmentDto {

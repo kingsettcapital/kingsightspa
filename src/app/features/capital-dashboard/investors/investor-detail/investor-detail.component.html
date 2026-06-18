@@ -18,43 +18,59 @@
   
       <header class="inv-detail__header">
         <div class="inv-detail__heading">
-          <h1 class="inv-detail__title">{{ investorName() }}</h1>
+          <div class="inv-detail__title-row">
+            <h1 class="inv-detail__title">{{ investorName() }}</h1>
+            @if (headerBadgeLabel()) {
+              <span class="inv-detail__chip">{{ headerBadgeLabel() }}</span>
+            }
+          </div>
+          <p class="inv-detail__subtitle">
+            @if (subtitleText()) {
+              <span>{{ subtitleText() }}</span>
+            }
+            @if (subtitleContactLabel()) {
+              @if (subtitleText()) {
+                <span> · </span>
+              }
+              <span>Contact: <strong>{{ subtitleContactLabel() }}</strong></span>
+            }
+          </p>
         </div>
       </header>
   
       <div class="inv-detail__kpi-row">
         <article class="cdt-kpi cdt-kpi--navy">
           <p class="cdt-kpi__label">Total Commitment</p>
-          <p class="cdt-kpi__value">{{ kpiCards().totalCommitment | ksCurrency: 'USD' : 2 : true }}</p>
-          <p class="cdt-kpi__hint">{{ periodLabel() }}</p>
+          <p class="cdt-kpi__value">{{ formatKpiAmount(kpiCards().totalCommitment) }}</p>
+          <p class="cdt-kpi__hint"></p>
         </article>
         <article class="cdt-kpi cdt-kpi--blue">
           <p class="cdt-kpi__label">Net Invested Capital</p>
-          <p class="cdt-kpi__value">{{ kpiCards().netInvestedCapital | ksCurrency: 'USD' : 2 : true }}</p>
-          <p class="cdt-kpi__hint">{{ periodLabel() }} deployed</p>
+          <p class="cdt-kpi__value">{{ formatKpiAmount(kpiCards().netInvestedCapital) }}</p>
+          <p class="cdt-kpi__hint">deployed</p>
         </article>
         <article class="cdt-kpi cdt-kpi--blue-light">
           <p class="cdt-kpi__label">Net Distributed</p>
-          <p class="cdt-kpi__value">{{ kpiCards().netDistributed | ksCurrency: 'USD' : 2 : true }}</p>
-          <p class="cdt-kpi__hint">{{ periodLabel() }} cash returned</p>
+          <p class="cdt-kpi__value">{{ formatKpiAmount(kpiCards().netDistributed) }}</p>
+          <p class="cdt-kpi__hint">cash returned</p>
         </article>
         <article class="cdt-kpi cdt-kpi--metric-reserved">
           <p class="cdt-kpi__label">Reserved</p>
-          <p class="cdt-kpi__value">{{ kpiCards().reservedUncalled | ksCurrency: 'USD' : 2 : true }}</p>
+          <p class="cdt-kpi__value">{{ formatKpiAmount(kpiCards().reservedUncalled) }}</p>
           <p class="cdt-kpi__hint">Remaining to call</p>
         </article>
         <article class="cdt-kpi cdt-kpi--metric-unfunded">
           <p class="cdt-kpi__label">Unfunded</p>
-          <p class="cdt-kpi__value">{{ kpiCards().unfunded | ksCurrency: 'USD' : 2 : true }}</p>
+          <p class="cdt-kpi__value">{{ formatKpiAmount(kpiCards().unfunded) }}</p>
         </article>
         <article class="cdt-kpi cdt-kpi--metric-released">
           <p class="cdt-kpi__label">Released Capital</p>
-          <p class="cdt-kpi__value">{{ kpiCards().releasedCapital | ksCurrency: 'USD' : 2 : true }}</p>
-          <p class="cdt-kpi__hint">{{ periodLabel() }}</p>
+          <p class="cdt-kpi__value">{{ formatKpiAmount(kpiCards().releasedCapital, true) }}</p>
+          <p class="cdt-kpi__hint"></p>
         </article>
         <article class="cdt-kpi cdt-kpi--gold">
           <p class="cdt-kpi__label">Funds</p>
-          <p class="cdt-kpi__value">{{ kpiCards().fundsCount }}</p>
+          <p class="cdt-kpi__value">{{ formatKpiCount(kpiCards().fundsCount) }}</p>
           <p class="cdt-kpi__hint">Active fund subscriptions</p>
         </article>
       </div>
@@ -85,7 +101,8 @@
               [tableSearchActive]="tableSearchActiveForBlock(item.block)"
               [sortColumn]="tableSortColumnForBlock(item.block)"
               [sortDir]="tableSortDirForBlock(item.block)"
-              [hubFundFilter]="transactionHubFundFilter()"
+              [hubFundFilter]="transactionHubAppliedFundCode()"
+              [hubQuarterScope]="quarterScope()"
               [hubTimeframe]="timeframe()"
               [hubQuarter]="quarter()"
               [hubYear]="year()"
@@ -97,10 +114,12 @@
               (overviewFundClick)="openFundFromOverview($event)"
               (transactionHubCategoryChange)="onTransactionHubCategoryChange($event)"
               (transactionHubPageChange)="onTransactionHubPageChange($event)"
-              (hubFundFilterChange)="onTransactionHubFundFilter($event)"
+              (hubFundFilterApply)="onTransactionHubFundFilterApply($event)"
+              (hubQuarterScopeChange)="setQuarterScope($event)"
               (hubTimeframeChange)="setTransactionTimeframe($event)"
               (hubQuarterChange)="setQuarter($event)"
               (hubYearChange)="setYear($event)"
+              (underlyingInvestmentsPageChange)="onUnderlyingInvestmentsPageChange($event)"
             />
           </div>
         }

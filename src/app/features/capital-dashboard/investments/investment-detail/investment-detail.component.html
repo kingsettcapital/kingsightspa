@@ -16,7 +16,13 @@
 
       <header class="inv-detail__header">
         <div class="inv-detail__heading">
-          <h1 class="inv-detail__title">{{ fundName() }}</h1>
+          <div class="inv-detail__title-row">
+            <h1 class="inv-detail__title">{{ fundName() }}</h1>
+            @if (headerBadgeLabel()) {
+              <span class="inv-detail__chip inv-detail__chip--strategy">{{ headerBadgeLabel() }}</span>
+            }
+          </div>
+          <p class="inv-detail__subtitle">{{ subtitleText() }}</p>
         </div>
       </header>
 
@@ -24,17 +30,17 @@
       <article class="cdt-kpi cdt-kpi--navy">
         <p class="cdt-kpi__label">Total Commitment</p>
         <p class="cdt-kpi__value">{{ kpiCards().totalCommitment | ksCurrency: 'USD' : 2 : true }}</p>
-        <p class="cdt-kpi__hint">{{ periodLabel() }}</p>
+        <p class="cdt-kpi__hint"></p>
       </article>
       <article class="cdt-kpi cdt-kpi--blue">
         <p class="cdt-kpi__label">Net Invested Capital</p>
         <p class="cdt-kpi__value">{{ kpiCards().netInvestedCapital | ksCurrency: 'USD' : 2 : true }}</p>
-        <p class="cdt-kpi__hint">{{ netInvestedHint() }}</p>
+        <p class="cdt-kpi__hint">deployed</p>
       </article>
       <article class="cdt-kpi cdt-kpi--blue-light">
         <p class="cdt-kpi__label">Net Distributed</p>
         <p class="cdt-kpi__value">{{ kpiCards().netDistributed | ksCurrency: 'USD' : 2 : true }}</p>
-        <p class="cdt-kpi__hint">{{ periodLabel() }}</p>
+        <p class="cdt-kpi__hint"></p>
       </article>
       <article class="cdt-kpi cdt-kpi--metric-reserved">
         <p class="cdt-kpi__label">Reserved</p>
@@ -45,7 +51,7 @@
             —
           }
         </p>
-        <p class="cdt-kpi__hint">{{ reservedHint() }}</p>
+        <p class="cdt-kpi__hint"></p>
       </article>
       <article class="cdt-kpi cdt-kpi--slate">
         <p class="cdt-kpi__label">% Invested</p>
@@ -85,7 +91,8 @@
               [tableSearchActive]="tableSearchActiveForBlock(item.block)"
               [sortColumn]="tableSortColumnForBlock(item.block)"
               [sortDir]="tableSortDirForBlock(item.block)"
-              [hubFundFilter]="transactionHubFundFilter()"
+              [hubFundFilter]="transactionHubAppliedInvestorName()"
+              [hubQuarterScope]="quarterScope()"
               [hubTimeframe]="timeframe()"
               [hubQuarter]="quarter()"
               [hubYear]="year()"
@@ -95,10 +102,12 @@
               (transactionSortChange)="onTransactionSort($event)"
               (transactionHubCategoryChange)="onTransactionHubCategoryChange($event)"
               (transactionHubPageChange)="onTransactionHubPageChange($event)"
-              (hubFundFilterChange)="onTransactionHubFundFilter($event)"
+              (hubFundFilterApply)="onTransactionHubFundFilterApply($event)"
+              (hubQuarterScopeChange)="setQuarterScope($event)"
               (hubTimeframeChange)="setTransactionTimeframe($event)"
               (hubQuarterChange)="setQuarter($event)"
               (hubYearChange)="setYear($event)"
+              (underlyingInvestmentsPageChange)="onUnderlyingAssetsPageChange($event)"
             />
           </div>
         }

@@ -1,4 +1,5 @@
 import { DataExplorerDataResponse, DataExplorerRow } from '../interfaces/data-explorer-api.models';
+import { DataExplorerLoadRowsRequest } from './data-explorer.actions';
 import { DataExplorerRowsListState } from './data-explorer.state';
 
 export interface DataExplorerRowsCacheEntry {
@@ -9,12 +10,21 @@ export interface DataExplorerRowsCacheEntry {
   totalPages: number;
 }
 
-export function buildDataExplorerQueryScope(
-  columns: string[],
-  sortBy: string,
-  sortDir: string,
-): string {
-  return `${[...columns].sort().join('|')}\u0001${sortBy}\u0001${sortDir}`;
+export function buildDataExplorerQueryScope(request: DataExplorerLoadRowsRequest): string {
+  const appliedFilters = request.filters
+    .map((filter) => `${filter.fieldId}:${filter.operator}:${filter.value}`)
+    .sort()
+    .join('|');
+
+  return [
+    request.product,
+    [...request.columns].sort().join('|'),
+    request.sortBy,
+    request.sortDir,
+    request.groupByField,
+    appliedFilters,
+    request.filterLogic,
+  ].join('\u0001');
 }
 
 export function dataExplorerRowsCacheKey(scope: string, page: number, pageSize: number): string {
@@ -51,20 +61,16 @@ export function writeDataExplorerRowsCacheEntry(
 }
 
 export function rowsListStateFromCacheEntry(
-  columns: string[],
-  sortBy: string,
-  sortDir: string,
-  page: number,
-  pageSize: number,
+  request: DataExplorerLoadRowsRequest,
   entry: DataExplorerRowsCacheEntry,
 ): DataExplorerRowsListState {
-  const scope = buildDataExplorerQueryScope(columns, sortBy, sortDir);
+  const scope = buildDataExplorerQueryScope(request);
   return {
-    columns: [...columns],
-    sortBy,
-    sortDir,
+    columns: [...request.columns],
+    sortBy: request.sortBy,
+    sortDir: request.sortDir,
     page: entry.page,
-    pageSize: entry.pageSize || pageSize,
+    pageSize: entry.pageSize || request.pageSize,
     rows: [...entry.rows],
     totalCount: entry.totalCount,
     totalPages: entry.totalPages,
@@ -76,22 +82,18 @@ export function rowsListStateFromCacheEntry(
 
 export function rowsListLoadingState(
   state: DataExplorerRowsListState,
-  columns: string[],
-  sortBy: string,
-  sortDir: string,
-  page: number,
-  pageSize: number,
+  request: DataExplorerLoadRowsRequest,
 ): DataExplorerRowsListState {
-  const scope = buildDataExplorerQueryScope(columns, sortBy, sortDir);
+  const scope = buildDataExplorerQueryScope(request);
   const scopeChanged = state.queryScope !== scope;
 
   return {
     ...state,
-    columns: [...columns],
-    sortBy,
-    sortDir,
-    page,
-    pageSize,
+    columns: [...request.columns],
+    sortBy: request.sortBy,
+    sortDir: request.sortDir,
+    page: request.page,
+    pageSize: request.pageSize,
     queryScope: scope,
     rows: scopeChanged ? [] : state.rows,
     totalCount: scopeChanged ? 0 : state.totalCount,

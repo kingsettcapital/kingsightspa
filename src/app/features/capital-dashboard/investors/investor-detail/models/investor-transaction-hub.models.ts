@@ -1,7 +1,12 @@
-import { InvestorDetailTableVariant } from './investor-detail-block.models';
+import { InvestorDetailTablePagination } from './investor-detail-block.models';
 import { InvestorDetailTableColumn, InvestorDetailTableRow } from './investor-detail-table.models';
 
-export type InvestorTransactionCategoryId = 'capital-activities' | 'distributions' | 'irrs';
+export type InvestorTransactionCategoryId =
+  | 'capital-activities'
+  | 'distributions'
+  | 'irrs'
+  | 'capital-obligations'
+  | 'net-assets';
 
 export interface InvestorTransactionCategory {
   id: InvestorTransactionCategoryId;
@@ -15,6 +20,11 @@ export interface InvestorTransactionHubFilters {
 
 export type TransactionHubBlockId = 'investor-transactions' | 'fund-transactions';
 
+export interface InvestorTransactionFilterOption {
+  value: string;
+  label: string;
+}
+
 export interface InvestorDetailTransactionHubBlock {
   kind: 'transaction-hub';
   id: TransactionHubBlockId;
@@ -26,17 +36,12 @@ export interface InvestorDetailTransactionHubBlock {
   columns: InvestorDetailTableColumn[];
   subtitle?: string;
   subtitleAccent?: string;
-  variant?: InvestorDetailTableVariant;
+  variant?: import('./investor-detail-block.models').InvestorDetailTableVariant;
   rows: InvestorDetailTableRow[];
   totals: InvestorDetailTableRow | null;
   loading: boolean;
   periodSummary: string;
   recordCount: number;
-  uiPage: number;
-  uiPageSize: number;
-  uiPageCount: number;
-  hasNextApiPage: boolean;
-  fundCodeOptions: string[];
+  pagination: InvestorDetailTablePagination;
+  fundCodeOptions: InvestorTransactionFilterOption[];
 }
-
-export const INVESTOR_TRANSACTION_HUB_UI_PAGE_SIZE = 10;

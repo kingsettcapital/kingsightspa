@@ -24,12 +24,16 @@ import {
   FundInvestorCapitalActivityDto,
   FundInvestorDistributionTableDto,
   FundInvestorIrrDto,
+  FundInvestorCapitalObligationDto,
+  FundInvestorNetAssetDto,
+  InvestorTransactionTableFiltersDto,
   FundTransactionTableQueryParams,
   FundUnfundedCommitmentsQueryParams,
   ListQueryParams,
   PagedResult,
 } from '../models/api.models';
 import { LIST_PAGE_SIZE } from '../list-pagination.constants';
+import { QuarterlyTransactionPeriodParams } from '../utils/quarterly-transaction-period.util';
 
 @Injectable({ providedIn: 'root' })
 export class CapitalFundsApiService {
@@ -204,6 +208,85 @@ export class CapitalFundsApiService {
     );
   }
 
+  getFundCapitalActivitiesFilters(
+    fundKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: QuarterlyTransactionPeriodParams = {},
+  ): Observable<InvestorTransactionTableFiltersDto> {
+    return this.api.get<InvestorTransactionTableFiltersDto>(
+      `api/Funds/${fundKey}/capital-activities/filters`,
+      this.buildFundTransactionFiltersQuery(timeframe, params) as any,
+    );
+  }
+
+  getFundDistributionTableFilters(
+    fundKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: QuarterlyTransactionPeriodParams = {},
+  ): Observable<InvestorTransactionTableFiltersDto> {
+    return this.api.get<InvestorTransactionTableFiltersDto>(
+      `api/Funds/${fundKey}/distributions-table/filters`,
+      this.buildFundTransactionFiltersQuery(timeframe, params) as any,
+    );
+  }
+
+  getFundIrrFilters(
+    fundKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: QuarterlyTransactionPeriodParams = {},
+  ): Observable<InvestorTransactionTableFiltersDto> {
+    return this.api.get<InvestorTransactionTableFiltersDto>(
+      `api/Funds/${fundKey}/irr/filters`,
+      this.buildFundTransactionFiltersQuery(timeframe, params) as any,
+    );
+  }
+
+  getFundCapitalObligationsPage(
+    fundKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: Omit<FundTransactionTableQueryParams, 'view' | 'fundKey'> = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<FundInvestorCapitalObligationDto>> {
+    return this.api.get<PagedResult<FundInvestorCapitalObligationDto>>(
+      `api/Funds/${fundKey}/capital-obligations`,
+      this.buildFundTransactionTableQuery(fundKey, timeframe, params, pageSize) as any,
+    );
+  }
+
+  getFundCapitalObligationsFilters(
+    fundKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: QuarterlyTransactionPeriodParams = {},
+  ): Observable<InvestorTransactionTableFiltersDto> {
+    return this.api.get<InvestorTransactionTableFiltersDto>(
+      `api/Funds/${fundKey}/capital-obligations/filters`,
+      this.buildFundTransactionFiltersQuery(timeframe, params) as any,
+    );
+  }
+
+  getFundNetAssetsPage(
+    fundKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: Omit<FundTransactionTableQueryParams, 'view' | 'fundKey'> = {},
+    pageSize = LIST_PAGE_SIZE,
+  ): Observable<PagedResult<FundInvestorNetAssetDto>> {
+    return this.api.get<PagedResult<FundInvestorNetAssetDto>>(
+      `api/Funds/${fundKey}/net-assets`,
+      this.buildFundTransactionTableQuery(fundKey, timeframe, params, pageSize) as any,
+    );
+  }
+
+  getFundNetAssetsFilters(
+    fundKey: number,
+    timeframe: FundCommitmentTimeframe,
+    params: QuarterlyTransactionPeriodParams = {},
+  ): Observable<InvestorTransactionTableFiltersDto> {
+    return this.api.get<InvestorTransactionTableFiltersDto>(
+      `api/Funds/${fundKey}/net-assets/filters`,
+      this.buildFundTransactionFiltersQuery(timeframe, params) as any,
+    );
+  }
+
   private buildFundTransactionTableQuery(
     fundKey: number,
     timeframe: FundCommitmentTimeframe,
@@ -215,9 +298,36 @@ export class CapitalFundsApiService {
       view: fundTimeGranularityFromTimeframe(timeframe),
       page: params.page ?? 1,
       pageSize: params.pageSize ?? pageSize,
-      ...(timeframe === 'quarterly' && params.dateKey != null ? { dateKey: params.dateKey } : {}),
+      ...this.buildFundQuarterlyPeriodQuery(timeframe, params),
       ...(params.search?.trim() ? { search: params.search.trim() } : {}),
+      ...(params.investorName?.trim() ? { investorName: params.investorName.trim() } : {}),
       ...(params.sortBy ? { sortBy: params.sortBy, sortDir: params.sortDir ?? 'desc' } : {}),
     };
+  }
+
+  private buildFundTransactionFiltersQuery(
+    timeframe: FundCommitmentTimeframe,
+    params: QuarterlyTransactionPeriodParams = {},
+  ): Pick<FundTransactionTableQueryParams, 'view' | 'dateKey' | 'calendarYear'> {
+    return {
+      view: fundTimeGranularityFromTimeframe(timeframe),
+      ...this.buildFundQuarterlyPeriodQuery(timeframe, params),
+    };
+  }
+
+  private buildFundQuarterlyPeriodQuery(
+    timeframe: FundCommitmentTimeframe,
+    params: QuarterlyTransactionPeriodParams,
+  ): Pick<FundTransactionTableQueryParams, 'dateKey' | 'calendarYear'> {
+    if (timeframe !== 'quarterly') {
+      return {};
+    }
+    if (params.dateKey != null) {
+      return { dateKey: params.dateKey };
+    }
+    if (params.calendarYear != null) {
+      return { calendarYear: params.calendarYear };
+    }
+    return {};
   }
 }

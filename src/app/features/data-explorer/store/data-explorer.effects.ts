@@ -4,7 +4,7 @@ import { Store } from '@ngrx/store';
 import { catchError, EMPTY, map, of, switchMap, withLatestFrom } from 'rxjs';
 
 import { DataExplorerApiService } from '../services/data-explorer-api.service';
-import { mapColumnGroupsToDataProducts } from '../utils/data-explorer.mapper';
+import { buildDataExplorerDataRequest, mapColumnGroupsToDataProducts } from '../utils/data-explorer.mapper';
 import {
   buildDataExplorerQueryScope,
   readDataExplorerRowsCacheEntry,
@@ -13,7 +13,7 @@ import {
   DataExplorerColumnsApiActions,
   DataExplorerRowsApiActions,
 } from './data-explorer.actions';
-import { selectDataExplorerColumns, selectDataExplorerRowsCache } from './data-explorer.selectors';
+import { selectDataExplorerRowsCache } from './data-explorer.selectors';
 
 @Injectable()
 export class DataExplorerEffects {
@@ -24,15 +24,11 @@ export class DataExplorerEffects {
   readonly loadColumns$ = createEffect(() =>
     this.actions$.pipe(
       ofType(DataExplorerColumnsApiActions.loadColumns),
-      withLatestFrom(this.store.select(selectDataExplorerColumns)),
-      switchMap(([, columnsState]) => {
-        if (columnsState.products.length > 0) {
-          return EMPTY;
-        }
-
-        return this.api.getColumns().pipe(
+      switchMap(({ product }) =>
+        this.api.getColumns(product).pipe(
           map((groups) =>
             DataExplorerColumnsApiActions.loadColumnsSuccess({
+              product,
               products: mapColumnGroupsToDataProducts(groups),
             }),
           ),
@@ -43,8 +39,8 @@ export class DataExplorerEffects {
               }),
             ),
           ),
-        );
-      }),
+        ),
+      ),
     ),
   );
 
@@ -53,40 +49,39 @@ export class DataExplorerEffects {
       ofType(DataExplorerRowsApiActions.loadRows),
       withLatestFrom(this.store.select(selectDataExplorerRowsCache)),
       switchMap(([request, cache]) => {
-        const scope = buildDataExplorerQueryScope(
-          request.columns,
-          request.sortBy,
-          request.sortDir,
-        );
+        const scope = buildDataExplorerQueryScope(request);
 
         if (readDataExplorerRowsCacheEntry(cache, scope, request.page, request.pageSize)) {
           return EMPTY;
         }
 
-        return this.api
-          .queryData({
-            columns: request.columns,
-            search: '',
-            sortBy: request.sortBy,
-            sortDir: request.sortDir,
-            page: request.page,
-            pageSize: request.pageSize,
-          })
-          .pipe(
-            map((result) =>
-              DataExplorerRowsApiActions.loadRowsSuccess({
-                result,
-                request,
+        const body = buildDataExplorerDataRequest({
+          product: request.product,
+          columns: request.columns,
+          groupByFieldId: request.groupByField || null,
+          filters: request.filters,
+          filterLogic: request.filterLogic,
+          sortBy: request.sortBy,
+          sortDir: request.sortDir,
+          page: request.page,
+          pageSize: request.pageSize,
+        });
+
+        return this.api.queryData(body).pipe(
+          map((result) =>
+            DataExplorerRowsApiActions.loadRowsSuccess({
+              result,
+              request,
+            }),
+          ),
+          catchError(() =>
+            of(
+              DataExplorerRowsApiActions.loadRowsFailure({
+                error: 'Failed to load data. Please try again.',
               }),
             ),
-            catchError(() =>
-              of(
-                DataExplorerRowsApiActions.loadRowsFailure({
-                  error: 'Failed to load data. Please try again.',
-                }),
-              ),
-            ),
-          );
+          ),
+        );
       }),
     ),
   );

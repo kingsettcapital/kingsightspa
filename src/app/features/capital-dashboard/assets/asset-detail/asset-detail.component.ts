@@ -15,11 +15,7 @@ import { Store } from '@ngrx/store';
 import { map } from 'rxjs';
 
 import { KsCurrencyPipe } from '../../../../shared/pipes/ks-currency.pipe';
-import { AssetTableRow, formatSquareFeet } from '../../shared/utils/asset-list-row.util';
-import {
-  propertyDetailLocation,
-  propertyDetailName,
-} from '../../shared/utils/property-display.util';
+import { AssetTableRow } from '../../shared/utils/asset-list-row.util';
 import { InvestorDetailSidebarComponent } from '../../investors/investor-detail/investor-detail-sidebar/investor-detail-sidebar.component';
 import { InvestorDetailBlockComponent } from '../../investors/investor-detail/investor-detail-block/investor-detail-block.component';
 import { AssetsApiActions } from '../../store';
@@ -28,13 +24,18 @@ import {
   bindDetailSectionScrollSpy,
   flattenSidebarSectionIds,
 } from '../../shared/utils/detail-section-scroll-spy.util';
-import { ASSET_DETAIL_DUMMY } from './data/asset-detail-dummy.data';
 import { ASSET_DETAIL_SIDEBAR_SECTIONS } from './models/asset-detail-sidebar.config';
+import {
+  ASSET_DETAIL_EMPTY,
+  formatAssetDisplaySqFt,
+  propertyDetailHasProfileData,
+  readPropertyDetailString,
+} from './utils/asset-detail-api.util';
 import {
   AssetDetailSectionId,
   buildFlatAssetBlocks,
   formatAssetKpiHint,
-  kpiCardsFromAssetRow,
+  kpiCardsFromAssetDetail,
 } from './utils/asset-detail-tables.util';
 
 @Component({
@@ -47,6 +48,7 @@ import {
     InvestorDetailSidebarComponent,
     InvestorDetailBlockComponent,
   ],
+  providers: [KsCurrencyPipe],
   templateUrl: './asset-detail.component.html',
   styleUrl: './asset-detail.component.scss',
 })
@@ -55,6 +57,7 @@ export class AssetDetailComponent {
   private readonly router = inject(Router);
   private readonly store = inject(Store);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly ksCurrency = inject(KsCurrencyPipe);
 
   private readonly mainContentRef = viewChild<ElementRef<HTMLElement>>('mainContent');
   private readonly stickyChromeRef = viewChild<ElementRef<HTMLElement>>('stickyChrome');
@@ -71,58 +74,99 @@ export class AssetDetailComponent {
 
   readonly loading = computed(() => this.detailState().loading);
   readonly detail = computed(() => this.detailState().detail);
+  readonly leasingSummary = computed(() => this.detailState().leasingSummary);
 
-  readonly propertyName = computed(
-    () =>
-      this.listRow()?.name ??
-      propertyDetailName(this.detail()) ??
-      ASSET_DETAIL_DUMMY.propertyName,
+  readonly contentLoading = computed(
+    () => this.loading() && !this.detail() && !this.listRow(),
   );
 
-  readonly assetType = computed(
-    () =>
-      this.listRow()?.assetType ??
-      this.detail()?.summary?.assetType ??
-      ASSET_DETAIL_DUMMY.assetType,
+  readonly hasMetricData = computed(
+    () => propertyDetailHasProfileData(this.detail()) || this.listRow() != null,
   );
 
-  readonly statusLabel = computed(
-    () =>
-      this.listRow()?.status ??
-      this.detail()?.summary?.status ??
-      ASSET_DETAIL_DUMMY.status,
-  );
-
-  readonly subtitleText = computed(() => {
-    const row = this.listRow();
-    const detail = this.detail();
-    const dummy = ASSET_DETAIL_DUMMY;
-    const location =
-      row?.geography && row.geography !== '—'
-        ? row.geography
-        : propertyDetailLocation(detail) ?? `${dummy.city}, ${dummy.province}`;
-    const parts = [
-      location,
-      row?.investmentType ?? dummy.investmentType,
-      row?.developmentType ?? dummy.developmentType,
-      `Code: ${row?.code ?? dummy.propertyCode}`,
-    ];
-    return parts.filter(Boolean).join(' · ');
+  readonly propertyName = computed(() => {
+    const fromDetail = readPropertyDetailString(
+      this.detail(),
+      'property_name',
+      'propertyName',
+    );
+    if (fromDetail) {
+      return fromDetail;
+    }
+    return this.listRow()?.name || ASSET_DETAIL_EMPTY;
   });
 
-  readonly kpiCards = computed(() => kpiCardsFromAssetRow(this.listRow()));
+  readonly assetType = computed(() => {
+    const fromDetail = readPropertyDetailString(this.detail(), 'asset_type', 'assetType');
+    if (fromDetail) {
+      return fromDetail;
+    }
+    return this.listRow()?.assetType || ASSET_DETAIL_EMPTY;
+  });
+
+  readonly statusLabel = computed(() => {
+    const fromDetail = readPropertyDetailString(this.detail(), 'status');
+    if (fromDetail) {
+      return fromDetail;
+    }
+    return this.listRow()?.status || ASSET_DETAIL_EMPTY;
+  });
+
+  readonly subtitleLeadText = computed(() => {
+    const detail = this.detail();
+    const row = this.listRow();
+    const geography = formatAssetDisplayString(
+      readPropertyDetailString(detail, 'geography') || row?.geography || '',
+    );
+    const investmentType = formatAssetDisplayString(
+      readPropertyDetailString(detail, 'investment_type', 'investmentType') ||
+        row?.investmentType ||
+        '',
+    );
+    const developmentType = formatAssetDisplayString(
+      readPropertyDetailString(detail, 'development_type', 'developmentType') ||
+        row?.developmentType ||
+        '',
+    );
+
+    return [geography, investmentType, developmentType]
+      .filter((part) => part && part !== ASSET_DETAIL_EMPTY)
+      .join(' · ');
+  });
+
+  readonly propertyCodeDisplay = computed(() => {
+    const detail = this.detail();
+    const row = this.listRow();
+    const code = formatAssetDisplayString(
+      readPropertyDetailString(detail, 'property_code', 'propertyCode') || row?.code || '',
+    );
+    return code && code !== ASSET_DETAIL_EMPTY ? code : '';
+  });
+
+  readonly showAssetTypeChip = computed(() => {
+    const value = this.assetType();
+    return Boolean(value && value !== ASSET_DETAIL_EMPTY);
+  });
+
+  readonly showStatusChip = computed(() => {
+    const value = this.statusLabel();
+    return Boolean(value && value !== ASSET_DETAIL_EMPTY);
+  });
+
+  readonly kpiCards = computed(() =>
+    kpiCardsFromAssetDetail(this.detail(), this.listRow()),
+  );
 
   readonly flatBlocks = computed(() => {
     const state = this.detailState();
     return buildFlatAssetBlocks(
       state.detail,
-      state.investments,
+      state.leasingSummary,
       this.kpiCards(),
       this.listRow(),
     );
   });
 
-  readonly formatSquareFeet = formatSquareFeet;
   readonly formatAssetKpiHint = formatAssetKpiHint;
 
   constructor() {
@@ -151,7 +195,7 @@ export class AssetDetailComponent {
     });
 
     effect((onCleanup) => {
-      if (this.loading()) {
+      if (this.contentLoading()) {
         return;
       }
 
@@ -195,6 +239,20 @@ export class AssetDetailComponent {
         resizeObserver?.disconnect();
       });
     });
+  }
+
+  formatKpiSqFt(value: number | null): string {
+    if (!this.hasMetricData()) {
+      return ASSET_DETAIL_EMPTY;
+    }
+    return formatAssetDisplaySqFt(value, true);
+  }
+
+  formatKpiAmount(value: number | null): string {
+    if (!this.hasMetricData() || value == null || !Number.isFinite(value) || value <= 0) {
+      return ASSET_DETAIL_EMPTY;
+    }
+    return this.ksCurrency.transform(value, 'USD', 2, true);
   }
 
   scrollToSection(sectionId: string): void {
@@ -245,4 +303,9 @@ export class AssetDetailComponent {
   assetTypeChipClass(): string {
     return 'inv-detail__chip inv-detail__chip--asset-type';
   }
+}
+
+function formatAssetDisplayString(value: string): string {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : ASSET_DETAIL_EMPTY;
 }

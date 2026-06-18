@@ -1,6 +1,10 @@
 import {
   InvestorCapitalActivityDto,
   InvestorCapitalActivityTabRow,
+  InvestorCapitalObligationDto,
+  InvestorCapitalObligationTabRow,
+  InvestorNetAssetDto,
+  InvestorNetAssetTabRow,
   InvestorDistributionTableDto,
   InvestorDistributionTableTabRow,
   InvestorIrrDto,
@@ -29,12 +33,17 @@ function name(...values: Array<string | null | undefined>): string {
   return code(...values) || '—';
 }
 
+function transactionType(...values: Array<string | null | undefined>): string {
+  return code(...values) || '—';
+}
+
 export function mapInvestorCapitalActivitiesToTabRows(
   items: InvestorCapitalActivityDto[] | null | undefined,
 ): InvestorCapitalActivityTabRow[] {
   return (items ?? []).map((dto) => ({
     fundCode: code(dto.fund_code, dto.fundCode),
     fundName: name(dto.fund_name, dto.fundName),
+    type: transactionType(dto.type),
     called: num(dto.called),
     transferIn: num(dto.transfer_in ?? dto.transferIn),
     transferOut: num(dto.transfer_out ?? dto.transferOut),
@@ -48,6 +57,7 @@ export function mapInvestorDistributionTableToTabRows(
   return (items ?? []).map((dto) => ({
     fundCode: code(dto.fund_code, dto.fundCode),
     fundName: name(dto.fund_name, dto.fundName),
+    type: transactionType(dto.type),
     preferredReturn: num(dto.preferred_return ?? dto.preferredReturn),
     committed: num(dto.committed),
     unfunded: num(dto.unfunded),
@@ -64,6 +74,7 @@ export function mapInvestorIrrToTabRows(
   return (items ?? []).map((dto) => ({
     fundCode: code(dto.fund_code, dto.fundCode),
     fundName: name(dto.fund_name, dto.fundName),
+    type: transactionType(dto.type),
     irr1Year: optNum(dto.irr_1_year_pct),
     irr3Year: optNum(dto.irr_3_year_pct),
     irr5Year: optNum(dto.irr_5_year_pct),
@@ -71,4 +82,36 @@ export function mapInvestorIrrToTabRows(
     irr10Year: optNum(dto.irr_10_year_pct),
     irrLtd: optNum(dto.irr_ltd_pct),
   }));
+}
+
+export function mapInvestorCapitalObligationsToTabRows(
+  items: InvestorCapitalObligationDto[] | null | undefined,
+): InvestorCapitalObligationTabRow[] {
+  return (items ?? []).map((dto) => {
+    const fundKey = dto.fund_key ?? dto.fundKey;
+    return {
+      fundKey: typeof fundKey === 'number' && Number.isFinite(fundKey) ? fundKey : null,
+      fundCode: code(dto.fund_code, dto.fundCode),
+      fundName: name(dto.fund_name, dto.fundName),
+      period: code(dto.quarter_year, dto.quarterYear) || '—',
+      type: transactionType(dto.type),
+      amount: num(dto.amount),
+    };
+  });
+}
+
+export function mapInvestorNetAssetsToTabRows(
+  items: InvestorNetAssetDto[] | null | undefined,
+): InvestorNetAssetTabRow[] {
+  return (items ?? []).map((dto) => {
+    const fundKey = dto.fund_key ?? dto.fundKey;
+    return {
+      fundKey: typeof fundKey === 'number' && Number.isFinite(fundKey) ? fundKey : null,
+      fundCode: code(dto.fund_code, dto.fundCode),
+      fundName: name(dto.fund_name, dto.fundName),
+      period: code(dto.quarter_year, dto.quarterYear) || '—',
+      type: transactionType(dto.type),
+      ret: optNum(dto.ret),
+    };
+  });
 }

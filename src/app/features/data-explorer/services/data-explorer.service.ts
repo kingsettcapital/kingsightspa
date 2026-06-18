@@ -15,8 +15,8 @@ import { DataExplorerApiService } from './data-explorer-api.service';
 export class DataExplorerService {
   private readonly api = inject(DataExplorerApiService);
 
-  getSavedQueries(): Observable<SavedQuery[]> {
-    return this.api.listTemplates().pipe(
+  getSavedQueries(product: string): Observable<SavedQuery[]> {
+    return this.api.listTemplates(product).pipe(
       map((items) => items.map(mapTemplateListItemToSavedQuery)),
       catchError(() => throwError(() => new Error('Unable to load saved queries. Please try again.'))),
     );

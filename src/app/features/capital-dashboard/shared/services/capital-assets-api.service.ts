@@ -8,7 +8,7 @@ import {
   AssetsPagedResult,
   AssetsQueryParams,
   PropertyDetailDto,
-  PropertyInvestmentDto,
+  PropertyLeasingSummaryDto,
   PropertyListItemDto,
 } from '../models/api.models';
 import { CapitalFundsApiService } from './capital-funds-api.service';
@@ -42,12 +42,11 @@ export class CapitalAssetsApiService {
   }
 
   getAsset(propertyKey: number): Observable<PropertyDetailDto> {
-    // Kingsight API is expected to match portal DTO shape.
     return this.api.get<PropertyDetailDto>(`api/Assets/${propertyKey}`);
   }
 
-  getAssetInvestments(propertyKey: number): Observable<PropertyInvestmentDto[]> {
-    return this.api.get<PropertyInvestmentDto[]>(`api/Assets/${propertyKey}/investments`);
+  getAssetLeasingSummary(propertyKey: number): Observable<PropertyLeasingSummaryDto> {
+    return this.api.get<PropertyLeasingSummaryDto>(`api/Assets/${propertyKey}/leasing-summary`);
   }
 
   getAssetsForFundPage(
@@ -78,7 +77,7 @@ export class CapitalAssetsApiService {
     return forkJoin(uniqueKeys.map((fundKey) => this.fundsApi.getFund(fundKey))).pipe(
       switchMap((funds) => {
         const codes = [
-          ...new Set(funds.map((fund) => fund.summary.fundCode?.trim()).filter((c): c is string => !!c)),
+          ...new Set(funds.map((fund) => fund.summary?.fundCode?.trim()).filter((c): c is string => !!c)),
         ];
         if (codes.length === 0) return of([]);
         return forkJoin(codes.map((code) => this.getAllAssets({ search: code }))).pipe(

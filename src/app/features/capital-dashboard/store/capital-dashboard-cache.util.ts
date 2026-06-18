@@ -10,20 +10,26 @@ import {
   FundInvestorCapitalActivityTabRow,
   FundInvestorDistributionTableTabRow,
   FundInvestorIrrTabRow,
+  FundInvestorCapitalObligationTabRow,
+  FundInvestorNetAssetTabRow,
   FundListItemDto,
   FundPeriodDto,
   InvestorDetailDto,
   InvestorCapitalActivityTabRow,
   InvestorDistributionTableTabRow,
+  InvestorFundHoldingTabRow,
   InvestorInvestmentDto,
   InvestorIrrTabRow,
+  InvestorCapitalObligationTabRow,
+  InvestorNetAssetTabRow,
   InvestorListItemDto,
+  InvestorUnderlyingInvestmentTabRow,
   AssetsPagedResult,
   FundsPagedResult,
   InvestorsPagedResult,
   PagedResult,
   PropertyDetailDto,
-  PropertyInvestmentDto,
+  PropertyLeasingSummaryDto,
   PropertyListItemDto,
 } from '../shared/models/api.models';
 import { FundInvestorTabRow } from '../shared/mappers/fund-investor.mapper';
@@ -40,6 +46,7 @@ import {
 import { extractAssetsListSummary } from '../shared/utils/asset-list-row.util';
 import { extractFundsListSummary } from '../shared/utils/fund-list-row.util';
 import { extractInvestorsListSummary } from '../shared/utils/investor-list-row.util';
+import { quarterlyTransactionPeriodCacheSegment } from '../shared/utils/quarterly-transaction-period.util';
 
 type PagedItemsSource<T> = PagedResult<T> & { Items?: T[] | PagedResult<T> | null };
 
@@ -458,39 +465,51 @@ export function writeInvestorUnfundedCommitmentsPageCache(
 
 export function capitalDashboardInvestorCapitalInvestmentsCacheKey(
   investorKey: number,
-  timeframe: FundCommitmentTimeframe,
   page: number,
-  dateKey?: number,
 ): string {
-  return `inv-cap-inv\u0000${investorKey}\u0000${timeframe}\u0000${page}\u0000${investorGranularPageDateKeySegment(dateKey)}`;
+  return `inv-underlying-inv\u0000${investorKey}\u0000${page}`;
 }
 
 export interface InvestorCapitalInvestmentsPageCacheEntry {
-  items: FundCommitmentTabRow[];
+  items: InvestorUnderlyingInvestmentTabRow[];
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
   hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }
 
 export function readInvestorCapitalInvestmentsPageCache(
   cache: Record<string, InvestorCapitalInvestmentsPageCacheEntry>,
   investorKey: number,
-  timeframe: FundCommitmentTimeframe,
   page: number,
-  dateKey?: number,
 ): InvestorCapitalInvestmentsPageCacheEntry | null {
-  return cache[capitalDashboardInvestorCapitalInvestmentsCacheKey(investorKey, timeframe, page, dateKey)] ?? null;
+  return cache[capitalDashboardInvestorCapitalInvestmentsCacheKey(investorKey, page)] ?? null;
 }
 
 export function writeInvestorCapitalInvestmentsPageCache(
   cache: Record<string, InvestorCapitalInvestmentsPageCacheEntry>,
   investorKey: number,
-  timeframe: FundCommitmentTimeframe,
   page: number,
-  items: FundCommitmentTabRow[],
+  items: InvestorUnderlyingInvestmentTabRow[],
+  pageSize: number,
+  totalCount: number,
+  totalPages: number,
   hasNextPage: boolean,
-  dateKey?: number,
+  hasPreviousPage: boolean,
 ): Record<string, InvestorCapitalInvestmentsPageCacheEntry> {
-  const key = capitalDashboardInvestorCapitalInvestmentsCacheKey(investorKey, timeframe, page, dateKey);
-  return { ...cache, [key]: { items: [...items], hasNextPage } };
+  const key = capitalDashboardInvestorCapitalInvestmentsCacheKey(investorKey, page);
+  return {
+    ...cache,
+    [key]: {
+      items: [...items],
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage,
+      hasPreviousPage,
+    },
+  };
 }
 
 export function capitalDashboardInvestorDistributionsCacheKey(
@@ -567,18 +586,28 @@ export function writeInvestorNavPageCache(
   return { ...cache, [key]: { items: [...items], hasNextPage } };
 }
 
+function investorTransactionFundCodeSegment(fundCode?: string): string {
+  return fundCode?.trim() || '';
+}
+
 export function capitalDashboardInvestorCapitalActivitiesCacheKey(
   investorKey: number,
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
 ): string {
-  return `inv-cap-act\u0000${investorKey}\u0000${timeframe}\u0000${page}\u0000${investorGranularPageDateKeySegment(dateKey)}`;
+  return `inv-cap-act\u0000${investorKey}\u0000${timeframe}\u0000${page}\u0000${quarterlyTransactionPeriodCacheSegment(dateKey, calendarYear)}\u0000${investorTransactionFundCodeSegment(fundCode)}`;
 }
 
 export interface InvestorCapitalActivitiesPageCacheEntry {
   items: InvestorCapitalActivityTabRow[];
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
   hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }
 
 export function readInvestorCapitalActivitiesPageCache(
@@ -587,8 +616,10 @@ export function readInvestorCapitalActivitiesPageCache(
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
 ): InvestorCapitalActivitiesPageCacheEntry | null {
-  return cache[capitalDashboardInvestorCapitalActivitiesCacheKey(investorKey, timeframe, page, dateKey)] ?? null;
+  return cache[capitalDashboardInvestorCapitalActivitiesCacheKey(investorKey, timeframe, page, dateKey, fundCode, calendarYear)] ?? null;
 }
 
 export function writeInvestorCapitalActivitiesPageCache(
@@ -597,11 +628,27 @@ export function writeInvestorCapitalActivitiesPageCache(
   timeframe: FundCommitmentTimeframe,
   page: number,
   items: InvestorCapitalActivityTabRow[],
+  pageSize: number,
+  totalCount: number,
+  totalPages: number,
   hasNextPage: boolean,
+  hasPreviousPage: boolean,
   dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
 ): Record<string, InvestorCapitalActivitiesPageCacheEntry> {
-  const key = capitalDashboardInvestorCapitalActivitiesCacheKey(investorKey, timeframe, page, dateKey);
-  return { ...cache, [key]: { items: [...items], hasNextPage } };
+  const key = capitalDashboardInvestorCapitalActivitiesCacheKey(investorKey, timeframe, page, dateKey, fundCode, calendarYear);
+  return {
+    ...cache,
+    [key]: {
+      items: [...items],
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage,
+      hasPreviousPage,
+    },
+  };
 }
 
 export function capitalDashboardInvestorDistributionTableCacheKey(
@@ -609,13 +656,19 @@ export function capitalDashboardInvestorDistributionTableCacheKey(
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
 ): string {
-  return `inv-dist-tbl\u0000${investorKey}\u0000${timeframe}\u0000${page}\u0000${investorGranularPageDateKeySegment(dateKey)}`;
+  return `inv-dist-tbl\u0000${investorKey}\u0000${timeframe}\u0000${page}\u0000${quarterlyTransactionPeriodCacheSegment(dateKey, calendarYear)}\u0000${investorTransactionFundCodeSegment(fundCode)}`;
 }
 
 export interface InvestorDistributionTablePageCacheEntry {
   items: InvestorDistributionTableTabRow[];
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
   hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }
 
 export function readInvestorDistributionTablePageCache(
@@ -624,8 +677,10 @@ export function readInvestorDistributionTablePageCache(
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
 ): InvestorDistributionTablePageCacheEntry | null {
-  return cache[capitalDashboardInvestorDistributionTableCacheKey(investorKey, timeframe, page, dateKey)] ?? null;
+  return cache[capitalDashboardInvestorDistributionTableCacheKey(investorKey, timeframe, page, dateKey, fundCode, calendarYear)] ?? null;
 }
 
 export function writeInvestorDistributionTablePageCache(
@@ -634,11 +689,27 @@ export function writeInvestorDistributionTablePageCache(
   timeframe: FundCommitmentTimeframe,
   page: number,
   items: InvestorDistributionTableTabRow[],
+  pageSize: number,
+  totalCount: number,
+  totalPages: number,
   hasNextPage: boolean,
+  hasPreviousPage: boolean,
   dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
 ): Record<string, InvestorDistributionTablePageCacheEntry> {
-  const key = capitalDashboardInvestorDistributionTableCacheKey(investorKey, timeframe, page, dateKey);
-  return { ...cache, [key]: { items: [...items], hasNextPage } };
+  const key = capitalDashboardInvestorDistributionTableCacheKey(investorKey, timeframe, page, dateKey, fundCode, calendarYear);
+  return {
+    ...cache,
+    [key]: {
+      items: [...items],
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage,
+      hasPreviousPage,
+    },
+  };
 }
 
 export function capitalDashboardInvestorIrrCacheKey(
@@ -646,13 +717,19 @@ export function capitalDashboardInvestorIrrCacheKey(
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
 ): string {
-  return `inv-irr\u0000${investorKey}\u0000${timeframe}\u0000${page}\u0000${investorGranularPageDateKeySegment(dateKey)}`;
+  return `inv-irr\u0000${investorKey}\u0000${timeframe}\u0000${page}\u0000${quarterlyTransactionPeriodCacheSegment(dateKey, calendarYear)}\u0000${investorTransactionFundCodeSegment(fundCode)}`;
 }
 
 export interface InvestorIrrPageCacheEntry {
   items: InvestorIrrTabRow[];
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
   hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }
 
 export function readInvestorIrrPageCache(
@@ -661,8 +738,10 @@ export function readInvestorIrrPageCache(
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
 ): InvestorIrrPageCacheEntry | null {
-  return cache[capitalDashboardInvestorIrrCacheKey(investorKey, timeframe, page, dateKey)] ?? null;
+  return cache[capitalDashboardInvestorIrrCacheKey(investorKey, timeframe, page, dateKey, fundCode, calendarYear)] ?? null;
 }
 
 export function writeInvestorIrrPageCache(
@@ -671,11 +750,185 @@ export function writeInvestorIrrPageCache(
   timeframe: FundCommitmentTimeframe,
   page: number,
   items: InvestorIrrTabRow[],
+  pageSize: number,
+  totalCount: number,
+  totalPages: number,
   hasNextPage: boolean,
+  hasPreviousPage: boolean,
   dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
 ): Record<string, InvestorIrrPageCacheEntry> {
-  const key = capitalDashboardInvestorIrrCacheKey(investorKey, timeframe, page, dateKey);
-  return { ...cache, [key]: { items: [...items], hasNextPage } };
+  const key = capitalDashboardInvestorIrrCacheKey(investorKey, timeframe, page, dateKey, fundCode, calendarYear);
+  return {
+    ...cache,
+    [key]: {
+      items: [...items],
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage,
+      hasPreviousPage,
+    },
+  };
+}
+
+export function capitalDashboardInvestorCapitalObligationsCacheKey(
+  investorKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
+): string {
+  return `inv-capital-obligations\u0000${investorKey}\u0000${timeframe}\u0000${page}\u0000${quarterlyTransactionPeriodCacheSegment(dateKey, calendarYear)}\u0000${investorTransactionFundCodeSegment(fundCode)}`;
+}
+
+export interface InvestorCapitalObligationsPageCacheEntry {
+  items: InvestorCapitalObligationTabRow[];
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export function readInvestorCapitalObligationsPageCache(
+  cache: Record<string, InvestorCapitalObligationsPageCacheEntry>,
+  investorKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
+): InvestorCapitalObligationsPageCacheEntry | null {
+  return cache[capitalDashboardInvestorCapitalObligationsCacheKey(investorKey, timeframe, page, dateKey, fundCode, calendarYear)] ?? null;
+}
+
+export function writeInvestorCapitalObligationsPageCache(
+  cache: Record<string, InvestorCapitalObligationsPageCacheEntry>,
+  investorKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  items: InvestorCapitalObligationTabRow[],
+  pageSize: number,
+  totalCount: number,
+  totalPages: number,
+  hasNextPage: boolean,
+  hasPreviousPage: boolean,
+  dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
+): Record<string, InvestorCapitalObligationsPageCacheEntry> {
+  const key = capitalDashboardInvestorCapitalObligationsCacheKey(investorKey, timeframe, page, dateKey, fundCode, calendarYear);
+  return {
+    ...cache,
+    [key]: {
+      items: [...items],
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage,
+      hasPreviousPage,
+    },
+  };
+}
+
+export function capitalDashboardInvestorNetAssetsCacheKey(
+  investorKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
+): string {
+  return `inv-net-assets\u0000${investorKey}\u0000${timeframe}\u0000${page}\u0000${quarterlyTransactionPeriodCacheSegment(dateKey, calendarYear)}\u0000${investorTransactionFundCodeSegment(fundCode)}`;
+}
+
+export interface InvestorNetAssetsPageCacheEntry {
+  items: InvestorNetAssetTabRow[];
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export function readInvestorNetAssetsPageCache(
+  cache: Record<string, InvestorNetAssetsPageCacheEntry>,
+  investorKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
+): InvestorNetAssetsPageCacheEntry | null {
+  return cache[capitalDashboardInvestorNetAssetsCacheKey(investorKey, timeframe, page, dateKey, fundCode, calendarYear)] ?? null;
+}
+
+export function writeInvestorNetAssetsPageCache(
+  cache: Record<string, InvestorNetAssetsPageCacheEntry>,
+  investorKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  items: InvestorNetAssetTabRow[],
+  pageSize: number,
+  totalCount: number,
+  totalPages: number,
+  hasNextPage: boolean,
+  hasPreviousPage: boolean,
+  dateKey?: number,
+  fundCode?: string,
+  calendarYear?: number,
+): Record<string, InvestorNetAssetsPageCacheEntry> {
+  const key = capitalDashboardInvestorNetAssetsCacheKey(investorKey, timeframe, page, dateKey, fundCode, calendarYear);
+  return {
+    ...cache,
+    [key]: {
+      items: [...items],
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage,
+      hasPreviousPage,
+    },
+  };
+}
+
+export function capitalDashboardInvestorFundHoldingsCacheKey(investorKey: number): string {
+  return `inv-fund-holdings\u0000${investorKey}`;
+}
+
+export interface InvestorFundHoldingsCacheEntry {
+  items: InvestorFundHoldingTabRow[];
+  dateKey: number | null;
+}
+
+export function readInvestorFundHoldingsCache(
+  cache: Record<string, InvestorFundHoldingsCacheEntry>,
+  investorKey: number,
+): InvestorFundHoldingsCacheEntry | null {
+  return cache[capitalDashboardInvestorFundHoldingsCacheKey(investorKey)] ?? null;
+}
+
+export function writeInvestorFundHoldingsCache(
+  cache: Record<string, InvestorFundHoldingsCacheEntry>,
+  investorKey: number,
+  items: InvestorFundHoldingTabRow[],
+  dateKey: number | null,
+): Record<string, InvestorFundHoldingsCacheEntry> {
+  const key = capitalDashboardInvestorFundHoldingsCacheKey(investorKey);
+  return {
+    ...cache,
+    [key]: {
+      items,
+      dateKey,
+    },
+  };
+}
+
+function fundTransactionInvestorNameSegment(investorName?: string): string {
+  return investorName?.trim() || '';
 }
 
 export function capitalDashboardFundCapitalActivitiesCacheKey(
@@ -683,13 +936,19 @@ export function capitalDashboardFundCapitalActivitiesCacheKey(
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
 ): string {
-  return `fund-cap-act\u0000${fundKey}\u0000${timeframe}\u0000${page}\u0000${fundGranularPageDateKeySegment(dateKey)}`;
+  return `fund-cap-act\u0000${fundKey}\u0000${timeframe}\u0000${page}\u0000${quarterlyTransactionPeriodCacheSegment(dateKey, calendarYear)}\u0000${fundTransactionInvestorNameSegment(investorName)}`;
 }
 
 export interface FundCapitalActivitiesPageCacheEntry {
   items: FundInvestorCapitalActivityTabRow[];
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
   hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }
 
 export function readFundCapitalActivitiesPageCache(
@@ -698,8 +957,10 @@ export function readFundCapitalActivitiesPageCache(
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
 ): FundCapitalActivitiesPageCacheEntry | null {
-  return cache[capitalDashboardFundCapitalActivitiesCacheKey(fundKey, timeframe, page, dateKey)] ?? null;
+  return cache[capitalDashboardFundCapitalActivitiesCacheKey(fundKey, timeframe, page, dateKey, investorName, calendarYear)] ?? null;
 }
 
 export function writeFundCapitalActivitiesPageCache(
@@ -708,11 +969,27 @@ export function writeFundCapitalActivitiesPageCache(
   timeframe: FundCommitmentTimeframe,
   page: number,
   items: FundInvestorCapitalActivityTabRow[],
+  pageSize: number,
+  totalCount: number,
+  totalPages: number,
   hasNextPage: boolean,
+  hasPreviousPage: boolean,
   dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
 ): Record<string, FundCapitalActivitiesPageCacheEntry> {
-  const key = capitalDashboardFundCapitalActivitiesCacheKey(fundKey, timeframe, page, dateKey);
-  return { ...cache, [key]: { items: [...items], hasNextPage } };
+  const key = capitalDashboardFundCapitalActivitiesCacheKey(fundKey, timeframe, page, dateKey, investorName, calendarYear);
+  return {
+    ...cache,
+    [key]: {
+      items: [...items],
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage,
+      hasPreviousPage,
+    },
+  };
 }
 
 export function capitalDashboardFundDistributionTableCacheKey(
@@ -720,13 +997,19 @@ export function capitalDashboardFundDistributionTableCacheKey(
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
 ): string {
-  return `fund-dist-tbl\u0000${fundKey}\u0000${timeframe}\u0000${page}\u0000${fundGranularPageDateKeySegment(dateKey)}`;
+  return `fund-dist-tbl\u0000${fundKey}\u0000${timeframe}\u0000${page}\u0000${quarterlyTransactionPeriodCacheSegment(dateKey, calendarYear)}\u0000${fundTransactionInvestorNameSegment(investorName)}`;
 }
 
 export interface FundDistributionTablePageCacheEntry {
   items: FundInvestorDistributionTableTabRow[];
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
   hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }
 
 export function readFundDistributionTablePageCache(
@@ -735,8 +1018,10 @@ export function readFundDistributionTablePageCache(
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
 ): FundDistributionTablePageCacheEntry | null {
-  return cache[capitalDashboardFundDistributionTableCacheKey(fundKey, timeframe, page, dateKey)] ?? null;
+  return cache[capitalDashboardFundDistributionTableCacheKey(fundKey, timeframe, page, dateKey, investorName, calendarYear)] ?? null;
 }
 
 export function writeFundDistributionTablePageCache(
@@ -745,11 +1030,27 @@ export function writeFundDistributionTablePageCache(
   timeframe: FundCommitmentTimeframe,
   page: number,
   items: FundInvestorDistributionTableTabRow[],
+  pageSize: number,
+  totalCount: number,
+  totalPages: number,
   hasNextPage: boolean,
+  hasPreviousPage: boolean,
   dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
 ): Record<string, FundDistributionTablePageCacheEntry> {
-  const key = capitalDashboardFundDistributionTableCacheKey(fundKey, timeframe, page, dateKey);
-  return { ...cache, [key]: { items: [...items], hasNextPage } };
+  const key = capitalDashboardFundDistributionTableCacheKey(fundKey, timeframe, page, dateKey, investorName, calendarYear);
+  return {
+    ...cache,
+    [key]: {
+      items: [...items],
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage,
+      hasPreviousPage,
+    },
+  };
 }
 
 export function capitalDashboardFundIrrCacheKey(
@@ -757,13 +1058,19 @@ export function capitalDashboardFundIrrCacheKey(
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
 ): string {
-  return `fund-irr\u0000${fundKey}\u0000${timeframe}\u0000${page}\u0000${fundGranularPageDateKeySegment(dateKey)}`;
+  return `fund-irr\u0000${fundKey}\u0000${timeframe}\u0000${page}\u0000${quarterlyTransactionPeriodCacheSegment(dateKey, calendarYear)}\u0000${fundTransactionInvestorNameSegment(investorName)}`;
 }
 
 export interface FundIrrPageCacheEntry {
   items: FundInvestorIrrTabRow[];
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
   hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }
 
 export function readFundIrrPageCache(
@@ -772,8 +1079,10 @@ export function readFundIrrPageCache(
   timeframe: FundCommitmentTimeframe,
   page: number,
   dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
 ): FundIrrPageCacheEntry | null {
-  return cache[capitalDashboardFundIrrCacheKey(fundKey, timeframe, page, dateKey)] ?? null;
+  return cache[capitalDashboardFundIrrCacheKey(fundKey, timeframe, page, dateKey, investorName, calendarYear)] ?? null;
 }
 
 export function writeFundIrrPageCache(
@@ -782,11 +1091,149 @@ export function writeFundIrrPageCache(
   timeframe: FundCommitmentTimeframe,
   page: number,
   items: FundInvestorIrrTabRow[],
+  pageSize: number,
+  totalCount: number,
+  totalPages: number,
   hasNextPage: boolean,
+  hasPreviousPage: boolean,
   dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
 ): Record<string, FundIrrPageCacheEntry> {
-  const key = capitalDashboardFundIrrCacheKey(fundKey, timeframe, page, dateKey);
-  return { ...cache, [key]: { items: [...items], hasNextPage } };
+  const key = capitalDashboardFundIrrCacheKey(fundKey, timeframe, page, dateKey, investorName, calendarYear);
+  return {
+    ...cache,
+    [key]: {
+      items: [...items],
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage,
+      hasPreviousPage,
+    },
+  };
+}
+
+export function capitalDashboardFundCapitalObligationsCacheKey(
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
+): string {
+  return `fund-capital-obligations\u0000${fundKey}\u0000${timeframe}\u0000${page}\u0000${quarterlyTransactionPeriodCacheSegment(dateKey, calendarYear)}\u0000${fundTransactionInvestorNameSegment(investorName)}`;
+}
+
+export interface FundCapitalObligationsPageCacheEntry {
+  items: FundInvestorCapitalObligationTabRow[];
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export function readFundCapitalObligationsPageCache(
+  cache: Record<string, FundCapitalObligationsPageCacheEntry>,
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
+): FundCapitalObligationsPageCacheEntry | null {
+  return cache[capitalDashboardFundCapitalObligationsCacheKey(fundKey, timeframe, page, dateKey, investorName, calendarYear)] ?? null;
+}
+
+export function writeFundCapitalObligationsPageCache(
+  cache: Record<string, FundCapitalObligationsPageCacheEntry>,
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  items: FundInvestorCapitalObligationTabRow[],
+  pageSize: number,
+  totalCount: number,
+  totalPages: number,
+  hasNextPage: boolean,
+  hasPreviousPage: boolean,
+  dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
+): Record<string, FundCapitalObligationsPageCacheEntry> {
+  const key = capitalDashboardFundCapitalObligationsCacheKey(fundKey, timeframe, page, dateKey, investorName, calendarYear);
+  return {
+    ...cache,
+    [key]: {
+      items: [...items],
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage,
+      hasPreviousPage,
+    },
+  };
+}
+
+export function capitalDashboardFundNetAssetsCacheKey(
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
+): string {
+  return `fund-net-assets\u0000${fundKey}\u0000${timeframe}\u0000${page}\u0000${quarterlyTransactionPeriodCacheSegment(dateKey, calendarYear)}\u0000${fundTransactionInvestorNameSegment(investorName)}`;
+}
+
+export interface FundNetAssetsPageCacheEntry {
+  items: FundInvestorNetAssetTabRow[];
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export function readFundNetAssetsPageCache(
+  cache: Record<string, FundNetAssetsPageCacheEntry>,
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
+): FundNetAssetsPageCacheEntry | null {
+  return cache[capitalDashboardFundNetAssetsCacheKey(fundKey, timeframe, page, dateKey, investorName, calendarYear)] ?? null;
+}
+
+export function writeFundNetAssetsPageCache(
+  cache: Record<string, FundNetAssetsPageCacheEntry>,
+  fundKey: number,
+  timeframe: FundCommitmentTimeframe,
+  page: number,
+  items: FundInvestorNetAssetTabRow[],
+  pageSize: number,
+  totalCount: number,
+  totalPages: number,
+  hasNextPage: boolean,
+  hasPreviousPage: boolean,
+  dateKey?: number,
+  investorName?: string,
+  calendarYear?: number,
+): Record<string, FundNetAssetsPageCacheEntry> {
+  const key = capitalDashboardFundNetAssetsCacheKey(fundKey, timeframe, page, dateKey, investorName, calendarYear);
+  return {
+    ...cache,
+    [key]: {
+      items: [...items],
+      pageSize,
+      totalCount,
+      totalPages,
+      hasNextPage,
+      hasPreviousPage,
+    },
+  };
 }
 
 export function readListCacheEntry<T>(
@@ -994,7 +1441,11 @@ export interface FundDetailCacheEntry {
 
 export interface FundAssetsPageCacheEntry {
   items: FundAssetTabRow[];
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
   hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }
 
 export interface FundInvestorsPageCacheEntry {
@@ -1004,5 +1455,5 @@ export interface FundInvestorsPageCacheEntry {
 
 export interface AssetDetailCacheEntry {
   detail: PropertyDetailDto;
-  investments: PropertyInvestmentDto[];
+  leasingSummary: PropertyLeasingSummaryDto | null;
 }

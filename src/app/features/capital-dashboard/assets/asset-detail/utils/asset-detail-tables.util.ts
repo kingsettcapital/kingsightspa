@@ -1,12 +1,8 @@
 import {
   PropertyDetailDto,
-  PropertyInvestmentDto,
+  PropertyLeasingSummaryDto,
 } from '../../../shared/models/api.models';
-import {
-  formatOccupiedPercent,
-  formatSquareFeet,
-  AssetTableRow,
-} from '../../../shared/utils/asset-list-row.util';
+import { AssetTableRow } from '../../../shared/utils/asset-list-row.util';
 import {
   InvestorDetailBlock,
   InvestorDetailDocumentListBlock,
@@ -14,7 +10,6 @@ import {
   InvestorDetailFieldGridBlock,
   InvestorDetailLeasingSummaryBlock,
   InvestorDetailRiskInsuranceBlock,
-  InvestorDetailSectionBlock,
   InvestorDetailTableBlock,
 } from '../../../investors/investor-detail/models/investor-detail-block.models';
 import {
@@ -24,6 +19,18 @@ import {
 } from '../../../investors/investor-detail/models/investor-detail-table.models';
 import { ASSET_DETAIL_SIDEBAR_SECTIONS } from '../models/asset-detail-sidebar.config';
 import { ASSET_DETAIL_DUMMY } from '../data/asset-detail-dummy.data';
+import {
+  ASSET_DETAIL_EMPTY,
+  formatAssetDisplayCount,
+  formatAssetDisplayCurrency,
+  formatAssetDisplayMonths,
+  formatAssetDisplayPercent,
+  formatAssetDisplaySqFt,
+  formatAssetDisplayString,
+  readLeasingSummaryNumber,
+  readPropertyDetailNumber,
+  readPropertyDetailString,
+} from './asset-detail-api.util';
 
 export type AssetDetailSectionId =
   | 'overview'
@@ -36,12 +43,12 @@ export type AssetDetailSectionId =
   | 'risk-insurance';
 
 export interface AssetDetailKpiCards {
-  totalGlaSf: number;
-  committedSf: number;
-  vacantSf: number;
-  occupiedPercent: number;
-  vacantPercent: number;
-  marketValue: number;
+  totalGlaSf: number | null;
+  committedSf: number | null;
+  vacantSf: number | null;
+  occupiedPercent: number | null;
+  vacantPercent: number | null;
+  marketValue: number | null;
 }
 
 export interface AssetDetailFlatBlock {
@@ -50,52 +57,73 @@ export interface AssetDetailFlatBlock {
   isSectionStart: boolean;
 }
 
-function formatCurrencyCompact(value: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(value);
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatPercent(value: number): string {
-  return `${value.toFixed(1)}%`;
-}
-
 function tableBlock(config: Omit<InvestorDetailTableBlock, 'kind'>): InvestorDetailTableBlock {
   return { kind: 'table', ...config };
 }
 
-export function kpiCardsFromAssetRow(row: AssetTableRow | null): AssetDetailKpiCards {
-  const dummy = ASSET_DETAIL_DUMMY;
-  const totalGla = row?.glaSf ?? dummy.totalGlaSf;
-  const committed = row?.committedSf ?? dummy.committedSf;
-  const vacant = row?.vacantSf ?? dummy.vacantSf;
-  const occupied = row?.occupiedPercent ?? dummy.occupiedPercent;
-  const vacantPct =
-    totalGla > 0 ? (vacant / totalGla) * 100 : dummy.vacantPercent;
+function pickNumber(
+  detail: PropertyDetailDto | null,
+  row: AssetTableRow | null,
+  detailKeys: string[],
+  rowValue: number | null | undefined,
+): number | null {
+  const fromDetail = readPropertyDetailNumber(detail, ...detailKeys);
+  if (fromDetail != null) {
+    return fromDetail;
+  }
+  if (rowValue != null && Number.isFinite(rowValue)) {
+    return rowValue;
+  }
+  return null;
+}
+
+export function kpiCardsFromAssetDetail(
+  detail: PropertyDetailDto | null,
+  row: AssetTableRow | null,
+): AssetDetailKpiCards {
+  const totalGlaSf = pickNumber(detail, row, ['total_gla_sf', 'totalGlaSf'], row?.glaSf);
+  const committedSf = pickNumber(
+    detail,
+    row,
+    ['committed_area_sf', 'committedAreaSf'],
+    row?.committedSf,
+  );
+  const vacantSf = pickNumber(detail, row, ['vacant_area_sf', 'vacantAreaSf'], row?.vacantSf);
+  const occupiedPercent = pickNumber(
+    detail,
+    row,
+    ['occupancy_rate', 'occupancyRate'],
+    row?.occupiedPercent,
+  );
+  const vacancyRate = readPropertyDetailNumber(detail, 'vacancy_rate', 'vacancyRate');
+  const vacantPercent =
+    vacancyRate ??
+    (totalGlaSf != null && totalGlaSf > 0 && vacantSf != null
+      ? (vacantSf / totalGlaSf) * 100
+      : null);
+  const marketValue = readPropertyDetailNumber(detail, 'est_market_value', 'estMarketValue');
 
   return {
-    totalGlaSf: totalGla,
-    committedSf: committed,
-    vacantSf: vacant,
-    occupiedPercent: occupied,
-    vacantPercent: vacantPct,
-    marketValue: dummy.marketValue,
+    totalGlaSf,
+    committedSf,
+    vacantSf,
+    occupiedPercent,
+    vacantPercent,
+    marketValue,
   };
 }
 
-function buildAreaSummaryGrid(kpi: AssetDetailKpiCards, row: AssetTableRow | null): InvestorDetailFieldGridBlock {
-  const dummy = ASSET_DETAIL_DUMMY;
+function buildAreaSummaryGrid(
+  detail: PropertyDetailDto | null,
+  kpi: AssetDetailKpiCards,
+  row: AssetTableRow | null,
+): InvestorDetailFieldGridBlock {
+  const status = formatAssetDisplayString(
+    readPropertyDetailString(detail, 'status') || row?.status || '',
+  );
+  const occupiedPct = kpi.occupiedPercent;
+  const vacantPct = kpi.vacantPercent;
+
   return {
     kind: 'field-grid',
     id: 'area-summary',
@@ -105,38 +133,95 @@ function buildAreaSummaryGrid(kpi: AssetDetailKpiCards, row: AssetTableRow | nul
     columns: [
       {
         fields: [
-          { label: 'Property Code', value: row?.code ?? dummy.propertyCode },
-          { label: 'Property Name', value: row?.name ?? dummy.propertyName },
-          { label: 'Geography', value: row?.geography ?? dummy.geography },
-          { label: 'Asset Type', value: row?.assetType ?? dummy.assetType },
-          { label: 'Investment Type', value: row?.investmentType ?? dummy.investmentType },
-          { label: 'Development Type', value: row?.developmentType ?? dummy.developmentType },
-          { label: 'Status', value: row?.status ?? dummy.status, tone: 'positive' },
+          {
+            label: 'Property Code',
+            value: formatAssetDisplayString(
+              readPropertyDetailString(detail, 'property_code', 'propertyCode') || row?.code || '',
+            ),
+          },
+          {
+            label: 'Property Name',
+            value: formatAssetDisplayString(
+              readPropertyDetailString(detail, 'property_name', 'propertyName') || row?.name || '',
+            ),
+          },
+          {
+            label: 'Geography',
+            value: formatAssetDisplayString(
+              readPropertyDetailString(detail, 'geography') || row?.geography || '',
+            ),
+          },
+          {
+            label: 'Asset Type',
+            value: formatAssetDisplayString(
+              readPropertyDetailString(detail, 'asset_type', 'assetType') || row?.assetType || '',
+            ),
+          },
+          {
+            label: 'Investment Type',
+            value: formatAssetDisplayString(
+              readPropertyDetailString(detail, 'investment_type', 'investmentType') ||
+                row?.investmentType ||
+                '',
+            ),
+          },
+          {
+            label: 'Development Type',
+            value: formatAssetDisplayString(
+              readPropertyDetailString(detail, 'development_type', 'developmentType') ||
+                row?.developmentType ||
+                '',
+            ),
+          },
+          {
+            label: 'Status',
+            value: status,
+            tone: status !== ASSET_DETAIL_EMPTY && status.toLowerCase() === 'active' ? 'positive' : undefined,
+          },
         ],
       },
       {
         fields: [
-          { label: 'Total GLA', value: formatSquareFeet(kpi.totalGlaSf) },
-          { label: 'Committed Area', value: formatSquareFeet(kpi.committedSf) },
-          { label: 'Vacant Area', value: formatSquareFeet(kpi.vacantSf) },
-          { label: 'Occupancy Rate', value: formatPercent(kpi.occupiedPercent) },
-          { label: 'Vacancy Rate', value: formatPercent(kpi.vacantPercent) },
-          { label: 'Est. Market Value', value: formatCurrencyCompact(kpi.marketValue) },
-          { label: 'Est. Annual NOI', value: formatCurrencyCompact(dummy.estAnnualNoi) },
+          { label: 'Total GLA', value: formatAssetDisplaySqFt(kpi.totalGlaSf) },
+          { label: 'Committed Area', value: formatAssetDisplaySqFt(kpi.committedSf) },
+          { label: 'Vacant Area', value: formatAssetDisplaySqFt(kpi.vacantSf) },
+          {
+            label: 'Occupancy Rate',
+            value: formatAssetDisplayPercent(occupiedPct),
+          },
+          {
+            label: 'Vacancy Rate',
+            value: formatAssetDisplayPercent(vacantPct),
+          },
+          {
+            label: 'Est. Market Value',
+            value: formatAssetDisplayCurrency(kpi.marketValue, true),
+          },
+          {
+            label: 'Est. Annual NOI',
+            value: formatAssetDisplayCurrency(
+              readPropertyDetailNumber(detail, 'est_annual_noi', 'estAnnualNoi'),
+              true,
+            ),
+          },
         ],
       },
     ],
-    occupancyFooter: {
-      label: 'Occupancy',
-      percent: kpi.occupiedPercent,
-      committedLabel: `${formatSquareFeet(kpi.committedSf, true)} committed`,
-      vacantLabel: `${formatSquareFeet(kpi.vacantSf, true)} vacant`,
-    },
+    occupancyFooter:
+      occupiedPct != null && Number.isFinite(occupiedPct)
+        ? {
+            label: 'Occupancy',
+            percent: occupiedPct,
+            committedLabel: `${formatAssetDisplaySqFt(kpi.committedSf, true)} committed`,
+            vacantLabel: `${formatAssetDisplaySqFt(kpi.vacantSf, true)} vacant`,
+          }
+        : undefined,
   };
 }
 
-function buildLeasingSummary(): InvestorDetailLeasingSummaryBlock {
-  const leasing = ASSET_DETAIL_DUMMY.leasing;
+function buildLeasingSummary(
+  leasingSummary: PropertyLeasingSummaryDto | null,
+): InvestorDetailLeasingSummaryBlock {
   return {
     kind: 'leasing-summary',
     id: 'leasing-summary',
@@ -145,26 +230,138 @@ function buildLeasingSummary(): InvestorDetailLeasingSummaryBlock {
     defaultExpanded: true,
     metricGroups: [
       [
-        { label: 'Avg Lease Term', value: `${leasing.avgLeaseTermYears} yrs` },
-        { label: 'Renewal Rate', value: formatPercent(leasing.renewalRate) },
+        {
+          label: 'Gross Leasable Area',
+          value: formatAssetDisplaySqFt(
+            readLeasingSummaryNumber(
+              leasingSummary,
+              'gross_leasable_area_sqft',
+              'grossLeasableAreaSqft',
+            ),
+          ),
+        },
+        {
+          label: 'Occupied Area',
+          value: formatAssetDisplaySqFt(
+            readLeasingSummaryNumber(leasingSummary, 'occupied_area_sqft', 'occupiedAreaSqft'),
+          ),
+        },
+        {
+          label: 'Committed Area',
+          value: formatAssetDisplaySqFt(
+            readLeasingSummaryNumber(leasingSummary, 'committed_area_sqft', 'committedAreaSqft'),
+          ),
+        },
+        {
+          label: 'Vacant Area',
+          value: formatAssetDisplaySqFt(
+            readLeasingSummaryNumber(leasingSummary, 'vacant_area_sqft', 'vacantAreaSqft'),
+          ),
+        },
       ],
       [
-        { label: "Leases Expiring '24", value: String(leasing.leasesExpiring24) },
-        { label: 'Retention Rate', value: formatPercent(leasing.retentionRate) },
-        { label: '', value: '', hint: leasing.retentionHint },
+        {
+          label: 'Occupancy Rate',
+          value: formatAssetDisplayPercent(
+            readLeasingSummaryNumber(leasingSummary, 'occupancy_rate', 'occupancyRate'),
+          ),
+        },
+        {
+          label: 'Vacancy Rate',
+          value: formatAssetDisplayPercent(
+            readLeasingSummaryNumber(leasingSummary, 'vacancy_rate', 'vacancyRate'),
+          ),
+        },
+        {
+          label: 'Total Units',
+          value: formatAssetDisplayCount(
+            readLeasingSummaryNumber(leasingSummary, 'total_units', 'totalUnits'),
+          ),
+        },
+        {
+          label: 'Occupied Units',
+          value: formatAssetDisplayCount(
+            readLeasingSummaryNumber(leasingSummary, 'occupied_units', 'occupiedUnits'),
+          ),
+        },
+        {
+          label: 'Vacant Units',
+          value: formatAssetDisplayCount(
+            readLeasingSummaryNumber(leasingSummary, 'vacant_units', 'vacantUnits'),
+          ),
+        },
       ],
       [
-        { label: 'New Leases YTD', value: String(leasing.newLeasesYtd) },
-        { label: 'Avg Rent / sf', value: formatCurrency(leasing.avgRentPerSf) },
-        { label: '', value: '', hint: leasing.avgRentHint },
+        {
+          label: 'WALT',
+          value: formatAssetDisplayMonths(
+            readLeasingSummaryNumber(
+              leasingSummary,
+              'weighted_avg_lease_term_months',
+              'weightedAvgLeaseTermMonths',
+            ),
+          ),
+        },
+        {
+          label: 'WALT (Rent)',
+          value: formatAssetDisplayMonths(
+            readLeasingSummaryNumber(
+              leasingSummary,
+              'weighted_avg_lease_term_rent_months',
+              'weightedAvgLeaseTermRentMonths',
+            ),
+          ),
+        },
+        {
+          label: 'GLA Available to Lease',
+          value: formatAssetDisplaySqFt(
+            readLeasingSummaryNumber(
+              leasingSummary,
+              'gla_available_to_lease_sqft',
+              'glaAvailableToLeaseSqft',
+            ),
+          ),
+        },
+        {
+          label: 'Total Leasing Committed',
+          value: formatAssetDisplaySqFt(
+            readLeasingSummaryNumber(
+              leasingSummary,
+              'total_leasing_committed_sqft',
+              'totalLeasingCommittedSqft',
+            ),
+          ),
+        },
+        {
+          label: 'New Leasing Committed',
+          value: formatAssetDisplaySqFt(
+            readLeasingSummaryNumber(
+              leasingSummary,
+              'new_leasing_committed_sqft',
+              'newLeasingCommittedSqft',
+            ),
+          ),
+        },
+        {
+          label: 'Renewal Leasing Committed',
+          value: formatAssetDisplaySqFt(
+            readLeasingSummaryNumber(
+              leasingSummary,
+              'renewal_leasing_committed_sqft',
+              'renewalLeasingCommittedSqft',
+            ),
+          ),
+        },
       ],
     ],
-    leaseExpirySchedule: [...leasing.leaseExpirySchedule],
+    leaseExpirySchedule: [],
   };
 }
 
-function buildValuationGrid(kpi: AssetDetailKpiCards): InvestorDetailFieldGridBlock {
-  const dummy = ASSET_DETAIL_DUMMY;
+function buildValuationGrid(
+  detail: PropertyDetailDto | null,
+  kpi: AssetDetailKpiCards,
+): InvestorDetailFieldGridBlock {
   return {
     kind: 'field-grid',
     id: 'valuation',
@@ -175,28 +372,34 @@ function buildValuationGrid(kpi: AssetDetailKpiCards): InvestorDetailFieldGridBl
     columns: [
       {
         fields: [
-          { label: 'Est. Market Value', value: formatCurrencyCompact(kpi.marketValue) },
-          { label: 'Going-in Cap Rate', value: formatPercent(dummy.goingInCapRate) },
-          { label: 'Est. Annual NOI', value: formatCurrencyCompact(dummy.estAnnualNoi) },
-          { label: 'Price / sf', value: formatCurrency(dummy.pricePerSf) },
+          {
+            label: 'Est. Market Value',
+            value: formatAssetDisplayCurrency(kpi.marketValue, true),
+          },
+          { label: 'Going-in Cap Rate', value: ASSET_DETAIL_EMPTY },
+          {
+            label: 'Est. Annual NOI',
+            value: formatAssetDisplayCurrency(
+              readPropertyDetailNumber(detail, 'est_annual_noi', 'estAnnualNoi'),
+              true,
+            ),
+          },
+          { label: 'Price / sf', value: ASSET_DETAIL_EMPTY },
         ],
       },
       {
         fields: [
-          { label: 'Last Appraisal', value: dummy.lastAppraisal },
-          { label: 'Appraiser', value: dummy.appraiser },
-          { label: 'Debt Outstanding', value: formatCurrencyCompact(dummy.debtOutstanding) },
-          { label: 'LTV', value: formatPercent(dummy.ltvRatio) },
+          { label: 'Last Appraisal', value: ASSET_DETAIL_EMPTY },
+          { label: 'Appraiser', value: ASSET_DETAIL_EMPTY },
+          { label: 'Debt Outstanding', value: ASSET_DETAIL_EMPTY },
+          { label: 'LTV', value: ASSET_DETAIL_EMPTY },
         ],
       },
     ],
   };
 }
 
-function buildTransactionsTable(
-  investments: PropertyInvestmentDto[],
-): InvestorDetailTableBlock {
-  void investments;
+function buildTransactionsTable(): InvestorDetailTableBlock {
   const columns: InvestorDetailTableColumn[] = [
     { key: 'date', label: 'Date', type: 'date', align: 'left', tone: 'muted' },
     { key: 'type', label: 'Type', type: 'transaction-type', align: 'left' },
@@ -271,22 +474,21 @@ function buildRiskInsurance(): InvestorDetailRiskInsuranceBlock {
 export function buildBlocksForSection(
   sectionId: AssetDetailSectionId,
   detail: PropertyDetailDto | null,
-  investments: PropertyInvestmentDto[],
+  leasingSummary: PropertyLeasingSummaryDto | null,
   kpi: AssetDetailKpiCards,
   listRow: AssetTableRow | null,
 ): InvestorDetailBlock[] {
-  void detail;
   switch (sectionId) {
     case 'overview':
       return [];
     case 'area-summary':
-      return [buildAreaSummaryGrid(kpi, listRow)];
+      return [buildAreaSummaryGrid(detail, kpi, listRow)];
     case 'leasing':
-      return [buildLeasingSummary()];
+      return [buildLeasingSummary(leasingSummary)];
     case 'valuation':
-      return [buildValuationGrid(kpi)];
+      return [buildValuationGrid(detail, kpi)];
     case 'transactions':
-      return [buildTransactionsTable(investments)];
+      return [buildTransactionsTable()];
     case 'documents':
       return [buildDocumentsList()];
     case 'esg-operations':
@@ -300,7 +502,7 @@ export function buildBlocksForSection(
 
 export function buildFlatAssetBlocks(
   detail: PropertyDetailDto | null,
-  investments: PropertyInvestmentDto[],
+  leasingSummary: PropertyLeasingSummaryDto | null,
   kpi: AssetDetailKpiCards,
   listRow: AssetTableRow | null,
 ): AssetDetailFlatBlock[] {
@@ -310,7 +512,7 @@ export function buildFlatAssetBlocks(
       blocks: buildBlocksForSection(
         item.id as AssetDetailSectionId,
         detail,
-        investments,
+        leasingSummary,
         kpi,
         listRow,
       ),
@@ -341,9 +543,13 @@ export function formatAssetKpiHint(
     case 'gla':
       return 'Gross leasable area';
     case 'committed':
-      return formatOccupiedPercent(kpi.occupiedPercent) ?? `${formatPercent(kpi.occupiedPercent)} occupied`;
+      return kpi.occupiedPercent != null
+        ? `${formatAssetDisplayPercent(kpi.occupiedPercent)} occupied`
+        : ASSET_DETAIL_EMPTY;
     case 'vacant':
-      return `${formatPercent(kpi.vacantPercent)} vacant`;
+      return kpi.vacantPercent != null
+        ? `${formatAssetDisplayPercent(kpi.vacantPercent)} vacant`
+        : ASSET_DETAIL_EMPTY;
     case 'value':
       return 'Appraised';
     default:

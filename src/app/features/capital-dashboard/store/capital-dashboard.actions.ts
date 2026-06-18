@@ -12,6 +12,8 @@ import {
   FundInvestorCapitalActivityTabRow,
   FundInvestorDistributionTableTabRow,
   FundInvestorIrrTabRow,
+  FundInvestorCapitalObligationTabRow,
+  FundInvestorNetAssetTabRow,
   FundListItemDto,
   FundsListQueryParams,
   FundsPagedResult,
@@ -20,13 +22,17 @@ import {
   InvestorCapitalActivityTabRow,
   InvestorDetailDto,
   InvestorDistributionTableTabRow,
+  InvestorFundHoldingTabRow,
   InvestorInvestmentDto,
   InvestorIrrTabRow,
+  InvestorCapitalObligationTabRow,
+  InvestorNetAssetTabRow,
   InvestorListItemDto,
+  InvestorUnderlyingInvestmentTabRow,
   InvestorsListQueryParams,
   PagedResult,
   PropertyDetailDto,
-  PropertyInvestmentDto,
+  PropertyLeasingSummaryDto,
   AssetsQueryParams,
   AssetsPagedResult,
   PropertyListItemDto,
@@ -133,20 +139,18 @@ export const InvestorsApiActions = createActionGroup({
     'Load Investor Unfunded Commitments Page Failure': props<{ error: string }>(),
     'Load Investor Capital Investments Page': props<{
       investorKey: number;
-      timeframe: FundCommitmentTimeframe;
       page: number;
-      search: string;
       replace: boolean;
-      dateKey?: number;
     }>(),
     'Load Investor Capital Investments Page Success': props<{
-      timeframe: FundCommitmentTimeframe;
       page: number;
-      items: FundCommitmentTabRow[];
+      pageSize: number;
+      totalCount: number;
+      totalPages: number;
+      items: InvestorUnderlyingInvestmentTabRow[];
       hasNextPage: boolean;
+      hasPreviousPage: boolean;
       replace: boolean;
-      search: string;
-      dateKey?: number;
     }>(),
     'Load Investor Capital Investments Page Failure': props<{ error: string }>(),
     'Load Investor Distributions Page': props<{
@@ -192,17 +196,25 @@ export const InvestorsApiActions = createActionGroup({
       search: string;
       replace: boolean;
       dateKey?: number;
+      calendarYear?: number;
+      fundCode?: string;
       sortBy?: string;
       sortDir?: 'asc' | 'desc';
     }>(),
     'Load Investor Capital Activities Page Success': props<{
       timeframe: FundCommitmentTimeframe;
       page: number;
+      pageSize: number;
+      totalCount: number;
+      totalPages: number;
       items: InvestorCapitalActivityTabRow[];
       hasNextPage: boolean;
+      hasPreviousPage: boolean;
       replace: boolean;
       search: string;
       dateKey?: number;
+      calendarYear?: number;
+      fundCode?: string;
       sortBy?: string;
     }>(),
     'Load Investor Capital Activities Page Failure': props<{ error: string }>(),
@@ -213,17 +225,25 @@ export const InvestorsApiActions = createActionGroup({
       search: string;
       replace: boolean;
       dateKey?: number;
+      calendarYear?: number;
+      fundCode?: string;
       sortBy?: string;
       sortDir?: 'asc' | 'desc';
     }>(),
     'Load Investor Distribution Table Page Success': props<{
       timeframe: FundCommitmentTimeframe;
       page: number;
+      pageSize: number;
+      totalCount: number;
+      totalPages: number;
       items: InvestorDistributionTableTabRow[];
       hasNextPage: boolean;
+      hasPreviousPage: boolean;
       replace: boolean;
       search: string;
       dateKey?: number;
+      calendarYear?: number;
+      fundCode?: string;
       sortBy?: string;
     }>(),
     'Load Investor Distribution Table Page Failure': props<{ error: string }>(),
@@ -234,20 +254,92 @@ export const InvestorsApiActions = createActionGroup({
       search: string;
       replace: boolean;
       dateKey?: number;
+      calendarYear?: number;
+      fundCode?: string;
       sortBy?: string;
       sortDir?: 'asc' | 'desc';
     }>(),
     'Load Investor Irr Page Success': props<{
       timeframe: FundCommitmentTimeframe;
       page: number;
+      pageSize: number;
+      totalCount: number;
+      totalPages: number;
       items: InvestorIrrTabRow[];
       hasNextPage: boolean;
+      hasPreviousPage: boolean;
       replace: boolean;
       search: string;
       dateKey?: number;
+      calendarYear?: number;
+      fundCode?: string;
       sortBy?: string;
     }>(),
     'Load Investor Irr Page Failure': props<{ error: string }>(),
+    'Load Investor Capital Obligations Page': props<{
+      investorKey: number;
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      search: string;
+      replace: boolean;
+      dateKey?: number;
+      calendarYear?: number;
+      fundCode?: string;
+      sortBy?: string;
+      sortDir?: 'asc' | 'desc';
+    }>(),
+    'Load Investor Capital Obligations Page Success': props<{
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      pageSize: number;
+      totalCount: number;
+      totalPages: number;
+      items: InvestorCapitalObligationTabRow[];
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+      replace: boolean;
+      search: string;
+      dateKey?: number;
+      calendarYear?: number;
+      fundCode?: string;
+      sortBy?: string;
+    }>(),
+    'Load Investor Capital Obligations Page Failure': props<{ error: string }>(),
+    'Load Investor Net Assets Page': props<{
+      investorKey: number;
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      search: string;
+      replace: boolean;
+      dateKey?: number;
+      calendarYear?: number;
+      fundCode?: string;
+      sortBy?: string;
+      sortDir?: 'asc' | 'desc';
+    }>(),
+    'Load Investor Net Assets Page Success': props<{
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      pageSize: number;
+      totalCount: number;
+      totalPages: number;
+      items: InvestorNetAssetTabRow[];
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+      replace: boolean;
+      search: string;
+      dateKey?: number;
+      calendarYear?: number;
+      fundCode?: string;
+      sortBy?: string;
+    }>(),
+    'Load Investor Net Assets Page Failure': props<{ error: string }>(),
+    'Load Investor Fund Holdings': props<{ investorKey: number }>(),
+    'Load Investor Fund Holdings Success': props<{
+      items: InvestorFundHoldingTabRow[];
+      dateKey: number | null;
+    }>(),
+    'Load Investor Fund Holdings Failure': props<{ error: string }>(),
     'Clear Detail': emptyProps(),
   },
 });
@@ -273,12 +365,16 @@ export const FundsApiActions = createActionGroup({
       assetsHasNextPage: boolean;
     }>(),
     'Load Detail Failure': props<{ error: string }>(),
-    'Load Fund Assets Page': props<{ fundKey: number; page: number; search: string }>(),
+    'Load Fund Assets Page': props<{ fundKey: number; page: number; search: string; replace?: boolean }>(),
     'Load Fund Assets Page Success': props<{
       page: number;
+      pageSize: number;
+      totalCount: number;
+      totalPages: number;
       items: FundAssetTabRow[];
       hasNextPage: boolean;
-      append: boolean;
+      hasPreviousPage: boolean;
+      replace: boolean;
     }>(),
     'Load Fund Assets Page Failure': emptyProps(),
     'Load Fund Investors Page': props<{ fundKey: number; page: number; search: string }>(),
@@ -403,17 +499,25 @@ export const FundsApiActions = createActionGroup({
       search: string;
       replace: boolean;
       dateKey?: number;
+      calendarYear?: number;
+      investorName?: string;
       sortBy?: string;
       sortDir?: 'asc' | 'desc';
     }>(),
     'Load Fund Capital Activities Page Success': props<{
       timeframe: FundCommitmentTimeframe;
       page: number;
+      pageSize: number;
+      totalCount: number;
+      totalPages: number;
       items: FundInvestorCapitalActivityTabRow[];
       hasNextPage: boolean;
+      hasPreviousPage: boolean;
       replace: boolean;
       search: string;
       dateKey?: number;
+      calendarYear?: number;
+      investorName?: string;
       sortBy?: string;
     }>(),
     'Load Fund Capital Activities Page Failure': props<{ error: string }>(),
@@ -424,17 +528,25 @@ export const FundsApiActions = createActionGroup({
       search: string;
       replace: boolean;
       dateKey?: number;
+      calendarYear?: number;
+      investorName?: string;
       sortBy?: string;
       sortDir?: 'asc' | 'desc';
     }>(),
     'Load Fund Distribution Table Page Success': props<{
       timeframe: FundCommitmentTimeframe;
       page: number;
+      pageSize: number;
+      totalCount: number;
+      totalPages: number;
       items: FundInvestorDistributionTableTabRow[];
       hasNextPage: boolean;
+      hasPreviousPage: boolean;
       replace: boolean;
       search: string;
       dateKey?: number;
+      calendarYear?: number;
+      investorName?: string;
       sortBy?: string;
     }>(),
     'Load Fund Distribution Table Page Failure': props<{ error: string }>(),
@@ -445,20 +557,86 @@ export const FundsApiActions = createActionGroup({
       search: string;
       replace: boolean;
       dateKey?: number;
+      calendarYear?: number;
+      investorName?: string;
       sortBy?: string;
       sortDir?: 'asc' | 'desc';
     }>(),
     'Load Fund Irr Page Success': props<{
       timeframe: FundCommitmentTimeframe;
       page: number;
+      pageSize: number;
+      totalCount: number;
+      totalPages: number;
       items: FundInvestorIrrTabRow[];
       hasNextPage: boolean;
+      hasPreviousPage: boolean;
       replace: boolean;
       search: string;
       dateKey?: number;
+      calendarYear?: number;
+      investorName?: string;
       sortBy?: string;
     }>(),
     'Load Fund Irr Page Failure': props<{ error: string }>(),
+    'Load Fund Capital Obligations Page': props<{
+      fundKey: number;
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      search: string;
+      replace: boolean;
+      dateKey?: number;
+      calendarYear?: number;
+      investorName?: string;
+      sortBy?: string;
+      sortDir?: 'asc' | 'desc';
+    }>(),
+    'Load Fund Capital Obligations Page Success': props<{
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      pageSize: number;
+      totalCount: number;
+      totalPages: number;
+      items: FundInvestorCapitalObligationTabRow[];
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+      replace: boolean;
+      search: string;
+      dateKey?: number;
+      calendarYear?: number;
+      investorName?: string;
+      sortBy?: string;
+    }>(),
+    'Load Fund Capital Obligations Page Failure': props<{ error: string }>(),
+    'Load Fund Net Assets Page': props<{
+      fundKey: number;
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      search: string;
+      replace: boolean;
+      dateKey?: number;
+      calendarYear?: number;
+      investorName?: string;
+      sortBy?: string;
+      sortDir?: 'asc' | 'desc';
+    }>(),
+    'Load Fund Net Assets Page Success': props<{
+      timeframe: FundCommitmentTimeframe;
+      page: number;
+      pageSize: number;
+      totalCount: number;
+      totalPages: number;
+      items: FundInvestorNetAssetTabRow[];
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+      replace: boolean;
+      search: string;
+      dateKey?: number;
+      calendarYear?: number;
+      investorName?: string;
+      sortBy?: string;
+    }>(),
+    'Load Fund Net Assets Page Failure': props<{ error: string }>(),
     'Clear Detail': emptyProps(),
   },
 });
@@ -480,7 +658,7 @@ export const AssetsApiActions = createActionGroup({
     'Load Detail Success': props<{
       propertyKey: number;
       detail: PropertyDetailDto;
-      investments: PropertyInvestmentDto[];
+      leasingSummary: PropertyLeasingSummaryDto | null;
     }>(),
     'Load Detail Failure': props<{ error: string }>(),
     'Clear Detail': emptyProps(),

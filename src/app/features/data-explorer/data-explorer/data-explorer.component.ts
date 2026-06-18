@@ -1,6 +1,7 @@
 import { Component, computed, DestroyRef, effect, inject, signal, ViewEncapsulation } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
 import {
   ArrowLeftRight,
@@ -11,6 +12,7 @@ import {
   ChevronRight,
   Columns3,
   Download,
+  Home,
   LayoutGrid,
   Layers,
   LineChart,
@@ -25,6 +27,7 @@ import {
   Trash2,
   Users,
 } from 'lucide-angular';
+import { catchError, debounceTime, of, Subject } from 'rxjs';
 
 import { ExcelService } from '../../../core/services/excel.service';
 import {
@@ -33,7 +36,7 @@ import {
   DATA_EXPLORER_DEFAULT_PAGE_SIZE,
   DATA_EXPLORER_PAGE_SIZE_OPTIONS,
 } from '../constants/data-explorer.constants';
-import { DataExplorerRow } from '../interfaces/data-explorer-api.models';
+import { DataExplorerProductDto, DataExplorerRow } from '../interfaces/data-explorer-api.models';
 import {
   DataGroup,
   DataProduct,
@@ -46,6 +49,7 @@ import {
   SaveQueryPayload,
 } from '../interfaces/data-explorer.interfaces';
 import { DataExplorerService } from '../services/data-explorer.service';
+import { DataExplorerApiService } from '../services/data-explorer-api.service';
 import {
   DataExplorerCacheActions,
   DataExplorerColumnsApiActions,
@@ -56,7 +60,6 @@ import {
   selectDataExplorerRowsList,
 } from '../store/data-explorer.selectors';
 import {
-  applyFilters,
   formatCellValue,
   generateFilterId,
   getFieldById,
@@ -80,6 +83,7 @@ const VISIBLE_PAGE_BUTTON_COUNT = 3;
     FormsModule,
     KsCurrencyPipe,
     LucideAngularModule,
+    RouterLink,
     SaveQueryModalComponent,
     SavedQueriesModalComponent,
   ],
@@ -105,6 +109,7 @@ const VISIBLE_PAGE_BUTTON_COUNT = 3;
         LineChart,
         ArrowLeftRight,
         Trash2,
+        Home,
       }),
     },
   ],
@@ -116,7 +121,10 @@ export class DataExplorerComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly store = inject(Store);
   private readonly dataExplorerService = inject(DataExplorerService);
+  private readonly dataExplorerApi = inject(DataExplorerApiService);
   private readonly excelService = inject(ExcelService);
+  private readonly filterReload$ = new Subject<void>();
+  private readonly pendingSavedQuery = signal<SavedQuery | null>(null);
 
   private readonly columnsState = this.store.selectSignal(selectDataExplorerColumns);
   private readonly rowsState = this.store.selectSignal(selectDataExplorerRowsList);
@@ -141,6 +149,7 @@ export class DataExplorerComponent {
   });
 
   readonly resetIcon = RotateCcw;
+  readonly homeIcon = Home;
   readonly editIcon = PenLine;
   readonly savedIcon = BookOpen;
   readonly saveIcon = Save;
@@ -172,6 +181,10 @@ export class DataExplorerComponent {
   readonly allFields = computed(() =>
     this.dataProducts().flatMap((product) => product.fields),
   );
+
+  readonly productOptions = signal<DataExplorerProductDto[]>([]);
+  readonly productsLoading = signal(true);
+  readonly selectedProduct = signal('');
 
   readonly selectedFieldIds = signal<string[]>([]);
   readonly columnSearch = signal('');
@@ -260,10 +273,7 @@ export class DataExplorerComponent {
     return getFieldById(this.allFields(), id)?.label ?? 'None';
   });
 
-  readonly filteredRecords = computed(() => {
-    const records = this.apiRows();
-    return applyFilters(records, this.filters(), this.filterLogic(), this.allFields());
-  });
+  readonly filteredRecords = computed(() => this.apiRows());
 
   readonly sortedRecords = computed(() => {
     const records = [...this.filteredRecords()];
@@ -367,14 +377,43 @@ export class DataExplorerComponent {
       this.store.dispatch(DataExplorerCacheActions.resetAll());
     });
 
-    this.store.dispatch(DataExplorerColumnsApiActions.loadColumns());
-    this.refreshSavedQueries();
+    this.filterReload$
+      .pipe(debounceTime(400), takeUntilDestroyed())
+      .subscribe(() => this.dispatchLoadRows(true));
+
+    this.dataExplorerApi
+      .getProducts()
+      .pipe(
+        catchError(() => of([] as DataExplorerProductDto[])),
+        takeUntilDestroyed(),
+      )
+      .subscribe((options) => {
+        this.productOptions.set(options);
+        this.productsLoading.set(false);
+        const first = options[0]?.value ?? '';
+        if (!first) {
+          return;
+        }
+        this.selectedProduct.set(first);
+        this.store.dispatch(DataExplorerColumnsApiActions.loadColumns({ product: first }));
+        this.refreshSavedQueries();
+      });
 
     effect(() => {
       const products = this.dataProducts();
       if (products.length > 0 && this.expandedProducts().length === 0) {
         this.expandedProducts.set([products[0].id]);
       }
+    });
+
+    effect(() => {
+      const pending = this.pendingSavedQuery();
+      const loading = this.columnsLoading();
+      if (!pending || loading) {
+        return;
+      }
+      this.pendingSavedQuery.set(null);
+      this.finishApplySavedQuery(pending);
     });
   }
 
@@ -386,13 +425,54 @@ export class DataExplorerComponent {
   }
 
   reloadColumns(): void {
+    const product = this.selectedProduct();
+    if (!product) {
+      return;
+    }
     this.store.dispatch(DataExplorerCacheActions.resetAll());
-    this.store.dispatch(DataExplorerColumnsApiActions.loadColumns());
+    this.store.dispatch(DataExplorerColumnsApiActions.loadColumns({ product }));
+  }
+
+  onProductChange(product: string, preserveEditing = false): void {
+    if (!product || product === this.selectedProduct()) {
+      return;
+    }
+
+    this.selectedProduct.set(product);
+    this.clearQueryState(!preserveEditing);
+    this.store.dispatch(DataExplorerCacheActions.resetAll());
+    this.store.dispatch(DataExplorerColumnsApiActions.loadColumns({ product }));
+    this.refreshSavedQueries();
+  }
+
+  private clearQueryState(clearEditing = true): void {
+    if (clearEditing) {
+      this.editingSavedQuery.set(null);
+    }
+    this.selectedFieldIds.set([]);
+    this.filters.set([]);
+    this.filterLogic.set('and');
+    this.groupByFieldId.set(null);
+    this.sortFieldId.set(null);
+    this.sortDirection.set('asc');
+    this.columnSearch.set('');
+    this.expandedGroupKeys.set([]);
+    this.expandedProducts.set([]);
+    this.currentPage.set(1);
+    this.store.dispatch(DataExplorerRowsApiActions.clearRows());
+  }
+
+  private scheduleFilterReload(): void {
+    if (!this.hasQuery()) {
+      return;
+    }
+    this.filterReload$.next();
   }
 
   private dispatchLoadRows(resetPage = false): void {
+    const product = this.selectedProduct();
     const columns = this.selectedFieldIds();
-    if (columns.length === 0) {
+    if (!product || columns.length === 0) {
       this.currentPage.set(1);
       this.store.dispatch(DataExplorerRowsApiActions.clearRows());
       return;
@@ -404,9 +484,13 @@ export class DataExplorerComponent {
 
     this.store.dispatch(
       DataExplorerRowsApiActions.loadRows({
+        product,
         columns: [...columns],
         sortBy: this.sortFieldId() ?? '',
         sortDir: this.sortDirection(),
+        groupByField: this.groupByFieldId() ?? '',
+        filters: [...this.filters()],
+        filterLogic: this.filterLogic(),
         page: this.currentPage(),
         pageSize: this.pageSize(),
       }),
@@ -554,6 +638,7 @@ export class DataExplorerComponent {
     this.groupByFieldId.set(fieldId);
     this.expandedGroupKeys.set([]);
     this.closeGroupByDropdown();
+    this.dispatchLoadRows(true);
   }
 
   applyQuickStart(template: QuickStartTemplate): void {
@@ -582,6 +667,7 @@ export class DataExplorerComponent {
     this.filters.update((items) =>
       items.map((item) => (item.id === filterId ? { ...item, ...patch } : item)),
     );
+    this.scheduleFilterReload();
   }
 
   updateFilterOperator(filterId: string, operator: string): void {
@@ -593,15 +679,18 @@ export class DataExplorerComponent {
     if (this.filters().length <= 1) {
       this.filterLogic.set('and');
     }
+    this.scheduleFilterReload();
   }
 
   clearFilters(): void {
     this.filters.set([]);
     this.filterLogic.set('and');
+    this.scheduleFilterReload();
   }
 
   setFilterLogic(logic: FilterLogic): void {
     this.filterLogic.set(logic);
+    this.scheduleFilterReload();
   }
 
   toggleGroupExpanded(groupKey: string): void {
@@ -691,6 +780,7 @@ export class DataExplorerComponent {
           filters: [...this.filters()],
           filterLogic: this.filterLogic(),
           groupByFieldId: this.groupByFieldId(),
+          product: this.selectedProduct(),
         },
       )
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -715,6 +805,7 @@ export class DataExplorerComponent {
         filters: [...this.filters()],
         filterLogic: this.filterLogic(),
         groupByFieldId: this.groupByFieldId(),
+        product: this.selectedProduct(),
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -740,7 +831,7 @@ export class DataExplorerComponent {
         next: (fullQuery) => {
           this.savedQueryActionLoading.set(false);
           this.loadingSavedQuery.set(null);
-          this.applySavedQuery(fullQuery);
+          this.queueApplySavedQuery(fullQuery);
           this.closeSavedModal();
         },
         error: () => {
@@ -760,7 +851,7 @@ export class DataExplorerComponent {
         next: (fullQuery) => {
           this.savedQueryActionLoading.set(false);
           this.loadingSavedQuery.set(null);
-          this.applySavedQuery(fullQuery);
+          this.queueApplySavedQuery(fullQuery);
           this.editingSavedQuery.set({
             id: fullQuery.id,
             name: fullQuery.name,
@@ -775,7 +866,17 @@ export class DataExplorerComponent {
       });
   }
 
-  private applySavedQuery(query: SavedQuery): void {
+  private queueApplySavedQuery(query: SavedQuery): void {
+    const product = query.product?.trim() || this.selectedProduct();
+    if (product && product !== this.selectedProduct()) {
+      this.pendingSavedQuery.set(query);
+      this.onProductChange(product, true);
+      return;
+    }
+    this.finishApplySavedQuery(query);
+  }
+
+  private finishApplySavedQuery(query: SavedQuery): void {
     const availableFieldIds = new Set(this.allFields().map((field) => field.id));
     const selectedFieldIds = query.selectedFieldIds.filter((id) => availableFieldIds.has(id));
     const filters = query.filters
@@ -817,10 +918,16 @@ export class DataExplorerComponent {
   }
 
   private refreshSavedQueries(): void {
+    const product = this.selectedProduct();
+    if (!product) {
+      this.savedQueries.set([]);
+      return;
+    }
+
     this.savedQueriesLoading.set(true);
     this.savedQueriesError.set(null);
     this.dataExplorerService
-      .getSavedQueries()
+      .getSavedQueries(product)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (queries) => {

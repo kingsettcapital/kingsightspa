@@ -1,3 +1,8 @@
+export interface DataExplorerProductDto {
+  value: string;
+  label: string;
+}
+
 export interface DataExplorerColumnDto {
   name: string;
   field: string;
@@ -14,10 +19,13 @@ export interface DataExplorerColumnGroupDto {
 }
 
 export interface DataExplorerDataRequest {
+  product: string;
   columns: string[];
-  search: string;
-  sortBy: string;
-  sortDir: string;
+  groupByField?: string;
+  filters?: DataExplorerTemplateFilterDto[];
+  filterLogic?: string;
+  sortBy?: string;
+  sortDir?: string;
   page: number;
   pageSize: number;
 }
@@ -48,6 +56,7 @@ export interface DataExplorerTemplateListItemDto {
   columnCount: number;
   filterCount: number;
   groupByField?: string | null;
+  product?: string | null;
   createdBy?: string | null;
   createdAt: string;
   modifiedAt?: string | null;
@@ -58,6 +67,7 @@ export interface DataExplorerTemplateDto {
   name: string;
   description?: string | null;
   sourceView?: string | null;
+  product?: string | null;
   columns: string[];
   filters: DataExplorerTemplateFilterDto[];
   filterLogic: string;
@@ -69,6 +79,7 @@ export interface DataExplorerTemplateDto {
 }
 
 export interface DataExplorerTemplateUpsertRequest {
+  product: string;
   name: string;
   description?: string;
   columns: string[];

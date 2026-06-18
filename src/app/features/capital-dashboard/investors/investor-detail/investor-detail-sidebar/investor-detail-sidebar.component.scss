@@ -22,9 +22,9 @@
 
 .inv-detail-sidebar__heading {
   margin: 0;
-  font-size: 0.625rem;
+  font-size: var(--inv-detail-font-subheading);
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #8e9aa0;
   line-height: 1.2;
@@ -48,7 +48,7 @@
   background: transparent;
   color: #475569;
   font-family: inherit;
-  font-size: 0.8125rem;
+  font-size: var(--inv-detail-font-data);
   font-weight: 500;
   line-height: 1.35;
   text-align: left;
