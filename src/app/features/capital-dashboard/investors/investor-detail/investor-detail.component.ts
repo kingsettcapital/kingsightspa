@@ -69,10 +69,6 @@ import {
 type DetailTimeframe = 'ltd' | 'quarterly' | 'daily';
 type TransactionTableSortDir = 'asc' | 'desc';
 
-type InvestorDetailContentItem =
-  | { type: 'overview-group'; blocks: InvestorDetailFlatBlock[] }
-  | { type: 'block'; item: InvestorDetailFlatBlock };
-
 interface TransactionTableSort {
   sortBy: string;
   sortDir: TransactionTableSortDir;
@@ -359,30 +355,6 @@ export class InvestorDetailComponent {
         ),
       };
     });
-  });
-
-  readonly contentLayoutItems = computed((): InvestorDetailContentItem[] => {
-    const flat = this.flatBlocks();
-    const items: InvestorDetailContentItem[] = [];
-    let index = 0;
-    while (index < flat.length) {
-      const current = flat[index];
-      if (current.sectionId === 'overview' && current.isSectionStart) {
-        const blocks = [current];
-        const next = flat[index + 1];
-        if (next?.sectionId === 'overview' && next.block.id === 'fund-exposure') {
-          blocks.push(next);
-          index += 2;
-        } else {
-          index += 1;
-        }
-        items.push({ type: 'overview-group', blocks });
-        continue;
-      }
-      items.push({ type: 'block', item: current });
-      index += 1;
-    }
-    return items;
   });
 
   constructor() {
@@ -719,18 +691,14 @@ export class InvestorDetailComponent {
         return;
       }
 
-      if (sectionId === 'overview') {
-        main.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        const target = main.querySelector<HTMLElement>(`#inv-section-${sectionId}`);
-        if (target) {
-          const mainRect = main.getBoundingClientRect();
-          const targetRect = target.getBoundingClientRect();
-          const stickyOffset =
-            this.getStickyScrollOffset() + InvestorDetailComponent.SECTION_SCROLL_GAP_PX;
-          const top = main.scrollTop + (targetRect.top - mainRect.top) - stickyOffset;
-          main.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-        }
+      const target = main.querySelector<HTMLElement>(`#inv-section-${sectionId}`);
+      if (target) {
+        const mainRect = main.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const stickyOffset =
+          this.getStickyScrollOffset() + InvestorDetailComponent.SECTION_SCROLL_GAP_PX;
+        const top = main.scrollTop + (targetRect.top - mainRect.top) - stickyOffset;
+        main.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
       }
 
       window.setTimeout(() => this.scrollSpyPaused.set(false), 800);

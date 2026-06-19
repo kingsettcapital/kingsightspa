@@ -214,44 +214,14 @@
 
 
 
-        @for (layout of contentLayoutItems(); track layout.type === 'overview-group' ? 'overview-group' : layout.item.block.id) {
-
-          @if (layout.type === 'overview-group') {
-
-            <div class="inv-detail__overview-group" id="inv-section-overview">
-
-              @for (item of layout.blocks; track item.block.id) {
-
-                <ng-container
-
-                  [ngTemplateOutlet]="detailBlock"
-
-                  [ngTemplateOutletContext]="{ $implicit: item, sectionAnchor: null }"
-
-                />
-
-              }
-
-            </div>
-
-          } @else {
-
-            <ng-container
-
-              [ngTemplateOutlet]="detailBlock"
-
-              [ngTemplateOutletContext]="{
-
-                $implicit: layout.item,
-
-                sectionAnchor: layout.item.isSectionStart ? 'inv-section-' + layout.item.sectionId : null
-
-              }"
-
-            />
-
-          }
-
+        @for (item of flatBlocks(); track item.block.id) {
+          <ng-container
+            [ngTemplateOutlet]="detailBlock"
+            [ngTemplateOutletContext]="{
+              $implicit: item,
+              sectionAnchor: item.isSectionStart ? 'inv-section-' + item.sectionId : null
+            }"
+          />
         }
 
       </div>

@@ -7,6 +7,7 @@ export type InvestorDetailColumnType =
   | 'status'
   | 'percent'
   | 'transaction-type'
+  | 'transaction-fund'
   | 'amount-fund';
 
 export type InvestorDetailColumnTone =

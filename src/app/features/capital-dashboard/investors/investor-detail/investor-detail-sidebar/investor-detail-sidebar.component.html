@@ -1,7 +1,9 @@
 <nav class="inv-detail-sidebar" aria-label="Investor profile sections">
-  @for (section of sections(); track section.title) {
+  @for (section of sections(); track section.title || 'nav') {
     <div class="inv-detail-sidebar__group">
-      <p class="inv-detail-sidebar__heading">{{ section.title }}</p>
+      @if (section.title.trim()) {
+        <p class="inv-detail-sidebar__heading">{{ section.title }}</p>
+      }
       <ul class="inv-detail-sidebar__list">
         @for (item of section.items; track item.id) {
           <li>

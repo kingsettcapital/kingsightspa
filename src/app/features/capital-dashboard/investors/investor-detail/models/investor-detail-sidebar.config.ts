@@ -2,16 +2,12 @@ import { InvestorDetailSidebarSection } from './investor-detail-table.models';
 
 export const INVESTOR_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] = [
   {
-    title: 'Overview',
+    title: '',
     items: [
-      { id: 'overview', label: 'Overview' },
-      { id: 'investor-transactions', label: 'Transactions' },
-    ],
-  },
-  {
-    title: 'Data',
-    items: [
-      { id: 'investments', label: 'Investments' },
+      { id: 'overview', label: 'Investor Overview' },
+      { id: 'fund-holdings-summary', label: 'Fund Holdings Summary' },
+      { id: 'investor-transactions', label: 'Investor Transactions' },
+      { id: 'underlying-assets', label: 'Underlying Assets' },
       { id: 'documents', label: 'Documents' },
     ],
   },

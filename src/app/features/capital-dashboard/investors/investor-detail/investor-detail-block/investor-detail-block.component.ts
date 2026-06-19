@@ -125,6 +125,11 @@ export class InvestorDetailBlockComponent {
     return this.block().kind === 'transaction-hub';
   }
 
+  isFundTransactionHubBlock(): boolean {
+    const block = this.block();
+    return block.kind === 'transaction-hub' && block.id === 'fund-transactions';
+  }
+
   toggleHubFiltersPanel(): void {
     this.hubFiltersPanelVisible.update((visible) => !visible);
   }
@@ -375,29 +380,16 @@ export class InvestorDetailBlockComponent {
     if (column.type === 'link') {
       classes.push('inv-detail-table__cell--link');
     }
+    if (column.type === 'transaction-fund') {
+      classes.push('inv-detail-table__cell--transaction-fund');
+    }
     return classes.join(' ');
   }
 
   transactionHeadCellClass(column: InvestorDetailTableColumn): string {
-    const classes = [`inv-detail-table__head--${column.key}`];
+    const classes = [`inv-detail-table__head--${column.key}`, 'inv-detail-table__head--label'];
     if (column.align === 'right') {
       classes.push('inv-detail-table__head--right');
-    }
-    if (
-      column.key === 'fundCode' ||
-      column.key === 'fundName' ||
-      column.key === 'fund' ||
-      column.key === 'property' ||
-      column.key === 'description' ||
-      column.key === 'period' ||
-      column.key === 'type' ||
-      column.key === 'date' ||
-      column.key === 'investorCode' ||
-      column.key === 'investorName'
-    ) {
-      classes.push('inv-detail-table__head--label');
-    } else {
-      classes.push('inv-detail-table__head--metric');
     }
     return classes.join(' ');
   }

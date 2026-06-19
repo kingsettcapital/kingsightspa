@@ -791,7 +791,7 @@ function buildInvestorOverviewBlock(
           label: 'Address',
           value: address,
           valueTone: address === OVERVIEW_EMPTY ? 'muted' : 'default',
-          gridColumn: 1,
+          gridColumn: 4,
           multiline: true,
         },
       ],
@@ -911,6 +911,22 @@ export function buildCapitalInvestmentsTable(
   });
 }
 
+const TRANSACTION_FUND_COLUMN: InvestorDetailTableColumn = {
+  key: 'fundCode',
+  label: 'Fund',
+  type: 'transaction-fund',
+  align: 'left',
+  sortBy: 'fund_code',
+};
+
+function investorTransactionColumns(
+  columns: InvestorDetailTableColumn[],
+  rows: InvestorDetailTableRow[],
+  insertAfterKey: string,
+): InvestorDetailTableColumn[] {
+  return withOptionalPeriodColumn(columns, rows, insertAfterKey);
+}
+
 function fundToolbarTableBlock(
   config: Omit<InvestorDetailTableBlock, 'kind' | 'variant' | 'showToolbar' | 'collapsible' | 'defaultExpanded'>,
 ): InvestorDetailTableBlock {
@@ -927,7 +943,6 @@ function capitalActivityRowsToTableRows(rows: InvestorCapitalActivityTabRow[]): 
   return rows.map((row) => ({
     fundCode: row.fundCode,
     fundName: row.fundName,
-    type: row.type,
     period: row.period,
     called: row.called,
     transferIn: row.transferIn,
@@ -940,7 +955,6 @@ function distributionTableRowsToTableRows(rows: InvestorDistributionTableTabRow[
   return rows.map((row) => ({
     fundCode: row.fundCode,
     fundName: row.fundName,
-    type: row.type,
     period: row.period,
     prefReturn: row.preferredReturn,
     committed: row.committed,
@@ -956,7 +970,6 @@ function irrRowsToTableRows(rows: InvestorIrrTabRow[]): InvestorDetailTableRow[]
   return rows.map((row) => ({
     fundCode: row.fundCode,
     fundName: row.fundName,
-    type: row.type,
     period: row.period,
     irr1Year: row.irr1Year,
     irr3Year: row.irr3Year,
@@ -975,7 +988,6 @@ function capitalObligationRowsToTableRows(
     fundCode: row.fundCode,
     fundName: row.fundName,
     period: row.period,
-    type: row.type,
     amount: row.amount,
   }));
 }
@@ -986,7 +998,6 @@ function netAssetRowsToTableRows(rows: InvestorNetAssetTabRow[]): InvestorDetail
     fundCode: row.fundCode,
     fundName: row.fundName,
     period: row.period,
-    type: row.type,
     ret: row.ret,
   }));
 }
@@ -996,18 +1007,16 @@ export function buildCapitalActivitiesTable(
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = capitalActivityRowsToTableRows(rows);
-  const columns = withOptionalPeriodColumn(
+  const columns = investorTransactionColumns(
     [
-    { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left', sortBy: 'fund_code' },
-    { key: 'fundName', label: 'Fund Name', type: 'text', align: 'left', sortBy: 'fund_name' },
-    { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
+    TRANSACTION_FUND_COLUMN,
     { key: 'called', label: 'Called', type: 'amount', align: 'right', sortBy: 'called' },
     { key: 'transferIn', label: 'Transfer In', type: 'amount', align: 'right', sortBy: 'transfer_in' },
     { key: 'transferOut', label: 'Transfer Out', type: 'amount', align: 'right', tone: 'negative', sortBy: 'transfer_out' },
     { key: 'redemption', label: 'Redemption', type: 'amount', align: 'right', sortBy: 'redemption' },
     ],
     tableRows,
-    'fundName',
+    'fundCode',
   );
 
   return fundToolbarTableBlock({
@@ -1026,18 +1035,16 @@ export function buildDistributionsTable(
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = distributionTableRowsToTableRows(rows);
-  const columns = withOptionalPeriodColumn(
+  const columns = investorTransactionColumns(
     [
-    { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left', sortBy: 'fund_code' },
-    { key: 'fundName', label: 'Fund Name', type: 'text', align: 'left', sortBy: 'fund_name' },
-    { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
-    { key: 'prefReturn', label: 'Pref. Return', type: 'amount', align: 'right', tone: 'info', sortBy: 'preferred_return' },
-    { key: 'cashDist', label: 'Cash Dist.', type: 'amount', align: 'right', tone: 'positive', sortBy: 'cash_dist' },
-    { key: 'gainDist', label: 'Gain Dist.', type: 'amount', align: 'right', tone: 'positive', sortBy: 'gain_dist' },
+    TRANSACTION_FUND_COLUMN,
+    { key: 'prefReturn', label: 'Preferred Return', type: 'amount', align: 'right', tone: 'info', sortBy: 'preferred_return' },
+    { key: 'cashDist', label: 'Cash Distribution', type: 'amount', align: 'right', tone: 'positive', sortBy: 'cash_dist' },
+    { key: 'gainDist', label: 'Gain Distribution', type: 'amount', align: 'right', tone: 'positive', sortBy: 'gain_dist' },
     { key: 'returnOfCapital', label: 'Return of Capital', type: 'amount', align: 'right', sortBy: 'return_of_capital' },
     ],
     tableRows,
-    'fundName',
+    'fundCode',
   );
 
   return fundToolbarTableBlock({
@@ -1056,11 +1063,9 @@ export function buildIrrsTable(
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = irrRowsToTableRows(rows);
-  const columns = withOptionalPeriodColumn(
+  const columns = investorTransactionColumns(
     [
-    { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left', sortBy: 'fund_code' },
-    { key: 'fundName', label: 'Fund Name', type: 'text', align: 'left', sortBy: 'fund_name' },
-    { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
+    TRANSACTION_FUND_COLUMN,
     { key: 'irr1Year', label: '1Y IRR', type: 'percent', align: 'right', sortBy: 'irr_1_year_pct' },
     { key: 'irr3Year', label: '3Y IRR', type: 'percent', align: 'right', sortBy: 'irr_3_year_pct' },
     { key: 'irr5Year', label: '5Y IRR', type: 'percent', align: 'right', sortBy: 'irr_5_year_pct' },
@@ -1069,7 +1074,7 @@ export function buildIrrsTable(
     { key: 'irrLtd', label: 'ITD IRR', type: 'percent', align: 'right', tone: 'info', sortBy: 'irr_ltd_pct' },
     ],
     tableRows,
-    'fundName',
+    'fundCode',
   );
 
   return fundToolbarTableBlock({
@@ -1088,9 +1093,9 @@ export function buildCapitalObligationsTable(
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = capitalObligationRowsToTableRows(rows);
-  const columns = withOptionalPeriodColumn(
+  const columns = investorTransactionColumns(
     [
-    { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left', sortBy: 'fund_code' },
+    TRANSACTION_FUND_COLUMN,
     { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
     { key: 'amount', label: 'Amount', type: 'amount', align: 'right', sortBy: 'amount' },
     ],
@@ -1114,15 +1119,13 @@ export function buildNetAssetsTable(
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = netAssetRowsToTableRows(rows);
-  const columns = withOptionalPeriodColumn(
+  const columns = investorTransactionColumns(
     [
-    { key: 'fundCode', label: 'Fund Code', type: 'link', align: 'left', sortBy: 'fund_code' },
-    { key: 'fundName', label: 'Fund Name', type: 'text', align: 'left', sortBy: 'fund_name' },
-    { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
+    TRANSACTION_FUND_COLUMN,
     { key: 'ret', label: 'Ret', type: 'percent', align: 'right', sortBy: 'ret' },
     ],
     tableRows,
-    'fundName',
+    'fundCode',
   );
 
   return fundToolbarTableBlock({
@@ -1269,13 +1272,10 @@ function buildContactFieldGrid(fields: DynamicFieldDto[] | null | undefined): In
 
 export type InvestorDetailSectionId =
   | 'overview'
+  | 'fund-holdings-summary'
   | 'investor-transactions'
-  | 'capital-account'
-  | 'performance'
-  | 'investments'
-  | 'documents'
-  | 'risk-compliance'
-  | 'communications';
+  | 'underlying-assets'
+  | 'documents';
 
 export function distributionAmountRows(groups: FundDistributionGroupTabRow[]): FundAmountTabRow[] {
   return groups.map((group) => ({
@@ -1328,14 +1328,11 @@ export function buildBlocksForSection(
           kpi,
           overviewInput,
         ),
-        fundExposure,
       ];
     }
-    case 'capital-account':
-      return [buildCapitalAccountGrid(kpi)];
-    case 'performance':
-      return [buildPerformanceKpiRow(kpi)];
-    case 'investments':
+    case 'fund-holdings-summary':
+      return [fundExposure];
+    case 'underlying-assets':
       return [buildCapitalInvestmentsTable(capitalInvestments, capitalInvestmentsPagination)];
     case 'investor-transactions':
       return [
@@ -1366,10 +1363,6 @@ export function buildBlocksForSection(
       ];
     case 'documents':
       return [buildDocumentsList(detail)];
-    case 'risk-compliance':
-      return [buildRiskComplianceGrid()];
-    case 'communications':
-      return [buildCommunicationsTable()];
     default:
       return [];
   }

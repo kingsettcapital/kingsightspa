@@ -132,6 +132,7 @@
     [class.inv-detail-block--entity-overview]="isEntityOverviewBlock()"
     [class.inv-detail-block--capital-account]="isCapitalAccountBlock()"
     [class.inv-detail-block--transactions]="isTransactionHubBlock()"
+    [class.inv-detail-block--fund-transactions]="isFundTransactionHubBlock()"
     [attr.aria-labelledby]="'inv-detail-block-' + current.id"
   >
     <header
@@ -412,6 +413,16 @@
                                     @case ('percent') {
                                       {{ formatPercent(cellValue(row, column.key)) }}
                                     }
+                                    @case ('transaction-fund') {
+                                      <span class="inv-detail-table__transaction-fund">
+                                        <span class="inv-detail-table__transaction-fund-code">{{
+                                          cellValue(row, column.key) ?? '—'
+                                        }}</span>
+                                        @if (cellValue(row, 'fundName'); as fundName) {
+                                          <span class="inv-detail-table__transaction-fund-name">{{ fundName }}</span>
+                                        }
+                                      </span>
+                                    }
                                     @case ('transaction-type') {
                                       @if (transactionTypeClass(cellValue(row, column.key))) {
                                         <span [class]="transactionTypeClass(cellValue(row, column.key))">
@@ -448,6 +459,9 @@
                                   }
                                   @case ('percent') {
                                     {{ formatPercent(cellValue(current.totals, column.key)) }}
+                                  }
+                                  @case ('transaction-fund') {
+                                    {{ cellValue(current.totals, column.key) ?? '—' }}
                                   }
                                   @default {
                                     {{ cellValue(current.totals, column.key) ?? '—' }}
