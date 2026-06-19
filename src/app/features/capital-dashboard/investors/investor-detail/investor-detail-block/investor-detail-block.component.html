@@ -355,6 +355,7 @@
                   }
                   <div
                     class="inv-detail-table-wrap inv-detail-table-wrap--transactions"
+                    [class.inv-detail-table-wrap--net-assets]="current.activeCategoryId === 'net-assets'"
                     [class.inv-detail-table-wrap--loading]="tableLoading()"
                   >
                     @if (tableLoading()) {
@@ -380,6 +381,7 @@
                                   class="inv-detail-table__sort"
                                   [class.inv-detail-table__sort--active]="isSortActive(column)"
                                   [class.inv-detail-table__sort--right]="column.align === 'right'"
+                                  [class.inv-detail-table__sort--center]="column.align === 'center'"
                                   (click)="toggleSort(column)"
                                 >
                                   <span class="inv-detail-table__sort-label">{{ column.label }}</span>
@@ -693,6 +695,7 @@
                                   class="inv-detail-table__sort"
                                   [class.inv-detail-table__sort--active]="isSortActive(column)"
                                   [class.inv-detail-table__sort--right]="column.align === 'right'"
+                                  [class.inv-detail-table__sort--center]="column.align === 'center'"
                                   (click)="toggleSort(column)"
                                 >
                                   <span class="inv-detail-table__sort-label">{{ column.label }}</span>
@@ -829,6 +832,7 @@
                             class="inv-detail-table__sort"
                             [class.inv-detail-table__sort--active]="isSortActive(column)"
                             [class.inv-detail-table__sort--right]="column.align === 'right'"
+                                  [class.inv-detail-table__sort--center]="column.align === 'center'"
                             (click)="toggleSort(column)"
                           >
                             <span class="inv-detail-table__sort-label">{{ column.label }}</span>

@@ -8,7 +8,14 @@
 
 .inv-detail-transactions {
   --inv-detail-transactions-table-max-height: 20rem;
-  --inv-detail-transactions-table-min-width: 52rem;
+  --inv-detail-transactions-table-min-width: 82rem;
+  --inv-detail-transactions-fund-column-width: 22rem;
+  --inv-detail-transactions-investor-column-width: 22rem;
+  --inv-detail-transactions-metric-column-width: 7.5rem;
+  --inv-detail-transactions-metric-column-width-wide: 10rem;
+  --inv-detail-transactions-net-assets-entity-width: calc(100% - 12rem);
+  --inv-detail-transactions-net-assets-period-width: 5rem;
+  --inv-detail-transactions-net-assets-nav-width: 7rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -114,11 +121,21 @@
 }
 
 .inv-detail-block--fund-transactions {
-  .inv-detail-table-wrap--transactions {
+  .inv-detail-table-wrap--transactions:not(.inv-detail-table-wrap--net-assets) {
     thead th.inv-detail-table__head--period,
     tbody td.inv-detail-table__cell--period,
     tfoot td.inv-detail-table__cell--period {
       text-align: left;
+    }
+
+    thead th.inv-detail-table__head--investorName {
+      width: var(--inv-detail-transactions-investor-column-width, 22rem);
+    }
+
+    tbody td.inv-detail-table__cell--investorName,
+    tfoot td.inv-detail-table__cell--investorName {
+      white-space: normal;
+      vertical-align: top;
     }
   }
 }
@@ -468,6 +485,10 @@
       text-align: left;
     }
 
+    &.inv-detail-table__head--center {
+      text-align: center;
+    }
+
     .inv-detail-table__sort {
       white-space: normal;
     }
@@ -477,8 +498,17 @@
       justify-content: flex-start;
     }
 
+    .inv-detail-table__sort--center {
+      width: auto;
+      justify-content: center;
+    }
+
     .inv-detail-table__sort-label {
       text-align: left;
+    }
+
+    .inv-detail-table__sort--center .inv-detail-table__sort-label {
+      text-align: center;
     }
   }
 
@@ -519,31 +549,76 @@
 
   thead th.inv-detail-table__head--prefReturn,
   thead th.inv-detail-table__head--cashDist,
-  thead th.inv-detail-table__head--gainDist,
-  thead th.inv-detail-table__head--returnOfCapital {
-    width: 5.5rem;
-    max-width: 5.5rem;
-    white-space: normal;
+  thead th.inv-detail-table__head--gainDist {
+    width: var(--inv-detail-transactions-metric-column-width-wide, 10rem);
+    min-width: var(--inv-detail-transactions-metric-column-width-wide, 10rem);
+    white-space: nowrap;
     vertical-align: bottom;
     text-align: right;
 
     .inv-detail-table__sort {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-end;
+      display: inline-flex;
+      align-items: center;
       justify-content: flex-end;
       width: 100%;
       max-width: 100%;
-      white-space: normal;
+      white-space: nowrap;
     }
 
     .inv-detail-table__sort-label {
-      flex: 1 1 100%;
-      max-width: 100%;
-      white-space: normal;
-      overflow-wrap: break-word;
+      white-space: nowrap;
       text-align: right;
     }
+  }
+
+  thead th.inv-detail-table__head--returnOfCapital {
+    width: 8.5rem;
+    min-width: 8.5rem;
+    white-space: nowrap;
+    vertical-align: bottom;
+    text-align: right;
+
+    .inv-detail-table__sort {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      width: 100%;
+      white-space: nowrap;
+    }
+
+    .inv-detail-table__sort-label {
+      white-space: nowrap;
+      text-align: right;
+    }
+  }
+
+  thead th.inv-detail-table__head--committed,
+  thead th.inv-detail-table__head--unfunded,
+  thead th.inv-detail-table__head--released,
+  thead th.inv-detail-table__head--called,
+  thead th.inv-detail-table__head--transferIn,
+  thead th.inv-detail-table__head--transferOut,
+  thead th.inv-detail-table__head--redemption,
+  thead th.inv-detail-table__head--commitment,
+  thead th.inv-detail-table__head--reserved,
+  thead th.inv-detail-table__head--unfundedAmount,
+  thead th.inv-detail-table__head--releasedCapital {
+    width: var(--inv-detail-transactions-metric-column-width, 7.5rem);
+    min-width: var(--inv-detail-transactions-metric-column-width, 7.5rem);
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  thead th.inv-detail-table__head--irr1Year,
+  thead th.inv-detail-table__head--irr3Year,
+  thead th.inv-detail-table__head--irr5Year,
+  thead th.inv-detail-table__head--irr7Year,
+  thead th.inv-detail-table__head--irr10Year,
+  thead th.inv-detail-table__head--irrLtd {
+    width: 5.5rem;
+    min-width: 5.5rem;
+    white-space: nowrap;
+    text-align: right;
   }
 }
 
@@ -1043,7 +1118,7 @@
 
   &--transactions {
     --inv-detail-transactions-table-max-height: 20rem;
-    --inv-detail-transactions-table-min-width: 52rem;
+    --inv-detail-transactions-table-min-width: 82rem;
     flex: 1 1 auto;
     position: relative;
     min-height: 0;
@@ -1083,7 +1158,11 @@
       }
 
       thead th.inv-detail-table__head--fundCode {
-        width: 22rem;
+        width: var(--inv-detail-transactions-fund-column-width, 22rem);
+      }
+
+      thead th.inv-detail-table__head--investorName {
+        width: var(--inv-detail-transactions-investor-column-width, 22rem);
       }
 
       thead th.inv-detail-table__head--period,
@@ -1096,8 +1175,50 @@
         white-space: nowrap;
       }
 
+      thead th.inv-detail-table__head--nav,
+      tbody td.inv-detail-table__cell--nav,
+      tfoot td.inv-detail-table__cell--nav {
+        text-align: right;
+      }
+
       tbody td.inv-detail-table__cell--fundCode,
-      tfoot td.inv-detail-table__cell--fundCode {
+      tfoot td.inv-detail-table__cell--fundCode,
+      tbody td.inv-detail-table__cell--investorName,
+      tfoot td.inv-detail-table__cell--investorName {
+        white-space: normal;
+        vertical-align: top;
+      }
+    }
+
+    &.inv-detail-table-wrap--net-assets {
+      --inv-detail-transactions-table-min-width: 32rem;
+
+      .inv-detail-table {
+        min-width: 0;
+      }
+
+      thead th.inv-detail-table__head--fundCode,
+      thead th.inv-detail-table__head--investorName {
+        width: var(--inv-detail-transactions-net-assets-entity-width, calc(100% - 12rem));
+      }
+
+      thead th.inv-detail-table__head--period,
+      tbody td.inv-detail-table__cell--period,
+      tfoot td.inv-detail-table__cell--period {
+        width: var(--inv-detail-transactions-net-assets-period-width, 5rem);
+        padding-right: 0.25rem;
+      }
+
+      thead th.inv-detail-table__head--nav,
+      tbody td.inv-detail-table__cell--nav,
+      tfoot td.inv-detail-table__cell--nav {
+        width: var(--inv-detail-transactions-net-assets-nav-width, 7rem);
+        padding-left: 0.25rem;
+        text-align: right;
+      }
+
+      tbody td.inv-detail-table__cell--investorName,
+      tfoot td.inv-detail-table__cell--investorName {
         white-space: normal;
         vertical-align: top;
       }
@@ -1173,8 +1294,16 @@
   text-align: right;
 }
 
+.inv-detail-table thead th.inv-detail-table__head--center {
+  text-align: center;
+}
+
 .inv-detail-table__cell--right {
   text-align: right;
+}
+
+.inv-detail-table__cell--center {
+  text-align: center;
 }
 
 .inv-detail-table__cell--warning {
@@ -1446,6 +1575,11 @@
     width: 100%;
     justify-content: flex-end;
   }
+
+  &--center {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .inv-detail-table__sort-label {
@@ -1458,7 +1592,7 @@
   thead th.inv-detail-table__head--cashDist,
   thead th.inv-detail-table__head--gainDist,
   thead th.inv-detail-table__head--returnOfCapital {
-    white-space: normal;
+    white-space: nowrap;
     text-align: right;
   }
 }
@@ -3509,7 +3643,7 @@
   }
 
   .inv-detail-table-wrap--transactions .inv-detail-table {
-    min-width: var(--inv-detail-transactions-table-min-width, 52rem);
+    min-width: var(--inv-detail-transactions-table-min-width, 82rem);
   }
 
   .inv-detail-table-wrap--fund-holdings {

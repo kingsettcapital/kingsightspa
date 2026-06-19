@@ -383,6 +383,9 @@ export class InvestorDetailBlockComponent {
     if (column.align === 'right') {
       classes.push('inv-detail-table__cell--right');
     }
+    if (column.align === 'center') {
+      classes.push('inv-detail-table__cell--center');
+    }
 
     const rowTones = row?.[INVESTOR_DETAIL_CELL_TONES_KEY] as
       | Record<string, InvestorDetailColumnTone>
@@ -407,6 +410,9 @@ export class InvestorDetailBlockComponent {
     const classes = [`inv-detail-table__head--${column.key}`, 'inv-detail-table__head--label'];
     if (column.align === 'right') {
       classes.push('inv-detail-table__head--right');
+    }
+    if (column.align === 'center') {
+      classes.push('inv-detail-table__head--center');
     }
     return classes.join(' ');
   }

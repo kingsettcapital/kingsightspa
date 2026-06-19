@@ -25,7 +25,7 @@ export interface InvestorDetailTableColumn {
   key: string;
   label: string;
   type: InvestorDetailColumnType;
-  align?: 'left' | 'right';
+  align?: 'left' | 'right' | 'center';
   tone?: InvestorDetailColumnTone;
   /** API `sortBy` query param for server-side column sorting. */
   sortBy?: string;
