@@ -25,11 +25,7 @@
     <div class="cdt-dashboard__widgets">
       @for (widgetId of visibleWidgetIds(); track widgetId) {
         <div class="cdt-dashboard__widget" [class]="widgetCssClass(widgetId)">
-          <app-dashboard-widget-shell
-            [closeVariant]="widgetShellCloseVariant(widgetId)"
-            [ariaLabel]="'Remove ' + widgetDefinition(widgetId).label"
-            (remove)="removeWidget(widgetId)"
-          >
+          <app-dashboard-widget-shell>
             @switch (widgetId) {
               @case ('portfolio-value') {
                 <app-portfolio-value-widget [metric]="portfolioValueMetric()" />
