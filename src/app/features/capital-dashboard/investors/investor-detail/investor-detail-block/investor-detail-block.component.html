@@ -977,8 +977,28 @@
                 <div class="inv-detail-block__overview-highlights">
                   <div class="inv-detail-block__overview-highlights-row">
                     @for (metric of highlights.topRow; track metric.label) {
-                      <article class="inv-detail-block__overview-highlight">
+                      <article
+                        class="inv-detail-block__overview-highlight"
+                        [class.inv-detail-block__overview-highlight--contact]="!!metric.contactDetails"
+                      >
                         <p class="inv-detail-block__overview-highlight-label">{{ metric.label }}</p>
+                        @if (metric.contactDetails; as contact) {
+                          <div class="inv-detail-block__overview-highlight-contact">
+                            @if (contact.name) {
+                              <p [class]="overviewHighlightValueClass(metric)">{{ contact.name }}</p>
+                            }
+                            @if (contact.email) {
+                              <p class="inv-detail-block__overview-highlight-contact-line">{{ contact.email }}</p>
+                            }
+                            @if (contact.address) {
+                              <p
+                                class="inv-detail-block__overview-highlight-contact-line inv-detail-block__overview-highlight-contact-line--address"
+                              >
+                                {{ contact.address }}
+                              </p>
+                            }
+                          </div>
+                        } @else {
                         <div class="inv-detail-block__overview-highlight-value-row">
                           <p
                             [class]="overviewHighlightValueClass(metric)"
@@ -992,6 +1012,7 @@
                         </div>
                         @if (metric.subtext) {
                           <p [class]="overviewHighlightSubtextClass(metric)">{{ metric.subtext }}</p>
+                        }
                         }
                       </article>
                     }
