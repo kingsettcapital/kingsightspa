@@ -29,6 +29,7 @@ import {
   PropertyLeasingSummaryDto,
   AssetsListSummaryDto,
   PropertyListItemDto,
+  AssetFundHoldingTabRow,
 } from '../shared/models/api.models';
 import { FundInvestorTabRow } from '../shared/mappers/fund-investor.mapper';
 import {
@@ -58,6 +59,7 @@ import {
   InvestorCapitalObligationsPageCacheEntry,
   InvestorNetAssetsPageCacheEntry,
   InvestorFundHoldingsCacheEntry,
+  AssetFundHoldingsCacheEntry,
   InvestorPeriodsCacheEntry,
   ListCacheEntry,
 } from './capital-dashboard-cache.util';
@@ -330,6 +332,9 @@ export interface AssetsDetailState {
   selectedKey: number | null;
   detail: PropertyDetailDto | null;
   leasingSummary: PropertyLeasingSummaryDto | null;
+  fundHoldings: AssetFundHoldingTabRow[];
+  fundHoldingsLoading: boolean;
+  fundHoldingsError: string | null;
   loading: boolean;
   error: string | null;
 }
@@ -389,6 +394,7 @@ export interface AssetsPagedListState extends PagedListState<PropertyListItemDto
 export interface AssetsCacheState {
   lists: Record<string, AssetsListCacheEntry>;
   details: Record<number, AssetDetailCacheEntry>;
+  fundHoldingsPages: Record<string, AssetFundHoldingsCacheEntry>;
 }
 
 export interface CapitalDashboardState {
@@ -695,6 +701,9 @@ function emptyAssetsDetail(): AssetsDetailState {
     selectedKey: null,
     detail: null,
     leasingSummary: null,
+    fundHoldings: [],
+    fundHoldingsLoading: false,
+    fundHoldingsError: null,
     loading: false,
     error: null,
   };
@@ -741,7 +750,7 @@ function emptyFundsCache(): FundsCacheState {
 }
 
 function emptyAssetsCache(): AssetsCacheState {
-  return { lists: {}, details: {} };
+  return { lists: {}, details: {}, fundHoldingsPages: {} };
 }
 
 export const initialCapitalDashboardState: CapitalDashboardState = {

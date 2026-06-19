@@ -8,7 +8,8 @@ export const ASSET_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] = [
   {
     title: 'Details',
     items: [
-      { id: 'area-summary', label: 'Area Summary' },
+      { id: 'area-summary', label: 'Property Overview' },
+      { id: 'fund-holdings', label: 'Fund Holdings' },
       { id: 'leasing', label: 'Leasing' },
       { id: 'valuation', label: 'Valuation' },
     ],

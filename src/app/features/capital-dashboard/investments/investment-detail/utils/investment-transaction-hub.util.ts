@@ -1,4 +1,5 @@
 import { InvestorTransactionTableFiltersDto } from '../../../shared/models/api.models';
+import { isUnitizedFundType } from '../../../shared/utils/investment-detail-tab.util';
 import { FundsDetailState } from '../../../store/capital-dashboard.state';
 import {
   InvestorDetailTablePagination,
@@ -134,8 +135,15 @@ function categoryTotalCount(categoryId: InvestorTransactionCategoryId, state: Fu
   return categoryPagination(categoryId, state).totalCount;
 }
 
-export function buildFundTransactionCategories(state: FundsDetailState): InvestorTransactionCategory[] {
-  return [
+export function fundShowsNetAssetsHub(fundType: string): boolean {
+  return isUnitizedFundType(fundType);
+}
+
+export function buildFundTransactionCategories(
+  state: FundsDetailState,
+  showNetAssets = true,
+): InvestorTransactionCategory[] {
+  const categories: InvestorTransactionCategory[] = [
     {
       id: 'capital-activities',
       label: 'Capital Activities',
@@ -156,12 +164,17 @@ export function buildFundTransactionCategories(state: FundsDetailState): Investo
       label: 'Capital Obligations',
       count: categoryTotalCount('capital-obligations', state),
     },
-    {
+  ];
+
+  if (showNetAssets) {
+    categories.push({
       id: 'net-assets',
       label: 'Net Asset Value',
       count: categoryTotalCount('net-assets', state),
-    },
-  ];
+    });
+  }
+
+  return categories;
 }
 
 export function fundHubCategoryInvestorName(
@@ -189,12 +202,16 @@ export function buildFundTransactionHubBlock(
   categoryId: InvestorTransactionCategoryId,
   periodSummary: string,
   fundCodeOptions: InvestorTransactionFilterOption[],
+  showNetAssets = true,
 ): InvestorDetailTransactionHubBlock {
   const table = buildCategoryTable(categoryId, state, periodSummary);
   const rows = table.rows;
   const pagination = categoryPagination(categoryId, state);
-  const labelKey = categoryId === 'capital-obligations' ? 'investorName' : 'investorCode';
-  const totals = rows.length ? buildTableTotalsRow(table.columns, rows, labelKey) : null;
+  const totals = rows.length ? buildTableTotalsRow(table.columns, rows, 'investorName') : null;
+  const categories = buildFundTransactionCategories(state, showNetAssets);
+  const activeCategoryId = categories.some((category) => category.id === categoryId)
+    ? categoryId
+    : categories[0]?.id ?? 'capital-activities';
 
   return {
     kind: 'transaction-hub',
@@ -202,8 +219,8 @@ export function buildFundTransactionHubBlock(
     title: 'Fund Transactions',
     collapsible: true,
     defaultExpanded: true,
-    activeCategoryId: categoryId,
-    categories: buildFundTransactionCategories(state),
+    activeCategoryId,
+    categories,
     columns: table.columns,
     subtitle: table.subtitle,
     subtitleAccent: table.subtitleAccent,

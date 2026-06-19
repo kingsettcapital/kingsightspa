@@ -423,6 +423,19 @@
                                         }
                                       </span>
                                     }
+                                    @case ('transaction-investor') {
+                                      <span class="cdt-fund-cell">
+                                        <span>
+                                          <span class="cdt-fund-cell__name">{{
+                                            cellValue(row, column.key) ?? '—'
+                                          }}</span>
+                                          @let investorType = cellValue(row, 'type');
+                                          @if (investorType && investorType !== '—') {
+                                            <span class="cdt-fund-cell__type">{{ investorType }}</span>
+                                          }
+                                        </span>
+                                      </span>
+                                    }
                                     @case ('transaction-type') {
                                       @if (transactionTypeClass(cellValue(row, column.key))) {
                                         <span [class]="transactionTypeClass(cellValue(row, column.key))">
@@ -461,6 +474,9 @@
                                     {{ formatPercent(cellValue(current.totals, column.key)) }}
                                   }
                                   @case ('transaction-fund') {
+                                    {{ cellValue(current.totals, column.key) ?? '—' }}
+                                  }
+                                  @case ('transaction-investor') {
                                     {{ cellValue(current.totals, column.key) ?? '—' }}
                                   }
                                   @default {
@@ -523,18 +539,27 @@
                   class="inv-detail-table-wrap inv-detail-table-wrap--fund-holdings"
                   [class.inv-detail-table-wrap--loading]="tableLoading()"
                 >
-                  @if (tableLoading()) {
-                    <div class="inv-detail-block__fund-holdings-overlay" role="status" aria-live="polite">
+                  @if (tableLoading() && !filteredTableRows().length) {
+                    <div
+                      class="inv-detail-block__fund-holdings-empty inv-detail-block__fund-holdings-loading"
+                      role="status"
+                      aria-live="polite"
+                    >
                       <div class="inv-detail-table__spinner" aria-hidden="true"></div>
                       <p>{{ pagedTableLoadingMessage() }}</p>
                     </div>
-                  }
-                  @if (!tableLoading() && !filteredTableRows().length) {
+                  } @else if (!tableLoading() && !filteredTableRows().length) {
                     <div class="inv-detail-block__fund-holdings-empty" role="status">
                       <mat-icon aria-hidden="true">inventory_2</mat-icon>
                       <p>{{ emptyStateMessage() }}</p>
                     </div>
                   } @else {
+                    @if (tableLoading()) {
+                      <div class="inv-detail-block__fund-holdings-overlay" role="status" aria-live="polite">
+                        <div class="inv-detail-table__spinner" aria-hidden="true"></div>
+                        <p>{{ pagedTableLoadingMessage() }}</p>
+                      </div>
+                    }
                     <table class="cdt-table inv-detail-block__fund-holdings-grid">
                       <thead>
                         <tr>
@@ -558,7 +583,9 @@
                               }
                             </th>
                           }
-                          <th class="cdt-table__chevron-col" aria-hidden="true"></th>
+                          @if (fundHoldingsShowsRowDrillDown()) {
+                            <th class="cdt-table__chevron-col" aria-hidden="true"></th>
+                          }
                         </tr>
                       </thead>
                       <tbody>
@@ -580,16 +607,21 @@
                               } @else if (column.key === 'fund') {
                                 <td>
                                   <span class="cdt-fund-cell__name">{{ cellValue(row, column.key) ?? '—' }}</span>
+                                  @if (row['fundType']; as fundType) {
+                                    <span class="cdt-fund-cell__type">{{ fundType }}</span>
+                                  }
                                 </td>
                               } @else {
                                 <td>{{ cellValue(row, column.key) ?? '—' }}</td>
                               }
                             }
-                            <td class="cdt-table__chevron-col">
-                              @if (canDrillDownFundHoldingsRow(row)) {
-                                <mat-icon aria-hidden="true">chevron_right</mat-icon>
-                              }
-                            </td>
+                            @if (fundHoldingsShowsRowDrillDown()) {
+                              <td class="cdt-table__chevron-col">
+                                @if (canDrillDownFundHoldingsRow(row)) {
+                                  <mat-icon aria-hidden="true">chevron_right</mat-icon>
+                                }
+                              </td>
+                            }
                           </tr>
                         }
                       </tbody>
@@ -611,7 +643,9 @@
                                 <td>{{ cellValue(current.totals, column.key) ?? '—' }}</td>
                               }
                             }
-                            <td class="cdt-table__chevron-col" aria-hidden="true"></td>
+                            @if (fundHoldingsShowsRowDrillDown()) {
+                              <td class="cdt-table__chevron-col" aria-hidden="true"></td>
+                            }
                           </tr>
                         </tfoot>
                       }
@@ -625,18 +659,27 @@
                   class="inv-detail-table-wrap inv-detail-table-wrap--fund-holdings"
                   [class.inv-detail-table-wrap--loading]="tableLoading()"
                 >
-                  @if (tableLoading()) {
-                    <div class="inv-detail-block__fund-holdings-overlay" role="status" aria-live="polite">
+                  @if (tableLoading() && !filteredTableRows().length) {
+                    <div
+                      class="inv-detail-block__fund-holdings-empty inv-detail-block__fund-holdings-loading"
+                      role="status"
+                      aria-live="polite"
+                    >
                       <div class="inv-detail-table__spinner" aria-hidden="true"></div>
                       <p>{{ pagedTableLoadingMessage() }}</p>
                     </div>
-                  }
-                  @if (!tableLoading() && !filteredTableRows().length) {
+                  } @else if (!tableLoading() && !filteredTableRows().length) {
                     <div class="inv-detail-block__fund-holdings-empty" role="status">
                       <mat-icon aria-hidden="true">inventory_2</mat-icon>
                       <p>{{ emptyStateMessage() }}</p>
                     </div>
                   } @else {
+                    @if (tableLoading()) {
+                      <div class="inv-detail-block__fund-holdings-overlay" role="status" aria-live="polite">
+                        <div class="inv-detail-table__spinner" aria-hidden="true"></div>
+                        <p>{{ pagedTableLoadingMessage() }}</p>
+                      </div>
+                    }
                     <table
                       class="inv-detail-table inv-detail-table--data-grid inv-detail-table--underlying-investments"
                     >
@@ -679,6 +722,15 @@
                                       <span class="inv-detail-table__empty">—</span>
                                     }
                                   }
+                                  @case ('number') {
+                                    {{ formatNumber(cellValue(row, column.key)) }}
+                                  }
+                                  @case ('percent') {
+                                    {{ formatPercent(cellValue(row, column.key)) }}
+                                  }
+                                  @case ('status') {
+                                    <span [class]="statusClass(cellValue(row, column.key))">{{ cellValue(row, column.key) ?? '—' }}</span>
+                                  }
                                   @default {
                                     {{ cellValue(row, column.key) ?? '—' }}
                                   }
@@ -702,6 +754,12 @@
                                     } @else {
                                       <span class="inv-detail-table__empty">—</span>
                                     }
+                                  }
+                                  @case ('number') {
+                                    {{ formatNumber(cellValue(current.totals, column.key)) }}
+                                  }
+                                  @case ('percent') {
+                                    {{ formatPercent(cellValue(current.totals, column.key)) }}
                                   }
                                   @default {
                                     {{ cellValue(current.totals, column.key) ?? '—' }}
@@ -1014,7 +1072,7 @@
 
                 @if (current.variant === 'fund' && current.performanceMiniKpis?.length) {
                   <div class="inv-detail-block__field-column inv-detail-block__performance-snapshot">
-                    <h3 class="inv-detail-block__field-column-title">Performance Snapshot</h3>
+                    <!-- <h3 class="inv-detail-block__field-column-title">Performance Snapshot</h3> -->
                     <div class="inv-detail-block__overview-mini-kpis">
                       @for (card of current.performanceMiniKpis; track card.label) {
                         <article class="inv-detail-block__overview-mini-kpi">

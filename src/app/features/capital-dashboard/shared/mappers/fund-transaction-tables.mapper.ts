@@ -102,8 +102,11 @@ export function mapFundCapitalObligationsToTabRows(
     investorCode: code(dto.investor_code, dto.investorCode),
     investorName: name(dto.investor_name, dto.investorName),
     period: periodFromDto(dto),
-    type: transactionType(dto.type),
-    amount: num(dto.amount),
+    commitment: num(dto.commitment_amount ?? dto.commitmentAmount),
+    netInvestedCapital: num(dto.net_invested_capital_amount ?? dto.netInvestedCapitalAmount),
+    netDistributed: num(dto.net_distributed_amount ?? dto.netDistributedAmount),
+    reserved: num(dto.reserved_amount ?? dto.reservedAmount),
+    releasedCapital: num(dto.released_capital_amount ?? dto.releasedCapitalAmount),
   }));
 }
 
@@ -114,7 +117,6 @@ export function mapFundNetAssetsToTabRows(
     investorCode: code(dto.investor_code, dto.investorCode),
     investorName: name(dto.investor_name, dto.investorName),
     period: periodFromDto(dto),
-    type: transactionType(dto.type),
-    ret: optNum(dto.ret),
+    nav: num(dto.nav),
   }));
 }

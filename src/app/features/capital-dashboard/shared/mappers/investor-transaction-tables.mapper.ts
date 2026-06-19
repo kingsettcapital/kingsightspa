@@ -105,8 +105,11 @@ export function mapInvestorCapitalObligationsToTabRows(
       fundCode: code(dto.fund_code, dto.fundCode),
       fundName: name(dto.fund_name, dto.fundName),
       period: periodFromDto(dto),
-      type: transactionType(dto.type),
-      amount: num(dto.amount),
+      commitment: num(dto.commitment_amount ?? dto.commitmentAmount),
+      netInvestedCapital: num(dto.net_invested_capital_amount ?? dto.netInvestedCapitalAmount),
+      netDistributed: num(dto.net_distributed_amount ?? dto.netDistributedAmount),
+      reserved: num(dto.reserved_amount ?? dto.reservedAmount),
+      releasedCapital: num(dto.released_capital_amount ?? dto.releasedCapitalAmount),
     };
   });
 }
@@ -121,8 +124,7 @@ export function mapInvestorNetAssetsToTabRows(
       fundCode: code(dto.fund_code, dto.fundCode),
       fundName: name(dto.fund_name, dto.fundName),
       period: periodFromDto(dto),
-      type: transactionType(dto.type),
-      ret: optNum(dto.ret),
+      nav: num(dto.nav),
     };
   });
 }

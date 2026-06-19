@@ -7,9 +7,12 @@
 }
 
 .inv-detail-transactions {
+  --inv-detail-transactions-table-max-height: 20rem;
+  --inv-detail-transactions-table-min-width: 52rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .inv-detail-transactions__chrome {
@@ -340,8 +343,10 @@
 .inv-detail-transactions__layout {
   display: grid;
   grid-template-columns: 12.5rem minmax(0, 1fr);
-  min-height: 18rem;
+  min-height: calc(var(--inv-detail-transactions-table-max-height) + 4rem);
   border-top: 0;
+  align-items: stretch;
+  min-width: 0;
 }
 
 .inv-detail-transactions__categories {
@@ -405,6 +410,8 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .inv-detail-transactions__pagination {
@@ -414,13 +421,13 @@
   gap: 1rem;
   padding: 0.625rem 1.25rem 0.875rem;
   border-top: 1px solid #edf2f7;
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
+  flex-shrink: 0;
+  margin-top: auto;
   background: #fff;
 }
 
 .inv-detail-transactions__category-subtitle {
+  flex-shrink: 0;
   margin: 0;
   padding: 0 1.25rem 0.75rem;
   font-family: var(--cdt-font-sans);
@@ -500,6 +507,14 @@
     font-size: 0.75rem;
     line-height: 1.35;
     overflow-wrap: anywhere;
+  }
+
+  tbody td.inv-detail-table__cell--transaction-investor,
+  tfoot td.inv-detail-table__cell--transaction-investor {
+    .cdt-fund-cell {
+      display: block;
+      min-width: 0;
+    }
   }
 
   thead th.inv-detail-table__head--prefReturn,
@@ -667,6 +682,8 @@
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .inv-detail-block__header {
@@ -846,7 +863,7 @@
   }
 
   .inv-detail-block__overview-highlights-row:not(.inv-detail-block__overview-highlights-row--bottom) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 1.2fr);
   }
 }
 
@@ -915,6 +932,10 @@
   color: #111827;
   line-height: 1.25;
   letter-spacing: -0.01em;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
 
   &--multiline {
     font-size: 0.8125rem;
@@ -964,6 +985,10 @@
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.35;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
 
   &--info {
     color: #64748b;
@@ -1012,12 +1037,17 @@
 
 .inv-detail-table-wrap {
   overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
 
   &--transactions {
     --inv-detail-transactions-table-max-height: 20rem;
+    --inv-detail-transactions-table-min-width: 52rem;
+    flex: 1 1 auto;
     position: relative;
+    min-height: 0;
     max-height: var(--inv-detail-transactions-table-max-height);
-    min-height: 12rem;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
@@ -1040,7 +1070,7 @@
 
     .inv-detail-table {
       width: 100%;
-      min-width: 0;
+      min-width: var(--inv-detail-transactions-table-min-width);
       table-layout: fixed;
       border-collapse: separate;
       border-spacing: 0;
@@ -1459,6 +1489,12 @@
     padding: 0;
   }
 
+  .inv-detail-block__header {
+    align-items: flex-start;
+    border-bottom: 0;
+    padding-bottom: 0.625rem;
+  }
+
   .inv-detail-block__header-actions {
     flex-wrap: wrap;
     justify-content: flex-end;
@@ -1473,8 +1509,12 @@
 }
 
 .inv-detail-block__header--fund-holdings {
+  .inv-detail-block__header-top {
+    align-items: center;
+  }
+
   .inv-detail-block__heading {
-    flex: 1 1 12rem;
+    flex: 1 1 auto;
     min-width: 0;
   }
 }
@@ -1538,14 +1578,19 @@
 .inv-detail-block__fund-holdings-panel {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
+  max-width: 100%;
 }
 
 .inv-detail-table-wrap--fund-holdings {
   --inv-detail-fund-holdings-max-height: 22rem;
+  --inv-detail-fund-holdings-min-width: 54rem;
   position: relative;
+  min-height: 0;
+  min-width: 0;
   max-height: var(--inv-detail-fund-holdings-max-height);
-  min-height: 14rem;
+  max-width: 100%;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
@@ -1565,8 +1610,28 @@
 
   .inv-detail-table {
     width: 100%;
+    min-width: var(--inv-detail-fund-holdings-min-width);
     border-collapse: separate;
     border-spacing: 0;
+  }
+
+  .inv-detail-block__fund-holdings-grid {
+    width: 100%;
+    min-width: var(--inv-detail-fund-holdings-min-width);
+
+    thead th:first-child,
+    tbody td:first-child,
+    tfoot td:first-child {
+      width: 18rem;
+      min-width: 18rem;
+      max-width: 22rem;
+    }
+
+    .cdt-fund-cell__name,
+    .cdt-fund-cell__type {
+      overflow-wrap: break-word;
+      word-break: normal;
+    }
   }
 
   .inv-detail-table thead th {
@@ -1675,6 +1740,11 @@
   padding: 2rem 1.25rem;
   color: #94a3b8;
   text-align: center;
+
+  &.inv-detail-block__fund-holdings-loading {
+    min-height: 8rem;
+    padding: 1.5rem 1.25rem;
+  }
 
   .mat-icon {
     width: 2rem;
@@ -3439,7 +3509,24 @@
   }
 
   .inv-detail-table-wrap--transactions .inv-detail-table {
-    min-width: 0;
+    min-width: var(--inv-detail-transactions-table-min-width, 52rem);
+  }
+
+  .inv-detail-table-wrap--fund-holdings {
+    .inv-detail-block__fund-holdings-grid,
+    .inv-detail-table {
+      min-width: var(--inv-detail-fund-holdings-min-width, 54rem);
+    }
+  }
+
+  .inv-detail-table-wrap:not(.inv-detail-table-wrap--transactions):not(.inv-detail-table-wrap--fund-holdings) {
+    .inv-detail-table {
+      min-width: 40rem;
+    }
+  }
+
+  .inv-detail-block__overview-highlights-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .inv-detail-block__table-footer {

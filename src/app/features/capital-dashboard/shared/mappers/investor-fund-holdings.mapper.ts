@@ -50,12 +50,36 @@ function readOptionalAmount(...values: Array<number | null | undefined>): number
   return 0;
 }
 
+function readFundCode(dto: InvestorFundHoldingDto): string {
+  const candidates = [dto.fund_code, dto.fundCode];
+  for (const value of candidates) {
+    const trimmed = value?.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+  return '';
+}
+
+function readFundType(dto: InvestorFundHoldingDto): string {
+  const candidates = [dto.fund_type_name, dto.fundTypeName, dto.fund_type, dto.fundType];
+  for (const value of candidates) {
+    const trimmed = value?.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+  return '';
+}
+
 export function mapInvestorFundHoldingsToTabRows(
   items: InvestorFundHoldingDto[] | null | undefined,
 ): InvestorFundHoldingTabRow[] {
   return (items ?? []).map((dto) => ({
     fundKey: readFundKey(dto),
+    fundCode: readFundCode(dto),
     fundName: readFundName(dto),
+    fundType: readFundType(dto),
     since: formatSinceDate(dto.since),
     commitment: num(dto.commitment),
     netInvestedCapital: readOptionalAmount(

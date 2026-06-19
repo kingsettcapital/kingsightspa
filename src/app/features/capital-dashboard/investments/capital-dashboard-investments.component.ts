@@ -329,8 +329,8 @@ export class CapitalDashboardInvestmentsComponent {
       sheetName: 'Investments',
       columns: [
         { header: 'Fund Name', value: (row) => row.name },
-        { header: 'Type', value: (row) => row.fundType },
         { header: 'Strategy', value: (row) => row.strategy },
+        { header: 'Fund Type', value: (row) => row.fundType },
         { header: 'Commitment', value: (row) => row.commitment },
         { header: 'Net Invested Capital', value: (row) => row.netInvestedCapital },
         { header: this.distributedColumnLabel(), value: (row) => row.netDistributed },

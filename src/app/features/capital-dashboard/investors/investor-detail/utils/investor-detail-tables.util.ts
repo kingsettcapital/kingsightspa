@@ -233,15 +233,47 @@ export function formatInvestorAddress(detail: InvestorDetailDto | null, fallback
   return parts.join('\n');
 }
 
-function resolveInvestorContact(detail: InvestorDetailDto | null, overview: InvestorOverviewInput): string {
+function isEmailLike(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+/.test(value.trim());
+}
+
+function resolveInvestorContactDisplay(
+  detail: InvestorDetailDto | null,
+  overview: InvestorOverviewInput,
+): { name: string; email: string } {
+  const emailFromProfile = readInvestorProfileString(
+    detail,
+    'contact_email',
+    'contactEmail',
+    'ContactEmail',
+  );
+
   const fromOverview = overview.contactName?.trim();
   if (fromOverview && fromOverview !== '—') {
-    return fromOverview;
+    if (!emailFromProfile && isEmailLike(fromOverview)) {
+      return { name: '—', email: fromOverview };
+    }
+    return { name: fromOverview, email: emailFromProfile };
   }
 
   const contact = readInvestorDetailString(detail, 'contact', 'Contact');
   if (contact) {
-    return contact;
+    const lines = contact
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (lines.length > 1) {
+      const emailLine = lines.find(isEmailLike) ?? '';
+      const nameLine = lines.find((line) => !isEmailLike(line)) ?? lines[0];
+      return {
+        name: nameLine,
+        email: emailFromProfile || emailLine,
+      };
+    }
+    if (isEmailLike(contact)) {
+      return { name: '—', email: contact };
+    }
+    return { name: contact, email: emailFromProfile };
   }
 
   const first = readInvestorProfileString(
@@ -257,7 +289,7 @@ function resolveInvestorContact(detail: InvestorDetailDto | null, overview: Inve
     'ContactLastName',
   );
   const joined = [first, last].filter(Boolean).join(' ').trim();
-  return joined || '—';
+  return { name: joined || '—', email: emailFromProfile };
 }
 
 function resolveInvestmentFundName(
@@ -753,7 +785,9 @@ function buildInvestorOverviewBlock(
     readInvestorDetailString(detail, 'relationship', 'relationship_name', 'relationshipName', 'Relationship'),
     detail?.summary?.relationshipName,
   );
-  const contact = formatOverviewText(resolveInvestorContact(detail, overview));
+  const contactDisplay = resolveInvestorContactDisplay(detail, overview);
+  const contactName = formatOverviewText(contactDisplay.name);
+  const contactEmail = contactDisplay.email.trim();
 
   return {
     kind: 'entity-overview',
@@ -782,8 +816,11 @@ function buildInvestorOverviewBlock(
         },
         {
           label: 'Contact',
-          value: contact,
-          valueTone: contact === OVERVIEW_EMPTY ? 'muted' : 'default',
+          value: contactName,
+          valueTone: contactName === OVERVIEW_EMPTY ? 'muted' : 'default',
+          subtext: contactEmail || undefined,
+          subtextTone: 'info',
+          multiline: true,
         },
       ],
       bottomRow: [
@@ -988,7 +1025,11 @@ function capitalObligationRowsToTableRows(
     fundCode: row.fundCode,
     fundName: row.fundName,
     period: row.period,
-    amount: row.amount,
+    commitment: row.commitment,
+    netInvestedCapital: row.netInvestedCapital,
+    netDistributed: row.netDistributed,
+    reserved: row.reserved,
+    releasedCapital: row.releasedCapital,
   }));
 }
 
@@ -998,7 +1039,7 @@ function netAssetRowsToTableRows(rows: InvestorNetAssetTabRow[]): InvestorDetail
     fundCode: row.fundCode,
     fundName: row.fundName,
     period: row.period,
-    ret: row.ret,
+    nav: row.nav,
   }));
 }
 
@@ -1088,17 +1129,40 @@ export function buildIrrsTable(
   });
 }
 
+const CAPITAL_OBLIGATION_AMOUNT_COLUMNS: InvestorDetailTableColumn[] = [
+  { key: 'commitment', label: 'Commitment', type: 'amount', align: 'right', sortBy: 'commitment_amount' },
+  {
+    key: 'netInvestedCapital',
+    label: 'Net Invested Capital',
+    type: 'amount',
+    align: 'right',
+    sortBy: 'net_invested_capital_amount',
+  },
+  {
+    key: 'netDistributed',
+    label: 'Net Distributed',
+    type: 'amount',
+    align: 'right',
+    tone: 'positive',
+    sortBy: 'net_distributed_amount',
+  },
+  { key: 'reserved', label: 'Reserved', type: 'amount', align: 'right', sortBy: 'reserved_amount' },
+  {
+    key: 'releasedCapital',
+    label: 'Released Capital',
+    type: 'amount',
+    align: 'right',
+    sortBy: 'released_capital_amount',
+  },
+];
+
 export function buildCapitalObligationsTable(
   rows: InvestorCapitalObligationTabRow[],
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = capitalObligationRowsToTableRows(rows);
   const columns = investorTransactionColumns(
-    [
-    TRANSACTION_FUND_COLUMN,
-    { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
-    { key: 'amount', label: 'Amount', type: 'amount', align: 'right', sortBy: 'amount' },
-    ],
+    [TRANSACTION_FUND_COLUMN, ...CAPITAL_OBLIGATION_AMOUNT_COLUMNS],
     tableRows,
     'fundCode',
   );
@@ -1121,8 +1185,8 @@ export function buildNetAssetsTable(
   const tableRows = netAssetRowsToTableRows(rows);
   const columns = investorTransactionColumns(
     [
-    TRANSACTION_FUND_COLUMN,
-    { key: 'ret', label: 'Ret', type: 'percent', align: 'right', sortBy: 'ret' },
+      TRANSACTION_FUND_COLUMN,
+      { key: 'nav', label: 'NAV', type: 'amount', align: 'right', sortBy: 'nav' },
     ],
     tableRows,
     'fundCode',

@@ -156,7 +156,7 @@ function buildTotalsRow(
 export function buildTableTotalsRow(
   columns: InvestorDetailTableColumn[],
   rows: InvestorDetailTableRow[],
-  labelKey = 'investorCode',
+  labelKey = 'investorName',
   label?: string,
 ): InvestorDetailTableRow | null {
   if (!rows.length) {
@@ -382,6 +382,39 @@ export interface FundOverviewInput {
   fundType: string;
   strategy: string;
   fundId: number | string;
+  startDate?: string;
+  status?: string;
+}
+
+function formatOverviewDate(value: string | null | undefined): string {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return FUND_OVERVIEW_DASH;
+  }
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return trimmed.slice(0, 10);
+  }
+  return parsed.toLocaleDateString('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+}
+
+function readOverviewStartDate(detail: FundDetailDto | null, overviewStartDate?: string): string {
+  const raw =
+    overviewStartDate?.trim() ||
+    readFundDetailString(detail, 'start_date', 'startDate');
+  return formatOverviewDate(raw || null);
+}
+
+function readOverviewStatus(detail: FundDetailDto | null, overviewStatus?: string): string {
+  return pickOverviewDisplayLabel(
+    overviewStatus,
+    readFundDetailString(detail, 'status'),
+    detail?.summary?.status,
+  );
 }
 
 function buildFundOverviewBlock(
@@ -406,6 +439,8 @@ function buildFundOverviewBlock(
     overview.strategy,
     readFundDetailString(detail, 'strategy', 'fund_strategy_name', 'fundStrategyName'),
   );
+  const startDate = readOverviewStartDate(detail, overview.startDate);
+  const status = readOverviewStatus(detail, overview.status);
 
   const tvpi = kpi.tvpi;
   const dpi = kpi.dpi;
@@ -430,15 +465,17 @@ function buildFundOverviewBlock(
     defaultExpanded: true,
     columns: [
       {
-        title: 'Fund Identity',
+        title: '',
         fields: [
-          { label: 'Fund Name', value: fundName },
-          {
-            label: 'Fund ID',
-            value: fundId != null ? String(fundId) : FUND_OVERVIEW_DASH,
-          },
+          // { label: 'Fund Name', value: fundName },
+          // {
+          //   label: 'Fund ID',
+          //   value: fundId != null ? String(fundId) : FUND_OVERVIEW_DASH,
+          // },
           { label: 'Fund Type', value: fundType },
           { label: 'Strategy', value: strategy },
+          { label: 'Start Date', value: startDate },
+          { label: 'Status', value: status },
         ],
       },
       {
@@ -599,10 +636,16 @@ function mapAssetsTable(
     { key: 'province', label: 'Province', type: 'text', align: 'left', tone: 'muted' },
     { key: 'geography', label: 'Geography', type: 'text', align: 'left', tone: 'muted' },
     { key: 'assetType', label: 'Asset Type', type: 'text', align: 'left', tone: 'muted' },
+    { key: 'assetSubType', label: 'Asset Sub Type', type: 'text', align: 'left', tone: 'muted' },
     { key: 'investmentType', label: 'Investment Type', type: 'text', align: 'left', tone: 'muted' },
     { key: 'propertyStatus', label: 'Property Status', type: 'status', align: 'left' },
+    { key: 'propertyDisposition', label: 'Disposition', type: 'text', align: 'right', tone: 'muted' },
     { key: 'propertyAcquisition', label: 'Acquisition', type: 'text', align: 'right', tone: 'muted' },
-    { key: 'propertyDisposedDate', label: 'Disposition', type: 'text', align: 'right', tone: 'muted' },
+    { key: 'glaSf', label: 'GLA (SF)', type: 'number', align: 'right', tone: 'muted' },
+    { key: 'occupancyPct', label: 'Occupancy %', type: 'percent', align: 'right', tone: 'muted' },
+    { key: 'marketValue', label: 'Market Value', type: 'amount', align: 'right' },
+    { key: 'capRate', label: 'Cap Rate', type: 'percent', align: 'right', tone: 'muted' },
+    { key: 'status', label: 'Status', type: 'status', align: 'left' },
   ];
 
   const rows: InvestorDetailTableRow[] = assets.map((asset) => ({
@@ -611,10 +654,16 @@ function mapAssetsTable(
     province: asset.province,
     geography: asset.geography,
     assetType: asset.assetType,
+    assetSubType: asset.assetSubType,
     investmentType: asset.investmentType,
     propertyStatus: asset.propertyStatus,
+    propertyDisposition: asset.propertyDisposition,
     propertyAcquisition: asset.propertyAcquisition,
-    propertyDisposedDate: asset.propertyDisposedDate,
+    glaSf: asset.glaSf,
+    occupancyPct: asset.occupancyPct,
+    marketValue: asset.marketValue,
+    capRate: asset.capRate,
+    status: asset.status,
   }));
 
   const totalCount = pagination.totalCount;
@@ -629,7 +678,7 @@ function mapAssetsTable(
     totals: null,
     collapsible: true,
     defaultExpanded: true,
-    showToolbar: true,
+    showToolbar: false,
     variant: 'underlying-investments',
     pagination,
   };
@@ -643,6 +692,21 @@ function fundToolbarTableBlock(
     variant: 'transactions',
     showToolbar: true,
   });
+}
+
+const TRANSACTION_INVESTOR_COLUMN: InvestorDetailTableColumn = {
+  key: 'investorName',
+  label: 'Investor Name',
+  type: 'transaction-investor',
+  align: 'left',
+  sortBy: 'investor_name',
+};
+
+function fundTransactionInvestorColumns(
+  columns: InvestorDetailTableColumn[],
+  rows: InvestorDetailTableRow[],
+): InvestorDetailTableColumn[] {
+  return withOptionalPeriodColumn([TRANSACTION_INVESTOR_COLUMN, ...columns], rows, 'investorName');
 }
 
 function capitalActivityRowsToTableRows(rows: FundInvestorCapitalActivityTabRow[]): InvestorDetailTableRow[] {
@@ -696,8 +760,11 @@ function capitalObligationRowsToTableRows(
     investorCode: row.investorCode,
     investorName: row.investorName,
     period: row.period,
-    type: row.type,
-    amount: row.amount,
+    commitment: row.commitment,
+    netInvestedCapital: row.netInvestedCapital,
+    netDistributed: row.netDistributed,
+    reserved: row.reserved,
+    releasedCapital: row.releasedCapital,
   }));
 }
 
@@ -706,8 +773,7 @@ function netAssetRowsToTableRows(rows: FundInvestorNetAssetTabRow[]): InvestorDe
     investorCode: row.investorCode,
     investorName: row.investorName,
     period: row.period,
-    type: row.type,
-    ret: row.ret,
+    nav: row.nav,
   }));
 }
 
@@ -716,18 +782,14 @@ export function buildCapitalActivitiesTable(
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = capitalActivityRowsToTableRows(rows);
-  const columns = withOptionalPeriodColumn(
+  const columns = fundTransactionInvestorColumns(
     [
-    { key: 'investorCode', label: 'Investor Code', type: 'link', align: 'left', sortBy: 'investor_code' },
-    { key: 'investorName', label: 'Investor Name', type: 'text', align: 'left', sortBy: 'investor_name' },
-    { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
     { key: 'called', label: 'Called', type: 'amount', align: 'right', sortBy: 'called' },
     { key: 'transferIn', label: 'Transfer In', type: 'amount', align: 'right', sortBy: 'transfer_in' },
     { key: 'transferOut', label: 'Transfer Out', type: 'amount', align: 'right', tone: 'negative', sortBy: 'transfer_out' },
     { key: 'redemption', label: 'Redemption', type: 'amount', align: 'right', sortBy: 'redemption' },
     ],
     tableRows,
-    'investorName',
   );
 
   return fundToolbarTableBlock({
@@ -737,7 +799,7 @@ export function buildCapitalActivitiesTable(
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorCode', `Total — ${tableRows.length}`) : null,
+    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorName', `Total — ${tableRows.length}`) : null,
   });
 }
 
@@ -746,11 +808,8 @@ export function buildDistributionsTable(
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = distributionTableRowsToTableRows(rows);
-  const columns = withOptionalPeriodColumn(
+  const columns = fundTransactionInvestorColumns(
     [
-    { key: 'investorCode', label: 'Investor Code', type: 'link', align: 'left', sortBy: 'investor_code' },
-    { key: 'investorName', label: 'Investor Name', type: 'text', align: 'left', sortBy: 'investor_name' },
-    { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
     { key: 'prefReturn', label: `Pref. Return (${periodLabel})`, type: 'amount', align: 'right', tone: 'info', sortBy: 'preferred_return' },
     { key: 'committed', label: 'Committed', type: 'amount', align: 'right', sortBy: 'committed' },
     { key: 'unfunded', label: 'Unfunded', type: 'amount', align: 'right', tone: 'warning', sortBy: 'unfunded' },
@@ -760,7 +819,6 @@ export function buildDistributionsTable(
     { key: 'released', label: 'Released', type: 'amount', align: 'right', sortBy: 'released' },
     ],
     tableRows,
-    'investorName',
   );
 
   return fundToolbarTableBlock({
@@ -770,17 +828,14 @@ export function buildDistributionsTable(
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorCode', `Total — ${tableRows.length}`) : null,
+    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorName', `Total — ${tableRows.length}`) : null,
   });
 }
 
 export function buildIrrsTable(rows: FundInvestorIrrTabRow[], periodLabel: string): InvestorDetailTableBlock {
   const tableRows = irrRowsToTableRows(rows);
-  const columns = withOptionalPeriodColumn(
+  const columns = fundTransactionInvestorColumns(
     [
-    { key: 'investorCode', label: 'Investor Code', type: 'link', align: 'left', sortBy: 'investor_code' },
-    { key: 'investorName', label: 'Investor Name', type: 'text', align: 'left', sortBy: 'investor_name' },
-    { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
     { key: 'irr1Year', label: '1Y IRR', type: 'percent', align: 'right', sortBy: 'irr_1_year_pct' },
     { key: 'irr3Year', label: '3Y IRR', type: 'percent', align: 'right', sortBy: 'irr_3_year_pct' },
     { key: 'irr5Year', label: '5Y IRR', type: 'percent', align: 'right', sortBy: 'irr_5_year_pct' },
@@ -789,7 +844,6 @@ export function buildIrrsTable(rows: FundInvestorIrrTabRow[], periodLabel: strin
     { key: 'irrLtd', label: 'ITD IRR', type: 'percent', align: 'right', tone: 'info', sortBy: 'irr_ltd_pct' },
     ],
     tableRows,
-    'investorName',
   );
 
   return fundToolbarTableBlock({
@@ -799,24 +853,43 @@ export function buildIrrsTable(rows: FundInvestorIrrTabRow[], periodLabel: strin
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorCode', `Total — ${tableRows.length}`) : null,
+    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorName', `Total — ${tableRows.length}`) : null,
   });
 }
+
+const CAPITAL_OBLIGATION_AMOUNT_COLUMNS: InvestorDetailTableColumn[] = [
+  { key: 'commitment', label: 'Commitment', type: 'amount', align: 'right', sortBy: 'commitment_amount' },
+  {
+    key: 'netInvestedCapital',
+    label: 'Net Invested Capital',
+    type: 'amount',
+    align: 'right',
+    sortBy: 'net_invested_capital_amount',
+  },
+  {
+    key: 'netDistributed',
+    label: 'Net Distributed',
+    type: 'amount',
+    align: 'right',
+    tone: 'positive',
+    sortBy: 'net_distributed_amount',
+  },
+  { key: 'reserved', label: 'Reserved', type: 'amount', align: 'right', sortBy: 'reserved_amount' },
+  {
+    key: 'releasedCapital',
+    label: 'Released Capital',
+    type: 'amount',
+    align: 'right',
+    sortBy: 'released_capital_amount',
+  },
+];
 
 export function buildCapitalObligationsTable(
   rows: FundInvestorCapitalObligationTabRow[],
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = capitalObligationRowsToTableRows(rows);
-  const columns = withOptionalPeriodColumn(
-    [
-    { key: 'investorName', label: 'Investor Name', type: 'text', align: 'left', sortBy: 'investor_name' },
-    { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
-    { key: 'amount', label: 'Amount', type: 'amount', align: 'right', sortBy: 'amount' },
-    ],
-    tableRows,
-    'investorName',
-  );
+  const columns = fundTransactionInvestorColumns(CAPITAL_OBLIGATION_AMOUNT_COLUMNS, tableRows);
 
   return fundToolbarTableBlock({
     id: 'capital-obligations',
@@ -834,15 +907,9 @@ export function buildNetAssetsTable(
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = netAssetRowsToTableRows(rows);
-  const columns = withOptionalPeriodColumn(
-    [
-    { key: 'investorCode', label: 'Investor Code', type: 'text', align: 'left', sortBy: 'investor_code' },
-    { key: 'investorName', label: 'Investor Name', type: 'text', align: 'left', sortBy: 'investor_name' },
-    { key: 'type', label: 'Type', type: 'transaction-type', align: 'left', sortBy: 'type' },
-    { key: 'ret', label: 'Ret', type: 'percent', align: 'right', sortBy: 'ret' },
-    ],
+  const columns = fundTransactionInvestorColumns(
+    [{ key: 'nav', label: 'NAV', type: 'amount', align: 'right', sortBy: 'nav' }],
     tableRows,
-    'investorName',
   );
 
   return fundToolbarTableBlock({
@@ -852,7 +919,7 @@ export function buildNetAssetsTable(
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorCode', `Total — ${tableRows.length}`) : null,
+    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorName', `Total — ${tableRows.length}`) : null,
   });
 }
 

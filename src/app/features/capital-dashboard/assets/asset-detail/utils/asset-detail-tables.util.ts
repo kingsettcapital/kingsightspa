@@ -1,6 +1,7 @@
 import {
   PropertyDetailDto,
   PropertyLeasingSummaryDto,
+  AssetFundHoldingTabRow,
 } from '../../../shared/models/api.models';
 import { AssetTableRow } from '../../../shared/utils/asset-list-row.util';
 import {
@@ -37,6 +38,7 @@ export type AssetDetailSectionId =
   | 'area-summary'
   | 'leasing'
   | 'valuation'
+  | 'fund-holdings'
   | 'transactions'
   | 'documents'
   | 'esg-operations'
@@ -127,7 +129,7 @@ function buildAreaSummaryGrid(
   return {
     kind: 'field-grid',
     id: 'area-summary',
-    title: 'Area Summary',
+    title: 'Property Overview',
     collapsible: true,
     defaultExpanded: true,
     columns: [
@@ -432,6 +434,36 @@ function buildTransactionsTable(): InvestorDetailTableBlock {
   });
 }
 
+function buildAssetFundHoldingsTable(
+  rows: AssetFundHoldingTabRow[],
+): InvestorDetailTableBlock {
+  const columns: InvestorDetailTableColumn[] = [
+    { key: 'fund', label: 'Fund', type: 'text', align: 'left' },
+    { key: 'fundCode', label: 'Fund Code', type: 'text', align: 'left' },
+    { key: 'strategy', label: 'Strategy', type: 'text', align: 'left' },
+    { key: 'startDate', label: 'Start Date', type: 'text', align: 'left' },
+  ];
+
+  const tableRows: InvestorDetailTableRow[] = rows.map((row) => ({
+    fund: row.fundName,
+    fundKey: row.fundKey,
+    fundType: row.fundType !== ASSET_DETAIL_EMPTY ? row.fundType : '',
+    fundCode: row.fundCode,
+    strategy: row.fundStrategy,
+    startDate: row.fundStartDate,
+  }));
+
+  return tableBlock({
+    id: 'asset-fund-holdings',
+    title: 'Fund Holdings',
+    columns,
+    rows: tableRows,
+    variant: 'fund-holdings',
+    collapsible: true,
+    defaultExpanded: true,
+  });
+}
+
 function buildDocumentsList(): InvestorDetailDocumentListBlock {
   return {
     kind: 'document-list',
@@ -477,6 +509,7 @@ export function buildBlocksForSection(
   leasingSummary: PropertyLeasingSummaryDto | null,
   kpi: AssetDetailKpiCards,
   listRow: AssetTableRow | null,
+  fundHoldings: AssetFundHoldingTabRow[],
 ): InvestorDetailBlock[] {
   switch (sectionId) {
     case 'overview':
@@ -487,6 +520,8 @@ export function buildBlocksForSection(
       return [buildLeasingSummary(leasingSummary)];
     case 'valuation':
       return [buildValuationGrid(detail, kpi)];
+    case 'fund-holdings':
+      return [buildAssetFundHoldingsTable(fundHoldings)];
     case 'transactions':
       return [buildTransactionsTable()];
     case 'documents':
@@ -505,6 +540,7 @@ export function buildFlatAssetBlocks(
   leasingSummary: PropertyLeasingSummaryDto | null,
   kpi: AssetDetailKpiCards,
   listRow: AssetTableRow | null,
+  fundHoldings: AssetFundHoldingTabRow[],
 ): AssetDetailFlatBlock[] {
   const sections = ASSET_DETAIL_SIDEBAR_SECTIONS.flatMap((section) =>
     section.items.map((item) => ({
@@ -515,6 +551,7 @@ export function buildFlatAssetBlocks(
         leasingSummary,
         kpi,
         listRow,
+        fundHoldings,
       ),
     })),
   );

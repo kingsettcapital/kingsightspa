@@ -18,6 +18,7 @@ import {
   InvestorCapitalActivityTabRow,
   InvestorDistributionTableTabRow,
   InvestorFundHoldingTabRow,
+  AssetFundHoldingTabRow,
   InvestorInvestmentDto,
   InvestorIrrTabRow,
   InvestorCapitalObligationTabRow,
@@ -1456,4 +1457,31 @@ export interface FundInvestorsPageCacheEntry {
 export interface AssetDetailCacheEntry {
   detail: PropertyDetailDto;
   leasingSummary: PropertyLeasingSummaryDto | null;
+}
+
+export function capitalDashboardAssetFundHoldingsCacheKey(propertyKey: number): string {
+  return `asset-fund-holdings\u0000${propertyKey}`;
+}
+
+export interface AssetFundHoldingsCacheEntry {
+  items: AssetFundHoldingTabRow[];
+}
+
+export function readAssetFundHoldingsCache(
+  cache: Record<string, AssetFundHoldingsCacheEntry>,
+  propertyKey: number,
+): AssetFundHoldingsCacheEntry | null {
+  return cache[capitalDashboardAssetFundHoldingsCacheKey(propertyKey)] ?? null;
+}
+
+export function writeAssetFundHoldingsCache(
+  cache: Record<string, AssetFundHoldingsCacheEntry>,
+  propertyKey: number,
+  items: AssetFundHoldingTabRow[],
+): Record<string, AssetFundHoldingsCacheEntry> {
+  const key = capitalDashboardAssetFundHoldingsCacheKey(propertyKey);
+  return {
+    ...cache,
+    [key]: { items: [...items] },
+  };
 }

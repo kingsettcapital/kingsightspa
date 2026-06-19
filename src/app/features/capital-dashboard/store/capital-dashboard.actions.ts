@@ -33,6 +33,7 @@ import {
   PagedResult,
   PropertyDetailDto,
   PropertyLeasingSummaryDto,
+  AssetFundHoldingTabRow,
   AssetsQueryParams,
   AssetsPagedResult,
   PropertyListItemDto,
@@ -361,8 +362,6 @@ export const FundsApiActions = createActionGroup({
     'Load Detail Success': props<{
       fundKey: number;
       detail: FundDetailDto;
-      assets: FundAssetTabRow[];
-      assetsHasNextPage: boolean;
     }>(),
     'Load Detail Failure': props<{ error: string }>(),
     'Load Fund Assets Page': props<{ fundKey: number; page: number; search: string; replace?: boolean }>(),
@@ -661,6 +660,9 @@ export const AssetsApiActions = createActionGroup({
       leasingSummary: PropertyLeasingSummaryDto | null;
     }>(),
     'Load Detail Failure': props<{ error: string }>(),
+    'Load Fund Holdings': props<{ propertyKey: number }>(),
+    'Load Fund Holdings Success': props<{ items: AssetFundHoldingTabRow[] }>(),
+    'Load Fund Holdings Failure': props<{ error: string }>(),
     'Clear Detail': emptyProps(),
   },
 });

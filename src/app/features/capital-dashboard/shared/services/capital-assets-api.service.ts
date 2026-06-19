@@ -7,6 +7,7 @@ import {
   AssetsFilterOptionsDto,
   AssetsPagedResult,
   AssetsQueryParams,
+  AssetFundHoldingDto,
   PropertyDetailDto,
   PropertyLeasingSummaryDto,
   PropertyListItemDto,
@@ -47,6 +48,10 @@ export class CapitalAssetsApiService {
 
   getAssetLeasingSummary(propertyKey: number): Observable<PropertyLeasingSummaryDto> {
     return this.api.get<PropertyLeasingSummaryDto>(`api/Assets/${propertyKey}/leasing-summary`);
+  }
+
+  getAssetFundHoldings(propertyKey: number): Observable<AssetFundHoldingDto[]> {
+    return this.api.get<AssetFundHoldingDto[]>(`api/Assets/${propertyKey}/fund-holdings`);
   }
 
   getAssetsForFundPage(

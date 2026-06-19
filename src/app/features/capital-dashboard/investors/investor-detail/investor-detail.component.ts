@@ -29,6 +29,11 @@ import {
   normalizeInvestorsFilterOptions,
 } from '../../shared/utils/investor-filter-options.util';
 import { buildQuarterlyTransactionPeriodParams } from '../../shared/utils/quarterly-transaction-period.util';
+import {
+  isServerSortedTransactionTable,
+  resolveTransactionTableSort,
+  TransactionTableSortDir,
+} from '../../shared/utils/transaction-table-period.util';
 import { InvestorsApiActions } from '../../store';
 import { selectInvestorsDetail } from '../../store/capital-dashboard.selectors';
 import {
@@ -67,7 +72,6 @@ import {
 } from './models/investor-transaction-hub.models';
 
 type DetailTimeframe = 'ltd' | 'quarterly' | 'daily';
-type TransactionTableSortDir = 'asc' | 'desc';
 
 interface TransactionTableSort {
   sortBy: string;
@@ -597,27 +601,33 @@ export class InvestorDetailComponent {
   }
 
   private isServerSortedTable(blockId: string): boolean {
-    return blockId === 'capital-activities' || blockId === 'distributions' || blockId === 'irrs' || blockId === 'capital-obligations' || blockId === 'net-assets';
+    return isServerSortedTransactionTable(blockId);
   }
 
   tableSortColumnForBlock(block: InvestorDetailBlock): string | null {
     if (block.kind === 'transaction-hub') {
-      return this.transactionSort()[hubSortBlockId(this.transactionHubCategory())]?.sortBy ?? null;
+      return resolveTransactionTableSort(
+        hubSortBlockId(this.transactionHubCategory()),
+        this.transactionSort(),
+      )?.sortBy ?? null;
     }
     if (block.kind !== 'table' || !this.hasSortableColumns(block)) {
       return null;
     }
-    return this.transactionSort()[block.id]?.sortBy ?? null;
+    return resolveTransactionTableSort(block.id, this.transactionSort())?.sortBy ?? null;
   }
 
   tableSortDirForBlock(block: InvestorDetailBlock): TransactionTableSortDir {
     if (block.kind === 'transaction-hub') {
-      return this.transactionSort()[hubSortBlockId(this.transactionHubCategory())]?.sortDir ?? 'desc';
+      return (
+        resolveTransactionTableSort(hubSortBlockId(this.transactionHubCategory()), this.transactionSort())
+          ?.sortDir ?? 'desc'
+      );
     }
     if (block.kind !== 'table' || !this.hasSortableColumns(block)) {
       return 'desc';
     }
-    return this.transactionSort()[block.id]?.sortDir ?? 'desc';
+    return resolveTransactionTableSort(block.id, this.transactionSort())?.sortDir ?? 'desc';
   }
 
   private hasSortableColumns(block: InvestorDetailBlock): boolean {
@@ -816,9 +826,13 @@ export class InvestorDetailComponent {
     );
   }
 
+  private visibleTransactionHubCategories(): InvestorTransactionCategoryId[] {
+    return InvestorDetailComponent.TRANSACTION_HUB_CATEGORIES;
+  }
+
   private loadAllTransactionHubTables(): void {
     const state = untracked(() => this.detailState());
-    for (const categoryId of InvestorDetailComponent.TRANSACTION_HUB_CATEGORIES) {
+    for (const categoryId of this.visibleTransactionHubCategories()) {
       this.loadTransactionHubCategory(
         categoryId,
         hubCategorySearchKey(categoryId, state),
@@ -859,7 +873,7 @@ export class InvestorDetailComponent {
     }
     this.lastTransactionHubFilterPeriodLoadKey = filterLoadKey;
 
-    for (const categoryId of InvestorDetailComponent.TRANSACTION_HUB_CATEGORIES) {
+    for (const categoryId of this.visibleTransactionHubCategories()) {
       this.loadTransactionHubFilters(categoryId);
     }
   }
@@ -941,7 +955,7 @@ export class InvestorDetailComponent {
     }
 
     const sortBlockId = hubSortBlockId(categoryId);
-    const sort = untracked(() => this.transactionSort()[sortBlockId]);
+    const sort = resolveTransactionTableSort(sortBlockId, untracked(() => this.transactionSort()));
     const fundCode = fundCodeInput ?? hubCategoryFundCode(categoryId, this.detailState());
     const periodParams = this.quarterlyTransactionPeriodParams();
     const request = {
@@ -952,7 +966,7 @@ export class InvestorDetailComponent {
       replace: true,
       ...periodParams,
       ...(fundCode ? { fundCode } : {}),
-      ...(sort?.sortBy ? { sortBy: sort.sortBy, sortDir: sort.sortDir } : {}),
+      ...(sort ? { sortBy: sort.sortBy, sortDir: sort.sortDir } : {}),
     };
 
     switch (categoryId) {
@@ -1035,7 +1049,7 @@ export class InvestorDetailComponent {
     blockId: string,
     search = '',
   ) {
-    const sort = untracked(() => this.transactionSort()[blockId]);
+    const sort = resolveTransactionTableSort(blockId, untracked(() => this.transactionSort()));
     const periodParams = this.quarterlyTransactionPeriodParams();
     return {
       investorKey,
@@ -1044,7 +1058,7 @@ export class InvestorDetailComponent {
       search,
       replace: true,
       ...periodParams,
-      ...(sort?.sortBy ? { sortBy: sort.sortBy, sortDir: sort.sortDir } : {}),
+      ...(sort ? { sortBy: sort.sortBy, sortDir: sort.sortDir } : {}),
     };
   }
 

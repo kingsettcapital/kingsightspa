@@ -31,6 +31,7 @@ import {
   readInvestorPeriodsCache,
   readInvestorUnfundedCommitmentsPageCache,
   readAssetsListCacheEntry,
+  readAssetFundHoldingsCache,
   readFundsListCacheEntry,
   readInvestorsListCacheEntry,
   readListCacheEntry,
@@ -58,6 +59,7 @@ import {
   writeInvestorPeriodsCache,
   writeInvestorUnfundedCommitmentsPageCache,
   writeAssetsListCacheEntry,
+  writeAssetFundHoldingsCache,
   writeFundsListCacheEntry,
   writeInvestorsListCacheEntry,
   writeListCacheEntry,
@@ -69,6 +71,7 @@ import { extractFundsListSummary } from '../shared/utils/fund-list-row.util';
 import { extractInvestorsListSummary } from '../shared/utils/investor-list-row.util';
 import {
   AssetsListCacheEntry,
+  AssetsDetailState,
   AssetsPagedListState,
   CapitalDashboardState,
   FundsDetailState,
@@ -2596,16 +2599,18 @@ export const capitalDashboardFeature = createFeature({
     }),
     on(
       FundsApiActions.loadDetailSuccess,
-      (state, { fundKey, detail, assets, assetsHasNextPage }) => {
-        const fundAssets = extractPagedItems(assets);
+      (state, { fundKey, detail }) => {
+        const existingCache = state.funds.cache.details[fundKey];
+        const sameFund = state.funds.detail.selectedKey === fundKey;
         const entry: FundDetailCacheEntry = {
           detail,
-          assets: [...fundAssets],
-          assetsPage: 1,
-          assetsHasNextPage,
-          fundInvestors: [],
-          fundInvestorsPage: 1,
-          fundInvestorsHasNextPage: false,
+          assets: existingCache?.assets ?? (sameFund ? [...state.funds.detail.assets] : []),
+          assetsPage: existingCache?.assetsPage ?? (sameFund ? state.funds.detail.assetsPage : 1),
+          assetsHasNextPage:
+            existingCache?.assetsHasNextPage ?? (sameFund ? state.funds.detail.assetsHasNextPage : false),
+          fundInvestors: existingCache?.fundInvestors ?? [],
+          fundInvestorsPage: existingCache?.fundInvestorsPage ?? 1,
+          fundInvestorsHasNextPage: existingCache?.fundInvestorsHasNextPage ?? false,
         };
         return {
           ...state,
@@ -2615,15 +2620,6 @@ export const capitalDashboardFeature = createFeature({
               ...state.funds.detail,
               selectedKey: fundKey,
               detail,
-              assets: fundAssets,
-              assetsPage: 1,
-              assetsPageSize: LIST_PAGE_SIZE,
-              assetsTotalCount: fundAssets.length,
-              assetsTotalPages: assetsHasNextPage ? 2 : fundAssets.length ? 1 : 0,
-              assetsSearch: '',
-              assetsHasNextPage,
-              assetsHasPreviousPage: false,
-              assetsLoading: false,
               loading: false,
               error: null,
             },
@@ -2703,17 +2699,18 @@ export const capitalDashboardFeature = createFeature({
       const nextCache = { ...state.funds.cache };
       if (fundKey != null) {
         const cachedFund = nextCache.details[fundKey];
-        if (cachedFund) {
-          nextCache.details = {
-            ...nextCache.details,
-            [fundKey]: {
-              ...cachedFund,
-              assets: [...nextAssets],
-              assetsPage: page,
-              assetsHasNextPage: hasNextPage,
-            },
-          };
-        }
+        nextCache.details = {
+          ...nextCache.details,
+          [fundKey]: {
+            detail: cachedFund?.detail ?? nextDetail.detail,
+            assets: [...nextAssets],
+            assetsPage: page,
+            assetsHasNextPage: hasNextPage,
+            fundInvestors: cachedFund?.fundInvestors ?? [],
+            fundInvestorsPage: cachedFund?.fundInvestorsPage ?? 1,
+            fundInvestorsHasNextPage: cachedFund?.fundInvestorsHasNextPage ?? false,
+          },
+        };
       }
       return {
         ...state,
@@ -4155,6 +4152,11 @@ export const capitalDashboardFeature = createFeature({
     // Assets detail
     on(AssetsApiActions.loadDetail, (state, { propertyKey }) => {
       const cached = state.assets.cache.details[propertyKey];
+      const fundHoldingsReset = {
+        fundHoldings: [] as AssetsDetailState['fundHoldings'],
+        fundHoldingsLoading: false,
+        fundHoldingsError: null,
+      };
       if (cached) {
         return {
           ...state,
@@ -4164,6 +4166,7 @@ export const capitalDashboardFeature = createFeature({
               selectedKey: propertyKey,
               detail: cached.detail,
               leasingSummary: cached.leasingSummary,
+              ...fundHoldingsReset,
               loading: false,
               error: null,
             },
@@ -4178,6 +4181,7 @@ export const capitalDashboardFeature = createFeature({
             selectedKey: propertyKey,
             detail: null,
             leasingSummary: null,
+            ...fundHoldingsReset,
             loading: true,
             error: null,
           },
@@ -4189,6 +4193,7 @@ export const capitalDashboardFeature = createFeature({
       assets: {
         ...state.assets,
         detail: {
+          ...state.assets.detail,
           selectedKey: propertyKey,
           detail,
           leasingSummary,
@@ -4222,6 +4227,81 @@ export const capitalDashboardFeature = createFeature({
       assets: {
         ...state.assets,
         detail: initialCapitalDashboardState.assets.detail,
+      },
+    })),
+    on(AssetsApiActions.loadFundHoldings, (state, { propertyKey }) => {
+      const sameRequestInFlight =
+        state.assets.detail.selectedKey === propertyKey && state.assets.detail.fundHoldingsLoading;
+      if (sameRequestInFlight) {
+        return state;
+      }
+
+      const cached = readAssetFundHoldingsCache(state.assets.cache.fundHoldingsPages, propertyKey);
+      if (cached) {
+        return {
+          ...state,
+          assets: {
+            ...state.assets,
+            detail: {
+              ...state.assets.detail,
+              selectedKey: propertyKey,
+              fundHoldings: [...cached.items],
+              fundHoldingsLoading: false,
+              fundHoldingsError: null,
+            },
+          },
+        };
+      }
+      return {
+        ...state,
+        assets: {
+          ...state.assets,
+          detail: {
+            ...state.assets.detail,
+            selectedKey: propertyKey,
+            fundHoldingsLoading: true,
+            fundHoldingsError: null,
+            fundHoldings: [],
+          },
+        },
+      };
+    }),
+    on(AssetsApiActions.loadFundHoldingsSuccess, (state, { items }) => {
+      const propertyKey = state.assets.detail.selectedKey;
+      let nextCache = state.assets.cache;
+      if (propertyKey != null) {
+        nextCache = {
+          ...nextCache,
+          fundHoldingsPages: writeAssetFundHoldingsCache(
+            nextCache.fundHoldingsPages,
+            propertyKey,
+            items,
+          ),
+        };
+      }
+      return {
+        ...state,
+        assets: {
+          ...state.assets,
+          detail: {
+            ...state.assets.detail,
+            fundHoldings: [...items],
+            fundHoldingsLoading: false,
+            fundHoldingsError: null,
+          },
+          cache: nextCache,
+        },
+      };
+    }),
+    on(AssetsApiActions.loadFundHoldingsFailure, (state, { error }) => ({
+      ...state,
+      assets: {
+        ...state.assets,
+        detail: {
+          ...state.assets.detail,
+          fundHoldingsLoading: false,
+          fundHoldingsError: error,
+        },
       },
     })),
   ),

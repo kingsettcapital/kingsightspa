@@ -161,71 +161,15 @@
           <table class="cdt-table">
             <thead>
               <tr>
-                <th>
-                  <button type="button" class="cdt-table__sort"
-                    [class.cdt-table__sort--active]="isSortActive('propertyName')" (click)="toggleSort('propertyName')">
-                    <span class="cdt-table__sort-label">Property<br>Name</span>
-                    <mat-icon aria-hidden="true">{{ sortIcon('propertyName') }}</mat-icon>
-                  </button>
-                </th>
-                <th>
-                  <button type="button" class="cdt-table__sort"
-                    [class.cdt-table__sort--active]="isSortActive('geography')" (click)="toggleSort('geography')">
-                    <span class="cdt-table__sort-label">Geography</span>
-                    <mat-icon aria-hidden="true">{{ sortIcon('geography') }}</mat-icon>
-                  </button>
-                </th>
-                <th>
-                  <button type="button" class="cdt-table__sort"
-                    [class.cdt-table__sort--active]="isSortActive('assetType')" (click)="toggleSort('assetType')">
-                    <span class="cdt-table__sort-label">Asset<br>Type</span>
-                    <mat-icon aria-hidden="true">{{ sortIcon('assetType') }}</mat-icon>
-                  </button>
-                </th>
-                <th>
-                  <button type="button" class="cdt-table__sort"
-                    [class.cdt-table__sort--active]="isSortActive('investmentType')"
-                    (click)="toggleSort('investmentType')">
-                    <span class="cdt-table__sort-label">Investment<br>Type</span>
-                    <mat-icon aria-hidden="true">{{ sortIcon('investmentType') }}</mat-icon>
-                  </button>
-                </th>
-                <th>
-                  <button type="button" class="cdt-table__sort"
-                    [class.cdt-table__sort--active]="isSortActive('developmentType')"
-                    (click)="toggleSort('developmentType')">
-                    <span class="cdt-table__sort-label">Development<br>Type</span>
-                    <mat-icon aria-hidden="true">{{ sortIcon('developmentType') }}</mat-icon>
-                  </button>
-                </th>
-                <th class="cdt-table__num">
-                  <button type="button" class="cdt-table__sort" [class.cdt-table__sort--active]="isSortActive('glaSf')"
-                    (click)="toggleSort('glaSf')">
-                    <span class="cdt-table__sort-label">GLA (sf)</span>
-                    <mat-icon aria-hidden="true">{{ sortIcon('glaSf') }}</mat-icon>
-                  </button>
-                </th>
-                <th class="cdt-table__num">
-                  <button type="button" class="cdt-table__sort"
-                    [class.cdt-table__sort--active]="isSortActive('committedSf')" (click)="toggleSort('committedSf')">
-                    <span class="cdt-table__sort-label">Committed<br>(sf)</span>
-                    <mat-icon aria-hidden="true">{{ sortIcon('committedSf') }}</mat-icon>
-                  </button>
-                </th>
-                <th class="cdt-table__num">
-                  <button type="button" class="cdt-table__sort"
-                    [class.cdt-table__sort--active]="isSortActive('vacantSf')" (click)="toggleSort('vacantSf')">
-                    <span class="cdt-table__sort-label">Vacant (sf)</span>
-                    <mat-icon aria-hidden="true">{{ sortIcon('vacantSf') }}</mat-icon>
-                  </button>
-                </th>
-                <th>
-                  <button type="button" class="cdt-table__sort" [class.cdt-table__sort--active]="isSortActive('status')"
-                    (click)="toggleSort('status')">
-                    <span class="cdt-table__sort-label">Status</span>
-                    <mat-icon aria-hidden="true">{{ sortIcon('status') }}</mat-icon>
-                  </button>
-                </th>
+                <th>Property<br>Name</th>
+                <!-- <th>Geography</th> -->
+                <th class="cdt-table__asset-type">Asset<br>Type</th>
+                <th>Investment<br>Type</th>
+                <th>Development<br>Type</th>
+                <th class="cdt-table__num">GLA (sf)</th>
+                <th class="cdt-table__num">Committed<br>(sf)</th>
+                <th class="cdt-table__num">Vacant (sf)</th>
+                <th>Status</th>
                 <th class="cdt-table__chevron-col" aria-hidden="true"></th>
               </tr>
             </thead>
@@ -234,26 +178,20 @@
               <tr class="cdt-table__row cdt-table__row--clickable" (click)="openAsset(row)">
                 <td>
                   <div class="cdt-property-cell">
-                    <span class="cdt-property-cell__icon"
+                    <!-- <span class="cdt-property-cell__icon"
                       [style.background-color]="'hsl(' + row.avatarHue + ' 58% 88%)'"
                       [style.color]="'hsl(' + row.avatarHue + ' 48% 34%)'">
                       {{ row.initials }}
-                    </span>
+                    </span> -->
                     <span>
                       <span class="cdt-property-cell__name">{{ row.name }}</span>
-                      <span class="cdt-property-cell__code">{{ row.code }}</span>
+                      <span class="cdt-property-cell__code">{{ row.geography }}</span>
                     </span>
                   </div>
                 </td>
-                <td>{{ row.geography }}</td>
-                <td>
-                  <span class="cdt-asset-type">
-                    <span class="cdt-asset-type__dot"
-                      aria-hidden="true"></span>
-                    <span class="cdt-asset-type__label">
-                      {{ row.assetType }}
-                    </span>
-                  </span>
+                <!-- <td>{{ row.geography }}</td> -->
+                <td class="cdt-table__asset-type">
+                  <span class="cdt-asset-type__label">{{ row.assetType }}</span>
                 </td>
                 <td>{{ row.investmentType }}</td>
                 <td>{{ row.developmentType }}</td>

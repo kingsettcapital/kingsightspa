@@ -89,6 +89,11 @@ body[data-ks-capital-dashboard] {
     flex-shrink: 0;
   }
 
+  .cdt-assets .cdt-table thead th.cdt-table__asset-type,
+  .cdt-assets .cdt-table tbody td.cdt-table__asset-type {
+    text-align: left;
+  }
+
   .cdt-asset-type {
     display: inline-flex;
     align-items: center;

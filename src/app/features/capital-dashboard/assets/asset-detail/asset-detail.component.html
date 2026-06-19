@@ -18,14 +18,14 @@
       <div class="inv-detail__heading">
         <div class="inv-detail__title-row">
           <h1 class="inv-detail__title">{{ propertyName() }}</h1>
-          @if (showAssetTypeChip()) {
+          <!-- @if (showAssetTypeChip()) {
             <span [class]="assetTypeChipClass()">{{ assetType() }}</span>
           }
           @if (showStatusChip()) {
             <span [class]="statusChipClass()">{{ statusLabel() }}</span>
-          }
+          } -->
         </div>
-        <p class="inv-detail__subtitle">
+        <!-- <p class="inv-detail__subtitle">
           @if (subtitleLeadText()) {
             <span>{{ subtitleLeadText() }}</span>
           }
@@ -35,7 +35,7 @@
             }
             <span>Code: <strong>{{ propertyCodeDisplay() }}</strong></span>
           }
-        </p>
+        </p> -->
       </div>
 
       <!-- <div class="inv-detail__actions">
@@ -88,7 +88,11 @@
             class="inv-detail__block-wrap"
             [attr.id]="item.isSectionStart ? 'inv-section-' + item.sectionId : null"
           >
-            <app-investor-detail-block [block]="item.block" />
+            <app-investor-detail-block
+              [block]="item.block"
+              [tableLoading]="tableLoadingForBlock(item.block)"
+              (fundExposureRowClick)="openFundFromHoldings($event)"
+            />
           </div>
         }
       </div>

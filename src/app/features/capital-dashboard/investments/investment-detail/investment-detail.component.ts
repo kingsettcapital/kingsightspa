@@ -27,6 +27,11 @@ import {
   normalizeFundsFilterOptions,
 } from '../../shared/utils/fund-filter-options.util';
 import { buildQuarterlyTransactionPeriodParams } from '../../shared/utils/quarterly-transaction-period.util';
+import {
+  isServerSortedTransactionTable,
+  resolveTransactionTableSort,
+  TransactionTableSortDir,
+} from '../../shared/utils/transaction-table-period.util';
 import { InvestorDetailSidebarComponent } from '../../investors/investor-detail/investor-detail-sidebar/investor-detail-sidebar.component';
 import { InvestorDetailBlockComponent } from '../../investors/investor-detail/investor-detail-block/investor-detail-block.component';
 import { InvestorDetailBlock } from '../../investors/investor-detail/models/investor-detail-block.models';
@@ -53,6 +58,7 @@ import {
   fundHubCategoryInvestorName,
   fundHubCategorySearchKey,
   fundHubSortBlockId,
+  fundShowsNetAssetsHub,
   normalizeFundTransactionTableFilters,
 } from './utils/investment-transaction-hub.util';
 import {
@@ -60,8 +66,6 @@ import {
   InvestorTransactionFilterOption,
 } from '../../investors/investor-detail/models/investor-transaction-hub.models';
 import { INVESTMENT_DETAIL_DUMMY } from './data/investment-detail-dummy.data';
-
-type TransactionTableSortDir = 'asc' | 'desc';
 
 interface TransactionTableSort {
   sortBy: string;
@@ -180,7 +184,14 @@ export class InvestmentDetailComponent {
   readonly fundType = computed(() =>
     pickOverviewLabel(
       this.listRow()?.fundType,
-      readFundDetailSummaryString(this.detail(), 'fund_type', 'fundType', 'FundType'),
+      readFundDetailSummaryString(
+        this.detail(),
+        'fund_type_name',
+        'fundTypeName',
+        'fund_type',
+        'fundType',
+        'FundType',
+      ),
     ),
   );
 
@@ -342,6 +353,8 @@ export class InvestmentDetailComponent {
     return name || 'all';
   });
 
+  readonly showNetAssetsHubCategory = computed(() => fundShowsNetAssetsHub(this.fundType()));
+
   readonly flatBlocks = computed(() => {
     const state = this.detailState();
     const overview: FundOverviewInput = {
@@ -383,12 +396,19 @@ export class InvestmentDetailComponent {
           categoryId,
           this.transactionHubPeriodSummary(),
           investorOptions,
+          this.showNetAssetsHubCategory(),
         ),
       };
     });
   });
 
   constructor() {
+    effect(() => {
+      if (!this.showNetAssetsHubCategory() && this.transactionHubCategory() === 'net-assets') {
+        untracked(() => this.transactionHubCategory.set('capital-activities'));
+      }
+    });
+
     this.transactionSearch$
       .pipe(
         debounceTime(300),
@@ -586,6 +606,9 @@ export class InvestmentDetailComponent {
   }
 
   onTransactionHubCategoryChange(categoryId: InvestorTransactionCategoryId): void {
+    if (categoryId === 'net-assets' && !this.showNetAssetsHubCategory()) {
+      return;
+    }
     this.transactionHubCategory.set(categoryId);
   }
 
@@ -642,27 +665,33 @@ export class InvestmentDetailComponent {
   }
 
   private isServerSortedTable(blockId: string): boolean {
-    return blockId === 'capital-activities' || blockId === 'distributions' || blockId === 'irrs' || blockId === 'capital-obligations' || blockId === 'net-assets';
+    return isServerSortedTransactionTable(blockId);
   }
 
   tableSortColumnForBlock(block: InvestorDetailBlock): string | null {
     if (block.kind === 'transaction-hub') {
-      return this.transactionSort()[fundHubSortBlockId(this.transactionHubCategory())]?.sortBy ?? null;
+      return resolveTransactionTableSort(
+        fundHubSortBlockId(this.transactionHubCategory()),
+        this.transactionSort(),
+      )?.sortBy ?? null;
     }
     if (block.kind !== 'table' || !block.showToolbar) {
       return null;
     }
-    return this.transactionSort()[block.id]?.sortBy ?? null;
+    return resolveTransactionTableSort(block.id, this.transactionSort())?.sortBy ?? null;
   }
 
   tableSortDirForBlock(block: InvestorDetailBlock): TransactionTableSortDir {
     if (block.kind === 'transaction-hub') {
-      return this.transactionSort()[fundHubSortBlockId(this.transactionHubCategory())]?.sortDir ?? 'desc';
+      return (
+        resolveTransactionTableSort(fundHubSortBlockId(this.transactionHubCategory()), this.transactionSort())
+          ?.sortDir ?? 'desc'
+      );
     }
     if (block.kind !== 'table' || !block.showToolbar) {
       return 'desc';
     }
-    return this.transactionSort()[block.id]?.sortDir ?? 'desc';
+    return resolveTransactionTableSort(block.id, this.transactionSort())?.sortDir ?? 'desc';
   }
 
   tableLoadingForBlock(block: InvestorDetailBlock): boolean {
@@ -799,9 +828,18 @@ export class InvestmentDetailComponent {
     );
   }
 
+  private visibleTransactionHubCategories(): InvestorTransactionCategoryId[] {
+    if (this.showNetAssetsHubCategory()) {
+      return InvestmentDetailComponent.TRANSACTION_HUB_CATEGORIES;
+    }
+    return InvestmentDetailComponent.TRANSACTION_HUB_CATEGORIES.filter(
+      (categoryId) => categoryId !== 'net-assets',
+    );
+  }
+
   private loadAllTransactionHubTables(): void {
     const state = untracked(() => this.detailState());
-    for (const categoryId of InvestmentDetailComponent.TRANSACTION_HUB_CATEGORIES) {
+    for (const categoryId of this.visibleTransactionHubCategories()) {
       this.loadTransactionHubCategory(
         categoryId,
         fundHubCategorySearchKey(categoryId, state),
@@ -842,12 +880,16 @@ export class InvestmentDetailComponent {
     }
     this.lastTransactionHubFilterPeriodLoadKey = filterLoadKey;
 
-    for (const categoryId of InvestmentDetailComponent.TRANSACTION_HUB_CATEGORIES) {
+    for (const categoryId of this.visibleTransactionHubCategories()) {
       this.loadTransactionHubFilters(categoryId);
     }
   }
 
   private loadTransactionHubFilters(categoryId: InvestorTransactionCategoryId): void {
+    if (categoryId === 'net-assets' && !this.showNetAssetsHubCategory()) {
+      return;
+    }
+
     const fundKey = this.fundKey();
     if (fundKey == null) {
       return;
@@ -910,6 +952,10 @@ export class InvestmentDetailComponent {
     page = 1,
     investorNameInput?: string,
   ): void {
+    if (categoryId === 'net-assets' && !this.showNetAssetsHubCategory()) {
+      return;
+    }
+
     const fundKey = this.fundKey();
     if (fundKey == null) {
       return;
@@ -924,7 +970,7 @@ export class InvestmentDetailComponent {
     }
 
     const sortBlockId = fundHubSortBlockId(categoryId);
-    const sort = untracked(() => this.transactionSort()[sortBlockId]);
+    const sort = resolveTransactionTableSort(sortBlockId, untracked(() => this.transactionSort()));
     const investorName =
       investorNameInput ?? fundHubCategoryInvestorName(categoryId, this.detailState());
     const periodParams = this.quarterlyTransactionPeriodParams();
@@ -936,7 +982,7 @@ export class InvestmentDetailComponent {
       replace: true,
       ...periodParams,
       ...(investorName ? { investorName } : {}),
-      ...(sort?.sortBy ? { sortBy: sort.sortBy, sortDir: sort.sortDir } : {}),
+      ...(sort ? { sortBy: sort.sortBy, sortDir: sort.sortDir } : {}),
     };
 
     switch (categoryId) {

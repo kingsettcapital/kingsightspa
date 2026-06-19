@@ -255,6 +255,10 @@ p.inv-detail__subtitle {
   .inv-detail__block-wrap {
     scroll-margin-top: 0.5rem;
   }
+
+  .inv-detail__kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {

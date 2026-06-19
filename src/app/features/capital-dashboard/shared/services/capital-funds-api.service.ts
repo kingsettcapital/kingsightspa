@@ -51,7 +51,7 @@ export class CapitalFundsApiService {
     return this.api.get<FundDetailDto>(`api/Funds/${fundKey}`);
   }
 
-  getFundAssetsPage(
+  getFundUnderlyingAssetsPage(
     fundKey: number,
     params: { page?: number; pageSize?: number; search?: string } = {},
     pageSize = LIST_PAGE_SIZE,
@@ -61,7 +61,7 @@ export class CapitalFundsApiService {
       pageSize: params.pageSize ?? pageSize,
       ...(params.search?.trim() ? { search: params.search.trim() } : {}),
     };
-    return this.api.get<PagedResult<FundAssetDto>>(`api/Funds/${fundKey}/assets`, query as any);
+    return this.api.get<PagedResult<FundAssetDto>>(`api/Funds/${fundKey}/underlying-assets`, query as any);
   }
 
   getFundInvestorsPage(

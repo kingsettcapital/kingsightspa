@@ -253,7 +253,14 @@ export class InvestorDetailBlockComponent {
   }
 
   onFundExposureRowClick(row: InvestorDetailTableRow, rowIndex: number): void {
-    if (!this.isFundExposureTable()) {
+    const block = this.block();
+    if (block.kind !== 'table') {
+      return;
+    }
+    const allowsDrillDown =
+      this.isFundExposureTable() ||
+      (this.isFundHoldingsVariant() && this.fundHoldingsShowsRowDrillDown());
+    if (!allowsDrillDown) {
       return;
     }
     const fundKey = row['fundKey'];
@@ -284,6 +291,10 @@ export class InvestorDetailBlockComponent {
     if (this.isFundHoldingsVariant()) {
       if (this.tableSearchActive() || this.searchQuery().trim()) {
         return 'No fund holdings match your filters.';
+      }
+      const block = this.block();
+      if (block.kind === 'table' && block.id === 'asset-fund-holdings') {
+        return 'No fund holdings found for this asset.';
       }
       return 'No fund holdings found for the selected date range.';
     }
@@ -331,6 +342,9 @@ export class InvestorDetailBlockComponent {
   }
 
   private defaultSortDir(column: InvestorDetailTableColumn): 'asc' | 'desc' {
+    if (column.sortBy === 'period') {
+      return 'asc';
+    }
     if (column.type === 'amount' || column.type === 'number' || column.type === 'percent') {
       return 'desc';
     }
@@ -382,6 +396,9 @@ export class InvestorDetailBlockComponent {
     }
     if (column.type === 'transaction-fund') {
       classes.push('inv-detail-table__cell--transaction-fund');
+    }
+    if (column.type === 'transaction-investor') {
+      classes.push('inv-detail-table__cell--transaction-investor');
     }
     return classes.join(' ');
   }
@@ -450,8 +467,17 @@ export class InvestorDetailBlockComponent {
   }
 
   canDrillDownFundHoldingsRow(row: InvestorDetailTableRow): boolean {
+    const block = this.block();
+    if (block.kind === 'table' && block.rowDrillDown === false) {
+      return false;
+    }
     const fundKey = row['fundKey'];
     return typeof fundKey === 'number' && Number.isFinite(fundKey) && fundKey > 0;
+  }
+
+  fundHoldingsShowsRowDrillDown(): boolean {
+    const block = this.block();
+    return block.kind === 'table' && block.rowDrillDown !== false;
   }
 
   amountCellClass(column: InvestorDetailTableColumn): string {

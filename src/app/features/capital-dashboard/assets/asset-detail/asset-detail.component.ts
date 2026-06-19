@@ -18,8 +18,11 @@ import { KsCurrencyPipe } from '../../../../shared/pipes/ks-currency.pipe';
 import { AssetTableRow } from '../../shared/utils/asset-list-row.util';
 import { InvestorDetailSidebarComponent } from '../../investors/investor-detail/investor-detail-sidebar/investor-detail-sidebar.component';
 import { InvestorDetailBlockComponent } from '../../investors/investor-detail/investor-detail-block/investor-detail-block.component';
+import { InvestorDetailBlock } from '../../investors/investor-detail/models/investor-detail-block.models';
+import { InvestorDetailTableRow } from '../../investors/investor-detail/models/investor-detail-table.models';
 import { AssetsApiActions } from '../../store';
 import { selectAssetsDetail } from '../../store/capital-dashboard.selectors';
+import { fundTableRowFromFundExposure } from '../../shared/utils/fund-list-row.util';
 import {
   bindDetailSectionScrollSpy,
   flattenSidebarSectionIds,
@@ -164,6 +167,7 @@ export class AssetDetailComponent {
       state.leasingSummary,
       this.kpiCards(),
       this.listRow(),
+      state.fundHoldings,
     );
   });
 
@@ -183,6 +187,7 @@ export class AssetDetailComponent {
 
         this.propertyKey.set(propertyKey);
         this.store.dispatch(AssetsApiActions.loadDetail({ propertyKey }));
+        this.store.dispatch(AssetsApiActions.loadFundHoldings({ propertyKey }));
       });
 
     const navigationState = (history.state ?? {}) as { assetRow?: AssetTableRow };
@@ -290,6 +295,51 @@ export class AssetDetailComponent {
 
   backToList(): void {
     void this.router.navigate(['/capital-dashboard/asset']);
+  }
+
+  tableLoadingForBlock(block: InvestorDetailBlock): boolean {
+    return block.kind === 'table' && block.id === 'asset-fund-holdings'
+      ? this.detailState().fundHoldingsLoading
+      : false;
+  }
+
+  openFundFromHoldings(event: { row: InvestorDetailTableRow; rowIndex: number }): void {
+    const row = event.row;
+    const fundKey = row['fundKey'];
+    if (typeof fundKey !== 'number' || !Number.isFinite(fundKey) || fundKey <= 0) {
+      return;
+    }
+
+    const fundName = typeof row['fund'] === 'string' ? row['fund'] : '—';
+    const strategy = typeof row['strategy'] === 'string' ? row['strategy'] : null;
+    const fundType = typeof row['fundType'] === 'string' ? row['fundType'] : null;
+    const propertyKey = this.propertyKey();
+
+    void this.router.navigate(['/capital-dashboard/investment', fundKey], {
+      state: {
+        fundRow: fundTableRowFromFundExposure({
+          fundKey,
+          fundName,
+          commitment: 0,
+          netInvestedCapital: 0,
+          netDistributed: 0,
+          reservedUncalled: 0,
+          releasedCapital: 0,
+          fundType,
+          strategy,
+          index: event.rowIndex,
+        }),
+        ...(propertyKey != null && propertyKey > 0
+          ? {
+              returnToAsset: {
+                propertyKey,
+                propertyName: this.propertyName(),
+                assetRow: this.listRow(),
+              },
+            }
+          : {}),
+      },
+    });
   }
 
   statusChipClass(): string {

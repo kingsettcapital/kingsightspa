@@ -87,6 +87,9 @@ body[data-ks-capital-dashboard] {
   }
 
   app-investor-detail-block .inv-detail-block__fund-holdings-panel {
+    min-width: 0;
+    max-width: 100%;
+
     .cdt-table {
       width: 100%;
       border-collapse: separate;
@@ -186,6 +189,19 @@ body[data-ks-capital-dashboard] {
       font-weight: var(--cdt-table-name-weight);
       color: #1a1a1a;
       line-height: 1.35;
+      overflow-wrap: break-word;
+      word-break: normal;
+    }
+
+    .cdt-fund-cell__type {
+      display: block;
+      margin-top: 0.125rem;
+      font-size: 0.6875rem;
+      font-weight: 500;
+      color: var(--cdt-text-muted);
+      line-height: 1.25;
+      overflow-wrap: break-word;
+      word-break: normal;
     }
 
     .cdt-table__num {

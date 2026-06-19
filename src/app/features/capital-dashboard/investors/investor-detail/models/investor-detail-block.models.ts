@@ -35,6 +35,7 @@ export interface InvestorDetailTableBlock extends InvestorDetailTableConfig {
   subtitleAccent?: string;
   variant?: InvestorDetailTableVariant;
   showToolbar?: boolean;
+  rowDrillDown?: boolean;
   pagination?: InvestorDetailTablePagination;
   dateFilters?: InvestorDetailTableDateFilters;
 }

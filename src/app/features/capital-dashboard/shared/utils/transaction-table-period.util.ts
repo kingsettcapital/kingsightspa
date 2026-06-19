@@ -40,3 +40,38 @@ export function withOptionalPeriodColumn(
     ...columns.slice(index),
   ];
 }
+
+export type TransactionTableSortDir = 'asc' | 'desc';
+
+export interface TransactionTableSort {
+  sortBy: string;
+  sortDir: TransactionTableSortDir;
+}
+
+export const TRANSACTION_TABLE_DEFAULT_SORT: TransactionTableSort = {
+  sortBy: 'period',
+  sortDir: 'asc',
+};
+
+const SERVER_SORTED_TRANSACTION_TABLE_IDS = new Set([
+  'capital-activities',
+  'distributions',
+  'irrs',
+  'capital-obligations',
+  'net-assets',
+]);
+
+export function isServerSortedTransactionTable(blockId: string): boolean {
+  return SERVER_SORTED_TRANSACTION_TABLE_IDS.has(blockId);
+}
+
+export function resolveTransactionTableSort(
+  blockId: string,
+  sortState: Record<string, TransactionTableSort>,
+): TransactionTableSort | null {
+  const resolved = sortState[blockId];
+  if (resolved) {
+    return resolved;
+  }
+  return isServerSortedTransactionTable(blockId) ? TRANSACTION_TABLE_DEFAULT_SORT : null;
+}

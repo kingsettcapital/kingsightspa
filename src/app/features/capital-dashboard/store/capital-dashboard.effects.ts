@@ -35,6 +35,7 @@ import {
   mapInvestorNetAssetsToTabRows,
 } from '../shared/mappers/investor-transaction-tables.mapper';
 import { mapInvestorFundHoldingsResponse } from '../shared/mappers/investor-fund-holdings.mapper';
+import { mapAssetFundHoldingsToTabRows } from '../shared/mappers/asset-fund-holdings.mapper';
 import { mapInvestorUnderlyingInvestmentsToTabRows } from '../shared/mappers/investor-underlying-investments.mapper';
 import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
 import {
@@ -61,6 +62,7 @@ import {
   readInvestorFundHoldingsCache,
   readInvestorPeriodsCache,
   readInvestorUnfundedCommitmentsPageCache,
+  readAssetFundHoldingsCache,
   readAssetsListCacheEntry,
   readFundsListCacheEntry,
   readInvestorsListCacheEntry,
@@ -233,8 +235,6 @@ export class CapitalDashboardEffects {
             FundsApiActions.loadDetailSuccess({
               fundKey: request.fundKey,
               detail,
-              assets: [],
-              assetsHasNextPage: false,
             }),
           ),
           catchError(() =>
@@ -249,7 +249,7 @@ export class CapitalDashboardEffects {
     this.actions$.pipe(
       ofType(FundsApiActions.loadFundAssetsPage),
       switchMap(({ fundKey, page, search, replace = true }) =>
-        this.fundsApi.getFundAssetsPage(fundKey, { page, search }).pipe(
+        this.fundsApi.getFundUnderlyingAssetsPage(fundKey, { page, search }).pipe(
           map((result) => {
             const items = mapFundAssetsToTabRows(extractPagedItems(result));
             return FundsApiActions.loadFundAssetsPageSuccess({
@@ -1598,6 +1598,32 @@ export class CapitalDashboardEffects {
           ),
           catchError(() =>
             of(AssetsApiActions.loadDetailFailure({ error: 'Unable to load asset details.' })),
+          ),
+        );
+      }),
+    ),
+  );
+
+  readonly loadAssetFundHoldings$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(AssetsApiActions.loadFundHoldings),
+      withLatestFrom(this.store.select(selectAssets)),
+      switchMap(([request, assets]) => {
+        if (readAssetFundHoldingsCache(assets.cache.fundHoldingsPages, request.propertyKey)) {
+          return EMPTY;
+        }
+        return this.assetsApi.getAssetFundHoldings(request.propertyKey).pipe(
+          map((items) =>
+            AssetsApiActions.loadFundHoldingsSuccess({
+              items: mapAssetFundHoldingsToTabRows(items),
+            }),
+          ),
+          catchError(() =>
+            of(
+              AssetsApiActions.loadFundHoldingsFailure({
+                error: 'Unable to load fund holdings. Please try again.',
+              }),
+            ),
           ),
         );
       }),

@@ -1,4 +1,5 @@
-import { InvestorTransactionTableFiltersDto } from '../../../shared/models/api.models';
+import { InvestorTransactionTableFiltersDto, InvestorDetailDto, InvestorFundHoldingTabRow } from '../../../shared/models/api.models';
+import { isUnitizedFundType } from '../../../shared/utils/investment-detail-tab.util';
 import { InvestorsDetailState } from '../../../store/capital-dashboard.state';
 import {
   InvestorDetailTablePagination,
@@ -134,8 +135,40 @@ function categoryTotalCount(categoryId: InvestorTransactionCategoryId, state: In
   return categoryPagination(categoryId, state).totalCount;
 }
 
-export function buildInvestorTransactionCategories(state: InvestorsDetailState): InvestorTransactionCategory[] {
-  return [
+function readDetailFundType(fund: {
+  fund_type_name?: string | null;
+  fundTypeName?: string | null;
+  fund_type?: string | null;
+  fundType?: string | null;
+}): string {
+  const candidates = [fund.fund_type_name, fund.fundTypeName, fund.fund_type, fund.fundType];
+  for (const value of candidates) {
+    const trimmed = value?.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+  return '';
+}
+
+export function investorHasUnitizedFund(
+  detail: InvestorDetailDto | null,
+  fundHoldings: InvestorFundHoldingTabRow[],
+): boolean {
+  for (const fund of detail?.funds ?? []) {
+    if (isUnitizedFundType(readDetailFundType(fund))) {
+      return true;
+    }
+  }
+
+  return fundHoldings.some((holding) => isUnitizedFundType(holding.fundType));
+}
+
+export function buildInvestorTransactionCategories(
+  state: InvestorsDetailState,
+  showNetAssets = true,
+): InvestorTransactionCategory[] {
+  const categories: InvestorTransactionCategory[] = [
     {
       id: 'capital-activities',
       label: 'Capital Activities',
@@ -156,12 +189,17 @@ export function buildInvestorTransactionCategories(state: InvestorsDetailState):
       label: 'Capital Obligations',
       count: categoryTotalCount('capital-obligations', state),
     },
-    {
+  ];
+
+  if (showNetAssets) {
+    categories.push({
       id: 'net-assets',
       label: 'Net Asset Value',
       count: categoryTotalCount('net-assets', state),
-    },
-  ];
+    });
+  }
+
+  return categories;
 }
 
 export function hubCategoryFundCode(
@@ -189,11 +227,16 @@ export function buildInvestorTransactionHubBlock(
   categoryId: InvestorTransactionCategoryId,
   periodSummary: string,
   fundCodeOptions: InvestorTransactionFilterOption[],
+  showNetAssets = true,
 ): InvestorDetailTransactionHubBlock {
   const table = buildCategoryTable(categoryId, state, periodSummary);
   const rows = table.rows;
   const pagination = categoryPagination(categoryId, state);
   const totals = rows.length ? buildTableTotalsRow(table.columns, rows) : null;
+  const categories = buildInvestorTransactionCategories(state, showNetAssets);
+  const activeCategoryId = categories.some((category) => category.id === categoryId)
+    ? categoryId
+    : categories[0]?.id ?? 'capital-activities';
 
   return {
     kind: 'transaction-hub',
@@ -201,8 +244,8 @@ export function buildInvestorTransactionHubBlock(
     title: 'Investor Transactions',
     collapsible: true,
     defaultExpanded: true,
-    activeCategoryId: categoryId,
-    categories: buildInvestorTransactionCategories(state),
+    activeCategoryId,
+    categories,
     columns: table.columns,
     subtitle: table.subtitle,
     subtitleAccent: table.subtitleAccent,
