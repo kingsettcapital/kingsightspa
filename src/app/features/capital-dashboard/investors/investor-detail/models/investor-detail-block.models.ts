@@ -84,6 +84,12 @@ export interface InvestorDetailOverviewMiniKpi {
 
 export type InvestorOverviewHighlightTone = 'default' | 'accent' | 'info' | 'positive' | 'muted';
 
+export interface InvestorOverviewContactDetails {
+  name?: string;
+  email?: string;
+  address?: string;
+}
+
 export interface InvestorOverviewHighlightMetric {
   label: string;
   value: string;
@@ -95,6 +101,7 @@ export interface InvestorOverviewHighlightMetric {
   /** 1-based column placement for sparse bottom rows (Deal Highlights layout). */
   gridColumn?: 1 | 2 | 3 | 4;
   multiline?: boolean;
+  contactDetails?: InvestorOverviewContactDetails;
 }
 
 export interface InvestorOverviewHighlights {

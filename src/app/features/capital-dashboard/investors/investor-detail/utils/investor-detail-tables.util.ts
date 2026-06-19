@@ -28,6 +28,7 @@ import {
   InvestorDetailKpiRowBlock,
   InvestorDetailSectionBlock,
   InvestorDetailTableBlock,
+  InvestorOverviewHighlightMetric,
 } from '../models/investor-detail-block.models';
 import {
   fundMembershipFromInvestorDetail,
@@ -237,23 +238,50 @@ function isEmailLike(value: string): boolean {
   return /^[^\s@]+@[^\s@]+/.test(value.trim());
 }
 
-function resolveInvestorContactDisplay(
-  detail: InvestorDetailDto | null,
-  overview: InvestorOverviewInput,
-): { name: string; email: string } {
-  const emailFromProfile = readInvestorProfileString(
+function parseContactNameLine(value: string): { name: string; inlineEmail: string } {
+  const parts = value
+    .split('|')
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length >= 2) {
+    const emailPart = parts.find(isEmailLike) ?? '';
+    const namePart = parts.find((part) => !isEmailLike(part)) ?? parts[0];
+    return { name: namePart, inlineEmail: emailPart };
+  }
+
+  if (isEmailLike(value)) {
+    return { name: '', inlineEmail: value };
+  }
+
+  return { name: value, inlineEmail: '' };
+}
+
+function readInvestorContactEmail(detail: InvestorDetailDto | null): string {
+  return readInvestorProfileString(
     detail,
     'contact_email',
     'contactEmail',
     'ContactEmail',
+    'email',
+    'Email',
   );
+}
+
+function resolveInvestorContactDisplay(
+  detail: InvestorDetailDto | null,
+  overview: InvestorOverviewInput,
+): { name: string; email: string } {
+  const emailFromProfile = readInvestorContactEmail(detail);
 
   const fromOverview = overview.contactName?.trim();
   if (fromOverview && fromOverview !== '—') {
-    if (!emailFromProfile && isEmailLike(fromOverview)) {
-      return { name: '—', email: fromOverview };
+    const parsed = parseContactNameLine(fromOverview);
+    const email = emailFromProfile || parsed.inlineEmail;
+    if (!parsed.name && email) {
+      return { name: '—', email };
     }
-    return { name: fromOverview, email: emailFromProfile };
+    return { name: parsed.name || fromOverview, email };
   }
 
   const contact = readInvestorDetailString(detail, 'contact', 'Contact');
@@ -270,10 +298,17 @@ function resolveInvestorContactDisplay(
         email: emailFromProfile || emailLine,
       };
     }
-    if (isEmailLike(contact)) {
-      return { name: '—', email: contact };
+
+    const parsed = parseContactNameLine(contact);
+    if (parsed.inlineEmail && !parsed.name) {
+      return { name: '—', email: emailFromProfile || parsed.inlineEmail };
     }
-    return { name: contact, email: emailFromProfile };
+    if (parsed.inlineEmail || parsed.name) {
+      return {
+        name: parsed.name || contact,
+        email: emailFromProfile || parsed.inlineEmail,
+      };
+    }
   }
 
   const first = readInvestorProfileString(
@@ -290,6 +325,38 @@ function resolveInvestorContactDisplay(
   );
   const joined = [first, last].filter(Boolean).join(' ').trim();
   return { name: joined || '—', email: emailFromProfile };
+}
+
+function buildInvestorContactHighlightMetric(
+  detail: InvestorDetailDto | null,
+  overview: InvestorOverviewInput,
+  address: string,
+): InvestorOverviewHighlightMetric {
+  const contactDisplay = resolveInvestorContactDisplay(detail, overview);
+  const contactNameRaw = formatOverviewText(contactDisplay.name);
+  const contactName =
+    contactNameRaw === OVERVIEW_EMPTY || contactNameRaw === '—' ? '' : contactNameRaw;
+  const contactEmail = contactDisplay.email.trim();
+  const contactAddress = address === OVERVIEW_EMPTY ? '' : address.trim();
+  const hasName = !!contactName;
+  const hasEmail = !!contactEmail;
+  const hasAddress = !!contactAddress;
+  const hasDetails = hasName || hasEmail || hasAddress;
+
+  const contactDetails = hasDetails
+    ? {
+        ...(hasName ? { name: contactName } : {}),
+        ...(hasEmail ? { email: contactEmail } : {}),
+        ...(hasAddress ? { address: contactAddress } : {}),
+      }
+    : undefined;
+
+  return {
+    label: 'Contact',
+    value: hasName ? contactName : hasEmail ? contactEmail : OVERVIEW_EMPTY,
+    valueTone: hasDetails ? 'default' : 'muted',
+    contactDetails,
+  };
 }
 
 function resolveInvestmentFundName(
@@ -785,9 +852,7 @@ function buildInvestorOverviewBlock(
     readInvestorDetailString(detail, 'relationship', 'relationship_name', 'relationshipName', 'Relationship'),
     detail?.summary?.relationshipName,
   );
-  const contactDisplay = resolveInvestorContactDisplay(detail, overview);
-  const contactName = formatOverviewText(contactDisplay.name);
-  const contactEmail = contactDisplay.email.trim();
+  const contactHighlight = buildInvestorContactHighlightMetric(detail, overview, address);
 
   return {
     kind: 'entity-overview',
@@ -814,24 +879,9 @@ function buildInvestorOverviewBlock(
           value: relationship,
           valueTone: relationship === OVERVIEW_EMPTY ? 'muted' : 'default',
         },
-        {
-          label: 'Contact',
-          value: contactName,
-          valueTone: contactName === OVERVIEW_EMPTY ? 'muted' : 'default',
-          subtext: contactEmail || undefined,
-          subtextTone: 'info',
-          multiline: true,
-        },
+        contactHighlight,
       ],
-      bottomRow: [
-        {
-          label: 'Address',
-          value: address,
-          valueTone: address === OVERVIEW_EMPTY ? 'muted' : 'default',
-          gridColumn: 4,
-          multiline: true,
-        },
-      ],
+      bottomRow: [],
     },
   };
 }
