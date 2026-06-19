@@ -13,10 +13,10 @@ import {
 import { FundTableRow } from '../../../shared/utils/fund-list-row.util';
 import {
   InvestorDetailBlock,
-  InvestorDetailDebtFinancingBlock,
+  // InvestorDetailDebtFinancingBlock,
   InvestorDetailDocumentListBlock,
   InvestorDetailEntityOverviewBlock,
-  InvestorDetailEsgMetricsBlock,
+  // InvestorDetailEsgMetricsBlock,
   InvestorDetailFieldGridBlock,
   InvestorDetailKpiRowBlock,
   InvestorDetailSectionBlock,
@@ -86,9 +86,9 @@ export type InvestmentDetailSectionId =
   | 'performance'
   | 'assets'
   | 'fund-transactions'
-  | 'documents'
-  | 'esg-reporting'
-  | 'debt-financing';
+  | 'documents';
+  // | 'esg-reporting'
+  // | 'debt-financing';
 
 export interface InvestmentDetailKpiCards {
   totalCommitment: number;
@@ -933,35 +933,35 @@ function buildDocumentsList(detail: FundDetailDto | null): InvestorDetailDocumen
   };
 }
 
-function buildEsgMetricsBlock(): InvestorDetailEsgMetricsBlock {
-  return {
-    kind: 'esg-metrics',
-    id: 'esg-reporting',
-    title: 'ESG & Sustainability Reporting',
-    collapsible: true,
-    defaultExpanded: true,
-    cards: INVESTMENT_DETAIL_DUMMY.esg.map((card) => ({ ...card })),
-  };
-}
+// function buildEsgMetricsBlock(): InvestorDetailEsgMetricsBlock {
+//   return {
+//     kind: 'esg-metrics',
+//     id: 'esg-reporting',
+//     title: 'ESG & Sustainability Reporting',
+//     collapsible: true,
+//     defaultExpanded: true,
+//     cards: INVESTMENT_DETAIL_DUMMY.esg.map((card) => ({ ...card })),
+//   };
+// }
 
-function buildDebtFinancingBlock(): InvestorDetailDebtFinancingBlock {
-  const debt = INVESTMENT_DETAIL_DUMMY.debt;
-  return {
-    kind: 'debt-financing',
-    id: 'debt-financing',
-    title: 'Debt & Financing',
-    collapsible: true,
-    defaultExpanded: true,
-    metrics: [
-      { label: 'Total Debt Outstanding', value: formatCurrencyCompact(debt.totalDebtOutstanding) },
-      { label: 'LTV Ratio', value: formatPercentValue(debt.ltvRatio) },
-      { label: 'DSCR (avg)', value: formatMultiple(debt.dscr) },
-      { label: 'Weighted Avg Rate', value: formatPercentValue(debt.weightedAvgRate) },
-      { label: 'Fixed Rate %', value: formatPercentValue(debt.fixedRatePercent) },
-    ],
-    maturitySchedule: [...debt.maturitySchedule],
-  };
-}
+// function buildDebtFinancingBlock(): InvestorDetailDebtFinancingBlock {
+//   const debt = INVESTMENT_DETAIL_DUMMY.debt;
+//   return {
+//     kind: 'debt-financing',
+//     id: 'debt-financing',
+//     title: 'Debt & Financing',
+//     collapsible: true,
+//     defaultExpanded: true,
+//     metrics: [
+//       { label: 'Total Debt Outstanding', value: formatCurrencyCompact(debt.totalDebtOutstanding) },
+//       { label: 'LTV Ratio', value: formatPercentValue(debt.ltvRatio) },
+//       { label: 'DSCR (avg)', value: formatMultiple(debt.dscr) },
+//       { label: 'Weighted Avg Rate', value: formatPercentValue(debt.weightedAvgRate) },
+//       { label: 'Fixed Rate %', value: formatPercentValue(debt.fixedRatePercent) },
+//     ],
+//     maturitySchedule: [...debt.maturitySchedule],
+//   };
+// }
 
 export function buildBlocksForSection(
   sectionId: InvestmentDetailSectionId,
@@ -1043,10 +1043,10 @@ export function buildBlocksForSection(
       ];
     case 'documents':
       return [buildDocumentsList(detail)];
-    case 'esg-reporting':
-      return [buildEsgMetricsBlock()];
-    case 'debt-financing':
-      return [buildDebtFinancingBlock()];
+    // case 'esg-reporting':
+    //   return [buildEsgMetricsBlock()];
+    // case 'debt-financing':
+    //   return [buildDebtFinancingBlock()];
     default:
       return [];
   }

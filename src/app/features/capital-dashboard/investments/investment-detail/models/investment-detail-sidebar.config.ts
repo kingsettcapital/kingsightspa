@@ -17,11 +17,11 @@ export const INVESTMENT_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] 
       { id: 'documents', label: 'Documents' },
     ],
   },
-  {
-    title: 'Views',
-    items: [
-      { id: 'esg-reporting', label: 'ESG & Reporting' },
-      { id: 'debt-financing', label: 'Debt & Financing' },
-    ],
-  },
+  // {
+  //   title: 'Views',
+  //   items: [
+  //     { id: 'esg-reporting', label: 'ESG & Reporting' },
+  //     { id: 'debt-financing', label: 'Debt & Financing' },
+  //   ],
+  // },
 ];
