@@ -1,5 +1,33 @@
 :host {
   display: block;
+
+  .cdt-dashboard-table-wrap--full:not(.cdt-dashboard-table-wrap--overlay) {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .cdt-dashboard-table-wrap--full .cdt-dashboard-table {
+    display: table;
+    height: auto;
+
+    thead,
+    tbody,
+    tfoot {
+      display: table-row-group;
+    }
+
+    thead {
+      display: table-header-group;
+    }
+
+    tbody {
+      overflow: visible;
+    }
+
+    tbody tr {
+      display: table-row;
+    }
+  }
 }
 
 .cdt-dashboard-table-card {

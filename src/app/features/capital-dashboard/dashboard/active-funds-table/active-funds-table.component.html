@@ -34,7 +34,7 @@
 
   <div class="cdt-dashboard-table-card__body">
     <div
-      class="cdt-dashboard-table-wrap"
+      class="cdt-dashboard-table-wrap cdt-dashboard-table-wrap--full"
       [class.cdt-dashboard-table-wrap--overlay]="loading() || error() || !rows().length"
     >
       <table class="cdt-dashboard-table">
@@ -104,52 +104,4 @@
       }
     </div>
   </div>
-
-  @if (!loading() && !error() && totalCount() > 0) {
-    <footer class="cdt-pagination cdt-dashboard-table-card__pagination cdt-dashboard-table-card__pagination--sticky">
-      <p class="cdt-pagination__summary">
-        Showing
-        <strong>{{ showingFrom() }}-{{ showingTo() }}</strong>
-        of
-        <strong>{{ totalCount() }}</strong>
-      </p>
-      <nav class="cdt-pagination__nav" aria-label="Active funds pagination">
-        <button
-          type="button"
-          class="cdt-pagination__arrow"
-          [disabled]="currentPage() <= 1"
-          (click)="goToPage(currentPage() - 1)"
-          aria-label="Previous page"
-        >
-          <mat-icon aria-hidden="true">chevron_left</mat-icon>
-        </button>
-        @for (page of pageNumbers(); track page) {
-          <button
-            type="button"
-            class="cdt-pagination__page"
-            [class.cdt-pagination__page--active]="page === currentPage()"
-            (click)="goToPage(page)"
-          >
-            {{ page }}
-          </button>
-        }
-        <button
-          type="button"
-          class="cdt-pagination__arrow"
-          [disabled]="currentPage() >= totalPages()"
-          (click)="goToPage(currentPage() + 1)"
-          aria-label="Next page"
-        >
-          <mat-icon aria-hidden="true">chevron_right</mat-icon>
-        </button>
-      </nav>
-    </footer>
-  }
-
-  <footer class="cdt-dashboard-table-card__footer">
-    <a class="cdt-dashboard-table-card__footer-link" routerLink="../investment">
-      View All Investments
-      <mat-icon aria-hidden="true">chevron_right</mat-icon>
-    </a>
-  </footer>
 </section>
