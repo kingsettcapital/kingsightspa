@@ -901,7 +901,7 @@ export function buildCapitalInvestmentsTable(
 
   return tableBlock({
     id: 'underlying-investments',
-    title: 'Underlying Assets',
+    title: 'Asset Holdings',
     subtitle,
     columns,
     rows: tableRows,

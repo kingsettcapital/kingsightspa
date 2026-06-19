@@ -241,7 +241,7 @@ export class InvestorDetailBlockComponent {
       return 'Loading fund holdings…';
     }
     if (this.isUnderlyingInvestmentsVariant()) {
-      return 'Loading underlying assets…';
+      return 'Loading asset holdings…';
     }
     return 'Loading…';
   }
@@ -288,7 +288,7 @@ export class InvestorDetailBlockComponent {
       return 'No fund holdings found for the selected date range.';
     }
     if (this.isUnderlyingInvestmentsVariant()) {
-      return 'No underlying assets found.';
+      return 'No asset holdings found.';
     }
     if (this.isTransactionHubBlock()) {
       if (this.tableSearchActive() || this.searchQuery().trim()) {

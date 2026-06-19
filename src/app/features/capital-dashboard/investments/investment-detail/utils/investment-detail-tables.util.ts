@@ -622,7 +622,7 @@ function mapAssetsTable(
   return {
     kind: 'table',
     id: 'underlying-assets',
-    title: 'Underlying Assets',
+    title: 'Asset Holdings',
     subtitle: totalCount > 0 ? `${totalCount} asset${totalCount === 1 ? '' : 's'}` : undefined,
     columns,
     rows,
