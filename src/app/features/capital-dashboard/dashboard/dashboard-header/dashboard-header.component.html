@@ -1,12 +1,12 @@
 <header class="cdt-dashboard-header">
   <div class="cdt-dashboard-header__heading">
     <h1 class="cdt-dashboard-header__title">Dashboard</h1>
-    <p class="cdt-dashboard-header__subtitle">
-      Portfolio overview · Last updated {{ lastUpdated() }}
-    </p>
+  <p class="cdt-dashboard-header__subtitle">
+    Portfolio overview · Last updated {{ lastUpdated() }}
+  </p>
   </div>
 
-  <button
+  <!-- <button
     type="button"
     class="cdt-dashboard-header__manage"
     [class.cdt-dashboard-header__manage--active]="managePanelOpen()"
@@ -16,5 +16,5 @@
   >
     <mat-icon aria-hidden="true">add</mat-icon>
     Manage Widgets ({{ visibleWidgets() }}/{{ totalWidgets() }})
-  </button>
+  </button> -->
 </header>

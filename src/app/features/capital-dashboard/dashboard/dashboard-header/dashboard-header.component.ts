@@ -11,7 +11,7 @@ import { DASHBOARD_WIDGET_MAX } from '../dashboard-widgets.model';
   styleUrl: './dashboard-header.component.scss',
 })
 export class DashboardHeaderComponent {
-  readonly lastUpdated = input('Dec 15, 2024');
+  readonly lastUpdated = input('—');
   readonly visibleWidgets = input(0);
   readonly totalWidgets = input(DASHBOARD_WIDGET_MAX);
   readonly managePanelOpen = input(false);

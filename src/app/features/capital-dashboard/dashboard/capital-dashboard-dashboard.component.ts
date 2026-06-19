@@ -7,8 +7,8 @@ import {
   DashboardWidgetOptionDto,
 } from '../shared/models/api.models';
 import { CapitalDashboardApiService } from '../shared/services/capital-dashboard-api.service';
-import { ActiveAssetsTableComponent } from './active-assets-table/active-assets-table.component';
 import { ActiveFundsTableComponent } from './active-funds-table/active-funds-table.component';
+// import { ActiveAssetsTableComponent } from './active-assets-table/active-assets-table.component';
 import { AssetAllocationChartComponent } from './asset-allocation-chart/asset-allocation-chart.component';
 import { DashboardHeaderComponent } from './dashboard-header/dashboard-header.component';
 import { DashboardMetricWidgetComponent } from './dashboard-metric-widget/dashboard-metric-widget.component';
@@ -17,6 +17,7 @@ import {
   DASHBOARD_API_TO_WIDGET_ID,
   DASHBOARD_WIDGET_TO_API_ID,
   formatDashboardMetric,
+  formatDashboardLastUpdated,
   toApiWidgetsParam,
 } from './dashboard-widget-api.util';
 import {
@@ -30,7 +31,6 @@ import {
 } from './dashboard-widgets.model';
 import { GeographicDistributionChartComponent } from './geographic-distribution-chart/geographic-distribution-chart.component';
 import { InvestorGrowthChartComponent } from './investor-growth-chart/investor-growth-chart.component';
-import { ManageWidgetsPanelComponent } from './manage-widgets-panel/manage-widgets-panel.component';
 import { PortfolioPerformanceChartComponent } from './portfolio-performance-chart/portfolio-performance-chart.component';
 import { PortfolioValueWidgetComponent } from './portfolio-value-widget/portfolio-value-widget.component';
 import { QuarterlyReturnsChartComponent } from './quarterly-returns-chart/quarterly-returns-chart.component';
@@ -42,7 +42,6 @@ import { YtdReturnsWidgetComponent } from './ytd-returns-widget/ytd-returns-widg
   standalone: true,
   imports: [
     DashboardHeaderComponent,
-    ManageWidgetsPanelComponent,
     DashboardWidgetShellComponent,
     PortfolioPerformanceChartComponent,
     AssetAllocationChartComponent,
@@ -54,7 +53,6 @@ import { YtdReturnsWidgetComponent } from './ytd-returns-widget/ytd-returns-widg
     InvestorGrowthChartComponent,
     GeographicDistributionChartComponent,
     ActiveFundsTableComponent,
-    ActiveAssetsTableComponent,
   ],
   templateUrl: './capital-dashboard-dashboard.component.html',
   styleUrl: './capital-dashboard-dashboard.component.scss',
@@ -68,6 +66,7 @@ export class CapitalDashboardDashboardComponent {
   readonly selectedWidgetIds = signal<DashboardWidgetId[]>([...DEFAULT_DASHBOARD_WIDGETS]);
   readonly widgetOptions = signal<DashboardWidgetOptionDto[]>([]);
   readonly widgetData = signal<DashboardWidgetsDataDto | null>(null);
+  readonly dashboardLastUpdated = signal('—');
   readonly widgetsLoading = signal(true);
   readonly widgetsError = signal<string | null>(null);
 
@@ -166,6 +165,7 @@ export class CapitalDashboardDashboardComponent {
       )
       .subscribe((response) => {
         this.widgetData.set(response?.widgets ?? null);
+        this.dashboardLastUpdated.set(formatDashboardLastUpdated(response?.lastUpdated));
       });
   }
 

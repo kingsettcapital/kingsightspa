@@ -1,20 +1,15 @@
-import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { catchError, of } from 'rxjs';
 
 import { FundsListQueryParams } from '../../shared/models/api.models';
 import { CapitalFundsApiService } from '../../shared/services/capital-funds-api.service';
-import {
-  EMPTY_FUNDS_FILTER_OPTIONS,
-  FundsFilterOptions,
-  normalizeFundsFilterOptions,
-} from '../../shared/utils/fund-filter-options.util';
 import { mapFundListItemToActiveFundRow } from '../dashboard-active-table.util';
-import { ActiveFundRow, DashboardPeriod } from '../dashboard.mock-data';
+import { ActiveFundRow } from '../dashboard.mock-data';
 
-const DASHBOARD_FUNDS_PAGE_SIZE = 5;
+const DASHBOARD_FUNDS_PAGE_SIZE = 10;
+const VISIBLE_PAGE_BUTTON_COUNT = 5;
 
 @Component({
   selector: 'app-active-funds-table',
@@ -25,39 +20,61 @@ const DASHBOARD_FUNDS_PAGE_SIZE = 5;
 })
 export class ActiveFundsTableComponent {
   private readonly fundsApi = inject(CapitalFundsApiService);
-  private readonly destroyRef = inject(DestroyRef);
 
   readonly rows = signal<ActiveFundRow[]>([]);
   readonly totalCount = signal(0);
+  readonly totalPages = signal(1);
+  readonly currentPage = signal(1);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  readonly period = signal<DashboardPeriod>('ltd');
-  readonly filterOptions = signal<FundsFilterOptions>(EMPTY_FUNDS_FILTER_OPTIONS);
 
   readonly subtitleText = computed(() => {
     const count = this.totalCount();
     return `${count} fund${count === 1 ? '' : 's'} under management`;
   });
 
-  constructor() {
-    this.fundsApi
-      .getFilterOptions()
-      .pipe(
-        catchError(() => of(null)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((response) => {
-        this.filterOptions.set(normalizeFundsFilterOptions(response));
-      });
+  readonly pageNumbers = computed(() => {
+    const totalPages = this.totalPages();
+    const currentPage = this.currentPage();
 
+    if (totalPages <= VISIBLE_PAGE_BUTTON_COUNT) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    let start = Math.max(1, currentPage - 1);
+    if (start + VISIBLE_PAGE_BUTTON_COUNT - 1 > totalPages) {
+      start = totalPages - VISIBLE_PAGE_BUTTON_COUNT + 1;
+    }
+
+    return Array.from({ length: VISIBLE_PAGE_BUTTON_COUNT }, (_, index) => start + index);
+  });
+
+  readonly showingFrom = computed(() =>
+    this.totalCount() === 0 ? 0 : (this.currentPage() - 1) * DASHBOARD_FUNDS_PAGE_SIZE + 1,
+  );
+
+  readonly showingTo = computed(() =>
+    Math.min(this.currentPage() * DASHBOARD_FUNDS_PAGE_SIZE, this.totalCount()),
+  );
+
+  constructor() {
     this.loadFunds();
   }
 
-  setPeriod(value: DashboardPeriod): void {
-    if (this.period() === value) {
+  // setPeriod(value: DashboardPeriod): void {
+  //   if (this.period() === value) {
+  //     return;
+  //   }
+  //   this.period.set(value);
+  //   this.currentPage.set(1);
+  //   this.loadFunds();
+  // }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages() || page === this.currentPage()) {
       return;
     }
-    this.period.set(value);
+    this.currentPage.set(page);
     this.loadFunds();
   }
 
@@ -70,18 +87,10 @@ export class ActiveFundsTableComponent {
     this.error.set(null);
 
     const params: FundsListQueryParams = {
-      view: this.period(),
-      page: 1,
+      view: 'ltd',
+      page: this.currentPage(),
       pageSize: DASHBOARD_FUNDS_PAGE_SIZE,
     };
-
-    if (this.period() === 'quarterly') {
-      const latestPeriod = this.filterOptions().quarterlyPeriods[0];
-      const dateKey = latestPeriod?.dateKey;
-      if (dateKey != null) {
-        params.dateKey = dateKey;
-      }
-    }
 
     this.fundsApi
       .getFunds(params)
@@ -90,19 +99,25 @@ export class ActiveFundsTableComponent {
           this.error.set('Unable to load active funds.');
           return of(null);
         }),
-        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((response) => {
         this.loading.set(false);
         if (!response) {
           this.rows.set([]);
           this.totalCount.set(0);
+          this.totalPages.set(1);
           return;
         }
 
         const items = response.items ?? [];
-        this.rows.set(items.map((item, index) => mapFundListItemToActiveFundRow(item, index)));
+        const page = response.page ?? this.currentPage();
+        const pageOffset = (page - 1) * DASHBOARD_FUNDS_PAGE_SIZE;
+        this.rows.set(
+          items.map((item, index) => mapFundListItemToActiveFundRow(item, pageOffset + index)),
+        );
         this.totalCount.set(response.totalCount ?? items.length);
+        this.totalPages.set(Math.max(1, response.totalPages ?? 1));
+        this.currentPage.set(page);
       });
   }
 }

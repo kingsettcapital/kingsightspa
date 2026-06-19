@@ -1,12 +1,7 @@
 <section class="cdt-dashboard" aria-label="Dashboard">
-  <app-dashboard-header
-    [visibleWidgets]="visibleWidgetCount()"
-    [totalWidgets]="maxWidgets"
-    [managePanelOpen]="managePanelOpen()"
-    (manageWidgetsToggle)="toggleManagePanel()"
-  />
+  <app-dashboard-header [lastUpdated]="dashboardLastUpdated()" />
 
-  @if (managePanelOpen()) {
+  <!-- @if (managePanelOpen()) {
     <app-manage-widgets-panel
       id="cdt-manage-widgets-panel"
       [widgets]="availableWidgets()"
@@ -14,7 +9,7 @@
       [maxSelection]="maxWidgets"
       (selectionChange)="updateSelectedWidgets($event)"
     />
-  }
+  } -->
 
   @if (widgetsError()) {
     <p class="cdt-dashboard__error" role="alert">{{ widgetsError() }}</p>
@@ -91,6 +86,6 @@
 
   <div class="cdt-dashboard__tables">
     <app-active-funds-table />
-    <app-active-assets-table />
+    <!-- <app-active-assets-table /> -->
   </div>
 </section>

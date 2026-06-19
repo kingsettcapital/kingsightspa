@@ -37,9 +37,8 @@ export const DASHBOARD_WIDGETS: DashboardWidgetDefinition[] = [
 
 export const DEFAULT_DASHBOARD_WIDGETS: DashboardWidgetId[] = [
   'portfolio-value',
-  'performance-chart',
   'asset-allocation',
-  'fund-returns',
+  'geographic-distribution',
 ];
 
 export function sortWidgetIds(ids: DashboardWidgetId[]): DashboardWidgetId[] {

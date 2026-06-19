@@ -87,3 +87,21 @@ export function formatDashboardMetric(dto: DashboardMetricWidgetDto): DashboardM
     hint: dto.subtitle?.trim() || '',
   };
 }
+
+export function formatDashboardLastUpdated(value: string | null | undefined): string {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return '—';
+  }
+
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return trimmed;
+  }
+
+  return parsed.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}

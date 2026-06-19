@@ -1,12 +1,12 @@
 <section class="cdt-dashboard-table-card" aria-label="Active Funds">
-  <header class="cdt-dashboard-table-card__header">
+  <header class="cdt-dashboard-table-card__header cdt-dashboard-table-card__header--sticky">
     <div class="cdt-dashboard-table-card__heading">
       <h2 class="cdt-dashboard-table-card__title">Active Funds</h2>
       <p class="cdt-dashboard-table-card__subtitle">{{ subtitleText() }}</p>
     </div>
 
     <div class="cdt-dashboard-table-card__actions">
-      <div class="cdt-toggle" role="group" aria-label="Reporting period">
+      <!-- <div class="cdt-toggle" role="group" aria-label="Reporting period">
         <button
           type="button"
           class="cdt-toggle__btn"
@@ -23,7 +23,7 @@
         >
           Quarterly
         </button>
-      </div>
+      </div> -->
 
       <a class="cdt-dashboard-table-card__more" routerLink="../investment">
         More
@@ -104,6 +104,47 @@
       }
     </div>
   </div>
+
+  @if (!loading() && !error() && totalCount() > 0) {
+    <footer class="cdt-pagination cdt-dashboard-table-card__pagination cdt-dashboard-table-card__pagination--sticky">
+      <p class="cdt-pagination__summary">
+        Showing
+        <strong>{{ showingFrom() }}-{{ showingTo() }}</strong>
+        of
+        <strong>{{ totalCount() }}</strong>
+      </p>
+      <nav class="cdt-pagination__nav" aria-label="Active funds pagination">
+        <button
+          type="button"
+          class="cdt-pagination__arrow"
+          [disabled]="currentPage() <= 1"
+          (click)="goToPage(currentPage() - 1)"
+          aria-label="Previous page"
+        >
+          <mat-icon aria-hidden="true">chevron_left</mat-icon>
+        </button>
+        @for (page of pageNumbers(); track page) {
+          <button
+            type="button"
+            class="cdt-pagination__page"
+            [class.cdt-pagination__page--active]="page === currentPage()"
+            (click)="goToPage(page)"
+          >
+            {{ page }}
+          </button>
+        }
+        <button
+          type="button"
+          class="cdt-pagination__arrow"
+          [disabled]="currentPage() >= totalPages()"
+          (click)="goToPage(currentPage() + 1)"
+          aria-label="Next page"
+        >
+          <mat-icon aria-hidden="true">chevron_right</mat-icon>
+        </button>
+      </nav>
+    </footer>
+  }
 
   <footer class="cdt-dashboard-table-card__footer">
     <a class="cdt-dashboard-table-card__footer-link" routerLink="../investment">
