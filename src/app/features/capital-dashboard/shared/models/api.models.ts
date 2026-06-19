@@ -775,10 +775,8 @@ export interface InvestorCapitalObligationDto {
   period?: string | null;
   commitment_amount?: number | null;
   commitmentAmount?: number | null;
-  net_invested_capital_amount?: number | null;
-  netInvestedCapitalAmount?: number | null;
-  net_distributed_amount?: number | null;
-  netDistributedAmount?: number | null;
+  unfunded_amount?: number | null;
+  unfundedAmount?: number | null;
   reserved_amount?: number | null;
   reservedAmount?: number | null;
   released_capital_amount?: number | null;
@@ -791,8 +789,7 @@ export interface InvestorCapitalObligationTabRow {
   fundName: string;
   period: string;
   commitment: number;
-  netInvestedCapital: number;
-  netDistributed: number;
+  unfundedAmount: number;
   reserved: number;
   releasedCapital: number;
 }
@@ -940,10 +937,8 @@ export interface FundInvestorCapitalObligationDto {
   period?: string | null;
   commitment_amount?: number | null;
   commitmentAmount?: number | null;
-  net_invested_capital_amount?: number | null;
-  netInvestedCapitalAmount?: number | null;
-  net_distributed_amount?: number | null;
-  netDistributedAmount?: number | null;
+  unfunded_amount?: number | null;
+  unfundedAmount?: number | null;
   reserved_amount?: number | null;
   reservedAmount?: number | null;
   released_capital_amount?: number | null;
@@ -955,8 +950,7 @@ export interface FundInvestorCapitalObligationTabRow {
   investorName: string;
   period: string;
   commitment: number;
-  netInvestedCapital: number;
-  netDistributed: number;
+  unfundedAmount: number;
   reserved: number;
   releasedCapital: number;
 }

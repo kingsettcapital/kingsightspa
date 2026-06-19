@@ -761,8 +761,7 @@ function capitalObligationRowsToTableRows(
     investorName: row.investorName,
     period: row.period,
     commitment: row.commitment,
-    netInvestedCapital: row.netInvestedCapital,
-    netDistributed: row.netDistributed,
+    unfundedAmount: row.unfundedAmount,
     reserved: row.reserved,
     releasedCapital: row.releasedCapital,
   }));
@@ -860,19 +859,12 @@ export function buildIrrsTable(rows: FundInvestorIrrTabRow[], periodLabel: strin
 const CAPITAL_OBLIGATION_AMOUNT_COLUMNS: InvestorDetailTableColumn[] = [
   { key: 'commitment', label: 'Commitment', type: 'amount', align: 'right', sortBy: 'commitment_amount' },
   {
-    key: 'netInvestedCapital',
-    label: 'Net Invested Capital',
+    key: 'unfundedAmount',
+    label: 'Unfunded Amount',
     type: 'amount',
     align: 'right',
-    sortBy: 'net_invested_capital_amount',
-  },
-  {
-    key: 'netDistributed',
-    label: 'Net Distributed',
-    type: 'amount',
-    align: 'right',
-    tone: 'positive',
-    sortBy: 'net_distributed_amount',
+    tone: 'warning',
+    sortBy: 'unfunded_amount',
   },
   { key: 'reserved', label: 'Reserved', type: 'amount', align: 'right', sortBy: 'reserved_amount' },
   {

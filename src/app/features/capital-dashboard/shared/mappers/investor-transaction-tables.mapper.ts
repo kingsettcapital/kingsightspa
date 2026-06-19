@@ -106,8 +106,7 @@ export function mapInvestorCapitalObligationsToTabRows(
       fundName: name(dto.fund_name, dto.fundName),
       period: periodFromDto(dto),
       commitment: num(dto.commitment_amount ?? dto.commitmentAmount),
-      netInvestedCapital: num(dto.net_invested_capital_amount ?? dto.netInvestedCapitalAmount),
-      netDistributed: num(dto.net_distributed_amount ?? dto.netDistributedAmount),
+      unfundedAmount: num(dto.unfunded_amount ?? dto.unfundedAmount),
       reserved: num(dto.reserved_amount ?? dto.reservedAmount),
       releasedCapital: num(dto.released_capital_amount ?? dto.releasedCapitalAmount),
     };
