@@ -2,6 +2,20 @@ import { Routes } from '@angular/router';
 
 export const MORTGAGE_ROUTES: Routes = [
   {
+    path: 'management-summary',
+    loadComponent: () =>
+      import('../../pages/management-summary/management-summary.component').then(
+        (m) => m.ManagementSummaryComponent,
+      ),
+  },
+  {
+    path: 'management-summary/:loanAliasKey/loan-detail',
+    loadComponent: () =>
+      import('../../pages/loan-detail-report/loan-detail-report.component').then(
+        (m) => m.LoanDetailReportComponent,
+      ),
+  },
+  {
     path: 'ranking',
     loadComponent: () =>
       import('../../pages/ranking/ranking.component').then((m) => m.RankingComponent),
