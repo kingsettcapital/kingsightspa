@@ -47,7 +47,6 @@ import {
   imports: [
     RouterModule,
     MatIconModule,
-    KsCurrencyPipe,
     InvestorDetailSidebarComponent,
     InvestorDetailBlockComponent,
   ],

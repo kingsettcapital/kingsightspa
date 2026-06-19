@@ -19,7 +19,7 @@ import {
   MsalService,
 } from '@azure/msal-angular';
 
-import { APP_API_CONFIG } from './core/constants/api.config';
+import { APP_API_CONFIG, normalizeApiBaseUrl } from './core/constants/api.config';
 import { provideAppStore } from './core/store/app.store';
 import { msalProviders } from './core/factories/msal.factory';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
@@ -55,7 +55,7 @@ export const appConfig: ApplicationConfig = {
     {
       provide: APP_API_CONFIG,
       useValue: {
-        baseUrl: environment.apiUrl,
+        baseUrl: normalizeApiBaseUrl(environment.apiUrl),
         cmhcUploadedByUserId: '00000000-0000-0000-0000-000000000000',
       },
     },

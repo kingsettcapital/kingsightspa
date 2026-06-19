@@ -1,0 +1,311 @@
+<section class="tax-arrears-page">
+  <h1>Capture Tax Arrears from Quarter Tax Memo</h1>
+  <p class="subtitle">
+    All loan aliases load by default. Search to narrow the grid, or select tags to filter. Edit tax memo
+    details in the grid, or add a new record for a specific loan.
+  </p>
+
+  <div class="filters-row">
+    <div class="filter-panel alias-panel">
+      <span class="filter-label">Loan Alias</span>
+      <div class="search-input-wrap">
+        <input
+          type="text"
+          [value]="searchText()"
+          (input)="updateSearch($any($event.target).value)"
+          placeholder="Search and add loan aliases"
+        />
+      </div>
+
+      @if (searchedAliasOptions().length > 0) {
+        <ul class="search-results">
+          @for (alias of searchedAliasOptions(); track alias.loanAliasId) {
+            <li>
+              <button type="button" (click)="selectAlias(alias)">{{ alias.loanAliasName }}</button>
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="selected-alias-tags">
+        @for (selected of selectedAliases(); track selected.loanAliasId) {
+          <button type="button" class="alias-tag" (click)="removeSelectedAlias(selected.loanAliasId)">
+            <span>{{ selected.loanAliasName }}</span>
+            <span class="tag-close">x</span>
+          </button>
+        }
+      </div>
+
+      @if (selectedAliases().length > 0) {
+        <button type="button" class="link-clear" (click)="clearAliasSelection()">Clear aliases</button>
+      }
+    </div>
+
+    <div class="filter-panel status-panel">
+      <span class="filter-label">Status</span>
+      <div class="status-options">
+        @for (status of statusOptions(); track status.value) {
+          <label class="status-option">
+            <input
+              type="checkbox"
+              [checked]="isStatusSelected(status.value)"
+              (change)="toggleStatus(status.value)"
+            />
+            <span>{{ status.displayLabel }}</span>
+          </label>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (isLoadingFilters()) {
+    <p class="meta-message">Loading filters...</p>
+  }
+  @if (errorMessage() && !isSaving() && !showAddDialog()) {
+    <p class="error-message">{{ errorMessage() }}</p>
+  }
+  @if (isLoadingGrid()) {
+    <p class="meta-message">Loading loan syndicate details...</p>
+  } @else if (statusMessage() && !errorMessage()) {
+    <p class="status-message">{{ statusMessage() }}</p>
+  }
+
+  <h2 class="table-title">Loan Syndicate Details</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="hidden-column">Tax Arrear Key</th>
+          <th class="hidden-column">Loan Key</th>
+          <th>Loan ID</th>
+          <th>Description</th>
+          <th>Loan Alias</th>
+          <th>Tax Memo Date</th>
+          <th class="numeric-col">Tax Arrears</th>
+          <th>Tax Year</th>
+          <th>Notes</th>
+          <th>Date of DWH Update</th>
+          <th>Updated By</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of paginatedRows(); track rowTrackId(row)) {
+          <tr>
+            <td class="hidden-column">{{ row.taxArrearKey }}</td>
+            <td class="hidden-column">{{ row.loanKey }}</td>
+            <td>{{ row.loanId }}</td>
+            <td>{{ row.description }}</td>
+            <td>{{ row.loanAliasName }}</td>
+            <td>
+              <input
+                type="date"
+                class="date-input"
+                [value]="row.taxMemoDate"
+                (input)="updateTaxMemoDate(rowTrackId(row), $any($event.target).value)"
+              />
+            </td>
+            <td class="numeric-col">
+              <input
+                type="number"
+                class="value-input"
+                [value]="formatCurrency(row.taxArrears)"
+                (input)="updateTaxArrears(rowTrackId(row), $any($event.target).value)"
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+              />
+            </td>
+            <td>
+              <select
+                class="select-input"
+                (change)="updateTaxYear(rowTrackId(row), $any($event.target).value)"
+              >
+                <option value="" [selected]="!row.taxYear">—</option>
+                @for (year of taxYearOptions(); track year) {
+                  <option [value]="year" [selected]="row.taxYear === year">{{ year }}</option>
+                }
+              </select>
+            </td>
+            <td>
+              <input
+                type="text"
+                class="text-input"
+                [value]="row.notes"
+                (input)="updateNotes(rowTrackId(row), $any($event.target).value)"
+                placeholder="Notes"
+              />
+            </td>
+            <td class="date-readonly">{{ formatDisplayDate(row.userUpdatedDate) }}</td>
+            <td>{{ row.userUpdatedBy }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="11" class="empty-row">No tax arrears records loaded for the selected filters.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <div class="pagination-left">
+      <label for="taxArrearsPageSize">Rows per page</label>
+      <select
+        id="taxArrearsPageSize"
+        [value]="pageSize()"
+        (change)="updatePageSize($any($event.target).value)"
+      >
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+    <div class="pagination-right">
+      <span class="page-range">{{ pageRangeLabel() }}</span>
+      <button type="button" class="pager-btn" (click)="goToPreviousPage()" [disabled]="currentPage() <= 1">
+        Prev
+      </button>
+      <span class="page-index">Page {{ currentPage() }} / {{ totalPages() }}</span>
+      <button
+        type="button"
+        class="pager-btn"
+        (click)="goToNextPage()"
+        [disabled]="currentPage() >= totalPages()"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn-add" (click)="openAddDialog()">Add New Record</button>
+    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
+      @if (isSaving()) { Saving… } @else { Save Changes }
+    </button>
+  </div>
+
+  <p class="footnote">
+    Information provided in this table is stored in the data warehouse and used in calculations and loan reporting.
+  </p>
+</section>
+
+@if (showAddDialog()) {
+  <div class="ta-overlay" (click)="closeAddDialog()" role="presentation">
+    <div
+      class="ta-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dlg-add-tax-arrears-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="ta-dialog-header">
+        <h2 id="dlg-add-tax-arrears-title">Add A New Record</h2>
+        <button type="button" class="dlg-close" (click)="closeAddDialog()" aria-label="Close">×</button>
+      </div>
+
+      <div class="ta-dialog-body">
+        <div class="form-field">
+          <label for="newLoanAlias">Loan Alias</label>
+          <select
+            id="newLoanAlias"
+            [value]="newRecord().loanAliasId ?? ''"
+            (change)="updateNewRecordAlias($any($event.target).value)"
+          >
+            <option value="">Select loan alias</option>
+            @for (alias of aliasOptions(); track alias.loanAliasId) {
+              <option [value]="alias.loanAliasId">{{ alias.loanAliasName }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="newLoan">Loan</label>
+          <select
+            id="newLoan"
+            [value]="newRecord().loanKey ?? ''"
+            (change)="updateNewRecordLoan($any($event.target).value)"
+            [disabled]="!newRecord().loanAliasId"
+          >
+            <option value="">Select loan</option>
+            @for (loan of modalLoanOptions(); track loan.loanKey) {
+              <option [value]="loan.loanKey">{{ loan.loanId }} — {{ loan.description }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Loan ID</label>
+            <div class="readonly-field">{{ modalLoanPreview().loanId }}</div>
+          </div>
+          <div class="form-field">
+            <label>Description</label>
+            <div class="readonly-field">{{ modalLoanPreview().description }}</div>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="newTaxMemoDate">Tax Memo Date</label>
+            <input
+              id="newTaxMemoDate"
+              type="date"
+              [value]="newRecord().taxMemoDate"
+              (input)="updateNewRecordField('taxMemoDate', $any($event.target).value)"
+            />
+          </div>
+          <div class="form-field">
+            <label for="newTaxYear">Tax Year</label>
+            <select
+              id="newTaxYear"
+              [value]="newRecord().taxYear"
+              (change)="updateNewRecordField('taxYear', $any($event.target).value)"
+            >
+              @for (year of taxYearOptions(); track year) {
+                <option [value]="year">{{ year }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="newTaxArrears">Tax Arrears</label>
+          <input
+            id="newTaxArrears"
+            type="number"
+            [value]="newRecord().taxArrears"
+            (input)="updateNewRecordField('taxArrears', $any($event.target).value)"
+            placeholder="0.00"
+            step="0.01"
+            min="0"
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="newNotes">Notes</label>
+          <textarea
+            id="newNotes"
+            [value]="newRecord().notes"
+            (input)="updateNewRecordField('notes', $any($event.target).value)"
+            placeholder="Optional notes"
+          ></textarea>
+        </div>
+
+        @if (dialogError()) {
+          <p class="dialog-error">{{ dialogError() }}</p>
+        }
+      </div>
+
+      <div class="ta-dialog-footer">
+        <button type="button" class="btn-outline" (click)="closeAddDialog()" [disabled]="isCreating()">
+          Cancel
+        </button>
+        <button type="button" class="btn-save" (click)="createRecord()" [disabled]="isCreating()">
+          @if (isCreating()) { Saving… } @else { Save Record }
+        </button>
+      </div>
+    </div>
+  </div>
+}

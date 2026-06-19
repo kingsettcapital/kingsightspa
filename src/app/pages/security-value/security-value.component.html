@@ -1,0 +1,198 @@
+<section class="security-value-page">
+  <h1>Security Value</h1>
+  <p class="subtitle">
+    All loan aliases load by default. Search to narrow the grid, or select tags to filter.
+  </p>
+
+  <div class="filters-row">
+    <div class="search-panel">
+    <label for="loanAliasSearch">Loan Alias</label>
+    <div class="search-input-wrap">
+      <span class="search-icon" aria-hidden="true"></span>
+      <input
+        id="loanAliasSearch"
+        type="text"
+        [value]="searchText()"
+        (input)="updateSearch($any($event.target).value)"
+        placeholder="Search by Loan Alias Name"
+      />
+    </div>
+
+    @if (searchedAliasOptions().length > 0) {
+      <ul class="search-results">
+        @for (row of searchedAliasOptions(); track row.loanAliasId) {
+          <li>
+            <button type="button" (click)="selectAlias(row)">
+              <span>{{ row.loanAliasName }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+
+    <div class="selected-alias-tags">
+      @for (selected of selectedAliases(); track selected.loanAliasId) {
+        <button
+          type="button"
+          class="alias-tag"
+          (click)="removeSelectedAlias(selected.loanAliasId)"
+        >
+          <span>{{ selected.loanAliasName }}</span>
+          <span class="tag-close">x</span>
+        </button>
+      }
+    </div>
+
+    @if (isLoadingAliases() || isLoadingStatuses()) {
+      <p class="meta-message">Loading filters...</p>
+    }
+    </div>
+
+    <div class="status-panel">
+      <span class="filter-label">Status</span>
+      <div class="status-options">
+        @if (statusOptions().length === 0 && !isLoadingStatuses()) {
+          <p class="meta-message">No statuses from API.</p>
+        }
+        @for (status of statusOptions(); track status.value) {
+          <label class="status-option">
+            <input
+              type="checkbox"
+              [checked]="isStatusSelected(status.value)"
+              (change)="toggleStatus(status.value)"
+            />
+            <span>{{ status.displayLabel }}</span>
+          </label>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (errorMessage() && !isSaving()) {
+    <p class="error-message banner-error">{{ errorMessage() }}</p>
+  }
+  @if (isLoadingGrid()) {
+    <p class="meta-message grid-loading">Loading security values...</p>
+  }
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="hidden-column">Loan Alias Id</th>
+          <th>Loan Alias</th>
+          <th class="numeric-col">Collateral Per Yardi</th>
+          <th class="numeric-col">Security Value</th>
+          <th class="numeric-col">Units</th>
+          <th class="numeric-col">SF</th>
+          <th class="numeric-col">Acres</th>
+          <th>Date of DWH Update</th>
+          <th>Updated By</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of paginatedRows(); track row.loanAliasId) {
+          <tr>
+            <td class="hidden-column">{{ row.loanAliasId }}</td>
+            <td>{{ row.loanAliasName }}</td>
+            <td class="numeric-col display-only">{{ formatCurrency(row.collateralPerYardi) }}</td>
+            <td class="numeric-col">
+              <input
+                type="number"
+                class="value-input"
+                [value]="formatNumber(row.securityValue)"
+                (input)="updateField(row.loanAliasId, 'securityValue', $any($event.target).value)"
+                placeholder="0"
+                step="any"
+                min="0"
+              />
+            </td>
+            <td class="numeric-col">
+              <input
+                type="number"
+                class="value-input"
+                [value]="formatNumber(row.units)"
+                (input)="updateField(row.loanAliasId, 'units', $any($event.target).value)"
+                placeholder="0"
+                step="1"
+                min="0"
+              />
+            </td>
+            <td class="numeric-col">
+              <input
+                type="number"
+                class="value-input"
+                [value]="formatNumber(row.squareFeet)"
+                (input)="updateField(row.loanAliasId, 'squareFeet', $any($event.target).value)"
+                placeholder="0"
+                step="any"
+                min="0"
+              />
+            </td>
+            <td class="numeric-col">
+              <input
+                type="number"
+                class="value-input"
+                [value]="formatNumber(row.acres)"
+                (input)="updateField(row.loanAliasId, 'acres', $any($event.target).value)"
+                placeholder="0"
+                step="any"
+                min="0"
+              />
+            </td>
+            <td class="date-cell">{{ row.updatedDtm }}</td>
+            <td class="updated-by-cell">{{ row.updatedBy }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="9" class="empty-row">
+              No security value rows returned. Check status filters or the LoanSecurityValue API.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <div class="pagination-left">
+      <label for="pageSize">Rows per page</label>
+      <select
+        id="pageSize"
+        [value]="pageSize()"
+        (change)="updatePageSize($any($event.target).value)"
+      >
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+    <div class="pagination-right">
+      <span class="page-range">{{ pageRangeLabel() }}</span>
+      <button type="button" class="pager-btn" (click)="goToPreviousPage()" [disabled]="currentPage() <= 1">
+        Prev
+      </button>
+      <span class="page-index">Page {{ currentPage() }} / {{ totalPages() }}</span>
+      <button
+        type="button"
+        class="pager-btn"
+        (click)="goToNextPage()"
+        [disabled]="currentPage() >= totalPages()"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn-close" (click)="clearSelection()">Clear Selection</button>
+    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving()">
+      @if (isSaving()) { Saving… } @else { Save Changes }
+    </button>
+  </div>
+
+  @if (statusMessage()) {
+    <p class="status">{{ statusMessage() }}</p>
+  }
+</section>

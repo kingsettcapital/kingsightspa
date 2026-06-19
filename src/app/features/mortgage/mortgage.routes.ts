@@ -4,12 +4,12 @@ export const MORTGAGE_ROUTES: Routes = [
   {
     path: 'ranking',
     loadComponent: () =>
-      import('./ranking/ranking.component').then((m) => m.RankingComponent),
+      import('../../pages/ranking/ranking.component').then((m) => m.RankingComponent),
   },
   {
     path: 'loan-alias',
     loadComponent: () =>
-      import('./loan-alias/loan-alias.component').then((m) => m.LoanAliasComponent),
+      import('../../pages/loan-alias/loan-alias.component').then((m) => m.LoanAliasComponent),
   },
   {
     path: 'loan-alias-assignment',
@@ -21,22 +21,22 @@ export const MORTGAGE_ROUTES: Routes = [
   {
     path: 'loans-ranking',
     loadComponent: () =>
-      import('./loans-ranking/loans-ranking.component').then(
-        (m) => m.LoansRankingComponent
+      import('../../pages/loans-ranking/loans-ranking.component').then(
+        (m) => m.LoansRankingComponent,
       ),
   },
   {
     path: 'investor-alias',
     loadComponent: () =>
-      import('./investor-alias/investor-alias.component').then(
-        (m) => m.InvestorAliasComponent
+      import('../../pages/investor-alias/investor-alias.component').then(
+        (m) => m.InvestorAliasComponent,
       ),
   },
   {
     path: 'security-value',
     loadComponent: () =>
-      import('./security-value/security-value.component').then(
-        (m) => m.SecurityValueComponent
+      import('../../pages/security-value/security-value.component').then(
+        (m) => m.SecurityValueComponent,
       ),
   },
   {
@@ -59,26 +59,42 @@ export const MORTGAGE_ROUTES: Routes = [
       ),
   },
   {
-    path: 'default-date',
+    path: 'default-date-capture',
     loadComponent: () =>
-      import('./default-date/default-date.component').then((m) => m.DefaultDateComponent),
+      import('../../pages/default-date-capture/default-date-capture.component').then(
+        (m) => m.DefaultDateCaptureComponent,
+      ),
+  },
+  {
+    path: 'default-date',
+    redirectTo: 'default-date-capture',
+    pathMatch: 'full',
   },
   {
     path: 'default-subjective-analytics',
     loadComponent: () =>
-      import('./default-subjective-analytics/default-subjective-analytics.component').then(
+      import('../../pages/default-subjective-analytics/default-subjective-analytics.component').then(
         (m) => m.DefaultSubjectiveAnalyticsComponent,
       ),
   },
   {
-    path: 'tax-arrears',
+    path: 'tax-arrears-capture',
     loadComponent: () =>
-      import('./tax-arrears/tax-arrears.component').then((m) => m.TaxArrearsComponent),
+      import('../../pages/tax-arrears-capture/tax-arrears-capture.component').then(
+        (m) => m.TaxArrearsCaptureComponent,
+      ),
+  },
+  {
+    path: 'tax-arrears',
+    redirectTo: 'tax-arrears-capture',
+    pathMatch: 'full',
   },
   {
     path: 'ltv-validation',
     loadComponent: () =>
-      import('./ltv-validation/ltv-validation.component').then((m) => m.LtvValidationComponent),
+      import('../../pages/ltv-validation/ltv-validation.component').then(
+        (m) => m.LtvValidationComponent,
+      ),
   },
   {
     path: 'non-ks-serviced-loans',

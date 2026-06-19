@@ -1,47 +1,70 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { delay, Observable, of } from 'rxjs';
 
-import { LTV_VALIDATION_EXAMPLE_DATA } from '../constants/ltv-validation-example.data';
-import {
-  LtvValidationApiRecord,
-  LtvValidationBulkUpdateRequest,
-} from '../interfaces/ltv-validation.interfaces';
-import { ApiService } from './api.service';
+import { APP_API_CONFIG } from '../constants/api.config';
 
-/** Set to false when the live LTV validation API is ready. */
-const USE_LTV_VALIDATION_EXAMPLE_DATA = true;
+/** Row from GET /api/LtvValidation — leaf child loans with AI-extracted LTV. */
+export type LtvValidationRowDto = {
+  loanKey: number;
+  parentLoanId?: string | null;
+  childLoanId?: string | null;
+  loanId?: string | null;
+  description: string;
+  loanAliasName: string;
+  investorAliasName?: string | null;
+  securityValue?: number | null;
+  exposure?: number | null;
+  ranking?: number | null;
+  ltv?: number | null;
+  aiCommentary?: string | null;
+  userUpdatedBy?: string | null;
+  userUpdatedDate?: string | null;
+};
+
+export type LtvValidationUpdatePayload = {
+  loanKey: number;
+  ltv: number | null;
+  userUpdatedBy: string;
+};
+
+export type LtvValidationBulkUpdateRequest = {
+  loans: LtvValidationUpdatePayload[];
+};
+
+export type LtvValidationConfirmRequest = {
+  loanKeys: number[];
+  userUpdatedBy: string;
+};
 
 @Injectable({
   providedIn: 'root',
 })
 export class LtvValidationApiService {
-  private readonly api = inject(ApiService);
+  private readonly http = inject(HttpClient);
+  private readonly apiConfig = inject(APP_API_CONFIG);
 
-  getLtvValidationRecords(): Observable<LtvValidationApiRecord[]> {
-    if (USE_LTV_VALIDATION_EXAMPLE_DATA) {
-      return of([...LTV_VALIDATION_EXAMPLE_DATA]).pipe(delay(400));
-    }
-    return this.api.get<LtvValidationApiRecord[]>('api/ltv-validation');
+  private get baseUrl(): string {
+    return `${this.apiConfig.baseUrl}/api/LtvValidation`;
   }
 
-  updateLtvValidationBulk(
-    request: LtvValidationBulkUpdateRequest,
-  ): Observable<LtvValidationApiRecord[]> {
-    if (USE_LTV_VALIDATION_EXAMPLE_DATA) {
-      for (const update of request.records) {
-        const record = LTV_VALIDATION_EXAMPLE_DATA.find(
-          (item) => String(item['RecordKey'] ?? '') === update.recordKey,
-        );
-        if (!record) {
-          continue;
-        }
-        record['SecurityValue'] = update.securityValue;
-        record['LTV'] = update.ltv;
-        record['UserUpdatedDate'] = update.userUpdatedDate.slice(0, 10);
-        record['UserUpdatedBy'] = update.userUpdatedBy;
-      }
-      return of([...LTV_VALIDATION_EXAMPLE_DATA]).pipe(delay(500));
+  getLoans(loanAliasIds: number[], statuses: string[]) {
+    let params = new HttpParams();
+    for (const id of loanAliasIds) {
+      params = params.append('loanAliasIds', String(id));
     }
-    return this.api.put<LtvValidationApiRecord[]>('api/ltv-validation/bulk', request);
+    for (const status of statuses) {
+      if (status.trim()) {
+        params = params.append('statuses', status.trim());
+      }
+    }
+    return this.http.get<LtvValidationRowDto[] | Record<string, unknown>>(this.baseUrl, { params });
+  }
+
+  saveLtv(request: LtvValidationBulkUpdateRequest) {
+    return this.http.put<void>(this.baseUrl, request);
+  }
+
+  confirmAiLtv(request: LtvValidationConfirmRequest) {
+    return this.http.post<void>(`${this.baseUrl}/confirm`, request);
   }
 }

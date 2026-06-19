@@ -14,6 +14,6 @@ export const CAPITAL_REPORTING_ROUTES: Routes = [
   {
     path: 'investor',
     loadComponent: () =>
-      import('./investor/investor.component').then((m) => m.InvestorComponent),
+      import('../../pages/investor/investor.component').then((m) => m.InvestorComponent),
   },
 ];

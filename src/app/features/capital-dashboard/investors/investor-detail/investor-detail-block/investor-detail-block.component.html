@@ -460,7 +460,7 @@
                         <tfoot>
                           <tr class="inv-detail-table__total-row">
                             @for (column of current.columns; track column.key) {
-                              <td [class]="cellClass(column, current.totals ?? undefined)">
+                              <td [class]="cellClass(column, current.totals)">
                                 @switch (column.type) {
                                   @case ('amount') {
                                     @if (showAmount(cellValue(current.totals, column.key))) {
@@ -747,7 +747,7 @@
                         <tfoot>
                           <tr class="inv-detail-table__total-row">
                             @for (column of current.columns; track column.key) {
-                              <td [class]="cellClass(column, current.totals ?? undefined)">
+                              <td [class]="cellClass(column, current.totals)">
                                 @switch (column.type) {
                                   @case ('amount') {
                                     @if (showAmount(cellValue(current.totals, column.key))) {
@@ -924,7 +924,7 @@
                   <tfoot>
                     <tr class="inv-detail-table__total-row">
                       @for (column of current.columns; track column.key) {
-                        <td [class]="cellClass(column, current.totals ?? undefined)">
+                        <td [class]="cellClass(column, current.totals)">
                           @switch (column.type) {
                             @case ('amount') {
                               @if (showAmount(cellValue(current.totals, column.key))) {

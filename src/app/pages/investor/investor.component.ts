@@ -2,37 +2,36 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 
-import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
-  LoanBulkUpdateRequest,
-  LoanDto,
-  LoansApiService,
-} from '../../core/services/loans-api.service';
+  InvestorAlias,
+  InvestorApiService,
+  InvestorBulkUpdateRequest,
+  InvestorDto,
+} from '../../core/services/investor-api.service';
 
-type LoanRow = {
-  loanKey: number;
-  loanCode: string;
-  loanName: string;
-  loanAliasKey: number | null;
-  loanAliasName: string;
+type InvestorRow = {
+  investorKey: number;
+  investorCode: string;
+  investorName: string;
+  investorAliasKey: number | null;
+  investorAliasName: string;
   userUpdatedBy: string;
   userUpdatedDate: string;
 };
 
 @Component({
-  selector: 'app-loan-alias-assignment',
+  selector: 'app-investor',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './loan-alias-assignment.component.html',
-  styleUrl: './loan-alias-assignment.component.css',
+  templateUrl: './investor.component.html',
+  styleUrl: './investor.component.css',
 })
-export class LoanAliasAssignmentComponent implements OnInit {
-  private readonly loansApi = inject(LoansApiService);
-  private readonly loanAliasApi = inject(LoanAliasApiService);
+export class InvestorComponent implements OnInit {
+  private readonly investorApi = inject(InvestorApiService);
   private readonly defaultPageSize = 10;
 
   readonly searchText = signal('');
-  readonly selectedLoanKeys = signal<number[]>([]);
+  readonly selectedInvestorKeys = signal<number[]>([]);
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
   readonly isLoading = signal(false);
@@ -40,43 +39,43 @@ export class LoanAliasAssignmentComponent implements OnInit {
   readonly currentPage = signal(1);
   readonly pageSize = signal(this.defaultPageSize);
 
-  readonly rows = signal<LoanRow[]>([]);
-  readonly aliasOptions = signal<LoanAlias[]>([]);
+  readonly rows = signal<InvestorRow[]>([]);
+  readonly aliasOptions = signal<InvestorAlias[]>([]);
   readonly originalRowState = signal<Record<number, number | null>>({});
 
   ngOnInit(): void {
     this.loadData();
   }
 
-  readonly selectedLoans = computed(() => {
-    const selectedKeys = new Set(this.selectedLoanKeys());
-    return this.rows().filter((row) => selectedKeys.has(row.loanKey));
+  readonly selectedInvestors = computed(() => {
+    const selectedKeys = new Set(this.selectedInvestorKeys());
+    return this.rows().filter((row) => selectedKeys.has(row.investorKey));
   });
 
-  readonly searchedLoanOptions = computed(() => {
+  readonly searchedInvestorOptions = computed(() => {
     const keyword = this.searchText().trim().toLowerCase();
     if (!keyword) {
       return [];
     }
 
-    const selectedKeys = new Set(this.selectedLoanKeys());
+    const selectedKeys = new Set(this.selectedInvestorKeys());
     return this.rows().filter((row) => {
-      if (selectedKeys.has(row.loanKey)) {
+      if (selectedKeys.has(row.investorKey)) {
         return false;
       }
       return (
-        row.loanCode.toLowerCase().includes(keyword) ||
-        row.loanName.toLowerCase().includes(keyword) ||
-        row.loanAliasName.toLowerCase().includes(keyword)
+        row.investorCode.toLowerCase().includes(keyword) ||
+        row.investorName.toLowerCase().includes(keyword) ||
+        row.investorAliasName.toLowerCase().includes(keyword)
       );
     });
   });
 
   readonly filteredRows = computed(() => {
-    const selectedKeys = this.selectedLoanKeys();
+    const selectedKeys = this.selectedInvestorKeys();
     if (selectedKeys.length > 0) {
       const selectedKeySet = new Set(selectedKeys);
-      return this.rows().filter((row) => selectedKeySet.has(row.loanKey));
+      return this.rows().filter((row) => selectedKeySet.has(row.investorKey));
     }
 
     const keyword = this.searchText().trim().toLowerCase();
@@ -86,9 +85,9 @@ export class LoanAliasAssignmentComponent implements OnInit {
 
     return this.rows().filter((row) => {
       return (
-        row.loanCode.toLowerCase().includes(keyword) ||
-        row.loanName.toLowerCase().includes(keyword) ||
-        row.loanAliasName.toLowerCase().includes(keyword)
+        row.investorCode.toLowerCase().includes(keyword) ||
+        row.investorName.toLowerCase().includes(keyword) ||
+        row.investorAliasName.toLowerCase().includes(keyword)
       );
     });
   });
@@ -133,35 +132,35 @@ export class LoanAliasAssignmentComponent implements OnInit {
     this.clearMessages();
   }
 
-  selectLoan(row: LoanRow): void {
-    if (this.selectedLoanKeys().includes(row.loanKey)) {
+  selectInvestor(row: InvestorRow): void {
+    if (this.selectedInvestorKeys().includes(row.investorKey)) {
       return;
     }
 
-    this.selectedLoanKeys.set([...this.selectedLoanKeys(), row.loanKey]);
+    this.selectedInvestorKeys.set([...this.selectedInvestorKeys(), row.investorKey]);
     this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
   }
 
-  removeSelectedLoan(loanKey: number): void {
-    this.selectedLoanKeys.set(
-      this.selectedLoanKeys().filter((key) => key !== loanKey),
+  removeSelectedInvestor(investorKey: number): void {
+    this.selectedInvestorKeys.set(
+      this.selectedInvestorKeys().filter((key) => key !== investorKey),
     );
     this.currentPage.set(1);
     this.clearMessages();
   }
 
-  updateAlias(loanKey: number, value: string): void {
-    const loanAliasKey = value ? Number(value) : null;
-    const alias = this.aliasOptions().find((a) => this.getAliasKey(a) === loanAliasKey);
+  updateAlias(investorKey: number, value: string): void {
+    const investorAliasKey = value ? Number(value) : null;
+    const alias = this.aliasOptions().find((a) => this.getAliasKey(a) === investorAliasKey);
     this.rows.set(
       this.rows().map((row) =>
-        row.loanKey === loanKey
+        row.investorKey === investorKey
           ? {
               ...row,
-              loanAliasKey,
-              loanAliasName: alias?.loanAliasName ?? '',
+              investorAliasKey,
+              investorAliasName: alias?.investorAliasName ?? '',
             }
           : row,
       ),
@@ -171,7 +170,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
 
   clearSelection(): void {
     this.searchText.set('');
-    this.selectedLoanKeys.set([]);
+    this.selectedInvestorKeys.set([]);
     this.currentPage.set(1);
     this.clearMessages();
   }
@@ -192,8 +191,8 @@ export class LoanAliasAssignmentComponent implements OnInit {
     this.currentPage.set(1);
   }
 
-  getAliasKey(alias: LoanAlias): number {
-    const key = alias.loanAliasKey ?? alias.loanAliasId;
+  getAliasKey(alias: InvestorAlias): number {
+    const key = alias.investorAliasKey ?? alias.investorAliasId;
     return key != null ? Number(key) : 0;
   }
 
@@ -204,7 +203,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
 
     const targetRows = this.filteredRows();
     if (!targetRows.length) {
-      this.statusMessage.set('Search and select at least one loan before saving changes.');
+      this.statusMessage.set('Search and select at least one investor before saving changes.');
       return;
     }
 
@@ -216,10 +215,10 @@ export class LoanAliasAssignmentComponent implements OnInit {
     }
 
     const userUpdatedBy = 'system';
-    const request: LoanBulkUpdateRequest = {
-      loans: changedRows.map((row) => ({
-        loanKey: row.loanKey,
-        loanAliasKey: row.loanAliasKey ?? 0,
+    const request: InvestorBulkUpdateRequest = {
+      investors: changedRows.map((row) => ({
+        investorKey: row.investorKey,
+        investorAliasKey: row.investorAliasKey ?? 0,
         userUpdatedBy,
       })),
     };
@@ -227,15 +226,14 @@ export class LoanAliasAssignmentComponent implements OnInit {
     this.isSaving.set(true);
     this.statusMessage.set('Saving changes...');
     this.errorMessage.set('');
-
-    this.loansApi.updateLoanAliasesBulk(request).subscribe({
+    this.investorApi.updateInvestorAliasesBulk(request).subscribe({
       next: () => {
         const now = new Date().toISOString();
-        const changedKeys = new Set(changedRows.map((row) => row.loanKey));
+        const changedKeys = new Set(changedRows.map((row) => row.investorKey));
 
         this.rows.set(
           this.rows().map((row) =>
-            changedKeys.has(row.loanKey)
+            changedKeys.has(row.investorKey)
               ? {
                   ...row,
                   userUpdatedBy,
@@ -246,7 +244,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
         );
 
         this.snapshotOriginalState();
-        this.statusMessage.set(`${changedRows.length} loan(s) updated successfully.`);
+        this.statusMessage.set(`${changedRows.length} investor(s) updated successfully.`);
         this.errorMessage.set('');
         this.isSaving.set(false);
       },
@@ -261,17 +259,17 @@ export class LoanAliasAssignmentComponent implements OnInit {
   private loadData(): void {
     this.isLoading.set(true);
     this.errorMessage.set('');
-    this.statusMessage.set('Loading loans...');
+    this.statusMessage.set('Loading investors...');
 
     forkJoin({
-      loans: this.loansApi.getLoans(),
-      aliases: this.loanAliasApi.getAllAliases(),
+      investors: this.investorApi.getInvestors(),
+      aliases: this.investorApi.getAllAliases(),
     }).subscribe({
-      next: ({ loans, aliases }) => {
+      next: ({ investors, aliases }) => {
         const normalizedAliases = this.normalizeAliases(aliases);
-        const mappedRows = loans
-          .map((record, index) => this.mapApiLoanToRow(record, index, normalizedAliases))
-          .filter((row) => row.loanKey > 0);
+        const mappedRows = investors
+          .map((record, index) => this.mapApiInvestorToRow(record, index, normalizedAliases))
+          .filter((row) => row.investorKey > 0);
 
         this.rows.set(mappedRows);
         this.aliasOptions.set(normalizedAliases);
@@ -279,8 +277,8 @@ export class LoanAliasAssignmentComponent implements OnInit {
         this.snapshotOriginalState();
         this.statusMessage.set(
           mappedRows.length > 0
-            ? `${mappedRows.length} loan(s) loaded.`
-            : 'No loans returned.',
+            ? `${mappedRows.length} investor(s) loaded.`
+            : 'No investors returned.',
         );
         this.isLoading.set(false);
       },
@@ -288,29 +286,29 @@ export class LoanAliasAssignmentComponent implements OnInit {
         this.rows.set([]);
         this.aliasOptions.set([]);
         this.statusMessage.set('');
-        this.errorMessage.set('Unable to load loans. Verify API availability and CORS.');
+        this.errorMessage.set('Unable to load investors. Verify API availability and CORS.');
         this.isLoading.set(false);
       },
     });
   }
 
-  private mapApiLoanToRow(
-    record: LoanDto,
+  private mapApiInvestorToRow(
+    record: InvestorDto,
     index: number,
-    aliases: LoanAlias[],
-  ): LoanRow {
-    const loanAliasKey =
-      record.loanAliasKey != null && Number(record.loanAliasKey) > 0
-        ? Number(record.loanAliasKey)
-        : this.resolveAliasKey(record.loanAliasName, aliases);
-    const alias = aliases.find((a) => this.getAliasKey(a) === loanAliasKey);
+    aliases: InvestorAlias[],
+  ): InvestorRow {
+    const investorAliasKey =
+      record.investorAliasKey != null && Number(record.investorAliasKey) > 0
+        ? Number(record.investorAliasKey)
+        : this.resolveAliasKey(record.investorAliasName, aliases);
+    const alias = aliases.find((a) => this.getAliasKey(a) === investorAliasKey);
 
     return {
-      loanKey: record.loanKey > 0 ? record.loanKey : index + 1,
-      loanCode: record.loanCode || `LOAN-${index + 1}`,
-      loanName: record.loanDesc?.trim() || '-',
-      loanAliasKey,
-      loanAliasName: alias?.loanAliasName ?? record.loanAliasName?.trim() ?? '',
+      investorKey: record.investorKey > 0 ? record.investorKey : index + 1,
+      investorCode: record.investorCode || `INV-${index + 1}`,
+      investorName: record.investorName || '-',
+      investorAliasKey,
+      investorAliasName: alias?.investorAliasName ?? record.investorAliasName?.trim() ?? '',
       userUpdatedBy: record.userUpdatedBy?.trim() || '-',
       userUpdatedDate: this.normalizeDate(record.userUpdatedDate ?? ''),
     };
@@ -318,23 +316,23 @@ export class LoanAliasAssignmentComponent implements OnInit {
 
   private resolveAliasKey(
     aliasName: string | null | undefined,
-    aliases: LoanAlias[],
+    aliases: InvestorAlias[],
   ): number | null {
     const normalized = aliasName?.trim().toLowerCase();
     if (!normalized) {
       return null;
     }
-    const match = aliases.find((a) => a.loanAliasName.trim().toLowerCase() === normalized);
+    const match = aliases.find((a) => a.investorAliasName.trim().toLowerCase() === normalized);
     return match ? this.getAliasKey(match) : null;
   }
 
-  private normalizeAliases(aliases: LoanAlias[]): LoanAlias[] {
+  private normalizeAliases(aliases: InvestorAlias[]): InvestorAlias[] {
     return aliases.map((alias) => {
       const key = this.getAliasKey(alias);
       return {
         ...alias,
-        loanAliasKey: key,
-        loanAliasId: key,
+        investorAliasKey: key,
+        investorAliasId: key,
       };
     });
   }
@@ -342,18 +340,18 @@ export class LoanAliasAssignmentComponent implements OnInit {
   private snapshotOriginalState(): void {
     const snapshot: Record<number, number | null> = {};
     for (const row of this.rows()) {
-      snapshot[row.loanKey] = row.loanAliasKey;
+      snapshot[row.investorKey] = row.investorAliasKey;
     }
     this.originalRowState.set(snapshot);
   }
 
-  private hasAliasChanged(row: LoanRow): boolean {
-    const original = this.originalRowState()[row.loanKey];
-    return row.loanAliasKey !== (original ?? null);
+  private hasAliasChanged(row: InvestorRow): boolean {
+    const original = this.originalRowState()[row.investorKey];
+    return row.investorAliasKey !== (original ?? null);
   }
 
   private extractBackendError(error: unknown): string {
-    const fallback = 'Failed to update loan alias changes.';
+    const fallback = 'Failed to update investor alias changes.';
     if (!error || typeof error !== 'object') {
       return fallback;
     }

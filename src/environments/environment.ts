@@ -5,7 +5,7 @@ export const environment: Environment = {
   production: false,
   requireLogin: true,
   // apiUrl: 'https://kingsightdevapi.kingsettcapital.com/',
-  apiUrl: 'http://localhost:7140/',
+  apiUrl: 'http://localhost:7140',
   mockUserRole: UserRole.Administrator,
   azureConfig: {
     clientId: 'e32db1db-4cd9-4853-aa46-69cd1d63f8d7',

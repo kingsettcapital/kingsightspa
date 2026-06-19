@@ -5,6 +5,7 @@ import {
 } from '@azure/msal-browser';
 
 import { environment } from '../../../environments/environment';
+import { normalizeApiBaseUrl } from './api.config';
 
 const isIE =
   window.navigator.userAgent.indexOf('MSIE') > -1 ||
@@ -55,7 +56,7 @@ export const loginRequest = {
 
 export const protectedResources = {
   loginApi: {
-    endpoint: environment.apiUrl,
+    endpoint: normalizeApiBaseUrl(environment.apiUrl),
     scopes: [environment.azureConfig.scopes],
   },
 };
