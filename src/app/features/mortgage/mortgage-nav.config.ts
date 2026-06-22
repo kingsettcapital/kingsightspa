@@ -5,7 +5,6 @@ export type MortgageNavItem = {
 
 export const MORTGAGE_NAV_ITEMS: MortgageNavItem[] = [
   { label: 'Management Summary', path: 'management-summary' },
-  { label: 'Ranking', path: 'ranking' },
   { label: 'Loans & Ranking', path: 'loans-ranking' },
   { label: 'Loan Alias', path: 'loan-alias' },
   { label: 'Loan Assignment', path: 'loan-alias-assignment' },
@@ -13,7 +12,7 @@ export const MORTGAGE_NAV_ITEMS: MortgageNavItem[] = [
   { label: 'Investor Assignment', path: 'investor-alias-assignment' },
   { label: 'Security Value', path: 'security-value' },
   { label: 'Other Cost', path: 'other-cost' },
-  { label: 'CMHC Upload', path: 'cmhc-upload' },
+  { label: 'File Upload', path: 'cmhc-upload' },
   { label: 'Other Cost Capture', path: 'other-cost-capture' },
   { label: 'Default Date', path: 'default-date-capture' },
   { label: 'Default Analytics', path: 'default-subjective-analytics' },
@@ -22,4 +21,4 @@ export const MORTGAGE_NAV_ITEMS: MortgageNavItem[] = [
   { label: 'Non-KS Loans', path: 'non-ks-serviced-loans' },
 ];
 
-export const MORTGAGE_DEFAULT_ROUTE = 'ranking';
+export const MORTGAGE_DEFAULT_ROUTE = 'management-summary';

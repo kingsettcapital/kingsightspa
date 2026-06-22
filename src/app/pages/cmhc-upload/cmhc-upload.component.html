@@ -1,12 +1,28 @@
-<section class="cmhc-upload-page">
-  <div class="upload-card">
-    <div class="card-header">
-      <h1>CMHC File Upload</h1>
+<section class="file-upload-page">
+  <div class="ks-page__heading">
+    <h1 class="ks-page__title">File Upload</h1>
+    <p class="ks-page__subtitle">Upload CMHC Excel files or QR slides PDFs to Fabric OneLake</p>
+  </div>
+
+  <div class="file-upload-panel">
+    <div class="file-upload-field file-upload-field--inline">
+      <label class="ks-label file-upload-field__label" for="fileUploadType">File type</label>
+      <select
+        id="fileUploadType"
+        class="ks-select file-upload-field__select"
+        [ngModel]="selectedFileType()"
+        (ngModelChange)="onFileTypeChange($event)"
+        [disabled]="isUploading()"
+      >
+        @for (option of fileTypeOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
     </div>
 
     <div
-      class="drop-zone"
-      [class.drop-zone-active]="isDragOver()"
+      class="file-upload-dropzone"
+      [class.file-upload-dropzone--active]="isDragOver()"
       (dragover)="onDragOver($event)"
       (dragleave)="onDragLeave($event)"
       (drop)="onDrop($event)"
@@ -19,12 +35,12 @@
       <input
         #fileInput
         type="file"
-        class="file-input"
-        accept=".xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+        class="file-upload-dropzone__input"
+        [accept]="activeFileTypeOption().accept"
         (change)="onFileInputChange($event)"
         (click)="$event.stopPropagation()"
       />
-      <div class="upload-icon" aria-hidden="true">
+      <div class="file-upload-dropzone__icon" aria-hidden="true">
         <svg viewBox="0 0 64 64" focusable="false">
           <path
             d="M32 8c-8 0-14 6-14 14v4H14l10 12 10-12H24v-4c0-4.4 3.6-8 8-8s8 3.6 8 8v8h8V22c0-8-6-14-14-14z"
@@ -33,60 +49,65 @@
           <path d="M12 44h40v8H12z" fill="currentColor" opacity="0.85" />
         </svg>
       </div>
-      <p class="drop-zone-title">Choose Excel file to upload or drag &amp; drop here</p>
+      <p class="file-upload-dropzone__title">{{ activeFileTypeOption().dropZoneHint }}</p>
       @if (selectedFile(); as file) {
-        <p class="drop-zone-file">{{ file.name }}</p>
+        <p class="file-upload-dropzone__file">{{ file.name }}</p>
       }
     </div>
 
-    <div class="upload-actions">
+    <div class="file-upload-actions">
       @if (selectedFile()) {
-        <button type="button" class="btn-secondary" (click)="clearSelectedFile()" [disabled]="isUploading()">
+        <button
+          type="button"
+          class="ks-btn ks-btn--outline"
+          (click)="clearSelectedFile()"
+          [disabled]="isUploading()"
+        >
           Clear
         </button>
-        <button type="button" class="btn-primary" (click)="uploadFile()" [disabled]="isUploading()">
+        <button type="button" class="ks-btn ks-btn--primary" (click)="uploadFile()" [disabled]="isUploading()">
           @if (isUploading()) { Uploading… } @else { Upload File }
         </button>
       }
     </div>
 
     @if (statusMessage()) {
-      <p class="status-message">{{ statusMessage() }}</p>
+      <p class="ks-message ks-message--info file-upload-message">{{ statusMessage() }}</p>
     }
     @if (errorMessage()) {
-      <p class="error-message">{{ errorMessage() }}</p>
+      <p class="ks-message ks-message--error file-upload-message">{{ errorMessage() }}</p>
     }
+  </div>
 
-    <div class="history-section">
-      <h2>Upload History</h2>
-      @if (isLoadingHistory()) {
-        <p class="history-empty">Loading upload history…</p>
-      } @else if (history().length === 0) {
-        <p class="history-empty">No files uploaded yet.</p>
-      } @else {
-        <div class="history-table-wrap">
-          <table>
-            <thead>
+  <div class="ks-table-card file-upload-history">
+    <h2 class="ks-table-card__title">Upload History</h2>
+    @if (isLoadingHistory()) {
+      <p class="file-upload-history__empty">Loading upload history…</p>
+    } @else if (history().length === 0) {
+      <p class="file-upload-history__empty">No files uploaded yet.</p>
+    } @else {
+      <div class="ks-table-wrap">
+        <table class="ks-table file-upload-history__table">
+          <thead>
+            <tr>
+              <th class="hidden-column">File Id</th>
+              <th>File Name</th>
+              <th>Uploaded Date</th>
+              <th>Uploaded By</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of history(); track row.fileId) {
               <tr>
-                <th class="hidden-column">File Id</th>
-                <th>File Name</th>
-                <th>Uploaded Date</th>
-                <th>Uploaded By</th>
+                <td class="hidden-column">{{ row.fileId }}</td>
+                <td>{{ row.filename }}</td>
+                <td>{{ formatUploadedDate(row.uploadedDate) }}</td>
+                <td>{{ row.uploadedBy }}</td>
               </tr>
-            </thead>
-            <tbody>
-              @for (row of history(); track row.fileId) {
-                <tr>
-                  <td class="hidden-column">{{ row.fileId }}</td>
-                  <td>{{ row.filename }}</td>
-                  <td>{{ formatUploadedDate(row.uploadedDate) }}</td>
-                  <td>{{ row.uploadedBy }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </div>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
   </div>
 </section>

@@ -3,6 +3,40 @@ import { inject, Injectable } from '@angular/core';
 
 import { APP_API_CONFIG } from '../constants/api.config';
 
+export type FileUploadType = 'cmhc' | 'qr-slides';
+
+export type FileUploadTypeOption = {
+  value: FileUploadType;
+  label: string;
+  accept: string;
+  extensions: string[];
+  mimeTypes: string[];
+  dropZoneHint: string;
+};
+
+export const FILE_UPLOAD_TYPE_OPTIONS: FileUploadTypeOption[] = [
+  {
+    value: 'cmhc',
+    label: 'CMHC (Excel)',
+    accept:
+      '.xlsx,.xls,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel',
+    extensions: ['.xlsx', '.xls', '.xlsm'],
+    mimeTypes: [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+    ],
+    dropZoneHint: 'Choose Excel file to upload or drag & drop here',
+  },
+  {
+    value: 'qr-slides',
+    label: 'QR slides (PDF)',
+    accept: '.pdf,application/pdf',
+    extensions: ['.pdf'],
+    mimeTypes: ['application/pdf'],
+    dropZoneHint: 'Choose QR slides PDF to upload or drag & drop here',
+  },
+];
+
 /**
  * Mirrors mort.CMHC_upload_historytbl / CmhcUploadHistoryDto.
  * uploaded_by is UNIQUEIDENTIFIER in SQL (GUID string in JSON).
@@ -29,11 +63,14 @@ export class CmhcUploadApiService {
     return this.http.get<CmhcUploadHistoryRecord[]>(`${this.baseUrl}/history`);
   }
 
-  uploadExcel(file: File, storedFileName: string, uploadedBy: string) {
+  uploadFile(file: File, storedFileName: string, uploadedBy: string, fileType: FileUploadType) {
     const formData = new FormData();
     formData.append('file', file, storedFileName);
     formData.append('fileName', storedFileName);
     formData.append('uploadedBy', uploadedBy);
-    return this.http.post<CmhcUploadHistoryRecord>(this.baseUrl, formData);
+    formData.append('fileType', fileType);
+
+    const url = `${this.baseUrl}?fileType=${encodeURIComponent(fileType)}`;
+    return this.http.post<CmhcUploadHistoryRecord>(url, formData);
   }
 }

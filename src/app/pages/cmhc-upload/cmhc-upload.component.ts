@@ -1,13 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 
 import { APP_API_CONFIG } from '../../core/constants/api.config';
 import {
   CmhcUploadApiService,
   CmhcUploadHistoryRecord,
+  FILE_UPLOAD_TYPE_OPTIONS,
+  FileUploadType,
+  FileUploadTypeOption,
 } from '../../core/services/cmhc-upload-api.service';
-
-const EXCEL_EXTENSIONS = ['.xlsx', '.xls', '.xlsm'];
 
 /** Placeholder UNIQUEIDENTIFIER for uploads until auth is wired (same intent as "system" on other screens). */
 const SYSTEM_USER_GUID = '00000000-0000-0000-0000-000000000000';
@@ -16,7 +18,7 @@ const SYSTEM_USER_LABEL = 'system';
 @Component({
   selector: 'app-cmhc-upload',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './cmhc-upload.component.html',
   styleUrl: './cmhc-upload.component.css',
 })
@@ -24,6 +26,8 @@ export class CmhcUploadComponent implements OnInit {
   private readonly cmhcUploadApi = inject(CmhcUploadApiService);
   private readonly apiConfig = inject(APP_API_CONFIG);
 
+  readonly fileTypeOptions = FILE_UPLOAD_TYPE_OPTIONS;
+  readonly selectedFileType = signal<FileUploadType>('cmhc');
   readonly history = signal<CmhcUploadHistoryRecord[]>([]);
   readonly selectedFile = signal<File | null>(null);
   readonly isDragOver = signal(false);
@@ -32,8 +36,21 @@ export class CmhcUploadComponent implements OnInit {
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
 
+  readonly activeFileTypeOption = computed(
+    () =>
+      this.fileTypeOptions.find((option) => option.value === this.selectedFileType()) ??
+      this.fileTypeOptions[0],
+  );
+
   ngOnInit(): void {
     this.loadHistory();
+  }
+
+  onFileTypeChange(value: string): void {
+    const nextType = value === 'qr-slides' ? 'qr-slides' : 'cmhc';
+    this.selectedFileType.set(nextType);
+    this.selectedFile.set(null);
+    this.clearMessages();
   }
 
   onDragOver(event: DragEvent): void {
@@ -82,33 +99,33 @@ export class CmhcUploadComponent implements OnInit {
       return;
     }
 
-    const validationError = this.validateExcelFile(file);
+    const validationError = this.validateFile(file, this.activeFileTypeOption());
     if (validationError) {
       this.errorMessage.set(validationError);
       this.statusMessage.set('');
       return;
     }
 
-    const storedFileName = this.buildStoredFileName(file.name);
+    const storedFileName = this.buildStoredFileName(file.name, this.activeFileTypeOption());
     this.isUploading.set(true);
     this.statusMessage.set(`Uploading ${storedFileName}...`);
     this.errorMessage.set('');
 
     this.cmhcUploadApi
-      .uploadExcel(file, storedFileName, this.resolveUploadedByUserId())
+      .uploadFile(file, storedFileName, this.resolveUploadedByUserId(), this.selectedFileType())
       .subscribe({
-      next: () => {
-        this.selectedFile.set(null);
-        this.statusMessage.set(`File uploaded successfully as ${storedFileName}.`);
-        this.isUploading.set(false);
-        this.loadHistory();
-      },
-      error: (error) => {
-        this.statusMessage.set('');
-        this.errorMessage.set(this.extractBackendError(error));
-        this.isUploading.set(false);
-      },
-    });
+        next: () => {
+          this.selectedFile.set(null);
+          this.statusMessage.set(`File uploaded successfully as ${storedFileName}.`);
+          this.isUploading.set(false);
+          this.loadHistory();
+        },
+        error: (error) => {
+          this.statusMessage.set('');
+          this.errorMessage.set(this.extractBackendError(error));
+          this.isUploading.set(false);
+        },
+      });
   }
 
   /** mort.CMHC_upload_historytbl.uploaded_by — UNIQUEIDENTIFIER sent to API. */
@@ -140,18 +157,17 @@ export class CmhcUploadComponent implements OnInit {
     return `${month}/${day}/${year} ${hours}:${minutes}`;
   }
 
-  /** Appends yyyyMMdd_HHmmss before extension for CMHC_upload_historytbl.filename */
-  buildStoredFileName(originalName: string): string {
+  buildStoredFileName(originalName: string, option: FileUploadTypeOption): string {
     const trimmed = originalName.trim() || 'upload';
     const lastDot = trimmed.lastIndexOf('.');
     const base = lastDot > 0 ? trimmed.slice(0, lastDot) : trimmed;
-    const ext = lastDot > 0 ? trimmed.slice(lastDot) : '.xlsx';
+    const ext = lastDot > 0 ? trimmed.slice(lastDot) : option.extensions[0];
     const stamp = this.formatTimestampForFileName(new Date());
     return `${base}_${stamp}${ext}`;
   }
 
   private setSelectedFile(file: File): void {
-    const validationError = this.validateExcelFile(file);
+    const validationError = this.validateFile(file, this.activeFileTypeOption());
     if (validationError) {
       this.selectedFile.set(null);
       this.errorMessage.set(validationError);
@@ -163,11 +179,14 @@ export class CmhcUploadComponent implements OnInit {
     this.statusMessage.set(`Selected: ${file.name}. Click Upload to save.`);
   }
 
-  private validateExcelFile(file: File): string | null {
+  private validateFile(file: File, option: FileUploadTypeOption): string | null {
     const name = file.name.toLowerCase();
-    const isExcel = EXCEL_EXTENSIONS.some((ext) => name.endsWith(ext));
-    if (!isExcel) {
-      return 'Only Excel files (.xlsx, .xls, .xlsm) are allowed.';
+    const isAllowedByExtension = option.extensions.some((ext) => name.endsWith(ext));
+    const isAllowedByMime =
+      option.mimeTypes.length > 0 && option.mimeTypes.includes(file.type.toLowerCase());
+
+    if (!isAllowedByExtension && !isAllowedByMime) {
+      return `Only ${option.label} files (${option.extensions.join(', ')}) are allowed.`;
     }
     return null;
   }
@@ -238,9 +257,14 @@ export class CmhcUploadComponent implements OnInit {
     }
 
     const maybeError = error as {
+      status?: number;
       error?: { message?: string; title?: string; detail?: string } | string;
       message?: string;
     };
+
+    if (maybeError.status === 413) {
+      return 'File is too large. Maximum upload size is 60 MB.';
+    }
 
     if (typeof maybeError.error === 'string' && maybeError.error.trim().length > 0) {
       return maybeError.error;

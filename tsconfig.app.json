@@ -17,7 +17,6 @@
     "src/app/features/mortgage/loan-alias/**",
     "src/app/features/mortgage/loans-ranking/**",
     "src/app/features/mortgage/ltv-validation/**",
-    "src/app/features/mortgage/ranking/**",
     "src/app/features/mortgage/security-value/**",
     "src/app/features/mortgage/tax-arrears/**"
   ]

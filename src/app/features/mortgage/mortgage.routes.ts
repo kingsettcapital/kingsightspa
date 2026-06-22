@@ -16,11 +16,6 @@ export const MORTGAGE_ROUTES: Routes = [
       ),
   },
   {
-    path: 'ranking',
-    loadComponent: () =>
-      import('../../pages/ranking/ranking.component').then((m) => m.RankingComponent),
-  },
-  {
     path: 'loan-alias',
     loadComponent: () =>
       import('../../pages/loan-alias/loan-alias.component').then((m) => m.LoanAliasComponent),
