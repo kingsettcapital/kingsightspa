@@ -56,7 +56,6 @@ export const appConfig: ApplicationConfig = {
       provide: APP_API_CONFIG,
       useValue: {
         baseUrl: normalizeApiBaseUrl(environment.apiUrl),
-        cmhcUploadedByUserId: '00000000-0000-0000-0000-000000000000',
       },
     },
   ],

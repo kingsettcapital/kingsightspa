@@ -3,6 +3,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
   DefaultDateCaptureApiService,
@@ -43,8 +44,8 @@ export class DefaultDateCaptureComponent implements OnInit {
   private readonly defaultDateApi = inject(DefaultDateCaptureApiService);
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
-  private readonly userUpdatedBy = 'system';
 
   readonly aliasOptions = signal<AliasOption[]>([]);
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
@@ -182,11 +183,17 @@ export class DefaultDateCaptureComponent implements OnInit {
       return;
     }
 
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
     const request: DefaultDateCaptureBulkUpdateRequest = {
       loans: changedRows.map((row) => ({
         loanKey: row.loanKey,
         defaultDate: row.defaultDate || null,
-        userUpdatedBy: this.userUpdatedBy,
+        userUpdatedBy,
       })),
     };
 

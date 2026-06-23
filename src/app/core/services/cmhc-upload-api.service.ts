@@ -46,6 +46,8 @@ export type CmhcUploadHistoryRecord = {
   filename: string;
   uploadedDate: string;
   uploadedBy: string;
+  uploadedByUserId?: number | null;
+  uploadedByName?: string | null;
 };
 
 @Injectable({
@@ -63,11 +65,16 @@ export class CmhcUploadApiService {
     return this.http.get<CmhcUploadHistoryRecord[]>(`${this.baseUrl}/history`);
   }
 
-  uploadFile(file: File, storedFileName: string, uploadedBy: string, fileType: FileUploadType) {
+  uploadFile(
+    file: File,
+    storedFileName: string,
+    uploadedByUserId: number,
+    fileType: FileUploadType,
+  ) {
     const formData = new FormData();
     formData.append('file', file, storedFileName);
     formData.append('fileName', storedFileName);
-    formData.append('uploadedBy', uploadedBy);
+    formData.append('uploadedByUserId', String(uploadedByUserId));
     formData.append('fileType', fileType);
 
     const url = `${this.baseUrl}?fileType=${encodeURIComponent(fileType)}`;

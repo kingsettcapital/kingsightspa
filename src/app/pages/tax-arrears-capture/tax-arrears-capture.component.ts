@@ -3,6 +3,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import { LoanDto, LoansApiService } from '../../core/services/loans-api.service';
 import {
@@ -65,8 +66,8 @@ export class TaxArrearsCaptureComponent implements OnInit {
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly loansApi = inject(LoansApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
-  private readonly userUpdatedBy = 'system';
 
   readonly aliasOptions = signal<AliasOption[]>([]);
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
@@ -287,13 +288,19 @@ export class TaxArrearsCaptureComponent implements OnInit {
       return;
     }
 
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.dialogError.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
     const request: TaxArrearsCaptureCreateRequest = {
       loanKey: form.loanKey,
       taxMemoDate: form.taxMemoDate.trim() || null,
       taxArrears: this.parseNumericInput(form.taxArrears),
       taxYear: form.taxYear.trim() || null,
       notes: form.notes.trim() || null,
-      userUpdatedBy: this.userUpdatedBy,
+      userUpdatedBy,
     };
 
     this.isCreating.set(true);
@@ -332,6 +339,12 @@ export class TaxArrearsCaptureComponent implements OnInit {
       return;
     }
 
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
     const request: TaxArrearsCaptureBulkUpdateRequest = {
       taxArrears: changedRows.map((row) => ({
         taxArrearKey: row.taxArrearKey,
@@ -339,7 +352,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
         taxArrears: row.taxArrears,
         taxYear: row.taxYear.trim() || null,
         notes: row.notes.trim() || null,
-        userUpdatedBy: this.userUpdatedBy,
+        userUpdatedBy,
       })),
     };
 

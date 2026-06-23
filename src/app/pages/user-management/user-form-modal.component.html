@@ -1,0 +1,113 @@
+@if (isOpen()) {
+  <div class="um-modal-backdrop" (click)="onBackdropClick($event)" role="presentation">
+    <div
+      class="um-modal"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'user-form-title'"
+    >
+      <header class="um-modal__header">
+        <h2 id="user-form-title" class="um-modal__title">{{ heading() }}</h2>
+        <button type="button" class="um-modal__close" (click)="close()" [disabled]="isSaving()" aria-label="Close">
+          ×
+        </button>
+      </header>
+
+      <form class="um-modal__body" (ngSubmit)="submit()">
+        @if (mode() === 'edit' && editingUserId() != null) {
+          <div class="um-field">
+            <span class="ks-label">User ID</span>
+            <p class="um-field__readonly">{{ editingUserId() }}</p>
+          </div>
+        }
+
+        <div class="um-field">
+          <label class="ks-label" for="userEmail">Email</label>
+          <input
+            id="userEmail"
+            type="email"
+            class="ks-input"
+            [class.ks-input--error]="emailError()"
+            [ngModel]="email()"
+            (ngModelChange)="email.set($event)"
+            (blur)="validateEmail()"
+            name="email"
+            autocomplete="email"
+            required
+          />
+          @if (emailError()) {
+            <p class="um-field__error">{{ emailError() }}</p>
+          }
+        </div>
+
+        <div class="um-field-row">
+          <div class="um-field">
+            <label class="ks-label" for="userFirstName">First Name</label>
+            <input
+              id="userFirstName"
+              type="text"
+              class="ks-input"
+              [ngModel]="firstName()"
+              (ngModelChange)="firstName.set($event)"
+              name="firstName"
+              autocomplete="given-name"
+            />
+          </div>
+          <div class="um-field">
+            <label class="ks-label" for="userLastName">Last Name</label>
+            <input
+              id="userLastName"
+              type="text"
+              class="ks-input"
+              [ngModel]="lastName()"
+              (ngModelChange)="lastName.set($event)"
+              name="lastName"
+              autocomplete="family-name"
+            />
+          </div>
+        </div>
+
+        <div class="um-field">
+          <label class="ks-label" for="userRole">Role</label>
+          <select
+            id="userRole"
+            class="ks-select"
+            [ngModel]="roleId()"
+            (ngModelChange)="roleId.set($event === '' ? null : +$event)"
+            name="roleId"
+            required
+          >
+            @for (role of roles(); track role.roleId) {
+              <option [ngValue]="role.roleId">{{ role.roleName }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="um-field um-field--checkbox">
+          <label class="um-checkbox">
+            <input
+              type="checkbox"
+              [ngModel]="isActive()"
+              (ngModelChange)="isActive.set($event)"
+              name="isActive"
+            />
+            <span>Active</span>
+          </label>
+        </div>
+
+        @if (errorMessage()) {
+          <p class="ks-message ks-message--error">{{ errorMessage() }}</p>
+        }
+
+        <footer class="um-modal__footer">
+          <button type="button" class="ks-btn ks-btn--outline" (click)="close()" [disabled]="isSaving()">
+            Cancel
+          </button>
+          <button type="submit" class="ks-btn ks-btn--primary" [disabled]="!isValid() || isSaving()">
+            @if (isSaving()) { Saving… } @else { {{ mode() === 'create' ? 'Create User' : 'Save Changes' }} }
+          </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+}

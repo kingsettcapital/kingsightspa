@@ -1,0 +1,60 @@
+@if (isOpen()) {
+  <div class="um-modal-backdrop" (click)="onBackdropClick($event)" role="presentation">
+    <div class="um-modal um-modal--narrow" role="dialog" aria-modal="true" [attr.aria-labelledby]="'role-form-title'">
+      <header class="um-modal__header">
+        <h2 id="role-form-title" class="um-modal__title">{{ heading() }}</h2>
+        <button type="button" class="um-modal__close" (click)="close()" [disabled]="isSaving()" aria-label="Close">
+          ×
+        </button>
+      </header>
+
+      <form class="um-modal__body" (ngSubmit)="submit()">
+        @if (mode() === 'edit' && editingRoleId() != null) {
+          <div class="um-field">
+            <span class="ks-label">Role ID</span>
+            <p class="um-field__readonly">{{ editingRoleId() }}</p>
+          </div>
+        }
+
+        <div class="um-field">
+          <label class="ks-label" for="roleName">Role Name</label>
+          <input
+            id="roleName"
+            type="text"
+            class="ks-input"
+            [ngModel]="roleName()"
+            (ngModelChange)="roleName.set($event)"
+            name="roleName"
+            required
+          />
+        </div>
+
+        <div class="um-field">
+          <label class="ks-label" for="roleStatus">Status</label>
+          <input
+            id="roleStatus"
+            type="text"
+            class="ks-input"
+            [ngModel]="status()"
+            (ngModelChange)="status.set($event)"
+            name="status"
+            placeholder="Optional"
+          />
+        </div>
+
+        @if (errorMessage()) {
+          <p class="ks-message ks-message--error">{{ errorMessage() }}</p>
+        }
+
+        <footer class="um-modal__footer">
+          <button type="button" class="ks-btn ks-btn--outline" (click)="close()" [disabled]="isSaving()">
+            Cancel
+          </button>
+          <button type="submit" class="ks-btn ks-btn--primary" [disabled]="!isValid() || isSaving()">
+            @if (isSaving()) { Saving… } @else { {{ mode() === 'create' ? 'Create Role' : 'Save Changes' }} }
+          </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+}

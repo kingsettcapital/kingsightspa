@@ -134,12 +134,15 @@ export class MainLayoutComponent implements OnInit {
   }
 
   private syncDropdownToRoute(url: string): void {
-    if (url.startsWith('/mortgage')) {
+    const path = url.split('?')[0];
+
+    // Investor Alias Assignment lives under MORTGAGE nav but routes to capital-reporting.
+    if (path.startsWith('/mortgage') || path.startsWith('/capital-reporting/investor')) {
       this.openDropdown.set('Loans');
       return;
     }
 
-    if (url.startsWith('/capital-reporting')) {
+    if (path.startsWith('/capital-reporting')) {
       this.openDropdown.set('Stats');
     }
   }

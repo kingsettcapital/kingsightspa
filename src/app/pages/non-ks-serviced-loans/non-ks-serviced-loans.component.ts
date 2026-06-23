@@ -3,6 +3,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import {
   NonKsServicedLoanDto,
   NonKsServicedLoanPayload,
@@ -70,8 +71,8 @@ const NUMERIC_FIELDS: (keyof RowSnapshot)[] = [
 })
 export class NonKsServicedLoansComponent implements OnInit {
   private readonly api = inject(NonKsServicedLoansApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
-  private readonly userUpdatedBy = 'system';
   private nextClientRowId = -1;
 
   readonly rows = signal<NonKsLoanRow[]>([]);
@@ -192,6 +193,12 @@ export class NonKsServicedLoansComponent implements OnInit {
       return;
     }
 
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
     this.isSaving.set(true);
     this.statusMessage.set('');
     this.errorMessage.set('');
@@ -200,7 +207,7 @@ export class NonKsServicedLoansComponent implements OnInit {
     if (newRows.length) {
       requests.push(
         this.api
-          .createLoans({ loans: newRows.map((row) => this.toPayload(row)) })
+          .createLoans({ loans: newRows.map((row) => this.toPayload(row, userUpdatedBy)) })
           .pipe(catchError((error) => {
             throw error;
           })),
@@ -211,7 +218,7 @@ export class NonKsServicedLoansComponent implements OnInit {
         this.api
           .updateLoans({
             loans: changedRows.map((row) => ({
-              ...this.toPayload(row),
+              ...this.toPayload(row, userUpdatedBy),
               nonKsServicedLoanKey: row.nonKsServicedLoanKey,
             })),
           })
@@ -394,7 +401,7 @@ export class NonKsServicedLoansComponent implements OnInit {
     };
   }
 
-  private toPayload(row: NonKsLoanRow): NonKsServicedLoanPayload {
+  private toPayload(row: NonKsLoanRow, userUpdatedBy: string): NonKsServicedLoanPayload {
     return {
       loanName: this.nullIfEmpty(row.loanName),
       asAtDate: this.nullIfEmpty(row.asAtDate),
@@ -421,7 +428,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       taxArrears: row.taxArrears,
       interestAsOfTaxMemo: row.interestAsOfTaxMemo,
       interestAdjustment: row.interestAdjustment,
-      userUpdatedBy: this.userUpdatedBy,
+      userUpdatedBy,
     };
   }
 

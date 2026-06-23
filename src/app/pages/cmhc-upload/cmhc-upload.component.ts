@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { APP_API_CONFIG } from '../../core/constants/api.config';
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import {
   CmhcUploadApiService,
   CmhcUploadHistoryRecord,
@@ -24,7 +24,7 @@ const SYSTEM_USER_LABEL = 'system';
 })
 export class CmhcUploadComponent implements OnInit {
   private readonly cmhcUploadApi = inject(CmhcUploadApiService);
-  private readonly apiConfig = inject(APP_API_CONFIG);
+  private readonly currentAppUser = inject(CurrentAppUserService);
 
   readonly fileTypeOptions = FILE_UPLOAD_TYPE_OPTIONS;
   readonly selectedFileType = signal<FileUploadType>('cmhc');
@@ -106,13 +106,20 @@ export class CmhcUploadComponent implements OnInit {
       return;
     }
 
+    const uploaderId = this.currentAppUser.getUserId();
+    if (!uploaderId) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      this.statusMessage.set('');
+      return;
+    }
+
     const storedFileName = this.buildStoredFileName(file.name, this.activeFileTypeOption());
     this.isUploading.set(true);
     this.statusMessage.set(`Uploading ${storedFileName}...`);
     this.errorMessage.set('');
 
     this.cmhcUploadApi
-      .uploadFile(file, storedFileName, this.resolveUploadedByUserId(), this.selectedFileType())
+      .uploadFile(file, storedFileName, uploaderId, this.selectedFileType())
       .subscribe({
         next: () => {
           this.selectedFile.set(null);
@@ -126,19 +133,6 @@ export class CmhcUploadComponent implements OnInit {
           this.isUploading.set(false);
         },
       });
-  }
-
-  /** mort.CMHC_upload_historytbl.uploaded_by — UNIQUEIDENTIFIER sent to API. */
-  private resolveUploadedByUserId(): string {
-    const configured = this.apiConfig.cmhcUploadedByUserId?.trim();
-    if (configured && this.isGuid(configured)) {
-      return configured;
-    }
-    return SYSTEM_USER_GUID;
-  }
-
-  private isGuid(value: string): boolean {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
   }
 
   formatUploadedDate(value: string): string {
@@ -201,9 +195,15 @@ export class CmhcUploadComponent implements OnInit {
     return `${y}${m}${d}_${h}${min}${s}`;
   }
 
-  /** Grid label — matches Investor/Loan screens ("system") when placeholder GUID is used. */
-  formatUploadedBy(value: unknown): string {
-    const raw = String(value ?? '').trim();
+  /** Prefer API display name; legacy rows may still show system. */
+  formatUploadedBy(record: CmhcUploadHistoryRecord | Record<string, unknown>): string {
+    const row = record as Record<string, unknown>;
+    const displayName = String(row['uploadedByName'] ?? row['uploaded_by_name'] ?? '').trim();
+    if (displayName) {
+      return displayName;
+    }
+
+    const raw = String(row['uploadedBy'] ?? row['uploaded_by'] ?? '').trim();
     if (!raw) {
       return '-';
     }
@@ -217,11 +217,17 @@ export class CmhcUploadComponent implements OnInit {
     record: CmhcUploadHistoryRecord | Record<string, unknown>,
   ): CmhcUploadHistoryRecord {
     const row = record as Record<string, unknown>;
+    const uploadedByName = this.formatUploadedBy(row);
     return {
       fileId: Number(row['fileId'] ?? row['file_id'] ?? 0),
       filename: String(row['filename'] ?? row['fileName'] ?? '').trim(),
       uploadedDate: String(row['uploadedDate'] ?? row['uploaded_date'] ?? ''),
-      uploadedBy: this.formatUploadedBy(row['uploadedBy'] ?? row['uploaded_by']),
+      uploadedBy: uploadedByName,
+      uploadedByUserId:
+        row['uploadedByUserId'] != null || row['uploaded_by_user_id'] != null
+          ? Number(row['uploadedByUserId'] ?? row['uploaded_by_user_id'])
+          : null,
+      uploadedByName,
     };
   }
 

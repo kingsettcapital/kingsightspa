@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanApiRecord, LoansApiService } from '../../core/services/loans-api.service';
 import { forkJoin } from 'rxjs';
 
@@ -31,6 +32,7 @@ type LoanUpdatePayload = {
 })
 export class LoansRankingComponent implements OnInit {
   private readonly loansApi = inject(LoansApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
 
   readonly searchText = signal('');
@@ -220,6 +222,13 @@ export class LoansRankingComponent implements OnInit {
       return;
     }
 
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      this.statusMessage.set('');
+      return;
+    }
+
     const targetRows = this.filteredRows();
     if (!targetRows.length) {
       this.statusMessage.set('Search and select at least one loan before saving changes.');
@@ -385,7 +394,10 @@ export class LoansRankingComponent implements OnInit {
     const original = this.originalRowState()[row.loanKey];
     const normalizedAlias = row.loanAlias.trim() || row.investorName;
     const normalizedRanking = this.normalizeRanking(row.ranking);
-    const updatedBy = row.updatedBy && row.updatedBy !== '-' ? row.updatedBy : '1';
+    const updatedBy = this.currentAppUser.getUpdatedBy() ?? row.updatedBy;
+    if (!updatedBy || updatedBy === '-') {
+      return null;
+    }
     const updatedDate = new Date().toISOString();
 
     if (!original) {

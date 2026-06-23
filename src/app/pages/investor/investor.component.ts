@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import {
   InvestorAlias,
   InvestorApiService,
@@ -28,6 +29,7 @@ type InvestorRow = {
 })
 export class InvestorComponent implements OnInit {
   private readonly investorApi = inject(InvestorApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
 
   readonly searchText = signal('');
@@ -214,7 +216,13 @@ export class InvestorComponent implements OnInit {
       return;
     }
 
-    const userUpdatedBy = 'system';
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      this.statusMessage.set('');
+      return;
+    }
+
     const request: InvestorBulkUpdateRequest = {
       investors: changedRows.map((row) => ({
         investorKey: row.investorKey,

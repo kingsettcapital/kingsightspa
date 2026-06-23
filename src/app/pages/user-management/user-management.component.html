@@ -1,0 +1,142 @@
+<section class="um-page">
+  <div class="ks-page__heading">
+    <h1 class="ks-page__title">User Management</h1>
+    <p class="ks-page__subtitle">Manage application users and roles</p>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="ks-message ks-message--error um-page__message">{{ errorMessage() }}</p>
+  }
+
+  <div class="um-toolbar">
+    <button type="button" class="ks-btn ks-btn--primary" (click)="openCreateUser()">Add User</button>
+  </div>
+
+  <div class="ks-table-card um-table-card">
+    <h2 class="ks-table-card__title">Users</h2>
+
+    @if (isLoading()) {
+      <p class="um-empty">Loading users…</p>
+    } @else if (users().length === 0) {
+      <p class="um-empty">No users found.</p>
+    } @else {
+      <div class="ks-table-wrap">
+        <table class="ks-table um-table">
+          <thead>
+            <tr>
+              <th>User ID</th>
+              <th>Email</th>
+              <th>First Name</th>
+              <th>Last Name</th>
+              <th>Active</th>
+              <th>Role</th>
+              <th>Date Created</th>
+              <th class="um-table__actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of users(); track trackByUserId($index, user)) {
+              <tr>
+                <td class="ks-table__cell--mono ks-table__cell--strong">{{ user.userId }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.firstName || '—' }}</td>
+                <td>{{ user.lastName || '—' }}</td>
+                <td>
+                  <span [class]="user.isActive ? 'um-badge um-badge--active' : 'um-badge um-badge--inactive'">
+                    {{ user.isActive ? 'Yes' : 'No' }}
+                  </span>
+                </td>
+                <td>{{ user.roleName }}</td>
+                <td class="ks-table__cell--mono">{{ formatDate(user.dateCreated) }}</td>
+                <td class="um-table__actions-col">
+                  <div class="um-actions">
+                    <button type="button" class="ks-btn ks-btn--outline um-actions__btn" (click)="openEditUser(user)">
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      class="ks-btn ks-btn--outline um-actions__btn um-actions__btn--danger"
+                      (click)="deleteUser(user)"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <div class="um-toolbar um-toolbar--roles">
+    <h2 class="um-section-title">Roles</h2>
+    <button type="button" class="ks-btn ks-btn--outline" (click)="openCreateRole()">Add Role</button>
+  </div>
+
+  <div class="ks-table-card um-table-card">
+    @if (isLoading()) {
+      <p class="um-empty">Loading roles…</p>
+    } @else if (roles().length === 0) {
+      <p class="um-empty">No roles found.</p>
+    } @else {
+      <div class="ks-table-wrap">
+        <table class="ks-table um-table">
+          <thead>
+            <tr>
+              <th>Role ID</th>
+              <th>Role Name</th>
+              <th>Status</th>
+              <th class="um-table__actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (role of roles(); track trackByRoleId($index, role)) {
+              <tr>
+                <td class="ks-table__cell--mono ks-table__cell--strong">{{ role.roleId }}</td>
+                <td>{{ role.roleName }}</td>
+                <td>{{ role.status || '—' }}</td>
+                <td class="um-table__actions-col">
+                  <div class="um-actions">
+                    <button type="button" class="ks-btn ks-btn--outline um-actions__btn" (click)="openEditRole(role)">
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      class="ks-btn ks-btn--outline um-actions__btn um-actions__btn--danger"
+                      (click)="deleteRole(role)"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</section>
+
+<app-user-form-modal
+  [isOpen]="userModalOpen()"
+  [mode]="userModalMode()"
+  [user]="selectedUser()"
+  [roles]="roles()"
+  [isSaving]="isSavingUser()"
+  [errorMessage]="userFormError()"
+  (closed)="closeUserModal()"
+  (submitted)="onUserFormSubmit($event)"
+/>
+
+<app-role-form-modal
+  [isOpen]="roleModalOpen()"
+  [mode]="roleModalMode()"
+  [role]="selectedRole()"
+  [isSaving]="isSavingRole()"
+  [errorMessage]="roleFormError()"
+  (closed)="closeRoleModal()"
+  (submitted)="onRoleFormSubmit($event)"
+/>

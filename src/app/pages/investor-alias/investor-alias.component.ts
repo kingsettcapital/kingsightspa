@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { InvestorAlias, InvestorApiService } from '../../core/services/investor-api.service';
 
 @Component({
@@ -12,6 +13,7 @@ import { InvestorAlias, InvestorApiService } from '../../core/services/investor-
 })
 export class InvestorAliasComponent implements OnInit {
   private readonly investorApi = inject(InvestorApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
 
   readonly aliases = signal<InvestorAlias[]>([]);
   readonly searchTerm = signal('');
@@ -144,13 +146,19 @@ export class InvestorAliasComponent implements OnInit {
     const name = this.formName().trim();
     if (!name || this.isSaving()) return;
 
+    const updatedBy = this.currentAppUser.getUpdatedBy();
+    if (!updatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
     const now = new Date().toISOString();
     const payload: InvestorAlias = {
       investorAliasId: 0,
       investorAliasName: name,
-      createdBy: 'system',
+      createdBy: updatedBy,
       createdDtm: now,
-      updatedBy: 'system',
+      updatedBy,
       updatedDtm: now,
     };
 
@@ -174,10 +182,16 @@ export class InvestorAliasComponent implements OnInit {
     const name = this.formName().trim();
     if (!selected || !name || this.isSaving()) return;
 
+    const updatedBy = this.currentAppUser.getUpdatedBy();
+    if (!updatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
     const payload: InvestorAlias = {
       ...selected,
       investorAliasName: name,
-      updatedBy: 'system',
+      updatedBy,
       updatedDtm: new Date().toISOString(),
     };
 

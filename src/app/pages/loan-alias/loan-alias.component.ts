@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import {
   LoanAlias,
   LoanAliasSaveRequest,
@@ -16,6 +17,7 @@ import {
 })
 export class LoanAliasComponent implements OnInit {
   private readonly loanAliasApi = inject(LoanAliasApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
 
   readonly aliases = signal<LoanAlias[]>([]);
   readonly searchTerm = signal('');
@@ -149,10 +151,16 @@ export class LoanAliasComponent implements OnInit {
     const name = this.formName().trim();
     if (!name || this.isSaving()) return;
 
+    const updatedBy = this.currentAppUser.getUpdatedBy();
+    if (!updatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
     const payload: LoanAliasSaveRequest = {
       loanAliasName: name,
-      createdBy: 'system',
-      updatedBy: 'system',
+      createdBy: updatedBy,
+      updatedBy,
     };
 
     this.isSaving.set(true);
@@ -176,10 +184,16 @@ export class LoanAliasComponent implements OnInit {
     const name = this.formName().trim();
     if (!selected || !name || this.isSaving()) return;
 
+    const updatedBy = this.currentAppUser.getUpdatedBy();
+    if (!updatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
     const payload: LoanAliasSaveRequest = {
       loanAliasName: name,
       createdBy: selected.createdBy,
-      updatedBy: 'system',
+      updatedBy,
     };
 
     this.isSaving.set(true);

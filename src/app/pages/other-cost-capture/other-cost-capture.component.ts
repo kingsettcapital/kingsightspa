@@ -3,6 +3,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
   OtherCostCaptureApiService,
@@ -43,8 +44,8 @@ export class OtherCostCaptureComponent implements OnInit {
   private readonly otherCostApi = inject(OtherCostCaptureApiService);
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
-  private readonly userUpdatedBy = 'system';
 
   readonly aliasOptions = signal<LoanAlias[]>([]);
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
@@ -152,13 +153,19 @@ export class OtherCostCaptureComponent implements OnInit {
       return;
     }
 
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
     const request: OtherCostCaptureBulkUpdateRequest = {
       loans: changedRows.map((row) => ({
         loanKey: row.loanKey,
         outstandingInvoices: row.outstandingInvoices,
         estRealizationCosts: row.estRealizationCosts,
         costToComplete: row.costToComplete,
-        userUpdatedBy: this.userUpdatedBy,
+        userUpdatedBy,
       })),
     };
 

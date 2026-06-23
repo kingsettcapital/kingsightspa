@@ -18,6 +18,7 @@ import {
   OtherCostRowSnapshot,
   OtherCostUpdatePayload,
 } from '../../../core/interfaces/other-cost.interfaces';
+import { CurrentAppUserService } from '../../../core/services/current-app-user.service';
 import { ExcelService } from '../../../core/services/excel.service';
 import { OtherCostApiService } from '../../../core/services/other-cost-api.service';
 import { PdfService } from '../../../core/services/pdf.service';
@@ -108,8 +109,8 @@ export class OtherCostComponent implements OnInit {
   private readonly excelService = inject(ExcelService);
   private readonly pdfService = inject(PdfService);
   private readonly toastService = inject(ToastService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 20;
-  private readonly defaultUpdatedBy = 'system';
 
   readonly tableColumns = OTHER_COST_COLUMNS;
   readonly columnFilterConfig = OTHER_COST_COLUMN_FILTER_CONFIG;
@@ -327,11 +328,17 @@ export class OtherCostComponent implements OnInit {
       return;
     }
 
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
     this.isSaving.set(true);
     this.errorMessage.set('');
 
     const request: OtherCostBulkUpdateRequest = {
-      loans: changedRows.map((row) => this.buildUpdatePayload(row)!),
+      loans: changedRows.map((row) => this.buildUpdatePayload(row, userUpdatedBy)!),
       pushToYardi,
     };
 
@@ -479,14 +486,13 @@ export class OtherCostComponent implements OnInit {
       row.estRealizationCosts !== original.estRealizationCosts ||
       row.costToComplete !== original.costToComplete;
 
-    return changed ? this.buildUpdatePayload(row) : null;
+    return changed ? this.buildUpdatePayload(row, this.currentAppUser.getUpdatedBy() ?? '') : null;
   }
 
-  private buildUpdatePayload(row: OtherCostRow): OtherCostUpdatePayload {
-    const updatedBy =
-      row.updatedBy && row.updatedBy.trim().length > 0 && row.updatedBy !== '-'
-        ? row.updatedBy
-        : this.defaultUpdatedBy;
+  private buildUpdatePayload(row: OtherCostRow, userUpdatedBy: string): OtherCostUpdatePayload | null {
+    if (!userUpdatedBy) {
+      return null;
+    }
 
     return {
       loanKey: row.loanKey,
@@ -494,7 +500,7 @@ export class OtherCostComponent implements OnInit {
       estRealizationCosts: row.estRealizationCosts,
       costToComplete: row.costToComplete,
       userUpdatedDate: new Date().toISOString(),
-      userUpdatedBy: updatedBy,
+      userUpdatedBy,
     };
   }
 

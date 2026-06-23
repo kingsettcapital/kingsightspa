@@ -3,6 +3,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
   LtvValidationApiService,
@@ -48,8 +49,8 @@ export class LtvValidationComponent implements OnInit {
   private readonly ltvApi = inject(LtvValidationApiService);
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
-  private readonly userUpdatedBy = 'system';
 
   readonly aliasOptions = signal<AliasOption[]>([]);
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
@@ -193,11 +194,17 @@ export class LtvValidationComponent implements OnInit {
       return;
     }
 
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
     const request: LtvValidationBulkUpdateRequest = {
       loans: changedRows.map((row) => ({
         loanKey: row.loanKey,
         ltv: row.ltv,
-        userUpdatedBy: this.userUpdatedBy,
+        userUpdatedBy,
       })),
     };
 
@@ -231,11 +238,17 @@ export class LtvValidationComponent implements OnInit {
       return;
     }
 
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
     this.isConfirming.set(true);
     this.statusMessage.set('');
     this.errorMessage.set('');
 
-    this.ltvApi.confirmAiLtv({ loanKeys, userUpdatedBy: this.userUpdatedBy }).subscribe({
+    this.ltvApi.confirmAiLtv({ loanKeys, userUpdatedBy }).subscribe({
       next: () => {
         this.statusMessage.set(`${loanKeys.length} loan(s) confirmed with AI-extracted LTV.`);
         this.isConfirming.set(false);

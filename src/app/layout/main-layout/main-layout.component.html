@@ -163,6 +163,17 @@
         <span class="ks-sidebar__link-label">Data Explorer</span>
       </a>
 
+      @if (currentUser().role === 'Administrator') {
+        <a
+          routerLink="/admin/user-management"
+          routerLinkActive="ks-sidebar__link--active"
+          class="ks-sidebar__link"
+        >
+          <lucide-icon [img]="userIcon" color="currentColor" [size]="22"></lucide-icon>
+          <span class="ks-sidebar__link-label">User Management</span>
+        </a>
+      }
+
       <!-- <div
         class="ks-sidebar__group"
         [class.ks-sidebar__group--expanded]="openDropdown() === 'Stats'"

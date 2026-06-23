@@ -3,6 +3,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
   LoanSecurityValueApiService,
@@ -45,6 +46,7 @@ const DEFAULT_STATUS_LABEL = 'Default';
 export class SecurityValueComponent implements OnInit {
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
 
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
@@ -244,7 +246,13 @@ export class SecurityValueComponent implements OnInit {
       return;
     }
 
-    const updatedBy = 'system';
+    const updatedBy = this.currentAppUser.getUpdatedBy();
+    if (!updatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      this.statusMessage.set('');
+      return;
+    }
+
     const request: LoanSecurityValueBulkUpdateRequest = {
       loanSecurityValues: changedRows.map((row) => ({
         loanAliasId: row.loanAliasId,

@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
   LoanBulkUpdateRequest,
@@ -29,6 +30,7 @@ type LoanRow = {
 export class LoanAliasAssignmentComponent implements OnInit {
   private readonly loansApi = inject(LoansApiService);
   private readonly loanAliasApi = inject(LoanAliasApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
 
   readonly searchText = signal('');
@@ -215,7 +217,12 @@ export class LoanAliasAssignmentComponent implements OnInit {
       return;
     }
 
-    const userUpdatedBy = 'system';
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
     const request: LoanBulkUpdateRequest = {
       loans: changedRows.map((row) => ({
         loanKey: row.loanKey,

@@ -3,6 +3,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
   DefaultSubjectiveAnalyticsApiService,
@@ -75,8 +76,8 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
   private readonly subjectiveApi = inject(DefaultSubjectiveAnalyticsApiService);
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
-  private readonly userUpdatedBy = 'system';
 
   readonly aliasOptions = signal<AliasOption[]>([]);
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
@@ -222,6 +223,12 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
       return;
     }
 
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
     const request: DefaultSubjectiveAnalyticsBulkUpdateRequest = {
       loans: changedRows.map((row) => ({
         loanKey: row.loanKey,
@@ -229,7 +236,7 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
         exitPlan: this.nullIfEmpty(this.normalizeExitPlan(row.exitPlan)),
         exitDate: this.nullIfEmpty(row.exitDate),
         maturityAdditionalDetail: this.nullIfEmpty(row.maturityAdditionalDetail),
-        userUpdatedBy: this.userUpdatedBy,
+        userUpdatedBy,
       })),
     };
 
