@@ -1,15 +1,12 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { delay, Observable, of } from 'rxjs';
 
-import { DEFAULT_DATE_EXAMPLE_DATA } from '../constants/default-date-example.data';
+import { APP_API_CONFIG } from '../constants/api.config';
 import {
   DefaultDateApiRecord,
   DefaultDateBulkUpdateRequest,
 } from '../interfaces/default-date.interfaces';
 import { ApiService } from './api.service';
-
-/** Set to false when the live default-date API is ready. */
-const USE_DEFAULT_DATE_EXAMPLE_DATA = true;
 
 @Injectable({
   providedIn: 'root',
@@ -17,28 +14,11 @@ const USE_DEFAULT_DATE_EXAMPLE_DATA = true;
 export class DefaultDateApiService {
   private readonly api = inject(ApiService);
 
-  getDefaultDates(): Observable<DefaultDateApiRecord[]> {
-    if (USE_DEFAULT_DATE_EXAMPLE_DATA) {
-      return of([...DEFAULT_DATE_EXAMPLE_DATA]).pipe(delay(400));
-    }
+  getDefaultDates() {
     return this.api.get<DefaultDateApiRecord[]>('api/default-dates');
   }
 
-  updateDefaultDatesBulk(request: DefaultDateBulkUpdateRequest): Observable<DefaultDateApiRecord[]> {
-    if (USE_DEFAULT_DATE_EXAMPLE_DATA) {
-      for (const update of request.loans) {
-        const record = DEFAULT_DATE_EXAMPLE_DATA.find(
-          (item) => String(item['LoanKey'] ?? '') === update.loanKey,
-        );
-        if (!record) {
-          continue;
-        }
-        record['DefaultDate'] = update.defaultDate;
-        record['UserUpdatedDate'] = update.userUpdatedDate.slice(0, 10);
-        record['UserUpdatedBy'] = update.userUpdatedBy;
-      }
-      return of([...DEFAULT_DATE_EXAMPLE_DATA]).pipe(delay(500));
-    }
+  updateDefaultDatesBulk(request: DefaultDateBulkUpdateRequest) {
     return this.api.put<DefaultDateApiRecord[]>('api/default-dates/bulk', request);
   }
 }

@@ -1,4 +1,4 @@
-<section class="ltv-validation-page">
+<section class="ks-fp ltv-validation-page">
   <h1>LTV Validation</h1>
   <p class="subtitle">
     Review AI-extracted LTV from QR slides at the child loan level. All loan aliases load by default —
@@ -165,13 +165,13 @@
   <div class="actions">
     <button
       type="button"
-      class="btn-confirm"
+      class="ks-btn ks-btn--accent"
       (click)="confirmAiLtv()"
       [disabled]="isConfirming() || !confirmableLoanKeys().length"
     >
       @if (isConfirming()) { Confirming… } @else { Confirm AI LTV }
     </button>
-    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>

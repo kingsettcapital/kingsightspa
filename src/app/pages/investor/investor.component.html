@@ -1,4 +1,4 @@
-<section class="investor-page">
+<section class="ks-fp investor-page">
   <h1>Investor Alias Update</h1>
   <p class="subtitle">Search investors and assign alias names from the master list</p>
 
@@ -127,8 +127,8 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="btn-close" (click)="clearSelection()">Clear Selection</button>
-    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving()">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="clearSelection()">Clear Selection</button>
+    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving()">
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>

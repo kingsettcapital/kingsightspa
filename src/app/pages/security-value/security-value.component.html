@@ -1,4 +1,4 @@
-<section class="security-value-page">
+<section class="ks-fp security-value-page">
   <h1>Security Value</h1>
   <p class="subtitle">
     All loan aliases load by default. Search to narrow the grid, or select tags to filter.
@@ -186,8 +186,8 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="btn-close" (click)="clearSelection()">Clear Selection</button>
-    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving()">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="clearSelection()">Clear Selection</button>
+    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving()">
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>

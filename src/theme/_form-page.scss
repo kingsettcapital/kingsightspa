@@ -1,0 +1,470 @@
+/* Shared layout for mortgage subjective input / capture pages (Loan Alias template) */
+
+.ks-fp {
+  min-height: 100%;
+  padding: 1.75rem 2rem;
+  background: #f9fafb;
+}
+
+.ks-fp .la-header,
+.ks-fp .ia-header {
+  margin-bottom: 1.5rem;
+}
+
+.ks-fp .la-subtitle,
+.ks-fp .ia-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.ks-fp__header {
+  margin-bottom: 1.5rem;
+}
+
+.ks-fp h1,
+.ks-fp__header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.625rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.015em;
+  text-transform: none;
+}
+
+.ks-fp__subtitle,
+.ks-fp .subtitle {
+  margin: 0 0 1.5rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.ks-fp__header .ks-fp__subtitle {
+  margin-bottom: 0;
+}
+
+/* Toolbar row (search + primary action) */
+.ks-fp__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.ks-fp__search-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  max-width: 26rem;
+}
+
+.ks-fp__search-icon {
+  position: absolute;
+  left: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  display: flex;
+  pointer-events: none;
+}
+
+.ks-fp__search-input,
+.ks-fp .search-input-wrap input,
+.ks-fp .search-panel .search-input-wrap input {
+  width: 100%;
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #111827;
+  background: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.ks-fp__search-wrap .ks-fp__search-input {
+  padding-left: 2.15rem;
+}
+
+.ks-fp__search-input::placeholder,
+.ks-fp .search-input-wrap input::placeholder {
+  color: #9ca3af;
+}
+
+.ks-fp__search-input:focus,
+.ks-fp .search-input-wrap input:focus {
+  border-color: var(--ks-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ks-color-primary) 12%, transparent);
+}
+
+/* Filter panels */
+.ks-fp__filters,
+.ks-fp .filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  align-items: flex-start;
+}
+
+.ks-fp__filter,
+.ks-fp .filter-panel,
+.ks-fp .search-panel {
+  flex: 1 1 20rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0.95rem 1rem;
+}
+
+/* Standalone search panel (assignment pages) — match la-toolbar → table spacing */
+.ks-fp > .search-panel {
+  margin-bottom: 1rem;
+}
+
+.ks-fp .status-panel {
+  flex: 0 1 auto;
+  min-width: 12rem;
+}
+
+.ks-fp .alias-panel {
+  flex: 1 1 20rem;
+}
+
+.ks-fp .filter-label,
+.ks-fp .search-panel > label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.ks-fp .search-panel .search-input-wrap {
+  display: block;
+  border: none;
+  height: auto;
+  padding: 0;
+}
+
+/* Search dropdown + tags */
+.ks-fp .search-results {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  max-height: 10rem;
+  overflow: auto;
+  background: #ffffff;
+}
+
+.ks-fp .search-results li button {
+  width: 100%;
+  border: none;
+  background: #ffffff;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.ks-fp .search-results li:last-child button {
+  border-bottom: none;
+}
+
+.ks-fp .search-results li button:hover {
+  background: #f9fafb;
+}
+
+.ks-fp .selected-alias-tags,
+.ks-fp .selected-loan-tags,
+.ks-fp .selected-investor-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.6rem;
+}
+
+.ks-fp .alias-tag,
+.ks-fp .loan-tag,
+.ks-fp .investor-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.ks-fp .tag-close {
+  font-weight: 700;
+}
+
+.ks-fp .link-clear {
+  margin-top: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ks-color-primary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.ks-fp .status-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ks-fp .status-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+/* Status / error messages */
+.ks-fp__status,
+.ks-fp .status-message,
+.ks-fp .meta-message,
+.ks-fp .la-status-msg,
+.ks-fp .ia-status-msg {
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.85rem;
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  border-radius: 6px;
+  color: #065f46;
+  font-size: 0.875rem;
+}
+
+.ks-fp .meta-message {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #6b7280;
+}
+
+.ks-fp__error,
+.ks-fp .error-message,
+.ks-fp .la-error-msg,
+.ks-fp .ia-error-msg {
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.85rem;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  color: #b91c1c;
+  font-size: 0.875rem;
+}
+
+.ks-fp__loading {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* Table section title — override global h2 brand styles when used on capture pages */
+.ks-fp .table-title,
+.ks-fp h2.table-title {
+  margin: 0 0 0.75rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.ks-fp__table-wrap,
+.ks-fp .table-wrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+  overflow-x: auto;
+}
+
+.ks-fp__table,
+.ks-fp .table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 56rem;
+  font-size: 0.875rem;
+}
+
+.ks-fp__table thead,
+.ks-fp .table-wrap thead {
+  background: #f3f4f6;
+}
+
+.ks-fp__table thead th,
+.ks-fp .table-wrap thead th {
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+  background: #f3f4f6;
+}
+
+.ks-fp__table tbody tr,
+.ks-fp .table-wrap tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.1s;
+}
+
+.ks-fp__table tbody tr:last-child,
+.ks-fp .table-wrap tbody tr:last-child {
+  border-bottom: none;
+}
+
+.ks-fp__table tbody tr:hover,
+.ks-fp .table-wrap tbody tr:hover {
+  background: #f9fafb;
+}
+
+.ks-fp__table tbody td,
+.ks-fp .table-wrap tbody td {
+  padding: 0.7rem 1rem;
+  color: #111827;
+  vertical-align: middle;
+}
+
+.ks-fp .empty-row,
+.ks-fp .td-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #9ca3af;
+}
+
+/* Pagination */
+.ks-fp .pagination,
+.ks-fp .la-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.ks-fp .pagination-left,
+.ks-fp .pagination-right,
+.ks-fp .la-page-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ks-fp .page-range,
+.ks-fp .la-page-range {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.ks-fp .pager-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 2rem;
+  min-width: 2rem;
+  padding: 0 0.55rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.ks-fp .pager-btn:hover:not(:disabled):not(.pager-btn--active) {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.ks-fp .pager-btn--active {
+  background: var(--ks-color-primary);
+  border-color: var(--ks-color-primary);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.ks-fp .pager-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ks-fp .page-size-select,
+.ks-fp .pagination-left select {
+  height: 2rem;
+  padding: 0 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  background: #ffffff;
+}
+
+/* Action bar — use ks-btn ks-btn--accent in templates */
+.ks-fp .actions,
+.ks-fp__actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.ks-fp .la-dialog-footer,
+.ks-fp .ta-dialog-footer,
+.ks-fp .ia-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.ks-fp .footnote {
+  margin: 1rem 0 0;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+@media (max-width: 640px) {
+  .ks-fp {
+    padding: 1.25rem 1rem;
+  }
+
+  .ks-fp__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ks-fp__search-wrap {
+    max-width: 100%;
+  }
+
+  .ks-fp__toolbar .ks-btn,
+  .ks-fp .actions .ks-btn {
+    justify-content: center;
+  }
+}

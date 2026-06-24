@@ -489,7 +489,7 @@
           [value]="filters().sponsor"
           (change)="updateFilterField('sponsor', $any($event.target).value)"
         >
-          @for (sponsor of sponsorOptions; track sponsor) {
+          @for (sponsor of sponsorOptions(); track sponsor) {
             <option [value]="sponsor">{{ sponsor }}</option>
           }
         </select>
@@ -498,7 +498,7 @@
       <fieldset class="ms-filter-field">
         <legend>Investor Alias</legend>
         <div class="ms-chip-group">
-          @for (alias of investorAliasOptions; track alias) {
+          @for (alias of investorAliasOptions(); track alias) {
             <button
               type="button"
               class="ms-chip"

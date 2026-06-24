@@ -11,17 +11,17 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
+import { combineLatest } from 'rxjs';
 
-import {
-  dashboardBarPieSeriesColor,
-} from '../../features/capital-dashboard/dashboard/dashboard-chart-colors';
+import { ManagementSummaryApiService } from '../../core/services/management-summary-api.service';
+import { mapLoanDetailReportDashboard } from './loan-detail-report.mapper';
 import {
   dashboardHorizontalBarChartScales,
   dashboardLegendLabels,
   DashboardChartLifecycle,
 } from '../../features/capital-dashboard/dashboard/dashboard-chart.util';
+import { dashboardBarPieSeriesColor } from '../../features/capital-dashboard/dashboard/dashboard-chart-colors';
 import type { LoanDetailReportData, LoanPortfolioDetailRow } from './loan-detail-report.models';
-import { LOAN_DETAIL_REPORT_MOCK } from './loan-detail-report.mock';
 
 Chart.register(...registerables);
 
@@ -34,6 +34,7 @@ Chart.register(...registerables);
 })
 export class LoanDetailReportComponent implements AfterViewInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly summaryApi = inject(ManagementSummaryApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly investorChart = new DashboardChartLifecycle(this.destroyRef);
   private readonly compositionChart = new DashboardChartLifecycle(this.destroyRef);
@@ -46,7 +47,20 @@ export class LoanDetailReportComponent implements AfterViewInit {
   private readonly compositionChartContainer = viewChild<ElementRef<HTMLElement>>('compositionChartContainer');
   private readonly breakdownChartContainer = viewChild<ElementRef<HTMLElement>>('breakdownChartContainer');
 
-  readonly report = signal<LoanDetailReportData>(LOAN_DETAIL_REPORT_MOCK);
+  readonly report = signal<LoanDetailReportData>(
+    mapLoanDetailReportDashboard({
+      loanAlias: '—',
+      header: {},
+      reportDetails: {},
+      keyDates: { asOfDate: new Date().toISOString().slice(0, 10) },
+      propertyStats: {},
+      interestSummary: {},
+      interestReserve: {},
+      portfolioRows: [],
+    }),
+  );
+  readonly isLoading = signal(false);
+  readonly errorMessage = signal('');
 
   readonly portfolioTotals = computed(() => this.sumPortfolioRows(this.report().portfolioRows));
 
@@ -63,16 +77,39 @@ export class LoanDetailReportComponent implements AfterViewInit {
   );
 
   constructor() {
-    this.route.queryParamMap.subscribe((params) => {
-      const alias = String(params.get('alias') ?? '').trim();
-      if (alias) {
-        this.report.update((current) => ({ ...current, loanAlias: alias }));
+    combineLatest([this.route.paramMap, this.route.queryParamMap]).subscribe(([params, query]) => {
+      const loanAliasKey = Number(params.get('loanAliasKey'));
+      const alias = String(query.get('alias') ?? '').trim();
+      const asOfDate = String(query.get('asOfDate') ?? '2025-08-31').trim();
+      if (!Number.isFinite(loanAliasKey) || loanAliasKey <= 0) {
+        return;
       }
+      this.loadReport(loanAliasKey, alias, asOfDate);
     });
   }
 
   ngAfterViewInit(): void {
     queueMicrotask(() => this.renderCharts());
+  }
+
+  private loadReport(loanAliasKey: number, loanAlias: string, asOfDate: string): void {
+    this.isLoading.set(true);
+    this.errorMessage.set('');
+    this.summaryApi.getLoanDetailReport(loanAliasKey, asOfDate).subscribe({
+      next: (dto) => {
+        const mapped = mapLoanDetailReportDashboard(dto);
+        this.report.set({
+          ...mapped,
+          loanAlias: loanAlias || mapped.loanAlias,
+        });
+        this.isLoading.set(false);
+        queueMicrotask(() => this.renderCharts());
+      },
+      error: () => {
+        this.errorMessage.set('Unable to load loan detail report. Verify API availability.');
+        this.isLoading.set(false);
+      },
+    });
   }
 
   formatMillions(value: number | null | undefined): string {

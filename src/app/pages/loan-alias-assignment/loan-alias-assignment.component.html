@@ -1,4 +1,4 @@
-<section class="loan-alias-assignment-page">
+<section class="ks-fp loan-alias-assignment-page">
   <h1>Loan Alias Update</h1>
   <p class="subtitle">Search loans and assign alias names from the master list</p>
 
@@ -127,8 +127,8 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="btn-close" (click)="clearSelection()">Clear Selection</button>
-    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving()">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="clearSelection()">Clear Selection</button>
+    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving()">
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>

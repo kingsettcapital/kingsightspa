@@ -94,6 +94,17 @@
   border-color: var(--ks-color-primary-hover);
 }
 
+.ks-btn--accent {
+  border-color: var(--ks-color-gold);
+  background: var(--ks-color-gold);
+  color: var(--ks-color-navy);
+}
+
+.ks-btn--accent:hover:not(:disabled) {
+  background: #f0c04a;
+  border-color: #f0c04a;
+}
+
 .ks-btn--outline {
   border-color: var(--ks-color-navy);
   background: var(--ks-color-surface);

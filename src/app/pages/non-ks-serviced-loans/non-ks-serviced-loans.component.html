@@ -1,4 +1,4 @@
-<section class="non-ks-page">
+<section class="ks-fp non-ks-page">
   <h1>Non-KS Serviced Loans</h1>
   <p class="subtitle">
     Manually enter quarterly subjective input for loans not serviced by KingSett. Every field is a free-form
@@ -347,8 +347,8 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="btn-add" (click)="addRow()">Add Row</button>
-    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving()">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="addRow()">Add Row</button>
+    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving()">
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>

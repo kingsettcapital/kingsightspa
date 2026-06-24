@@ -1,4 +1,4 @@
-<section class="subjective-page">
+<section class="ks-fp subjective-page">
   <h1>Capture Default Subjective Analytics</h1>
   <p class="subtitle">
     All loan aliases load by default. Search to narrow the grid, or select tags to filter. Update default
@@ -180,7 +180,7 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>

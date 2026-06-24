@@ -1,7 +1,7 @@
-<section class="file-upload-page">
-  <div class="ks-page__heading">
-    <h1 class="ks-page__title">File Upload</h1>
-    <p class="ks-page__subtitle">Upload CMHC Excel files or QR slides PDFs to Fabric OneLake</p>
+<section class="ks-fp file-upload-page">
+  <div class="ks-fp__header">
+    <h1>File Upload</h1>
+    <p class="ks-fp__subtitle">Upload CMHC Excel files or QR slides PDFs to Fabric OneLake</p>
   </div>
 
   <div class="file-upload-panel">
@@ -65,7 +65,7 @@
         >
           Clear
         </button>
-        <button type="button" class="ks-btn ks-btn--primary" (click)="uploadFile()" [disabled]="isUploading()">
+        <button type="button" class="ks-btn ks-btn--accent" (click)="uploadFile()" [disabled]="isUploading()">
           @if (isUploading()) { Uploading… } @else { Upload File }
         </button>
       }
@@ -75,28 +75,32 @@
       <p class="ks-message ks-message--info file-upload-message">{{ statusMessage() }}</p>
     }
     @if (errorMessage()) {
-      <p class="ks-message ks-message--error file-upload-message">{{ errorMessage() }}</p>
+      <p class="error-message file-upload-message">{{ errorMessage() }}</p>
     }
   </div>
 
-  <div class="ks-table-card file-upload-history">
-    <h2 class="ks-table-card__title">Upload History</h2>
-    @if (isLoadingHistory()) {
-      <p class="file-upload-history__empty">Loading upload history…</p>
-    } @else if (history().length === 0) {
-      <p class="file-upload-history__empty">No files uploaded yet.</p>
-    } @else {
-      <div class="ks-table-wrap">
-        <table class="ks-table file-upload-history__table">
-          <thead>
+  <div class="file-upload-history">
+    <p class="table-title">Upload History</p>
+    <div class="ks-fp__table-wrap">
+      <table class="ks-fp__table file-upload-history__table">
+        <thead>
+          <tr>
+            <th class="hidden-column">File Id</th>
+            <th>File Name</th>
+            <th>Uploaded Date</th>
+            <th>Uploaded By</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoadingHistory()) {
             <tr>
-              <th class="hidden-column">File Id</th>
-              <th>File Name</th>
-              <th>Uploaded Date</th>
-              <th>Uploaded By</th>
+              <td colspan="4" class="empty-row">Loading upload history…</td>
             </tr>
-          </thead>
-          <tbody>
+          } @else if (history().length === 0) {
+            <tr>
+              <td colspan="4" class="empty-row">No files uploaded yet.</td>
+            </tr>
+          } @else {
             @for (row of history(); track row.fileId) {
               <tr>
                 <td class="hidden-column">{{ row.fileId }}</td>
@@ -105,9 +109,9 @@
                 <td>{{ row.uploadedBy }}</td>
               </tr>
             }
-          </tbody>
-        </table>
-      </div>
-    }
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>

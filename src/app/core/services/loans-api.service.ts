@@ -1,7 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { map, Observable, of } from 'rxjs';
 
 import { APP_API_CONFIG } from '../constants/api.config';
+import { LoansApiCallOptions } from '../interfaces/loans-api.interfaces';
+import { LoanTableQuery, LoanTableResult } from '../interfaces/loan-table.interfaces';
+import { mapApiLoanToRow } from '../utils/loan-ranking.mapper';
+import { queryLoanRankingRows, queryLoansExampleData } from './loans-table-query.util';
 
 /** Mirrors GET /api/Loans — aligned with InvestorDto (loanDesc ↔ investorName). */
 export type LoanDto = {
@@ -45,6 +50,47 @@ export class LoansApiService {
 
   getLoans() {
     return this.http.get<LoanDto[]>(this.loansUrl);
+  }
+
+  getLoansTable(query: LoanTableQuery, options: LoansApiCallOptions = {}): Observable<LoanTableResult> {
+    if (options.useExampleData) {
+      return of(queryLoansExampleData(query));
+    }
+
+    return this.getLoans().pipe(
+      map((loans) => {
+        const rows = loans.map((loan, index) =>
+          mapApiLoanToRow(
+            {
+              loanKey: loan.loanKey,
+              LoanKey: loan.loanKey,
+              loanCode: loan.loanCode,
+              LoanCode: loan.loanCode,
+              loanDesc: loan.loanDesc,
+              LoanDesc: loan.loanDesc,
+              loanAliasName: loan.loanAliasName,
+              LoanAliasName: loan.loanAliasName,
+              investorName: loan.investorName,
+              InvestorName: loan.investorName,
+              loanRanking: loan.loanRanking,
+              LoanRanking: loan.loanRanking,
+              dummyLoanLink: loan.dummyLoanLink,
+              DummyLoanLink: loan.dummyLoanLink,
+              isLoanInterestApplicable: loan.isLoanInterestApplicable,
+              IsLoanInterestApplicable: loan.isLoanInterestApplicable,
+              lateInterestOffNote: loan.lateInterestOffNote,
+              LateInterestOffNote: loan.lateInterestOffNote,
+              userUpdatedBy: loan.userUpdatedBy,
+              UserUpdatedBy: loan.userUpdatedBy,
+              userUpdatedDate: loan.userUpdatedDate,
+              UserUpdatedDate: loan.userUpdatedDate,
+            },
+            index,
+          ),
+        );
+        return queryLoanRankingRows(rows, query);
+      }),
+    );
   }
 
   updateLoanAliasesBulk(request: LoanBulkUpdateRequest) {

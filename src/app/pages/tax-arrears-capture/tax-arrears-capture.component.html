@@ -1,4 +1,4 @@
-<section class="tax-arrears-page">
+<section class="ks-fp tax-arrears-page">
   <h1>Capture Tax Arrears from Quarter Tax Memo</h1>
   <p class="subtitle">
     All loan aliases load by default. Search to narrow the grid, or select tags to filter. Edit tax memo
@@ -180,8 +180,8 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="btn-add" (click)="openAddDialog()">Add New Record</button>
-    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="openAddDialog()">Add New Record</button>
+    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>
@@ -299,10 +299,10 @@
       </div>
 
       <div class="ta-dialog-footer">
-        <button type="button" class="btn-outline" (click)="closeAddDialog()" [disabled]="isCreating()">
+        <button type="button" class="ks-btn ks-btn--accent" (click)="closeAddDialog()" [disabled]="isCreating()">
           Cancel
         </button>
-        <button type="button" class="btn-save" (click)="createRecord()" [disabled]="isCreating()">
+        <button type="button" class="ks-btn ks-btn--accent" (click)="createRecord()" [disabled]="isCreating()">
           @if (isCreating()) { Saving… } @else { Save Record }
         </button>
       </div>

@@ -87,18 +87,29 @@
 
 .file-upload-history {
   min-width: 0;
+  margin-top: 1rem;
 }
 
 .file-upload-history__table {
-  min-width: 0;
+  min-width: 40rem;
 }
 
-.file-upload-history__empty {
-  margin: 0;
-  padding: 1.25rem 1rem;
-  color: var(--ks-color-text-muted);
-  font-size: var(--ks-font-size-base);
-  text-align: center;
+/* Ensure history grid matches other ks-fp tables (no legacy ks-table navy header) */
+.file-upload-history .ks-fp__table thead th {
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.file-upload-history .ks-fp__table tbody td {
+  padding: 0.7rem 1rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .hidden-column {

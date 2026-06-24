@@ -1,4 +1,4 @@
-<section class="other-cost-page">
+<section class="ks-fp other-cost-page">
   <h1>Other Cost Capture</h1>
   <p class="subtitle">
     Select a loan alias and status, then enter outstanding invoices, est realization costs, and cost to complete.
@@ -148,7 +148,7 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>

@@ -1,4 +1,4 @@
-<section class="default-date-page">
+<section class="ks-fp default-date-page">
   <h1>Default Date Capture</h1>
   <p class="subtitle">
     All loan aliases load by default. Search to narrow the grid, or select tags to filter. Adjust status to refine results.
@@ -147,7 +147,7 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>

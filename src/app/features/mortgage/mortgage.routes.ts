@@ -57,8 +57,8 @@ export const MORTGAGE_ROUTES: Routes = [
   },
   {
     path: 'other-cost',
-    loadComponent: () =>
-      import('./other-cost/other-cost.component').then((m) => m.OtherCostComponent),
+    redirectTo: 'other-cost-capture',
+    pathMatch: 'full',
   },
   {
     path: 'other-cost-capture',

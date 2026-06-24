@@ -7,15 +7,13 @@ import {
 } from '../interfaces/loan-table.interfaces';
 import { filterRowsByStatuses, mapApiLoanToRow } from '../utils/loan-ranking.mapper';
 
-/** Simulates server-side sort, filter, and pagination on example data. */
-export function queryLoansExampleData(query: LoanTableQuery): LoanTableResult {
-  let rows = LOANS_RANKING_EXAMPLE_DATA.map((record, index) => mapApiLoanToRow(record, index));
-
-  rows = filterRowsByStatuses(rows, query.statuses);
+/** Applies client-side sort, filter, and pagination on loan ranking rows. */
+export function queryLoanRankingRows(rows: LoanRankingRow[], query: LoanTableQuery): LoanTableResult {
+  let filtered = filterRowsByStatuses([...rows], query.statuses);
 
   const description = query.description?.trim().toLowerCase();
   if (description) {
-    rows = rows.filter((row) => matchesDescription(row, description));
+    filtered = filtered.filter((row) => matchesDescription(row, description));
   }
 
   if (query.columnFilters?.length) {
@@ -26,20 +24,26 @@ export function queryLoansExampleData(query: LoanTableQuery): LoanTableResult {
       if (!value || value === 'all') {
         continue;
       }
-      rows = rows.filter((row) => matchesColumnFilter(row, filter.id, value));
+      filtered = filtered.filter((row) => matchesColumnFilter(row, filter.id, value));
     }
   }
 
   if (query.sorting?.length) {
     const { id, desc } = query.sorting[0];
-    rows = [...rows].sort((a, b) => compareRows(a, b, id, desc));
+    filtered = [...filtered].sort((a, b) => compareRows(a, b, id, desc));
   }
 
-  const totalCount = rows.length;
+  const totalCount = filtered.length;
   const start = (query.page - 1) * query.pageSize;
-  const pagedRows = rows.slice(start, start + query.pageSize);
+  const pagedRows = filtered.slice(start, start + query.pageSize);
 
   return { rows: pagedRows, totalCount };
+}
+
+/** @deprecated Use queryLoanRankingRows with live API data instead. */
+export function queryLoansExampleData(query: LoanTableQuery): LoanTableResult {
+  const rows = LOANS_RANKING_EXAMPLE_DATA.map((record, index) => mapApiLoanToRow(record, index));
+  return queryLoanRankingRows(rows, query);
 }
 
 function matchesDescription(row: LoanRankingRow, keyword: string): boolean {

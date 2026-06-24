@@ -6,6 +6,7 @@ import {
   DestroyRef,
   ElementRef,
   inject,
+  OnInit,
   signal,
   viewChild,
 } from '@angular/core';
@@ -13,33 +14,26 @@ import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 
-import { dashboardBarPieSeriesColor } from '../../features/capital-dashboard/dashboard/dashboard-chart-colors';
+import { ManagementSummaryApiService } from '../../core/services/management-summary-api.service';
 import {
   dashboardHorizontalBarChartScales,
   DashboardChartLifecycle,
 } from '../../features/capital-dashboard/dashboard/dashboard-chart.util';
+import { dashboardBarPieSeriesColor } from '../../features/capital-dashboard/dashboard/dashboard-chart-colors';
 import type {
   ChartSlice,
   CmhcWatchlistRow,
   ExposureAnalysisRow,
+  InvestorSummaryRow,
   LoanAliasSummaryRow,
+  LtvRiskBandRow,
   ManagementSummaryFilters,
+  ManagementSummaryKpis,
+  OutstandingInterestSummary,
+  SponsorSummaryRow,
+  TopExposureRow,
 } from './management-summary.models';
-import {
-  MANAGEMENT_SUMMARY_INVESTOR_ALIAS_OPTIONS,
-  MANAGEMENT_SUMMARY_MOCK_CAPITAL_STACK,
-  MANAGEMENT_SUMMARY_MOCK_EXPOSURE_ANALYSIS,
-  MANAGEMENT_SUMMARY_MOCK_EXPOSURE_BREAKDOWN,
-  MANAGEMENT_SUMMARY_MOCK_INVESTOR_SUMMARY,
-  MANAGEMENT_SUMMARY_MOCK_KPIS,
-  MANAGEMENT_SUMMARY_MOCK_LOAN_ROWS,
-  MANAGEMENT_SUMMARY_MOCK_LTV_RISK,
-  MANAGEMENT_SUMMARY_MOCK_OUTSTANDING,
-  MANAGEMENT_SUMMARY_MOCK_SPONSOR_SUMMARY,
-  MANAGEMENT_SUMMARY_MOCK_TOP_EXPOSURES,
-  MANAGEMENT_SUMMARY_MOCK_WATCHLIST,
-  MANAGEMENT_SUMMARY_SPONSOR_OPTIONS,
-} from './management-summary.mock';
+import { mapManagementSummaryDashboard } from './management-summary-dashboard.mapper';
 
 Chart.register(...registerables);
 
@@ -50,8 +44,9 @@ Chart.register(...registerables);
   templateUrl: './management-summary.component.html',
   styleUrl: './management-summary.component.css',
 })
-export class ManagementSummaryComponent implements AfterViewInit {
+export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   private readonly router = inject(Router);
+  private readonly summaryApi = inject(ManagementSummaryApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly ltvRiskChart = new DashboardChartLifecycle(this.destroyRef);
   private readonly top5Chart = new DashboardChartLifecycle(this.destroyRef);
@@ -73,24 +68,36 @@ export class ManagementSummaryComponent implements AfterViewInit {
   private readonly investorContainer = viewChild<ElementRef<HTMLElement>>('investorContainer');
   private readonly sponsorContainer = viewChild<ElementRef<HTMLElement>>('sponsorContainer');
 
-  readonly asOfDisplay = signal('August 31, 2025');
-  readonly reportPeriod = signal('Q3 2025');
+  readonly asOfDisplay = signal('');
+  readonly reportPeriod = signal('');
   readonly filtersOpen = signal(false);
+  readonly isLoading = signal(false);
+  readonly errorMessage = signal('');
 
-  readonly kpis = signal(MANAGEMENT_SUMMARY_MOCK_KPIS);
-  readonly outstanding = signal(MANAGEMENT_SUMMARY_MOCK_OUTSTANDING);
-  readonly loanRows = signal(MANAGEMENT_SUMMARY_MOCK_LOAN_ROWS);
-  readonly watchlistRows = signal(MANAGEMENT_SUMMARY_MOCK_WATCHLIST);
-  readonly ltvRiskBands = signal(MANAGEMENT_SUMMARY_MOCK_LTV_RISK);
-  readonly topExposures = signal(MANAGEMENT_SUMMARY_MOCK_TOP_EXPOSURES);
-  readonly exposureBreakdown = signal(MANAGEMENT_SUMMARY_MOCK_EXPOSURE_BREAKDOWN);
-  readonly capitalStack = signal(MANAGEMENT_SUMMARY_MOCK_CAPITAL_STACK);
-  readonly exposureAnalysis = signal(MANAGEMENT_SUMMARY_MOCK_EXPOSURE_ANALYSIS);
-  readonly investorSummary = signal(MANAGEMENT_SUMMARY_MOCK_INVESTOR_SUMMARY);
-  readonly sponsorSummary = signal(MANAGEMENT_SUMMARY_MOCK_SPONSOR_SUMMARY);
+  readonly kpis = signal<ManagementSummaryKpis>({
+    numberOfLoans: 0,
+    totalOutstandingBalance: 0,
+    averageLtv: null,
+    percentOfFundings: null,
+  });
+  readonly outstanding = signal<OutstandingInterestSummary>({
+    interestDisbursed: 0,
+    interestNotDisbursed: 0,
+    totalOutstandingInterest: 0,
+    totalLateInterest: 0,
+  });
+  readonly loanRows = signal<LoanAliasSummaryRow[]>([]);
+  readonly watchlistRows = signal<CmhcWatchlistRow[]>([]);
+  readonly ltvRiskBands = signal<LtvRiskBandRow[]>([]);
+  readonly topExposures = signal<TopExposureRow[]>([]);
+  readonly exposureBreakdown = signal<ChartSlice[]>([]);
+  readonly capitalStack = signal<ChartSlice[]>([]);
+  readonly exposureAnalysis = signal<ExposureAnalysisRow[]>([]);
+  readonly investorSummary = signal<InvestorSummaryRow[]>([]);
+  readonly sponsorSummary = signal<SponsorSummaryRow[]>([]);
 
-  readonly sponsorOptions = MANAGEMENT_SUMMARY_SPONSOR_OPTIONS;
-  readonly investorAliasOptions = MANAGEMENT_SUMMARY_INVESTOR_ALIAS_OPTIONS;
+  readonly sponsorOptions = signal<string[]>(['All']);
+  readonly investorAliasOptions = signal<string[]>(['All']);
   readonly riskOptions = ['ALL', 'HIGH', 'ELEVATED', 'MODERATE', 'LOW'] as const;
   readonly statusOptions = ['In Default', 'Watchlist', 'Performing', 'All'] as const;
 
@@ -136,6 +143,10 @@ export class ManagementSummaryComponent implements AfterViewInit {
   readonly watchlistNoConcernCount = computed(
     () => this.watchlistRows().filter((row) => row.status === 'NO CONCERNS').length,
   );
+
+  ngOnInit(): void {
+    this.loadSummary();
+  }
 
   ngAfterViewInit(): void {
     queueMicrotask(() => this.renderCharts());
@@ -207,6 +218,7 @@ export class ManagementSummaryComponent implements AfterViewInit {
 
   applyFilters(): void {
     this.closeFilters();
+    this.loadSummary();
   }
 
   openLoanDetail(row: LoanAliasSummaryRow): void {
@@ -217,9 +229,57 @@ export class ManagementSummaryComponent implements AfterViewInit {
     this.navigateToLoanDetail(row.loanAliasKey, row.loanAlias);
   }
 
+  private loadSummary(): void {
+    this.isLoading.set(true);
+    this.errorMessage.set('');
+
+    const filters = this.filters();
+    const statuses =
+      filters.status && filters.status !== 'All' ? [filters.status] : undefined;
+
+    this.summaryApi
+      .getDashboard({
+        asOfDate: filters.asOfDate,
+        defaultDateFrom: filters.defaultDateFrom || undefined,
+        defaultDateTo: filters.defaultDateTo || undefined,
+        maturityDateFrom: filters.maturityDateFrom || undefined,
+        maturityDateTo: filters.maturityDateTo || undefined,
+        sponsor: filters.sponsor,
+        riskLevels: filters.riskLevels,
+        statuses,
+        investorAliases: filters.investorAliases,
+      })
+      .subscribe({
+        next: (dto) => {
+          const mapped = mapManagementSummaryDashboard(dto);
+          this.asOfDisplay.set(mapped.asOfDisplay);
+          this.reportPeriod.set(mapped.reportPeriod);
+          this.kpis.set(mapped.kpis);
+          this.outstanding.set(mapped.outstanding);
+          this.loanRows.set(mapped.loanRows);
+          this.watchlistRows.set(mapped.watchlistRows);
+          this.ltvRiskBands.set(mapped.ltvRiskBands);
+          this.topExposures.set(mapped.topExposures);
+          this.exposureBreakdown.set(mapped.exposureBreakdown);
+          this.capitalStack.set(mapped.capitalStack);
+          this.exposureAnalysis.set(mapped.exposureAnalysis);
+          this.investorSummary.set(mapped.investorSummary);
+          this.sponsorSummary.set(mapped.sponsorSummary);
+          this.sponsorOptions.set(mapped.sponsorOptions);
+          this.investorAliasOptions.set(mapped.investorAliasOptions);
+          this.isLoading.set(false);
+          queueMicrotask(() => this.renderCharts());
+        },
+        error: () => {
+          this.errorMessage.set('Unable to load management summary. Verify API availability.');
+          this.isLoading.set(false);
+        },
+      });
+  }
+
   private navigateToLoanDetail(loanAliasKey: number, loanAlias: string): void {
     void this.router.navigate(['/mortgage', 'management-summary', loanAliasKey, 'loan-detail'], {
-      queryParams: { alias: loanAlias },
+      queryParams: { alias: loanAlias, asOfDate: this.filters().asOfDate },
     });
   }
 
