@@ -4,9 +4,32 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import {
   LoanAlias,
-  LoanAliasSaveRequest,
+  LoanAliasCreateRequest,
+  LoanAliasUpdateRequest,
   LoanAliasApiService,
 } from '../../core/services/loan-alias-api.service';
+
+type LoanAliasColumnKey =
+  | 'loanAliasId'
+  | 'loanAliasName'
+  | 'updatedBy'
+  | 'updatedDtm'
+  | 'createdBy'
+  | 'createdDtm';
+
+type LoanAliasTableColumn = {
+  key: LoanAliasColumnKey;
+  label: string;
+};
+
+const LOAN_ALIAS_TABLE_COLUMNS: LoanAliasTableColumn[] = [
+  { key: 'loanAliasId', label: 'ID' },
+  { key: 'loanAliasName', label: 'Alias Name' },
+  { key: 'updatedBy', label: 'Modified By' },
+  { key: 'updatedDtm', label: 'Modified Date' },
+  { key: 'createdBy', label: 'Created By' },
+  { key: 'createdDtm', label: 'Creation Date' },
+];
 
 @Component({
   selector: 'app-loan-alias',
@@ -19,30 +42,47 @@ export class LoanAliasComponent implements OnInit {
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
 
+  readonly tableColumns = LOAN_ALIAS_TABLE_COLUMNS;
+
   readonly aliases = signal<LoanAlias[]>([]);
   readonly searchTerm = signal('');
+  readonly sortColumn = signal<LoanAliasColumnKey | null>(null);
+  readonly sortDirection = signal<'asc' | 'desc'>('asc');
   readonly currentPage = signal(1);
   readonly pageSize = 10;
 
   readonly isLoading = signal(false);
   readonly isSaving = signal(false);
-  readonly isDeleting = signal(false);
   readonly errorMessage = signal('');
   readonly statusMessage = signal('');
 
   readonly showCreateDialog = signal(false);
   readonly showEditDialog = signal(false);
-  readonly showDeleteDialog = signal(false);
   readonly selectedAlias = signal<LoanAlias | null>(null);
 
   readonly formName = signal('');
 
   readonly filteredAliases = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
-    if (!term) return this.aliases();
-    return this.aliases().filter((a) =>
-      a.loanAliasName.toLowerCase().includes(term),
-    );
+
+    let rows = this.aliases();
+    if (term) {
+      rows = rows.filter((alias) =>
+        this.tableColumns.some((column) =>
+          this.getCellDisplayValue(alias, column.key).toLowerCase().includes(term),
+        ),
+      );
+    }
+
+    const activeSort = this.sortColumn();
+    if (activeSort) {
+      const direction = this.sortDirection() === 'asc' ? 1 : -1;
+      rows = [...rows].sort(
+        (left, right) => this.compareAliases(left, right, activeSort) * direction,
+      );
+    }
+
+    return rows;
   });
 
   readonly totalPages = computed(() =>
@@ -84,7 +124,7 @@ export class LoanAliasComponent implements OnInit {
 
     this.loanAliasApi.getAll().subscribe({
       next: (data) => {
-        this.aliases.set(data);
+        this.aliases.set(data.map((record) => this.normalizeAlias(record)));
         this.isLoading.set(false);
       },
       error: () => {
@@ -98,6 +138,72 @@ export class LoanAliasComponent implements OnInit {
     this.searchTerm.set(value);
     this.currentPage.set(1);
     this.clearMessages();
+  }
+
+  toggleSort(column: LoanAliasColumnKey): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set(column === 'loanAliasId' ? 'asc' : 'asc');
+    }
+    this.currentPage.set(1);
+  }
+
+  isSortActive(column: LoanAliasColumnKey): boolean {
+    return this.sortColumn() === column;
+  }
+
+  sortIndicator(column: LoanAliasColumnKey): string {
+    if (!this.isSortActive(column)) {
+      return '↕';
+    }
+    return this.sortDirection() === 'asc' ? '↑' : '↓';
+  }
+
+  formatAuditDate(value: string | null | undefined): string {
+    if (!value?.trim()) {
+      return '—';
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+
+    return parsed.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  }
+
+  displayUserName(value: string | null | undefined): string {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : '—';
+  }
+
+  getCellDisplayValue(alias: LoanAlias, column: LoanAliasColumnKey): string {
+    switch (column) {
+      case 'loanAliasId':
+        return String(alias.loanAliasId);
+      case 'loanAliasName':
+        return alias.loanAliasName;
+      case 'updatedBy':
+        return this.displayUserName(alias.updatedBy);
+      case 'updatedDtm':
+        return this.formatAuditDate(alias.updatedDtm);
+      case 'createdBy':
+        return this.displayUserName(alias.createdBy);
+      case 'createdDtm':
+        return this.formatAuditDate(alias.createdDtm);
+      default:
+        return '';
+    }
   }
 
   goToPage(page: number): void {
@@ -136,37 +242,25 @@ export class LoanAliasComponent implements OnInit {
     this.selectedAlias.set(null);
   }
 
-  openDeleteDialog(alias: LoanAlias): void {
-    this.selectedAlias.set(alias);
-    this.clearMessages();
-    this.showDeleteDialog.set(true);
-  }
-
-  closeDeleteDialog(): void {
-    this.showDeleteDialog.set(false);
-    this.selectedAlias.set(null);
-  }
-
   createAlias(): void {
     const name = this.formName().trim();
     if (!name || this.isSaving()) return;
 
-    const updatedBy = this.currentAppUser.getUpdatedBy();
-    if (!updatedBy) {
+    const createdBy = this.currentAppUser.getUpdatedBy();
+    if (!createdBy) {
       this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
       return;
     }
 
-    const payload: LoanAliasSaveRequest = {
+    const payload: LoanAliasCreateRequest = {
       loanAliasName: name,
-      createdBy: updatedBy,
-      updatedBy,
+      createdBy,
     };
 
     this.isSaving.set(true);
     this.loanAliasApi.create(payload).subscribe({
       next: (created) => {
-        const record = created ?? this.buildOptimisticRecord(payload);
+        const record = this.normalizeAlias(created ?? this.buildOptimisticCreateRecord(payload));
         this.aliases.set([...this.aliases(), record]);
         this.isSaving.set(false);
         this.closeCreateDialog();
@@ -190,21 +284,22 @@ export class LoanAliasComponent implements OnInit {
       return;
     }
 
-    const payload: LoanAliasSaveRequest = {
+    const payload: LoanAliasUpdateRequest = {
       loanAliasName: name,
-      createdBy: selected.createdBy,
       updatedBy,
     };
 
     this.isSaving.set(true);
     this.loanAliasApi.update(selected.loanAliasId, payload).subscribe({
       next: (updated) => {
-        const merged: LoanAlias = updated ?? {
-          ...selected,
-          loanAliasName: payload.loanAliasName,
-          updatedBy: payload.updatedBy,
-          updatedDtm: new Date().toISOString(),
-        };
+        const merged: LoanAlias = this.normalizeAlias(
+          updated ?? {
+            ...selected,
+            loanAliasName: payload.loanAliasName,
+            updatedBy: payload.updatedBy,
+            updatedDtm: new Date().toISOString(),
+          },
+        );
         this.aliases.set(
           this.aliases().map((a) => (a.loanAliasId === merged.loanAliasId ? merged : a)),
         );
@@ -219,35 +314,73 @@ export class LoanAliasComponent implements OnInit {
     });
   }
 
-  deleteAlias(): void {
-    const selected = this.selectedAlias();
-    if (!selected || this.isDeleting()) return;
-
-    this.isDeleting.set(true);
-    this.loanAliasApi.delete(selected.loanAliasId).subscribe({
-      next: () => {
-        this.aliases.set(this.aliases().filter((a) => a.loanAliasId !== selected.loanAliasId));
-        this.isDeleting.set(false);
-        this.closeDeleteDialog();
-        this.statusMessage.set('Loan alias deleted successfully.');
-      },
-      error: () => {
-        this.errorMessage.set('Failed to delete loan alias.');
-        this.isDeleting.set(false);
-        this.closeDeleteDialog();
-      },
-    });
+  private compareAliases(left: LoanAlias, right: LoanAlias, column: LoanAliasColumnKey): number {
+    switch (column) {
+      case 'loanAliasId':
+        return left.loanAliasId - right.loanAliasId;
+      case 'loanAliasName':
+        return left.loanAliasName.localeCompare(right.loanAliasName, undefined, {
+          sensitivity: 'base',
+        });
+      case 'updatedBy':
+        return left.updatedBy.localeCompare(right.updatedBy, undefined, { sensitivity: 'base' });
+      case 'createdBy':
+        return left.createdBy.localeCompare(right.createdBy, undefined, { sensitivity: 'base' });
+      case 'updatedDtm':
+        return this.dateSortValue(left.updatedDtm) - this.dateSortValue(right.updatedDtm);
+      case 'createdDtm':
+        return this.dateSortValue(left.createdDtm) - this.dateSortValue(right.createdDtm);
+      default:
+        return 0;
+    }
   }
 
-  private buildOptimisticRecord(payload: LoanAliasSaveRequest): LoanAlias {
+  private dateSortValue(value: string | null | undefined): number {
+    if (!value?.trim()) {
+      return 0;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+  }
+
+  private buildOptimisticCreateRecord(payload: LoanAliasCreateRequest): LoanAlias {
+    const now = new Date().toISOString();
     return {
       loanAliasId: 0,
       loanAliasName: payload.loanAliasName,
       createdBy: payload.createdBy,
-      createdDtm: new Date().toISOString(),
-      updatedBy: payload.updatedBy,
-      updatedDtm: new Date().toISOString(),
+      createdDtm: now,
+      updatedBy: '',
+      updatedDtm: null,
     };
+  }
+
+  private normalizeAlias(record: LoanAlias | Record<string, unknown>): LoanAlias {
+    const row = record as Record<string, unknown>;
+    const createdBy = String(row['createdBy'] ?? row['created_by'] ?? '').trim();
+    const updatedBy = String(row['updatedBy'] ?? row['updated_by'] ?? '').trim();
+    const createdDtm = this.coerceDateString(
+      row['createdDtm'] ?? row['created_datetime'] ?? row['created_dtm'] ?? row['created_date'],
+    );
+    const updatedDtm = this.coerceDateString(
+      row['updatedDtm'] ?? row['updated_datetime'] ?? row['updated_dtm'] ?? row['updated_date'],
+    );
+
+    return {
+      loanAliasId: Number(row['loanAliasId'] ?? row['loan_alias_id'] ?? 0),
+      loanAliasName: String(row['loanAliasName'] ?? row['loan_alias_name'] ?? '').trim(),
+      createdBy,
+      createdDtm,
+      updatedBy,
+      updatedDtm,
+    };
+  }
+
+  private coerceDateString(value: unknown): string | null {
+    if (value == null || value === '') {
+      return null;
+    }
+    return String(value);
   }
 
   private clearMessages(): void {

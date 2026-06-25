@@ -11,17 +11,67 @@
   display: none;
 }
 
-.alias-input,
-.ranking-input {
+.read-only-cell {
+  color: #374151;
+  font-weight: 600;
+}
+
+.ranking-input,
+.note-input,
+.dummy-link-select {
   width: 100%;
+  min-width: 6rem;
   border: 1px solid #d1d5db;
   height: 2rem;
   padding: 0.2rem 0.5rem;
   font-size: 0.9rem;
+  background: #ffffff;
 }
 
 .ranking-input {
-  max-width: 3.8rem;
+  max-width: 4.5rem;
+  text-align: right;
+}
+
+.dummy-link-select {
+  min-width: 8rem;
+}
+
+.checkbox-cell {
+  text-align: center;
+}
+
+.late-interest-checkbox {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.date-cell {
+  white-space: nowrap;
+  color: #374151;
+}
+
+.la-th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.la-th-sort:hover {
+  color: #1d4ed8;
+}
+
+.la-th-sort__icon {
+  font-size: 0.7rem;
+  color: #6b7280;
 }
 
 .btn-close {

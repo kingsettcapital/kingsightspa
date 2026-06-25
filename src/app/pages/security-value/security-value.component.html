@@ -1,12 +1,13 @@
 <section class="ks-fp security-value-page">
-  <h1>Security Value</h1>
+  <h1>Loan Alias Exposure Markers</h1>
   <p class="subtitle">
-    All loan aliases load by default. Search to narrow the grid, or select tags to filter.
+    Provide Updated Property Security Values if different from Collateral provided and provide # of Units,
+    Square Footage and Acres
   </p>
 
   <div class="filters-row">
     <div class="search-panel">
-    <label for="loanAliasSearch">Loan Alias</label>
+    <label for="loanAliasSearch">Search</label>
     <div class="search-input-wrap">
       <span class="search-icon" aria-hidden="true"></span>
       <input
@@ -14,7 +15,7 @@
         type="text"
         [value]="searchText()"
         (input)="updateSearch($any($event.target).value)"
-        placeholder="Search by Loan Alias Name"
+        placeholder="Search all columns"
       />
     </div>
 
@@ -80,14 +81,20 @@
       <thead>
         <tr>
           <th class="hidden-column">Loan Alias Id</th>
-          <th>Loan Alias</th>
-          <th class="numeric-col">Collateral Per Yardi</th>
-          <th class="numeric-col">Security Value</th>
-          <th class="numeric-col">Units</th>
-          <th class="numeric-col">SF</th>
-          <th class="numeric-col">Acres</th>
-          <th>Date of DWH Update</th>
-          <th>Updated By</th>
+          @for (column of tableColumns; track column.key) {
+            <th [class.numeric-col]="column.numeric">
+              <button
+                type="button"
+                class="sv-th-sort"
+                [class.sv-th-sort--numeric]="column.numeric"
+                (click)="toggleSort(column.key)"
+                [attr.aria-label]="'Sort by ' + column.label"
+              >
+                <span>{{ column.label }}</span>
+                <span class="sv-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+              </button>
+            </th>
+          }
         </tr>
       </thead>
       <tbody>
@@ -98,50 +105,46 @@
             <td class="numeric-col display-only">{{ formatCurrency(row.collateralPerYardi) }}</td>
             <td class="numeric-col">
               <input
-                type="number"
-                class="value-input"
-                [value]="formatNumber(row.securityValue)"
-                (input)="updateField(row.loanAliasId, 'securityValue', $any($event.target).value)"
-                placeholder="0"
-                step="any"
-                min="0"
+                type="text"
+                inputmode="decimal"
+                class="value-input value-input--numeric"
+                [value]="formatSecurityValueInput(row.securityValue)"
+                (input)="updateSecurityValueInput(row.loanAliasId, $any($event.target).value)"
+                placeholder="$0"
               />
             </td>
             <td class="numeric-col">
               <input
-                type="number"
-                class="value-input"
-                [value]="formatNumber(row.units)"
-                (input)="updateField(row.loanAliasId, 'units', $any($event.target).value)"
+                type="text"
+                inputmode="numeric"
+                class="value-input value-input--numeric"
+                [value]="formatIntegerDisplay(row.units)"
+                (input)="updateNumericField(row.loanAliasId, 'units', $any($event.target).value)"
                 placeholder="0"
-                step="1"
-                min="0"
               />
             </td>
             <td class="numeric-col">
               <input
-                type="number"
-                class="value-input"
-                [value]="formatNumber(row.squareFeet)"
-                (input)="updateField(row.loanAliasId, 'squareFeet', $any($event.target).value)"
+                type="text"
+                inputmode="decimal"
+                class="value-input value-input--numeric"
+                [value]="formatDecimalDisplay(row.squareFeet)"
+                (input)="updateNumericField(row.loanAliasId, 'squareFeet', $any($event.target).value)"
                 placeholder="0"
-                step="any"
-                min="0"
               />
             </td>
             <td class="numeric-col">
               <input
-                type="number"
-                class="value-input"
-                [value]="formatNumber(row.acres)"
-                (input)="updateField(row.loanAliasId, 'acres', $any($event.target).value)"
+                type="text"
+                inputmode="decimal"
+                class="value-input value-input--numeric"
+                [value]="formatDecimalDisplay(row.acres)"
+                (input)="updateNumericField(row.loanAliasId, 'acres', $any($event.target).value)"
                 placeholder="0"
-                step="any"
-                min="0"
               />
             </td>
-            <td class="date-cell">{{ row.updatedDtm }}</td>
-            <td class="updated-by-cell">{{ row.updatedBy }}</td>
+            <td class="updated-by-cell">{{ displayModifiedBy(row.updatedBy) }}</td>
+            <td class="date-cell">{{ formatModifiedDate(row.updatedDtm) }}</td>
           </tr>
         } @empty {
           <tr>

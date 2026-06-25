@@ -15,6 +15,7 @@ export type InvestorDto = {
 
 export type InvestorUpdatePayload = {
   investorKey: number;
+  investorCode: string;
   investorAliasKey: number;
   userUpdatedBy: string;
 };
@@ -36,15 +37,24 @@ export type InvestorAliasRow = {
 /** @deprecated Use InvestorBulkUpdateRequest */
 export type InvestorAliasBulkUpdateRequest = InvestorBulkUpdateRequest;
 
-/** Single strong type used for display, create, and update of Investor Aliases. */
+/** Row from GET /api/InvestorAlias — wh_gold1.subjective_input.investor_alias_master */
 export type InvestorAlias = {
-  investorAliasKey?: number;
-  investorAliasId?: number;
+  investorAliasId: number;
   investorAliasName: string;
   createdBy: string;
-  createdDtm: string;
+  createdDtm: string | null;
   updatedBy: string;
-  updatedDtm: string;
+  updatedDtm: string | null;
+};
+
+export type InvestorAliasCreateRequest = {
+  investorAliasName: string;
+  createdBy: string;
+};
+
+export type InvestorAliasUpdateRequest = {
+  investorAliasName: string;
+  updatedBy: string;
 };
 
 @Injectable({
@@ -77,18 +87,14 @@ export class InvestorApiService {
     return this.http.get<InvestorAlias[]>(this.investorAliasUrl);
   }
 
-  createAlias(payload: InvestorAlias) {
+  createAlias(payload: InvestorAliasCreateRequest) {
     return this.http.post<InvestorAlias>(this.investorAliasUrl, payload);
   }
 
-  updateAlias(payload: InvestorAlias) {
+  updateAlias(investorAliasId: number, payload: InvestorAliasUpdateRequest) {
     return this.http.put<InvestorAlias>(
-      `${this.investorAliasUrl}/${payload.investorAliasId}`,
+      `${this.investorAliasUrl}/${investorAliasId}`,
       payload,
     );
-  }
-
-  deleteAlias(investorAliasId: number) {
-    return this.http.delete<void>(`${this.investorAliasUrl}/${investorAliasId}`);
   }
 }

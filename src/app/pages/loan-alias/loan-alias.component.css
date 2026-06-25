@@ -1,5 +1,19 @@
 /* ── Page shell (see .ks-fp in theme) ─────────────────────────────────────── */
 
+.la-subtitle {
+  max-width: 52rem;
+  line-height: 1.55;
+}
+
+.la-subtitle__link {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.la-subtitle__link:hover {
+  color: #1d4ed8;
+}
+
 /* ── Toolbar ─────────────────────────────────────────────────────────────── */
 .la-toolbar {
   display: flex;
@@ -111,6 +125,28 @@
 
 .la-table thead th.col-actions {
   text-align: right;
+}
+
+.la-th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.la-th-sort:hover {
+  color: #1d4ed8;
+}
+
+.la-th-sort__icon {
+  font-size: 0.7rem;
+  color: #6b7280;
 }
 
 .la-table tbody tr {

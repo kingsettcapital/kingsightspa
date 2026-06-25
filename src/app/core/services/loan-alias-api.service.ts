@@ -16,10 +16,15 @@ export type LoanAlias = {
   updatedDtm: string | null;
 };
 
-/** Mirrors LoanAliasSaveRequest — name-only create/update on Loan Alias CRUD page. */
-export type LoanAliasSaveRequest = {
+/** Body for POST /api/LoanAlias — create sets created_by server-side from JWT. */
+export type LoanAliasCreateRequest = {
   loanAliasName: string;
   createdBy: string;
+};
+
+/** Body for PUT /api/LoanAlias/{id} — update sets updated_by server-side from JWT. */
+export type LoanAliasUpdateRequest = {
+  loanAliasName: string;
   updatedBy: string;
 };
 
@@ -42,11 +47,11 @@ export class LoanAliasApiService {
     return this.getAll();
   }
 
-  create(payload: LoanAliasSaveRequest) {
+  create(payload: LoanAliasCreateRequest) {
     return this.http.post<LoanAlias>(this.baseUrl, payload);
   }
 
-  update(loanAliasId: number, payload: LoanAliasSaveRequest) {
+  update(loanAliasId: number, payload: LoanAliasUpdateRequest) {
     return this.http.put<LoanAlias>(`${this.baseUrl}/${loanAliasId}`, payload);
   }
 

@@ -28,6 +28,7 @@ export class CmhcUploadComponent implements OnInit {
 
   readonly fileTypeOptions = FILE_UPLOAD_TYPE_OPTIONS;
   readonly selectedFileType = signal<FileUploadType>('cmhc');
+  readonly asOfDate = signal(this.todayIsoDate());
   readonly history = signal<CmhcUploadHistoryRecord[]>([]);
   readonly selectedFile = signal<File | null>(null);
   readonly isDragOver = signal(false);
@@ -50,6 +51,11 @@ export class CmhcUploadComponent implements OnInit {
     const nextType = value === 'qr-slides' ? 'qr-slides' : 'cmhc';
     this.selectedFileType.set(nextType);
     this.selectedFile.set(null);
+    this.clearMessages();
+  }
+
+  onAsOfDateChange(value: string): void {
+    this.asOfDate.set(value);
     this.clearMessages();
   }
 
@@ -113,23 +119,36 @@ export class CmhcUploadComponent implements OnInit {
       return;
     }
 
-    const storedFileName = this.buildStoredFileName(file.name, this.activeFileTypeOption());
+    const asOfDate = this.asOfDate().trim();
+    if (!asOfDate) {
+      this.errorMessage.set('As of date is required.');
+      this.statusMessage.set('');
+      return;
+    }
+
+    const fileTypeOption = this.activeFileTypeOption();
+    const storedFileName = this.buildStoredFileName(file.name, fileTypeOption);
     this.isUploading.set(true);
     this.statusMessage.set(`Uploading ${storedFileName}...`);
     this.errorMessage.set('');
 
     this.cmhcUploadApi
-      .uploadFile(file, storedFileName, uploaderId, this.selectedFileType())
+      .uploadFile(file, storedFileName, uploaderId, this.selectedFileType(), asOfDate)
       .subscribe({
         next: () => {
           this.selectedFile.set(null);
-          this.statusMessage.set(`File uploaded successfully as ${storedFileName}.`);
+          this.statusMessage.set(
+            `Your ${fileTypeOption.label} file ${storedFileName} for the period ${this.formatAsOfDateDisplay(asOfDate)} has been successfully uploaded and will be available in reporting within the next 2 hours.`,
+          );
           this.isUploading.set(false);
           this.loadHistory();
         },
         error: (error) => {
           this.statusMessage.set('');
-          this.errorMessage.set(this.extractBackendError(error));
+          const detail = this.extractBackendError(error);
+          this.errorMessage.set(
+            `Your ${fileTypeOption.label} file ${storedFileName} for the period ${this.formatAsOfDateDisplay(asOfDate)} has failed the upload validations noted below please review and re-submit or contact ITSupport@kingsettcapital.com for further assistance.\n\n${detail}`,
+          );
           this.isUploading.set(false);
         },
       });
@@ -143,12 +162,34 @@ export class CmhcUploadComponent implements OnInit {
     if (Number.isNaN(parsed.getTime())) {
       return value;
     }
-    const month = String(parsed.getMonth() + 1).padStart(2, '0');
-    const day = String(parsed.getDate()).padStart(2, '0');
-    const year = parsed.getFullYear();
-    const hours = String(parsed.getHours()).padStart(2, '0');
-    const minutes = String(parsed.getMinutes()).padStart(2, '0');
-    return `${month}/${day}/${year} ${hours}:${minutes}`;
+    return parsed.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  }
+
+  formatAsOfDateDisplay(value: string): string {
+    if (!value?.trim()) {
+      return '-';
+    }
+    const [year, month, day] = value.split('-');
+    if (year && month && day) {
+      return `${month}/${day}/${year}`;
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+    return parsed.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+    });
   }
 
   buildStoredFileName(originalName: string, option: FileUploadTypeOption): string {
@@ -228,6 +269,7 @@ export class CmhcUploadComponent implements OnInit {
           ? Number(row['uploadedByUserId'] ?? row['uploaded_by_user_id'])
           : null,
       uploadedByName,
+      asOfDate: String(row['asOfDate'] ?? row['as_of_date'] ?? '').trim() || null,
     };
   }
 
@@ -301,5 +343,13 @@ export class CmhcUploadComponent implements OnInit {
   private clearMessages(): void {
     this.statusMessage.set('');
     this.errorMessage.set('');
+  }
+
+  private todayIsoDate(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }

@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
@@ -20,10 +21,30 @@ type LoanRow = {
   userUpdatedDate: string;
 };
 
+type LoanAssignmentColumnKey =
+  | 'loanCode'
+  | 'loanName'
+  | 'loanAliasName'
+  | 'userUpdatedBy'
+  | 'userUpdatedDate';
+
+type LoanAssignmentTableColumn = {
+  key: LoanAssignmentColumnKey;
+  label: string;
+};
+
+const LOAN_ASSIGNMENT_TABLE_COLUMNS: LoanAssignmentTableColumn[] = [
+  { key: 'loanCode', label: 'Loan Code' },
+  { key: 'loanName', label: 'Loan Name' },
+  { key: 'loanAliasName', label: 'Loan Alias' },
+  { key: 'userUpdatedBy', label: 'Modified By' },
+  { key: 'userUpdatedDate', label: 'Modified Date' },
+];
+
 @Component({
   selector: 'app-loan-alias-assignment',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './loan-alias-assignment.component.html',
   styleUrl: './loan-alias-assignment.component.css',
 })
@@ -33,8 +54,12 @@ export class LoanAliasAssignmentComponent implements OnInit {
   private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
 
+  readonly tableColumns = LOAN_ASSIGNMENT_TABLE_COLUMNS;
+
   readonly searchText = signal('');
-  readonly selectedLoanKeys = signal<number[]>([]);
+  readonly sortColumn = signal<LoanAssignmentColumnKey | null>(null);
+  readonly sortDirection = signal<'asc' | 'desc'>('asc');
+  readonly selectedLoanCodes = signal<string[]>([]);
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
   readonly isLoading = signal(false);
@@ -44,15 +69,17 @@ export class LoanAliasAssignmentComponent implements OnInit {
 
   readonly rows = signal<LoanRow[]>([]);
   readonly aliasOptions = signal<LoanAlias[]>([]);
-  readonly originalRowState = signal<Record<number, number | null>>({});
+  readonly originalRowState = signal<Record<string, number | null>>({});
+
+  private readonly loanSearchInput = viewChild<ElementRef<HTMLInputElement>>('loanSearchInput');
 
   ngOnInit(): void {
     this.loadData();
   }
 
   readonly selectedLoans = computed(() => {
-    const selectedKeys = new Set(this.selectedLoanKeys());
-    return this.rows().filter((row) => selectedKeys.has(row.loanKey));
+    const selectedCodes = new Set(this.selectedLoanCodes());
+    return this.rows().filter((row) => selectedCodes.has(row.loanCode));
   });
 
   readonly searchedLoanOptions = computed(() => {
@@ -61,9 +88,9 @@ export class LoanAliasAssignmentComponent implements OnInit {
       return [];
     }
 
-    const selectedKeys = new Set(this.selectedLoanKeys());
+    const selectedCodes = new Set(this.selectedLoanCodes());
     return this.rows().filter((row) => {
-      if (selectedKeys.has(row.loanKey)) {
+      if (selectedCodes.has(row.loanCode)) {
         return false;
       }
       return (
@@ -75,24 +102,32 @@ export class LoanAliasAssignmentComponent implements OnInit {
   });
 
   readonly filteredRows = computed(() => {
-    const selectedKeys = this.selectedLoanKeys();
-    if (selectedKeys.length > 0) {
-      const selectedKeySet = new Set(selectedKeys);
-      return this.rows().filter((row) => selectedKeySet.has(row.loanKey));
-    }
-
+    const selectedCodes = this.selectedLoanCodes();
     const keyword = this.searchText().trim().toLowerCase();
-    if (!keyword) {
-      return this.rows();
+
+    let rows = this.rows();
+
+    if (selectedCodes.length > 0) {
+      const selectedCodeSet = new Set(selectedCodes);
+      rows = rows.filter((row) => selectedCodeSet.has(row.loanCode));
+    } else if (keyword) {
+      rows = rows.filter(
+        (row) =>
+          row.loanCode.toLowerCase().includes(keyword) ||
+          row.loanName.toLowerCase().includes(keyword) ||
+          row.loanAliasName.toLowerCase().includes(keyword),
+      );
     }
 
-    return this.rows().filter((row) => {
-      return (
-        row.loanCode.toLowerCase().includes(keyword) ||
-        row.loanName.toLowerCase().includes(keyword) ||
-        row.loanAliasName.toLowerCase().includes(keyword)
+    const activeSort = this.sortColumn();
+    if (activeSort) {
+      const direction = this.sortDirection() === 'asc' ? 1 : -1;
+      rows = [...rows].sort(
+        (left, right) => this.compareRows(left, right, activeSort) * direction,
       );
-    });
+    }
+
+    return rows;
   });
 
   readonly totalFilteredRows = computed(() => this.filteredRows().length);
@@ -135,31 +170,74 @@ export class LoanAliasAssignmentComponent implements OnInit {
     this.clearMessages();
   }
 
+  toggleSort(column: LoanAssignmentColumnKey): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+    this.currentPage.set(1);
+  }
+
+  sortIndicator(column: LoanAssignmentColumnKey): string {
+    if (this.sortColumn() !== column) {
+      return '↕';
+    }
+    return this.sortDirection() === 'asc' ? '↑' : '↓';
+  }
+
+  formatModifiedDate(value: string): string {
+    if (!value?.trim() || value === '-') {
+      return '—';
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+
+    return parsed.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  }
+
+  displayModifiedBy(value: string): string {
+    const trimmed = value?.trim();
+    return trimmed && trimmed !== '-' ? trimmed : '—';
+  }
+
   selectLoan(row: LoanRow): void {
-    if (this.selectedLoanKeys().includes(row.loanKey)) {
+    if (this.selectedLoanCodes().includes(row.loanCode)) {
       return;
     }
 
-    this.selectedLoanKeys.set([...this.selectedLoanKeys(), row.loanKey]);
+    this.selectedLoanCodes.set([...this.selectedLoanCodes(), row.loanCode]);
     this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
   }
 
-  removeSelectedLoan(loanKey: number): void {
-    this.selectedLoanKeys.set(
-      this.selectedLoanKeys().filter((key) => key !== loanKey),
+  removeSelectedLoan(loanCode: string): void {
+    this.selectedLoanCodes.set(
+      this.selectedLoanCodes().filter((code) => code !== loanCode),
     );
     this.currentPage.set(1);
     this.clearMessages();
   }
 
-  updateAlias(loanKey: number, value: string): void {
+  updateAlias(loanCode: string, value: string): void {
     const loanAliasKey = value ? Number(value) : null;
     const alias = this.aliasOptions().find((a) => this.getAliasKey(a) === loanAliasKey);
     this.rows.set(
       this.rows().map((row) =>
-        row.loanKey === loanKey
+        row.loanCode === loanCode
           ? {
               ...row,
               loanAliasKey,
@@ -173,9 +251,15 @@ export class LoanAliasAssignmentComponent implements OnInit {
 
   clearSelection(): void {
     this.searchText.set('');
-    this.selectedLoanKeys.set([]);
+    this.selectedLoanCodes.set([]);
+    this.revertUnsavedAliasChanges();
     this.currentPage.set(1);
     this.clearMessages();
+
+    const input = this.loanSearchInput()?.nativeElement;
+    if (input) {
+      input.value = '';
+    }
   }
 
   goToPreviousPage(): void {
@@ -199,20 +283,39 @@ export class LoanAliasAssignmentComponent implements OnInit {
     return key != null ? Number(key) : 0;
   }
 
+  aliasSelectValue(row: LoanRow): string {
+    const key = this.resolveRowAliasKey(row);
+    return key != null && key > 0 ? String(key) : '';
+  }
+
   saveChanges(): void {
     if (this.isSaving()) {
       return;
     }
 
-    const targetRows = this.filteredRows();
-    if (!targetRows.length) {
-      this.statusMessage.set('Search and select at least one loan before saving changes.');
+    if (!this.rows().length) {
+      this.statusMessage.set('No loans loaded to save.');
       return;
     }
 
-    const changedRows = targetRows.filter((row) => this.hasAliasChanged(row));
+    const selectedCodes = this.selectedLoanCodes();
+    const keyword = this.searchText().trim();
+    const targetRows = this.filteredRows();
+    const changedRows = this.rows().filter((row) => this.hasAliasChanged(row));
+
     if (!changedRows.length) {
       this.statusMessage.set('No changes detected to save.');
+      this.errorMessage.set('');
+      return;
+    }
+
+    const rowsToSave =
+      selectedCodes.length > 0 || keyword
+        ? changedRows.filter((row) => targetRows.some((t) => t.loanCode === row.loanCode))
+        : changedRows;
+
+    if (!rowsToSave.length) {
+      this.statusMessage.set('No changes detected in the current selection.');
       this.errorMessage.set('');
       return;
     }
@@ -224,8 +327,9 @@ export class LoanAliasAssignmentComponent implements OnInit {
     }
 
     const request: LoanBulkUpdateRequest = {
-      loans: changedRows.map((row) => ({
+      loans: rowsToSave.map((row) => ({
         loanKey: row.loanKey,
+        loanCode: row.loanCode,
         loanAliasKey: row.loanAliasKey ?? 0,
         userUpdatedBy,
       })),
@@ -238,22 +342,22 @@ export class LoanAliasAssignmentComponent implements OnInit {
     this.loansApi.updateLoanAliasesBulk(request).subscribe({
       next: () => {
         const now = new Date().toISOString();
-        const changedKeys = new Set(changedRows.map((row) => row.loanKey));
+        const savedCodes = new Set(rowsToSave.map((row) => row.loanCode));
 
         this.rows.set(
           this.rows().map((row) =>
-            changedKeys.has(row.loanKey)
+            savedCodes.has(row.loanCode)
               ? {
                   ...row,
                   userUpdatedBy,
-                  userUpdatedDate: this.normalizeDate(now),
+                  userUpdatedDate: now,
                 }
               : row,
           ),
         );
 
         this.snapshotOriginalState();
-        this.statusMessage.set(`${changedRows.length} loan(s) updated successfully.`);
+        this.statusMessage.set(`${rowsToSave.length} loan(s) updated successfully.`);
         this.errorMessage.set('');
         this.isSaving.set(false);
       },
@@ -276,9 +380,9 @@ export class LoanAliasAssignmentComponent implements OnInit {
     }).subscribe({
       next: ({ loans, aliases }) => {
         const normalizedAliases = this.normalizeAliases(aliases);
-        const mappedRows = loans
-          .map((record, index) => this.mapApiLoanToRow(record, index, normalizedAliases))
-          .filter((row) => row.loanKey > 0);
+        const mappedRows = loans.map((record, index) =>
+          this.mapApiLoanToRow(record, index, normalizedAliases),
+        );
 
         this.rows.set(mappedRows);
         this.aliasOptions.set(normalizedAliases);
@@ -306,21 +410,41 @@ export class LoanAliasAssignmentComponent implements OnInit {
     index: number,
     aliases: LoanAlias[],
   ): LoanRow {
-    const loanAliasKey =
-      record.loanAliasKey != null && Number(record.loanAliasKey) > 0
-        ? Number(record.loanAliasKey)
-        : this.resolveAliasKey(record.loanAliasName, aliases);
-    const alias = aliases.find((a) => this.getAliasKey(a) === loanAliasKey);
+    const loanAliasKey = this.resolveLoanAliasKey(record, aliases);
+    const alias = loanAliasKey != null
+      ? aliases.find((a) => this.getAliasKey(a) === loanAliasKey)
+      : undefined;
 
     return {
-      loanKey: record.loanKey > 0 ? record.loanKey : index + 1,
+      loanKey: record.loanKey,
       loanCode: record.loanCode || `LOAN-${index + 1}`,
-      loanName: record.loanDesc?.trim() || '-',
+      loanName: record.loanDesc?.trim() || '—',
       loanAliasKey,
       loanAliasName: alias?.loanAliasName ?? record.loanAliasName?.trim() ?? '',
-      userUpdatedBy: record.userUpdatedBy?.trim() || '-',
-      userUpdatedDate: this.normalizeDate(record.userUpdatedDate ?? ''),
+      userUpdatedBy: record.userUpdatedBy?.trim() ?? '',
+      userUpdatedDate: record.userUpdatedDate ?? '',
     };
+  }
+
+  private resolveLoanAliasKey(record: LoanDto, aliases: LoanAlias[]): number | null {
+    const apiKey =
+      record.loanAliasKey != null && Number(record.loanAliasKey) > 0
+        ? Number(record.loanAliasKey)
+        : null;
+
+    if (apiKey != null) {
+      return apiKey;
+    }
+
+    return this.resolveAliasKey(record.loanAliasName, aliases);
+  }
+
+  private resolveRowAliasKey(row: LoanRow): number | null {
+    if (row.loanAliasKey != null && row.loanAliasKey > 0) {
+      return row.loanAliasKey;
+    }
+
+    return this.resolveAliasKey(row.loanAliasName, this.aliasOptions());
   }
 
   private resolveAliasKey(
@@ -346,17 +470,71 @@ export class LoanAliasAssignmentComponent implements OnInit {
     });
   }
 
+  private revertUnsavedAliasChanges(): void {
+    const original = this.originalRowState();
+    const aliases = this.aliasOptions();
+
+    this.rows.update((rows) =>
+      rows.map((row) => {
+        const originalKey = original[row.loanCode] ?? null;
+        if (row.loanAliasKey === originalKey) {
+          return row;
+        }
+
+        const alias =
+          originalKey != null
+            ? aliases.find((a) => this.getAliasKey(a) === originalKey)
+            : undefined;
+
+        return {
+          ...row,
+          loanAliasKey: originalKey,
+          loanAliasName: alias?.loanAliasName ?? '',
+        };
+      }),
+    );
+  }
+
   private snapshotOriginalState(): void {
-    const snapshot: Record<number, number | null> = {};
+    const snapshot: Record<string, number | null> = {};
     for (const row of this.rows()) {
-      snapshot[row.loanKey] = row.loanAliasKey;
+      snapshot[row.loanCode] = row.loanAliasKey;
     }
     this.originalRowState.set(snapshot);
   }
 
   private hasAliasChanged(row: LoanRow): boolean {
-    const original = this.originalRowState()[row.loanKey];
+    const original = this.originalRowState()[row.loanCode];
     return row.loanAliasKey !== (original ?? null);
+  }
+
+  private compareRows(left: LoanRow, right: LoanRow, column: LoanAssignmentColumnKey): number {
+    switch (column) {
+      case 'loanCode':
+        return left.loanCode.localeCompare(right.loanCode, undefined, { sensitivity: 'base' });
+      case 'loanName':
+        return left.loanName.localeCompare(right.loanName, undefined, { sensitivity: 'base' });
+      case 'loanAliasName':
+        return left.loanAliasName.localeCompare(right.loanAliasName, undefined, {
+          sensitivity: 'base',
+        });
+      case 'userUpdatedBy':
+        return left.userUpdatedBy.localeCompare(right.userUpdatedBy, undefined, {
+          sensitivity: 'base',
+        });
+      case 'userUpdatedDate':
+        return this.dateSortValue(left.userUpdatedDate) - this.dateSortValue(right.userUpdatedDate);
+      default:
+        return 0;
+    }
+  }
+
+  private dateSortValue(value: string): number {
+    if (!value?.trim()) {
+      return 0;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
   }
 
   private extractBackendError(error: unknown): string {
@@ -402,22 +580,6 @@ export class LoanAliasAssignmentComponent implements OnInit {
     }
 
     return fallback;
-  }
-
-  private normalizeDate(value: string): string {
-    if (!value?.trim()) {
-      return '-';
-    }
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-    const month = String(parsed.getMonth() + 1).padStart(2, '0');
-    const day = String(parsed.getDate()).padStart(2, '0');
-    const year = parsed.getFullYear();
-    const hours = String(parsed.getHours()).padStart(2, '0');
-    const minutes = String(parsed.getMinutes()).padStart(2, '0');
-    return `${month}/${day}/${year} ${hours}:${minutes}`;
   }
 
   private clearMessages(): void {

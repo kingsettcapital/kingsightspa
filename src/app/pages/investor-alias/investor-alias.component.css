@@ -1,5 +1,19 @@
 /* ── Page shell (see .ks-fp in theme) ─────────────────────────────────────── */
 
+.ia-subtitle {
+  max-width: 52rem;
+  line-height: 1.55;
+}
+
+.ia-subtitle__link {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.ia-subtitle__link:hover {
+  color: #1d4ed8;
+}
+
 /* ── Toolbar ─────────────────────────────────────────────────────────────── */
 .ia-toolbar {
   display: flex;
@@ -119,6 +133,28 @@
 
 .ia-table thead th.col-actions {
   text-align: right;
+}
+
+.ia-th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ia-th-sort:hover {
+  color: #1d4ed8;
+}
+
+.ia-th-sort__icon {
+  font-size: 0.7rem;
+  color: #6b7280;
 }
 
 .ia-table tbody tr {

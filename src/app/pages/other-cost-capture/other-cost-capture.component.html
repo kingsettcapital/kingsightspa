@@ -5,21 +5,46 @@
   </p>
 
   <div class="filters-row">
-    <div class="filter-panel">
-      <span class="filter-label">Loan Alias</span>
-      <select
-        class="filter-select"
-        [value]="selectedLoanAliasId() ?? ''"
-        (change)="onLoanAliasChange($any($event.target).value)"
-      >
-        <option value="">— Select loan alias —</option>
-        @for (alias of aliasOptions(); track getAliasId(alias)) {
-          <option [value]="getAliasId(alias)">{{ alias.loanAliasName }}</option>
+    <div class="search-panel">
+      <label for="loanAliasSearch">Loan Alias</label>
+      <div class="search-input-wrap">
+        <span class="search-icon" aria-hidden="true"></span>
+        <input
+          id="loanAliasSearch"
+          type="text"
+          [value]="searchText()"
+          (input)="updateSearch($any($event.target).value)"
+          placeholder="Search loan alias or all columns"
+        />
+      </div>
+
+      @if (searchedAliasOptions().length > 0) {
+        <ul class="search-results">
+          @for (alias of searchedAliasOptions(); track alias.loanAliasId) {
+            <li>
+              <button type="button" (click)="selectAlias(alias)">
+                <span>{{ alias.loanAliasName }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="selected-alias-tags">
+        @for (selected of selectedAliases(); track selected.loanAliasId) {
+          <button
+            type="button"
+            class="alias-tag"
+            (click)="removeSelectedAlias(selected.loanAliasId)"
+          >
+            <span>{{ selected.loanAliasName }}</span>
+            <span class="tag-close">x</span>
+          </button>
         }
-      </select>
+      </div>
     </div>
 
-    <div class="filter-panel status-panel">
+    <div class="status-panel">
       <span class="filter-label">Status</span>
       <div class="status-options">
         @for (status of statusOptions(); track status.value) {
@@ -40,75 +65,85 @@
     <p class="meta-message">Loading filters...</p>
   }
   @if (errorMessage() && !isSaving()) {
-    <p class="error-message">{{ errorMessage() }}</p>
+    <p class="error-message banner-error">{{ errorMessage() }}</p>
   }
   @if (isLoadingGrid()) {
-    <p class="meta-message">Loading loan syndicate details...</p>
+    <p class="meta-message grid-loading">Loading loans...</p>
   } @else if (statusMessage() && !errorMessage()) {
     <p class="status-message">{{ statusMessage() }}</p>
   }
-
-  <h2 class="table-title">Loan Syndicate Details</h2>
 
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
           <th class="hidden-column">Loan Key</th>
-          <th>Loan ID</th>
-          <th>Description</th>
-          <th>Loan Alias</th>
-          <th class="numeric-col">Outstanding Invoices</th>
-          <th class="numeric-col">Est Realization Costs</th>
-          <th class="numeric-col">Cost to Complete</th>
-          <th>Date of DWH Update</th>
-          <th>Updated By</th>
+          @for (column of tableColumns; track column.key) {
+            <th [class.numeric-col]="column.numeric">
+              <button
+                type="button"
+                class="occ-th-sort"
+                [class.occ-th-sort--numeric]="column.numeric"
+                (click)="toggleSort(column.key)"
+                [attr.aria-label]="'Sort by ' + column.label"
+              >
+                <span>{{ column.label }}</span>
+                <span class="occ-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+              </button>
+            </th>
+          }
         </tr>
       </thead>
       <tbody>
-        @for (row of paginatedRows(); track row.loanKey) {
+        @for (row of paginatedRows(); track row.loanCode) {
           <tr>
             <td class="hidden-column">{{ row.loanKey }}</td>
-            <td>{{ row.loanId }}</td>
-            <td>{{ row.description }}</td>
+            <td>{{ row.loanCode }}</td>
+            <td>{{ row.loanName }}</td>
             <td>{{ row.loanAliasName }}</td>
             <td class="numeric-col">
               <input
-                type="number"
-                class="cost-input"
-                [value]="formatNumber(row.outstandingInvoices)"
-                (input)="updateCostField(row.loanKey, 'outstandingInvoices', $any($event.target).value)"
-                step="any"
-                min="0"
+                type="text"
+                inputmode="decimal"
+                class="cost-input cost-input--numeric"
+                [value]="formatCurrencyInput(row.outstandingInvoices)"
+                (input)="updateCostField(row.loanCode, 'outstandingInvoices', $any($event.target).value)"
+                placeholder="$0"
               />
             </td>
             <td class="numeric-col">
               <input
-                type="number"
-                class="cost-input"
-                [value]="formatNumber(row.estRealizationCosts)"
-                (input)="updateCostField(row.loanKey, 'estRealizationCosts', $any($event.target).value)"
-                step="any"
-                min="0"
+                type="text"
+                inputmode="decimal"
+                class="cost-input cost-input--numeric"
+                [value]="formatCurrencyInput(row.estRealizationCosts)"
+                (input)="updateCostField(row.loanCode, 'estRealizationCosts', $any($event.target).value)"
+                placeholder="$0"
               />
             </td>
             <td class="numeric-col">
               <input
-                type="number"
-                class="cost-input"
-                [value]="formatNumber(row.costToComplete)"
-                (input)="updateCostField(row.loanKey, 'costToComplete', $any($event.target).value)"
-                step="any"
-                min="0"
+                type="text"
+                inputmode="decimal"
+                class="cost-input cost-input--numeric"
+                [value]="formatCurrencyInput(row.costToComplete)"
+                (input)="updateCostField(row.loanCode, 'costToComplete', $any($event.target).value)"
+                placeholder="$0"
               />
             </td>
-            <td class="date-cell">{{ formatDate(row.userUpdatedDate) }}</td>
-            <td>{{ row.userUpdatedBy }}</td>
+            <td class="date-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="date-cell">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>
         } @empty {
           <tr>
             <td colspan="9" class="empty-row">
-              Select loan alias and status to load loans.
+              @if (isLoadingGrid() || isLoadingFilters()) {
+                Loading loans...
+              } @else if (!selectedStatuses().length) {
+                Select at least one status to load loans.
+              } @else {
+                No loans match the current filters.
+              }
             </td>
           </tr>
         }
@@ -148,7 +183,13 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="clearSelection()">Clear Selection</button>
+    <button
+      type="button"
+      class="ks-btn ks-btn--accent"
+      (click)="saveChanges()"
+      [disabled]="isSaving() || !rows().length"
+    >
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>

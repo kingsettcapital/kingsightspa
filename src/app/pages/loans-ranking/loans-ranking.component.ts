@@ -1,32 +1,72 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
-import { LoanApiRecord, LoansApiService } from '../../core/services/loans-api.service';
-import { forkJoin } from 'rxjs';
+import {
+  LoanAttributeUpdatePayload,
+  LoanBulkUpdateRequest,
+  LoanDto,
+  LoansApiService,
+} from '../../core/services/loans-api.service';
 
-type LoanRankingRow = {
-  loanKey: string;
+type LoanAttributeRow = {
+  loanKey: number;
   loanCode: string;
-  investorName: string;
   loanDescription: string;
-  loanName: string;
-  loanAlias: string;
+  loanAliasName: string;
+  loanAliasKey: number | null;
+  investorName: string;
   ranking: number;
-  dateUpdated: string;
-  updatedBy: string;
+  dummyLoanLink: string;
+  lateInterestApplicable: boolean;
+  lateInterestOffNote: string;
+  userUpdatedBy: string;
+  userUpdatedDate: string;
 };
 
-type LoanUpdatePayload = {
-  LoanAliasName?: string;
-  LoanRanking?: number | null;
-  UserUpdatedDate?: string;
-  UserUpdatedBy?: string;
+type RowSnapshot = {
+  ranking: number;
+  dummyLoanLink: string;
+  lateInterestApplicable: boolean;
+  lateInterestOffNote: string;
 };
+
+type LoanAttributeColumnKey =
+  | 'loanCode'
+  | 'loanDescription'
+  | 'loanAliasName'
+  | 'investorName'
+  | 'ranking'
+  | 'dummyLoanLink'
+  | 'lateInterestApplicable'
+  | 'lateInterestOffNote'
+  | 'userUpdatedBy'
+  | 'userUpdatedDate';
+
+type LoanAttributeTableColumn = {
+  key: LoanAttributeColumnKey;
+  label: string;
+  editable?: boolean;
+};
+
+const LOAN_ATTRIBUTE_TABLE_COLUMNS: LoanAttributeTableColumn[] = [
+  { key: 'loanCode', label: 'Loan Code' },
+  { key: 'loanDescription', label: 'Loan Description' },
+  { key: 'loanAliasName', label: 'Loan Alias' },
+  { key: 'investorName', label: 'Investor Name' },
+  { key: 'ranking', label: 'Ranking', editable: true },
+  { key: 'dummyLoanLink', label: 'Dummy Loan Link', editable: true },
+  { key: 'lateInterestApplicable', label: 'Late Interest Applicable', editable: true },
+  { key: 'lateInterestOffNote', label: 'Late Interest Off Note', editable: true },
+  { key: 'userUpdatedBy', label: 'Modified By' },
+  { key: 'userUpdatedDate', label: 'Modified Date' },
+];
 
 @Component({
   selector: 'app-loans-ranking',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './loans-ranking.component.html',
   styleUrl: './loans-ranking.component.css',
 })
@@ -35,8 +75,12 @@ export class LoansRankingComponent implements OnInit {
   private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
 
+  readonly tableColumns = LOAN_ATTRIBUTE_TABLE_COLUMNS;
+
   readonly searchText = signal('');
-  readonly selectedLoanKeys = signal<string[]>([]);
+  readonly sortColumn = signal<LoanAttributeColumnKey | null>(null);
+  readonly sortDirection = signal<'asc' | 'desc'>('asc');
+  readonly selectedLoanCodes = signal<string[]>([]);
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
   readonly isLoading = signal(false);
@@ -44,16 +88,24 @@ export class LoansRankingComponent implements OnInit {
   readonly currentPage = signal(1);
   readonly pageSize = signal(this.defaultPageSize);
 
-  readonly rows = signal<LoanRankingRow[]>([]);
-  readonly originalRowState = signal<Record<string, { loanAlias: string; ranking: number }>>({});
+  readonly rows = signal<LoanAttributeRow[]>([]);
+  readonly originalRowState = signal<Record<string, RowSnapshot>>({});
+
+  private readonly loanSearchInput = viewChild<ElementRef<HTMLInputElement>>('loanSearchInput');
 
   ngOnInit(): void {
     this.loadLoans();
   }
 
+  readonly loanCodeOptions = computed(() =>
+    [...new Set(this.rows().map((row) => row.loanCode).filter((code) => code.length > 0))].sort(
+      (left, right) => left.localeCompare(right, undefined, { sensitivity: 'base' }),
+    ),
+  );
+
   readonly selectedLoans = computed(() => {
-    const selectedKeys = new Set(this.selectedLoanKeys());
-    return this.rows().filter((row) => selectedKeys.has(row.loanKey));
+    const selectedCodes = new Set(this.selectedLoanCodes());
+    return this.rows().filter((row) => selectedCodes.has(row.loanCode));
   });
 
   readonly searchedLoanOptions = computed(() => {
@@ -62,42 +114,45 @@ export class LoansRankingComponent implements OnInit {
       return [];
     }
 
-    const selectedKeys = new Set(this.selectedLoanKeys());
+    const selectedCodes = new Set(this.selectedLoanCodes());
     return this.rows().filter((row) => {
-      if (selectedKeys.has(row.loanKey)) {
+      if (selectedCodes.has(row.loanCode)) {
         return false;
       }
       return (
-        row.loanKey.toLowerCase().includes(keyword) ||
         row.loanCode.toLowerCase().includes(keyword) ||
-        row.loanName.toLowerCase().includes(keyword) ||
-        row.investorName.toLowerCase().includes(keyword)
+        row.loanDescription.toLowerCase().includes(keyword) ||
+        row.loanAliasName.toLowerCase().includes(keyword)
       );
     });
   });
 
   readonly filteredRows = computed(() => {
-    const selectedKeys = this.selectedLoanKeys();
-    if (selectedKeys.length > 0) {
-      const selectedKeySet = new Set(selectedKeys);
-      return this.rows().filter((row) => selectedKeySet.has(row.loanKey));
-    }
-
+    const selectedCodes = this.selectedLoanCodes();
     const keyword = this.searchText().trim().toLowerCase();
-    if (!keyword) {
-      return this.rows();
+
+    let rows = this.rows();
+
+    if (selectedCodes.length > 0) {
+      const selectedCodeSet = new Set(selectedCodes);
+      rows = rows.filter((row) => selectedCodeSet.has(row.loanCode));
+    } else if (keyword) {
+      rows = rows.filter((row) =>
+        this.tableColumns.some((column) =>
+          this.getCellDisplayValue(row, column.key).toLowerCase().includes(keyword),
+        ),
+      );
     }
 
-    return this.rows().filter((row) => {
-      return (
-        row.loanCode.toLowerCase().includes(keyword) ||
-        row.loanKey.toLowerCase().includes(keyword) ||
-        row.loanName.toLowerCase().includes(keyword) ||
-        row.investorName.toLowerCase().includes(keyword) ||
-        row.loanDescription.toLowerCase().includes(keyword) ||
-        row.loanAlias.toLowerCase().includes(keyword)
+    const activeSort = this.sortColumn();
+    if (activeSort) {
+      const direction = this.sortDirection() === 'asc' ? 1 : -1;
+      rows = [...rows].sort(
+        (left, right) => this.compareRows(left, right, activeSort) * direction,
       );
-    });
+    }
+
+    return rows;
   });
 
   readonly totalFilteredRows = computed(() => this.filteredRows().length);
@@ -137,68 +192,127 @@ export class LoansRankingComponent implements OnInit {
   updateSearch(value: string): void {
     this.searchText.set(value);
     this.currentPage.set(1);
-    this.statusMessage.set('');
-    this.errorMessage.set('');
+    this.clearMessages();
   }
 
-  selectLoan(row: LoanRankingRow): void {
-    if (this.selectedLoanKeys().includes(row.loanKey)) {
+  toggleSort(column: LoanAttributeColumnKey): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+    this.currentPage.set(1);
+  }
+
+  sortIndicator(column: LoanAttributeColumnKey): string {
+    if (this.sortColumn() !== column) {
+      return '↕';
+    }
+    return this.sortDirection() === 'asc' ? '↑' : '↓';
+  }
+
+  formatModifiedDate(value: string): string {
+    if (!value?.trim() || value === '-') {
+      return '—';
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+
+    return parsed.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  }
+
+  displayModifiedBy(value: string): string {
+    const trimmed = value?.trim();
+    return trimmed && trimmed !== '-' ? trimmed : '—';
+  }
+
+  getCellDisplayValue(row: LoanAttributeRow, column: LoanAttributeColumnKey): string {
+    switch (column) {
+      case 'loanCode':
+        return row.loanCode;
+      case 'loanDescription':
+        return row.loanDescription;
+      case 'loanAliasName':
+        return row.loanAliasName;
+      case 'investorName':
+        return row.investorName;
+      case 'ranking':
+        return String(row.ranking);
+      case 'dummyLoanLink':
+        return row.dummyLoanLink || '—';
+      case 'lateInterestApplicable':
+        return row.lateInterestApplicable ? 'Yes' : 'No';
+      case 'lateInterestOffNote':
+        return row.lateInterestOffNote;
+      case 'userUpdatedBy':
+        return this.displayModifiedBy(row.userUpdatedBy);
+      case 'userUpdatedDate':
+        return this.formatModifiedDate(row.userUpdatedDate);
+      default:
+        return '';
+    }
+  }
+
+  selectLoan(row: LoanAttributeRow): void {
+    if (this.selectedLoanCodes().includes(row.loanCode)) {
       return;
     }
 
-    this.selectedLoanKeys.set([...this.selectedLoanKeys(), row.loanKey]);
+    this.selectedLoanCodes.set([...this.selectedLoanCodes(), row.loanCode]);
     this.searchText.set('');
     this.currentPage.set(1);
-    this.statusMessage.set('');
-    this.errorMessage.set('');
+    this.clearMessages();
   }
 
-  removeSelectedLoan(loanKey: string): void {
-    this.selectedLoanKeys.set(
-      this.selectedLoanKeys().filter((selectedKey) => selectedKey !== loanKey),
+  removeSelectedLoan(loanCode: string): void {
+    this.selectedLoanCodes.set(
+      this.selectedLoanCodes().filter((code) => code !== loanCode),
     );
     this.currentPage.set(1);
-    this.statusMessage.set('');
-    this.errorMessage.set('');
+    this.clearMessages();
   }
 
-  updateAlias(loanKey: string, value: string): void {
-    this.rows.set(
-      this.rows().map((row) =>
-        row.loanKey === loanKey
-          ? {
-              ...row,
-              loanAlias: value,
-            }
-          : row,
-      ),
-    );
-    this.statusMessage.set('');
-    this.errorMessage.set('');
+  updateRanking(loanCode: string, rawValue: string): void {
+    const parsed = Number(rawValue.replace(/,/g, '').trim());
+    const ranking = Number.isFinite(parsed) ? Math.trunc(parsed) : 0;
+    this.patchRow(loanCode, { ranking });
   }
 
-  updateRanking(loanKey: string, value: string): void {
-    const parsedValue = Number(value);
-    this.rows.set(
-      this.rows().map((row) =>
-        row.loanKey === loanKey
-          ? {
-              ...row,
-              ranking: Number.isFinite(parsedValue) && parsedValue > 0 ? 0 : 0,
-            }
-          : row,
-      ),
-    );
-    this.statusMessage.set('');
-    this.errorMessage.set('');
+  updateDummyLoanLink(loanCode: string, value: string): void {
+    this.patchRow(loanCode, { dummyLoanLink: value.trim() });
+  }
+
+  updateLateInterestApplicable(loanCode: string, checked: boolean): void {
+    this.patchRow(loanCode, { lateInterestApplicable: checked });
+  }
+
+  updateLateInterestOffNote(loanCode: string, value: string): void {
+    this.patchRow(loanCode, { lateInterestOffNote: value });
   }
 
   clearSelection(): void {
     this.searchText.set('');
-    this.selectedLoanKeys.set([]);
+    this.selectedLoanCodes.set([]);
+    this.revertUnsavedChanges();
     this.currentPage.set(1);
-    this.statusMessage.set('');
-    this.errorMessage.set('');
+    this.clearMessages();
+
+    const input = this.loanSearchInput()?.nativeElement;
+    if (input) {
+      input.value = '';
+    }
   }
 
   goToPreviousPage(): void {
@@ -206,19 +320,55 @@ export class LoansRankingComponent implements OnInit {
   }
 
   goToNextPage(): void {
-    const maxPage = this.totalPages();
-    this.currentPage.set(Math.min(maxPage, this.currentPage() + 1));
+    this.currentPage.set(Math.min(this.totalPages(), this.currentPage() + 1));
   }
 
   updatePageSize(value: string): void {
     const parsed = Number(value);
-    const normalized = Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : this.defaultPageSize;
+    const normalized =
+      Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : this.defaultPageSize;
     this.pageSize.set(normalized);
     this.currentPage.set(1);
   }
 
   saveChanges(): void {
     if (this.isSaving()) {
+      return;
+    }
+
+    if (!this.rows().length) {
+      this.statusMessage.set('No loans loaded to save.');
+      return;
+    }
+
+    const selectedCodes = this.selectedLoanCodes();
+    const keyword = this.searchText().trim();
+    const targetRows = this.filteredRows();
+    const changedRows = this.rows().filter((row) => this.hasRowChanged(row));
+
+    if (!changedRows.length) {
+      this.statusMessage.set('No changes detected to save.');
+      this.errorMessage.set('');
+      return;
+    }
+
+    const rowsToSave =
+      selectedCodes.length > 0 || keyword
+        ? changedRows.filter((row) => targetRows.some((target) => target.loanCode === row.loanCode))
+        : changedRows;
+
+    if (!rowsToSave.length) {
+      this.statusMessage.set('No changes detected in the current selection.');
+      this.errorMessage.set('');
+      return;
+    }
+
+    const missingAlias = rowsToSave.find((row) => !row.loanAliasKey || row.loanAliasKey <= 0);
+    if (missingAlias) {
+      this.errorMessage.set(
+        `Loan ${missingAlias.loanCode} has no alias assigned. Assign an alias on Loan Alias Assignment before saving attributes.`,
+      );
+      this.statusMessage.set('');
       return;
     }
 
@@ -229,48 +379,34 @@ export class LoansRankingComponent implements OnInit {
       return;
     }
 
-    const targetRows = this.filteredRows();
-    if (!targetRows.length) {
-      this.statusMessage.set('Search and select at least one loan before saving changes.');
-      return;
-    }
-
-    const changedRows = targetRows.filter((row) => this.getChangedFields(row) !== null);
-    if (!changedRows.length) {
-      this.statusMessage.set('No changes detected to save.');
-      this.errorMessage.set('');
-      return;
-    }
+    const request: LoanBulkUpdateRequest = {
+      loans: rowsToSave.map((row) => this.buildUpdatePayload(row, userUpdatedBy)),
+    };
 
     this.isSaving.set(true);
     this.statusMessage.set('Saving changes...');
     this.errorMessage.set('');
 
-    const updateRequests = changedRows.map((row) => {
-      const payload = this.getChangedFields(row);
-      return this.loansApi.updateLoan(row.loanKey, payload ?? {});
-    });
-
-    forkJoin(updateRequests).subscribe({
+    this.loansApi.updateLoanAttributesBulk(request).subscribe({
       next: () => {
-        const now = new Date().toISOString().slice(0, 10);
-        const changedLoanKeys = new Set(changedRows.map((row) => row.loanKey));
+        const now = new Date().toISOString();
+        const savedCodes = new Set(rowsToSave.map((row) => row.loanCode));
 
         this.rows.set(
           this.rows().map((row) =>
-            changedLoanKeys.has(row.loanKey)
+            savedCodes.has(row.loanCode)
               ? {
                   ...row,
-                  loanAlias: row.loanAlias.trim() || row.investorName,
-                  ranking: row.ranking > 0 ? row.ranking : 1,
-                  dateUpdated: now,
+                  ranking: this.normalizeRanking(row.ranking),
+                  userUpdatedBy,
+                  userUpdatedDate: now,
                 }
               : row,
           ),
         );
 
         this.snapshotOriginalState();
-        this.statusMessage.set(`${changedRows.length} loan(s) updated successfully.`);
+        this.statusMessage.set(`${rowsToSave.length} loan(s) updated successfully.`);
         this.errorMessage.set('');
         this.isSaving.set(false);
       },
@@ -288,10 +424,10 @@ export class LoansRankingComponent implements OnInit {
     this.statusMessage.set('Loading loans...');
 
     this.loansApi.getLoans().subscribe({
-      next: (response) => {
-        const mappedRows = response
-          .map((loan, index) => this.mapApiLoanToRow(loan, index))
-          .filter((row) => row.loanKey.length > 0);
+      next: (records) => {
+        const mappedRows = records
+          .map((record, index) => this.mapApiLoanToRow(record, index))
+          .filter((row) => row.loanCode.length > 0);
 
         this.rows.set(mappedRows);
         this.currentPage.set(1);
@@ -310,129 +446,158 @@ export class LoansRankingComponent implements OnInit {
     });
   }
 
-  private mapApiLoanToRow(record: LoanApiRecord, index: number): LoanRankingRow {
-    const loanKey = this.getRecordValue(record, ['loanKey', 'LoanKey']);
-    const loanCode = this.getRecordValue(record, ['loanCode', 'LoanCode']);
-    const investorName = this.getRecordValue(record, [
-      'investorName',
-      'InvestorName',
-      'investor',
-      'Investor',
-      'clientName',
-      'ClientName',
-    ]);
-    const loanDescription = this.getRecordValue(record, [
-      'loanDescription',
-      'LoanDescription',
-      'loanDesc',
-      'LoanDesc',
-    ]);
-    const loanName = this.getRecordValue(record, ['loanName', 'LoanName', 'loanDesc', 'LoanDesc']);
-    const loanAlias = this.getRecordValue(record, [
-      'loanAlias',
-      'LoanAlias',
-      'loanAliasName',
-      'LoanAliasName',
-      'alias',
-      'Alias',
-    ]);
-    const rankingRaw = this.getRecordValue(record, [
-      'ranking',
-      'Ranking',
-      'loanRanking',
-      'LoanRanking',
-      'rank',
-      'Rank',
-    ]);
-    const dateUpdated = this.getRecordValue(record, [
-      'dateUpdated',
-      'DateUpdated',
-      'userUpdatedDate',
-      'UserUpdatedDate',
-      'updatedOn',
-      'UpdatedOn',
-      'lastUpdated',
-      'LastUpdated',
-    ]);
-    const updatedBy = this.getRecordValue(record, [
-      'updatedBy',
-      'UpdatedBy',
-      'userUpdatedBy',
-      'UserUpdatedBy',
-      'modifiedBy',
-      'ModifiedBy',
-      'createdBy',
-      'CreatedBy',
-    ]);
+  private mapApiLoanToRow(record: LoanDto, index: number): LoanAttributeRow {
+    const loanAliasKey =
+      record.loanAliasKey != null && Number(record.loanAliasKey) > 0
+        ? Number(record.loanAliasKey)
+        : null;
+    const parsedRanking = Number(record.loanRanking);
+    const lateInterestApplicable =
+      record.isLoanInterestApplicable != null ? record.isLoanInterestApplicable : true;
 
-    const parsedRanking = Number(rankingRaw);
     return {
-      loanKey: loanKey || `LOANKEY-${index + 1}`,
-      loanCode: loanCode || loanKey || `LOAN-${index + 1}`,
-      investorName: investorName || '-',
-      loanDescription: loanDescription || loanName || '-',
-      loanName: loanName || loanDescription || loanCode || loanKey || '-',
-      loanAlias: loanAlias || loanDescription || '',
-      ranking: Number.isFinite(parsedRanking) && parsedRanking > 0 ? parsedRanking : 0,
-      dateUpdated: this.normalizeDate(dateUpdated),
-      updatedBy: updatedBy || '-',
+      loanKey: record.loanKey > 0 ? record.loanKey : 0,
+      loanCode: record.loanCode?.trim() || `LOAN-${index + 1}`,
+      loanDescription: record.loanDesc?.trim() || '—',
+      loanAliasName: record.loanAliasName?.trim() || '—',
+      loanAliasKey,
+      investorName: record.investorName?.trim() || '—',
+      ranking: Number.isFinite(parsedRanking) && parsedRanking > 0 ? Math.trunc(parsedRanking) : 0,
+      dummyLoanLink: record.dummyLoanLink?.trim() ?? '',
+      lateInterestApplicable,
+      lateInterestOffNote: record.lateInterestOffNote?.trim() ?? '',
+      userUpdatedBy: record.userUpdatedBy?.trim() ?? '',
+      userUpdatedDate: record.userUpdatedDate ?? '',
     };
   }
 
+  private buildUpdatePayload(
+    row: LoanAttributeRow,
+    userUpdatedBy: string,
+  ): LoanAttributeUpdatePayload {
+    return {
+      loanKey: row.loanKey,
+      loanCode: row.loanCode,
+      loanAliasKey: row.loanAliasKey ?? 0,
+      loanRanking: this.normalizeRanking(row.ranking),
+      dummyLoanLink: row.dummyLoanLink,
+      isLoanInterestApplicable: row.lateInterestApplicable,
+      lateInterestOffNote: row.lateInterestOffNote.trim(),
+      userUpdatedBy,
+    };
+  }
+
+  private patchRow(loanCode: string, patch: Partial<LoanAttributeRow>): void {
+    this.rows.set(
+      this.rows().map((row) => (row.loanCode === loanCode ? { ...row, ...patch } : row)),
+    );
+    this.clearMessages();
+  }
+
+  private revertUnsavedChanges(): void {
+    const original = this.originalRowState();
+    this.rows.update((rows) =>
+      rows.map((row) => {
+        const snapshot = original[row.loanCode];
+        if (!snapshot) {
+          return row;
+        }
+        return {
+          ...row,
+          ranking: snapshot.ranking,
+          dummyLoanLink: snapshot.dummyLoanLink,
+          lateInterestApplicable: snapshot.lateInterestApplicable,
+          lateInterestOffNote: snapshot.lateInterestOffNote,
+        };
+      }),
+    );
+  }
+
   private snapshotOriginalState(): void {
-    const snapshot: Record<string, { loanAlias: string; ranking: number }> = {};
+    const snapshot: Record<string, RowSnapshot> = {};
     for (const row of this.rows()) {
-      snapshot[row.loanKey] = {
-        loanAlias: row.loanAlias.trim(),
+      snapshot[row.loanCode] = {
         ranking: row.ranking,
+        dummyLoanLink: row.dummyLoanLink,
+        lateInterestApplicable: row.lateInterestApplicable,
+        lateInterestOffNote: row.lateInterestOffNote.trim(),
       };
     }
     this.originalRowState.set(snapshot);
   }
 
-  private getChangedFields(row: LoanRankingRow): LoanUpdatePayload | null {
-    const original = this.originalRowState()[row.loanKey];
-    const normalizedAlias = row.loanAlias.trim() || row.investorName;
-    const normalizedRanking = this.normalizeRanking(row.ranking);
-    const updatedBy = this.currentAppUser.getUpdatedBy() ?? row.updatedBy;
-    if (!updatedBy || updatedBy === '-') {
-      return null;
-    }
-    const updatedDate = new Date().toISOString();
-
+  private hasRowChanged(row: LoanAttributeRow): boolean {
+    const original = this.originalRowState()[row.loanCode];
     if (!original) {
-      return {
-        LoanAliasName: normalizedAlias,
-        LoanRanking: normalizedRanking,
-        UserUpdatedDate: updatedDate,
-        UserUpdatedBy: updatedBy,
-      };
+      return true;
     }
 
-    const payload: LoanUpdatePayload = {};
-
-    if (normalizedAlias !== original.loanAlias) {
-      payload.LoanAliasName = normalizedAlias;
-    }
-    if (normalizedRanking !== original.ranking) {
-      payload.LoanRanking = normalizedRanking;
-    }
-
-    if (Object.keys(payload).length > 0) {
-      payload.UserUpdatedDate = updatedDate;
-      payload.UserUpdatedBy = updatedBy;
-    }
-
-    return Object.keys(payload).length > 0 ? payload : null;
+    return (
+      this.normalizeRanking(row.ranking) !== this.normalizeRanking(original.ranking) ||
+      row.dummyLoanLink.trim() !== original.dummyLoanLink.trim() ||
+      row.lateInterestApplicable !== original.lateInterestApplicable ||
+      row.lateInterestOffNote.trim() !== original.lateInterestOffNote.trim()
+    );
   }
 
   private normalizeRanking(ranking: number): number {
-    const asWholeNumber = Number.isFinite(ranking) ? Math.trunc(ranking) : 1;
-    return Math.min(32767, Math.max(1, asWholeNumber));
+    const asWholeNumber = Number.isFinite(ranking) ? Math.trunc(ranking) : 0;
+    return Math.min(32767, Math.max(0, asWholeNumber));
+  }
+
+  private compareRows(
+    left: LoanAttributeRow,
+    right: LoanAttributeRow,
+    column: LoanAttributeColumnKey,
+  ): number {
+    switch (column) {
+      case 'loanCode':
+        return left.loanCode.localeCompare(right.loanCode, undefined, { sensitivity: 'base' });
+      case 'loanDescription':
+        return left.loanDescription.localeCompare(right.loanDescription, undefined, {
+          sensitivity: 'base',
+        });
+      case 'loanAliasName':
+        return left.loanAliasName.localeCompare(right.loanAliasName, undefined, {
+          sensitivity: 'base',
+        });
+      case 'investorName':
+        return left.investorName.localeCompare(right.investorName, undefined, {
+          sensitivity: 'base',
+        });
+      case 'ranking':
+        return left.ranking - right.ranking;
+      case 'dummyLoanLink':
+        return left.dummyLoanLink.localeCompare(right.dummyLoanLink, undefined, {
+          sensitivity: 'base',
+        });
+      case 'lateInterestApplicable':
+        return Number(left.lateInterestApplicable) - Number(right.lateInterestApplicable);
+      case 'lateInterestOffNote':
+        return left.lateInterestOffNote.localeCompare(right.lateInterestOffNote, undefined, {
+          sensitivity: 'base',
+        });
+      case 'userUpdatedBy':
+        return left.userUpdatedBy.localeCompare(right.userUpdatedBy, undefined, {
+          sensitivity: 'base',
+        });
+      case 'userUpdatedDate':
+        return this.dateSortValue(left.userUpdatedDate) - this.dateSortValue(right.userUpdatedDate);
+      default:
+        return 0;
+    }
+  }
+
+  private dateSortValue(value: string): number {
+    if (!value?.trim()) {
+      return 0;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
   }
 
   private extractBackendError(error: unknown): string {
-    const fallback = 'Failed to update loan changes.';
+    const fallback = 'Failed to update loan attribute changes.';
     if (!error || typeof error !== 'object') {
       return fallback;
     }
@@ -476,24 +641,8 @@ export class LoansRankingComponent implements OnInit {
     return fallback;
   }
 
-  private getRecordValue(record: LoanApiRecord, keys: string[]): string {
-    for (const key of keys) {
-      const value = record[key];
-      if (value !== undefined && value !== null && String(value).trim().length > 0) {
-        return String(value).trim();
-      }
-    }
-    return '';
-  }
-
-  private normalizeDate(value: string): string {
-    if (!value) {
-      return '-';
-    }
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-    return parsed.toISOString().slice(0, 10);
+  private clearMessages(): void {
+    this.statusMessage.set('');
+    this.errorMessage.set('');
   }
 }

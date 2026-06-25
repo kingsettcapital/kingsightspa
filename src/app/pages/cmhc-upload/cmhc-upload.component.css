@@ -12,6 +12,18 @@
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.file-upload-fabric-link {
+  font-size: 0.8125rem;
+  color: var(--ks-color-primary);
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.file-upload-fabric-link:hover {
+  color: var(--ks-color-navy);
 }
 
 .file-upload-field__label {
@@ -24,6 +36,12 @@
   width: auto;
   min-width: 14rem;
   max-width: 22rem;
+}
+
+.file-upload-field__date {
+  width: auto;
+  min-width: 10.5rem;
+  max-width: 12rem;
 }
 
 .file-upload-dropzone {
@@ -83,6 +101,11 @@
 
 .file-upload-message {
   text-align: center;
+}
+
+.file-upload-message.error-message {
+  white-space: pre-line;
+  text-align: left;
 }
 
 .file-upload-history {

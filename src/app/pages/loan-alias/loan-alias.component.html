@@ -3,7 +3,12 @@
   <!-- ── Page header ───────────────────────────────────────────────────────── -->
   <div class="la-header">
     <h1>Loan Alias Management</h1>
-    <p class="la-subtitle">Create, view, edit and delete loan alias records.</p>
+    <p class="la-subtitle">
+      Create, View and Edit Loan Alias Master List.
+      For Deletion of a Loan Alias, please ensure there are no Loans assigned to the Loan Alias and send an email to
+      <a class="la-subtitle__link" href="mailto:ITSupport@KingSettCapital.com">ITSupport@KingSettCapital.com</a>
+      to request the deletion the Loan Alias.
+    </p>
   </div>
 
   <!-- ── Toolbar: search + add ─────────────────────────────────────────────── -->
@@ -37,7 +42,7 @@
   @if (statusMessage()) {
     <p class="la-status-msg">{{ statusMessage() }}</p>
   }
-  @if (errorMessage() && !showCreateDialog() && !showEditDialog() && !showDeleteDialog()) {
+  @if (errorMessage() && !showCreateDialog() && !showEditDialog()) {
     <p class="la-error-msg">{{ errorMessage() }}</p>
   }
 
@@ -52,11 +57,19 @@
       <table class="la-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Alias Name</th>
-            <th>Modified By</th>
-            <th>Modified Date</th>
-            <th>Created By</th>
+            @for (column of tableColumns; track column.key) {
+              <th>
+                <button
+                  type="button"
+                  class="la-th-sort"
+                  (click)="toggleSort(column.key)"
+                  [attr.aria-label]="'Sort by ' + column.label"
+                >
+                  <span>{{ column.label }}</span>
+                  <span class="la-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+                </button>
+              </th>
+            }
             <th class="col-actions">Actions</th>
           </tr>
         </thead>
@@ -65,9 +78,10 @@
             <tr>
               <td class="col-id">{{ alias.loanAliasId }}</td>
               <td class="col-name">{{ alias.loanAliasName }}</td>
-              <td>{{ alias.updatedBy || '—' }}</td>
-              <td>{{ alias.updatedDtm ? (alias.updatedDtm | date:'MM/dd/yyyy HH:mm') : '—' }}</td>
-              <td>{{ alias.createdBy || '—' }}</td>
+              <td>{{ displayUserName(alias.updatedBy) }}</td>
+              <td>{{ formatAuditDate(alias.updatedDtm) }}</td>
+              <td>{{ displayUserName(alias.createdBy) }}</td>
+              <td>{{ formatAuditDate(alias.createdDtm) }}</td>
               <td class="col-actions">
                 <div class="row-actions">
                   <button
@@ -84,28 +98,12 @@
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
                   </button>
-                  <button
-                    type="button"
-                    class="btn-icon btn-icon--delete"
-                    (click)="openDeleteDialog(alias)"
-                    title="Delete alias"
-                    aria-label="Delete {{ alias.loanAliasName }}"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                         stroke-linejoin="round">
-                      <polyline points="3 6 5 6 21 6"/>
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                      <path d="M10 11v6"/><path d="M14 11v6"/>
-                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                    </svg>
-                  </button>
                 </div>
               </td>
             </tr>
           } @empty {
             <tr>
-              <td colspan="6" class="td-empty">
+              <td colspan="7" class="td-empty">
                 @if (searchTerm()) {
                   No loan aliases match your search.
                 } @else {
@@ -259,39 +257,6 @@
         <button type="button" class="ks-btn ks-btn--accent" (click)="saveAlias()"
                 [disabled]="!formName().trim() || isSaving()">
           @if (isSaving()) { Saving… } @else { Save Changes }
-        </button>
-      </div>
-    </div>
-  </div>
-}
-
-
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     DELETE CONFIRMATION DIALOG
-     ═══════════════════════════════════════════════════════════════════════ -->
-@if (showDeleteDialog()) {
-  <div class="la-overlay" (click)="closeDeleteDialog()" role="presentation">
-    <div class="la-dialog la-dialog--sm" role="alertdialog" aria-modal="true"
-         aria-labelledby="dlg-delete-title" (click)="$event.stopPropagation()">
-
-      <div class="la-dialog-header">
-        <h2 id="dlg-delete-title">Delete Loan Alias</h2>
-      </div>
-
-      <div class="la-dialog-body">
-        <p class="dlg-confirm-text">
-          Are you sure you want to permanently delete
-          <strong>"{{ selectedAlias()?.loanAliasName }}"</strong>?
-          This action cannot be undone.
-        </p>
-      </div>
-
-      <div class="la-dialog-footer">
-        <button type="button" class="ks-btn ks-btn--accent" (click)="closeDeleteDialog()"
-                [disabled]="isDeleting()">Cancel</button>
-        <button type="button" class="ks-btn btn-danger" (click)="deleteAlias()"
-                [disabled]="isDeleting()">
-          @if (isDeleting()) { Deleting… } @else { Delete }
         </button>
       </div>
     </div>

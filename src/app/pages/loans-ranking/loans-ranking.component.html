@@ -1,27 +1,28 @@
 <section class="ks-fp loan-ranking-page">
-  <h1>Loan Alias &amp; Rank Update</h1>
-  <p class="subtitle">Update investor aliases and rankings for loan portfolios</p>
+  <h1>Loan Attribute Assignment</h1>
+  <p class="subtitle">Update Loan Ranking, Dummy Loan Links and Late Interest Eligibility</p>
 
   <div class="search-panel">
     <label for="loanSearch">Search Loans</label>
     <div class="search-input-wrap">
       <span class="search-icon" aria-hidden="true"></span>
       <input
+        #loanSearchInput
         id="loanSearch"
         type="text"
         [value]="searchText()"
         (input)="updateSearch($any($event.target).value)"
-        placeholder="Search by Loan Name"
+        placeholder="Search all columns"
       />
     </div>
 
     @if (searchedLoanOptions().length > 0) {
       <ul class="search-results">
-        @for (row of searchedLoanOptions(); track row.loanKey) {
+        @for (row of searchedLoanOptions(); track row.loanCode) {
           <li>
             <button type="button" (click)="selectLoan(row)">
               <span class="result-code">{{ row.loanCode }}</span>
-              <span>{{ row.loanName }}</span>
+              <span>{{ row.loanDescription }}</span>
             </button>
           </li>
         }
@@ -29,9 +30,9 @@
     }
 
     <div class="selected-loan-tags">
-      @for (selectedLoan of selectedLoans(); track selectedLoan.loanKey) {
-        <button type="button" class="loan-tag" (click)="removeSelectedLoan(selectedLoan.loanKey)">
-          <span>{{ selectedLoan.loanCode }}&nbsp; {{ selectedLoan.loanName }}</span>
+      @for (selectedLoan of selectedLoans(); track selectedLoan.loanCode) {
+        <button type="button" class="loan-tag" (click)="removeSelectedLoan(selectedLoan.loanCode)">
+          <span>{{ selectedLoan.loanCode }}&nbsp; {{ selectedLoan.loanDescription }}</span>
           <span class="tag-close">x</span>
         </button>
       }
@@ -40,7 +41,7 @@
     @if (isLoading()) {
       <p class="meta-message">Loading loans...</p>
     }
-    @if (errorMessage()) {
+    @if (errorMessage() && !isSaving()) {
       <p class="error-message">{{ errorMessage() }}</p>
     }
   </div>
@@ -50,45 +51,76 @@
       <thead>
         <tr>
           <th class="hidden-column">Loan Key</th>
-          <th>Loan Code</th>
-          <th>Investor Name</th>
-          <th>Loan Description</th>
-          <th>Loan Alias</th>
-          <th>Ranking</th>
-          <th>Date Updated</th>
-          <th>Updated By</th>
+          @for (column of tableColumns; track column.key) {
+            <th>
+              <button
+                type="button"
+                class="la-th-sort"
+                (click)="toggleSort(column.key)"
+                [attr.aria-label]="'Sort by ' + column.label"
+              >
+                <span>{{ column.label }}</span>
+                <span class="la-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+              </button>
+            </th>
+          }
         </tr>
       </thead>
       <tbody>
-        @for (row of paginatedRows(); track row.loanKey) {
+        @for (row of paginatedRows(); track row.loanCode) {
           <tr>
             <td class="hidden-column">{{ row.loanKey }}</td>
             <td>{{ row.loanCode }}</td>
-            <td>{{ row.investorName }}</td>
             <td>{{ row.loanDescription }}</td>
+            <td class="read-only-cell">{{ row.loanAliasName }}</td>
+            <td>{{ row.investorName }}</td>
             <td>
               <input
                 type="text"
-                class="alias-input"
-                [value]="row.loanAlias"
-                (input)="updateAlias(row.loanKey, $any($event.target).value)"
+                inputmode="numeric"
+                class="ranking-input"
+                [value]="row.ranking > 0 ? row.ranking : ''"
+                (input)="updateRanking(row.loanCode, $any($event.target).value)"
+                placeholder="0"
+              />
+            </td>
+            <td>
+              <select
+                class="dummy-link-select"
+                [ngModel]="row.dummyLoanLink"
+                (ngModelChange)="updateDummyLoanLink(row.loanCode, $event)"
+                [ngModelOptions]="{ standalone: true }"
+              >
+                <option value="">— None —</option>
+                @for (code of loanCodeOptions(); track code) {
+                  <option [value]="code">{{ code }}</option>
+                }
+              </select>
+            </td>
+            <td class="checkbox-cell">
+              <input
+                type="checkbox"
+                class="late-interest-checkbox"
+                [checked]="row.lateInterestApplicable"
+                (change)="updateLateInterestApplicable(row.loanCode, $any($event.target).checked)"
+                [attr.aria-label]="'Late interest applicable for ' + row.loanCode"
               />
             </td>
             <td>
               <input
-                type="number"
-                min="1"
-                class="ranking-input"
-                [value]="row.ranking"
-                (input)="updateRanking(row.loanKey, $any($event.target).value)"
+                type="text"
+                class="note-input"
+                [value]="row.lateInterestOffNote"
+                (input)="updateLateInterestOffNote(row.loanCode, $any($event.target).value)"
+                placeholder="Enter note"
               />
             </td>
-            <td>{{ row.dateUpdated }}</td>
-            <td>{{ row.updatedBy }}</td>
+            <td class="date-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="date-cell">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>
         } @empty {
           <tr>
-            <td colspan="8" class="empty-row">No loans found for this search.</td>
+            <td colspan="11" class="empty-row">No loans found for this search.</td>
           </tr>
         }
       </tbody>
@@ -127,9 +159,9 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="ks-btn ks-btn--accent" (click)="clearSelection()">Close</button>
+    <button type="button" class="ks-btn ks-btn--accent" (click)="clearSelection()">Clear Selection</button>
     <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving()">
-      Save Changes
+      @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>
 

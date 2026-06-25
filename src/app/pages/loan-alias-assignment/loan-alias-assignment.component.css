@@ -30,6 +30,28 @@
   white-space: nowrap;
 }
 
+.la-th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.la-th-sort:hover {
+  color: #1d4ed8;
+}
+
+.la-th-sort__icon {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
 .btn-close {
   display: inline-flex;
   align-items: center;

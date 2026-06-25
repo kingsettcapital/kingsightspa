@@ -1,5 +1,5 @@
 <section class="ks-fp investor-page">
-  <h1>Investor Alias Update</h1>
+  <h1>Investor Alias Assignment</h1>
   <p class="subtitle">Search investors and assign alias names from the master list</p>
 
   <div class="search-panel">
@@ -7,6 +7,7 @@
     <div class="search-input-wrap">
       <span class="search-icon" aria-hidden="true"></span>
       <input
+        #investorSearchInput
         id="investorSearch"
         type="text"
         [value]="searchText()"
@@ -17,7 +18,7 @@
 
     @if (searchedInvestorOptions().length > 0) {
       <ul class="search-results">
-        @for (row of searchedInvestorOptions(); track row.investorKey) {
+        @for (row of searchedInvestorOptions(); track row.investorCode) {
           <li>
             <button type="button" (click)="selectInvestor(row)">
               <span class="result-code">{{ row.investorCode }}</span>
@@ -29,11 +30,11 @@
     }
 
     <div class="selected-investor-tags">
-      @for (selectedInvestor of selectedInvestors(); track selectedInvestor.investorKey) {
+      @for (selectedInvestor of selectedInvestors(); track selectedInvestor.investorCode) {
         <button
           type="button"
           class="investor-tag"
-          (click)="removeSelectedInvestor(selectedInvestor.investorKey)"
+          (click)="removeSelectedInvestor(selectedInvestor.investorCode)"
         >
           <span>{{ selectedInvestor.investorCode }}&nbsp; {{ selectedInvestor.investorName }}</span>
           <span class="tag-close">x</span>
@@ -54,15 +55,23 @@
       <thead>
         <tr>
           <th class="hidden-column">Investor Key</th>
-          <th>Investor Code</th>
-          <th>Investor Name</th>
-          <th>Investor Alias</th>
-          <th>Date Updated</th>
-          <th>Updated By</th>
+          @for (column of tableColumns; track column.key) {
+            <th>
+              <button
+                type="button"
+                class="inv-th-sort"
+                (click)="toggleSort(column.key)"
+                [attr.aria-label]="'Sort by ' + column.label"
+              >
+                <span>{{ column.label }}</span>
+                <span class="inv-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+              </button>
+            </th>
+          }
         </tr>
       </thead>
       <tbody>
-        @for (row of paginatedRows(); track row.investorKey) {
+        @for (row of paginatedRows(); track row.investorCode + ':' + aliasSelectValue(row)) {
           <tr>
             <td class="hidden-column">{{ row.investorKey }}</td>
             <td>{{ row.investorCode }}</td>
@@ -70,21 +79,20 @@
             <td>
               <select
                 class="alias-select"
-                (change)="updateAlias(row.investorKey, $any($event.target).value)"
+                [ngModel]="aliasSelectValue(row)"
+                (ngModelChange)="updateAlias(row.investorCode, $event)"
+                [ngModelOptions]="{ standalone: true }"
               >
-                <option value="" [selected]="row.investorAliasKey == null">— Select alias —</option>
+                <option value="">— Select alias —</option>
                 @for (alias of aliasOptions(); track getAliasKey(alias)) {
-                  <option
-                    [value]="'' + getAliasKey(alias)"
-                    [selected]="row.investorAliasKey === getAliasKey(alias)"
-                  >
+                  <option [value]="'' + getAliasKey(alias)">
                     {{ alias.investorAliasName }}
                   </option>
                 }
               </select>
             </td>
-            <td class="date-cell">{{ row.userUpdatedDate }}</td>
-            <td class="updated-by-cell">{{ row.userUpdatedBy }}</td>
+            <td class="date-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="date-cell">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>
         } @empty {
           <tr>

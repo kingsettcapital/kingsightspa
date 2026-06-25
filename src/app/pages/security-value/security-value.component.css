@@ -10,6 +10,7 @@
 
 .numeric-col {
   min-width: 7.5rem;
+  text-align: right;
 }
 
 .display-only {
@@ -25,6 +26,37 @@
   padding: 0.2rem 0.5rem;
   font-size: 0.9rem;
   background: #ffffff;
+}
+
+.value-input--numeric {
+  text-align: right;
+}
+
+.sv-th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sv-th-sort--numeric {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.sv-th-sort:hover {
+  color: #1d4ed8;
+}
+
+.sv-th-sort__icon {
+  font-size: 0.7rem;
+  color: #6b7280;
 }
 
 .date-cell,

@@ -24,14 +24,19 @@ export type LoanDto = {
   userUpdatedDate?: string | null;
 };
 
-export type LoanUpdatePayload = {
+export type LoanAttributeUpdatePayload = {
   loanKey: number;
+  loanCode: string;
   loanAliasKey: number;
+  loanRanking?: number | null;
+  dummyLoanLink?: string | null;
+  isLoanInterestApplicable?: boolean | null;
+  lateInterestOffNote?: string | null;
   userUpdatedBy: string;
 };
 
 export type LoanBulkUpdateRequest = {
-  loans: LoanUpdatePayload[];
+  loans: LoanAttributeUpdatePayload[];
 };
 
 /** @deprecated Prefer LoanDto for typed loan responses. */
@@ -93,8 +98,13 @@ export class LoansApiService {
     );
   }
 
+  updateLoanAttributesBulk(request: LoanBulkUpdateRequest) {
+    return this.http.put<void>(this.loansUrl, { loans: request.loans });
+  }
+
+  /** @deprecated Use updateLoanAttributesBulk. */
   updateLoanAliasesBulk(request: LoanBulkUpdateRequest) {
-    return this.http.put<void>(this.loansUrl, request);
+    return this.updateLoanAttributesBulk(request);
   }
 
   /** @deprecated API has no per-loan PUT; use updateLoanAliasesBulk. */

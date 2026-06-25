@@ -1,5 +1,5 @@
 <section class="ks-fp loan-alias-assignment-page">
-  <h1>Loan Alias Update</h1>
+  <h1>Loan Alias Assignment</h1>
   <p class="subtitle">Search loans and assign alias names from the master list</p>
 
   <div class="search-panel">
@@ -7,6 +7,7 @@
     <div class="search-input-wrap">
       <span class="search-icon" aria-hidden="true"></span>
       <input
+        #loanSearchInput
         id="loanSearch"
         type="text"
         [value]="searchText()"
@@ -17,7 +18,7 @@
 
     @if (searchedLoanOptions().length > 0) {
       <ul class="search-results">
-        @for (row of searchedLoanOptions(); track row.loanKey) {
+        @for (row of searchedLoanOptions(); track row.loanCode) {
           <li>
             <button type="button" (click)="selectLoan(row)">
               <span class="result-code">{{ row.loanCode }}</span>
@@ -29,11 +30,11 @@
     }
 
     <div class="selected-loan-tags">
-      @for (selectedLoan of selectedLoans(); track selectedLoan.loanKey) {
+      @for (selectedLoan of selectedLoans(); track selectedLoan.loanCode) {
         <button
           type="button"
           class="loan-tag"
-          (click)="removeSelectedLoan(selectedLoan.loanKey)"
+          (click)="removeSelectedLoan(selectedLoan.loanCode)"
         >
           <span>{{ selectedLoan.loanCode }}&nbsp; {{ selectedLoan.loanName }}</span>
           <span class="tag-close">x</span>
@@ -54,15 +55,23 @@
       <thead>
         <tr>
           <th class="hidden-column">Loan Key</th>
-          <th>Loan Code</th>
-          <th>Loan Name</th>
-          <th>Loan Alias</th>
-          <th>Date Updated</th>
-          <th>Updated By</th>
+          @for (column of tableColumns; track column.key) {
+            <th>
+              <button
+                type="button"
+                class="la-th-sort"
+                (click)="toggleSort(column.key)"
+                [attr.aria-label]="'Sort by ' + column.label"
+              >
+                <span>{{ column.label }}</span>
+                <span class="la-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+              </button>
+            </th>
+          }
         </tr>
       </thead>
       <tbody>
-        @for (row of paginatedRows(); track row.loanKey) {
+        @for (row of paginatedRows(); track row.loanCode + ':' + aliasSelectValue(row)) {
           <tr>
             <td class="hidden-column">{{ row.loanKey }}</td>
             <td>{{ row.loanCode }}</td>
@@ -70,21 +79,20 @@
             <td>
               <select
                 class="alias-select"
-                (change)="updateAlias(row.loanKey, $any($event.target).value)"
+                [ngModel]="aliasSelectValue(row)"
+                (ngModelChange)="updateAlias(row.loanCode, $event)"
+                [ngModelOptions]="{ standalone: true }"
               >
-                <option value="" [selected]="row.loanAliasKey == null">— Select alias —</option>
+                <option value="">— Select alias —</option>
                 @for (alias of aliasOptions(); track getAliasKey(alias)) {
-                  <option
-                    [value]="'' + getAliasKey(alias)"
-                    [selected]="row.loanAliasKey === getAliasKey(alias)"
-                  >
+                  <option [value]="'' + getAliasKey(alias)">
                     {{ alias.loanAliasName }}
                   </option>
                 }
               </select>
             </td>
-            <td class="date-cell">{{ row.userUpdatedDate }}</td>
-            <td class="updated-by-cell">{{ row.userUpdatedBy }}</td>
+            <td class="date-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="date-cell">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>
         } @empty {
           <tr>
