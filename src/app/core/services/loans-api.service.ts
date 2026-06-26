@@ -39,6 +39,16 @@ export type LoanBulkUpdateRequest = {
   loans: LoanAttributeUpdatePayload[];
 };
 
+/** From GET /api/Loans/lookups — loan_alias_master dropdown options. */
+export type LoanAliasOptionDto = {
+  loanAliasId: number;
+  loanAliasName: string;
+};
+
+export type LoanLookupsDto = {
+  loanAliases: LoanAliasOptionDto[];
+};
+
 /** @deprecated Prefer LoanDto for typed loan responses. */
 export type LoanApiRecord = Record<string, string | number | boolean | null | undefined>;
 
@@ -55,6 +65,10 @@ export class LoansApiService {
 
   getLoans() {
     return this.http.get<LoanDto[]>(this.loansUrl);
+  }
+
+  getLookups() {
+    return this.http.get<LoanLookupsDto>(`${this.loansUrl}/lookups`);
   }
 
   getLoansTable(query: LoanTableQuery, options: LoansApiCallOptions = {}): Observable<LoanTableResult> {

@@ -18,7 +18,8 @@
 
 .ranking-input,
 .note-input,
-.dummy-link-select {
+.dummy-link-select,
+.alias-select {
   width: 100%;
   min-width: 6rem;
   border: 1px solid #d1d5db;
@@ -33,7 +34,8 @@
   text-align: right;
 }
 
-.dummy-link-select {
+.dummy-link-select,
+.alias-select {
   min-width: 8rem;
 }
 

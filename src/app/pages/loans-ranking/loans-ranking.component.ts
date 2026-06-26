@@ -1,12 +1,16 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import {
+  LoanAliasOptionDto,
   LoanAttributeUpdatePayload,
   LoanBulkUpdateRequest,
   LoanDto,
+  LoanLookupsDto,
   LoansApiService,
 } from '../../core/services/loans-api.service';
 
@@ -26,6 +30,7 @@ type LoanAttributeRow = {
 };
 
 type RowSnapshot = {
+  loanAliasKey: number | null;
   ranking: number;
   dummyLoanLink: string;
   lateInterestApplicable: boolean;
@@ -53,7 +58,7 @@ type LoanAttributeTableColumn = {
 const LOAN_ATTRIBUTE_TABLE_COLUMNS: LoanAttributeTableColumn[] = [
   { key: 'loanCode', label: 'Loan Code' },
   { key: 'loanDescription', label: 'Loan Description' },
-  { key: 'loanAliasName', label: 'Loan Alias' },
+  { key: 'loanAliasName', label: 'Loan Alias', editable: true },
   { key: 'investorName', label: 'Investor Name' },
   { key: 'ranking', label: 'Ranking', editable: true },
   { key: 'dummyLoanLink', label: 'Dummy Loan Link', editable: true },
@@ -89,6 +94,7 @@ export class LoansRankingComponent implements OnInit {
   readonly pageSize = signal(this.defaultPageSize);
 
   readonly rows = signal<LoanAttributeRow[]>([]);
+  readonly loanAliasOptions = signal<LoanAliasOptionDto[]>([]);
   readonly originalRowState = signal<Record<string, RowSnapshot>>({});
 
   private readonly loanSearchInput = viewChild<ElementRef<HTMLInputElement>>('loanSearchInput');
@@ -290,6 +296,19 @@ export class LoansRankingComponent implements OnInit {
     this.patchRow(loanCode, { ranking });
   }
 
+  updateLoanAlias(loanCode: string, rawValue: number | null): void {
+    if (rawValue == null || rawValue <= 0) {
+      this.patchRow(loanCode, { loanAliasKey: null, loanAliasName: '—' });
+      return;
+    }
+
+    const alias = this.loanAliasOptions().find((option) => option.loanAliasId === rawValue);
+    this.patchRow(loanCode, {
+      loanAliasKey: rawValue,
+      loanAliasName: alias?.loanAliasName ?? '—',
+    });
+  }
+
   updateDummyLoanLink(loanCode: string, value: string): void {
     this.patchRow(loanCode, { dummyLoanLink: value.trim() });
   }
@@ -366,7 +385,7 @@ export class LoansRankingComponent implements OnInit {
     const missingAlias = rowsToSave.find((row) => !row.loanAliasKey || row.loanAliasKey <= 0);
     if (missingAlias) {
       this.errorMessage.set(
-        `Loan ${missingAlias.loanCode} has no alias assigned. Assign an alias on Loan Alias Assignment before saving attributes.`,
+        `Loan ${missingAlias.loanCode} requires a Loan Alias selection before saving.`,
       );
       this.statusMessage.set('');
       return;
@@ -423,9 +442,13 @@ export class LoansRankingComponent implements OnInit {
     this.errorMessage.set('');
     this.statusMessage.set('Loading loans...');
 
-    this.loansApi.getLoans().subscribe({
-      next: (records) => {
-        const mappedRows = records
+    forkJoin({
+      loans: this.loansApi.getLoans(),
+      lookups: this.loansApi.getLookups().pipe(catchError(() => of(null))),
+    }).subscribe({
+      next: ({ loans, lookups }) => {
+        this.applyLoanAliasOptions(lookups);
+        const mappedRows = loans
           .map((record, index) => this.mapApiLoanToRow(record, index))
           .filter((row) => row.loanCode.length > 0);
 
@@ -444,6 +467,25 @@ export class LoansRankingComponent implements OnInit {
         this.isLoading.set(false);
       },
     });
+  }
+
+  private applyLoanAliasOptions(lookups: LoanLookupsDto | null): void {
+    const raw =
+      lookups?.loanAliases ??
+      (lookups as { LoanAliases?: LoanAliasOptionDto[] } | null)?.LoanAliases ??
+      [];
+
+    this.loanAliasOptions.set(
+      raw
+        .map((option) => ({
+          loanAliasId: Number(option.loanAliasId ?? (option as { loan_alias_id?: number }).loan_alias_id ?? 0),
+          loanAliasName: (option.loanAliasName ?? '').trim(),
+        }))
+        .filter((option) => option.loanAliasId > 0 && option.loanAliasName.length > 0)
+        .sort((left, right) =>
+          left.loanAliasName.localeCompare(right.loanAliasName, undefined, { sensitivity: 'base' }),
+        ),
+    );
   }
 
   private mapApiLoanToRow(record: LoanDto, index: number): LoanAttributeRow {
@@ -504,6 +546,8 @@ export class LoansRankingComponent implements OnInit {
         }
         return {
           ...row,
+          loanAliasKey: snapshot.loanAliasKey,
+          loanAliasName: this.resolveLoanAliasName(snapshot.loanAliasKey, row.loanAliasName),
           ranking: snapshot.ranking,
           dummyLoanLink: snapshot.dummyLoanLink,
           lateInterestApplicable: snapshot.lateInterestApplicable,
@@ -517,6 +561,7 @@ export class LoansRankingComponent implements OnInit {
     const snapshot: Record<string, RowSnapshot> = {};
     for (const row of this.rows()) {
       snapshot[row.loanCode] = {
+        loanAliasKey: row.loanAliasKey,
         ranking: row.ranking,
         dummyLoanLink: row.dummyLoanLink,
         lateInterestApplicable: row.lateInterestApplicable,
@@ -533,11 +578,20 @@ export class LoansRankingComponent implements OnInit {
     }
 
     return (
+      row.loanAliasKey !== original.loanAliasKey ||
       this.normalizeRanking(row.ranking) !== this.normalizeRanking(original.ranking) ||
       row.dummyLoanLink.trim() !== original.dummyLoanLink.trim() ||
       row.lateInterestApplicable !== original.lateInterestApplicable ||
       row.lateInterestOffNote.trim() !== original.lateInterestOffNote.trim()
     );
+  }
+
+  private resolveLoanAliasName(loanAliasKey: number | null, fallback: string): string {
+    if (!loanAliasKey || loanAliasKey <= 0) {
+      return '—';
+    }
+    const alias = this.loanAliasOptions().find((option) => option.loanAliasId === loanAliasKey);
+    return alias?.loanAliasName ?? fallback;
   }
 
   private normalizeRanking(ranking: number): number {
