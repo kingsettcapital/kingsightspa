@@ -1,19 +1,20 @@
 <section class="ks-fp subjective-page">
   <h1>Capture Default Subjective Analytics</h1>
   <p class="subtitle">
-    All loan aliases load by default. Search to narrow the grid, or select tags to filter. Update default
-    status, exit plan, exit date, and maturity detail for each loan.
+    Add Default Status, Exit Plan, Exit Date and Maturity Additional Detail as required for reporting.
   </p>
 
   <div class="filters-row">
-    <div class="filter-panel alias-panel">
-      <span class="filter-label">Loan Alias</span>
+    <div class="search-panel">
+      <label for="loanAliasSearch">Loan Alias</label>
       <div class="search-input-wrap">
+        <span class="search-icon" aria-hidden="true"></span>
         <input
+          id="loanAliasSearch"
           type="text"
           [value]="searchText()"
           (input)="updateSearch($any($event.target).value)"
-          placeholder="Search and add loan aliases"
+          placeholder="Search Loan Alias"
         />
       </div>
 
@@ -21,7 +22,9 @@
         <ul class="search-results">
           @for (alias of searchedAliasOptions(); track alias.loanAliasId) {
             <li>
-              <button type="button" (click)="selectAlias(alias)">{{ alias.loanAliasName }}</button>
+              <button type="button" (click)="selectAlias(alias)">
+                <span>{{ alias.loanAliasName }}</span>
+              </button>
             </li>
           }
         </ul>
@@ -29,19 +32,19 @@
 
       <div class="selected-alias-tags">
         @for (selected of selectedAliases(); track selected.loanAliasId) {
-          <button type="button" class="alias-tag" (click)="removeSelectedAlias(selected.loanAliasId)">
+          <button
+            type="button"
+            class="alias-tag"
+            (click)="removeSelectedAlias(selected.loanAliasName)"
+          >
             <span>{{ selected.loanAliasName }}</span>
             <span class="tag-close">x</span>
           </button>
         }
       </div>
-
-      @if (selectedAliases().length > 0) {
-        <button type="button" class="link-clear" (click)="clearAliasSelection()">Clear aliases</button>
-      }
     </div>
 
-    <div class="filter-panel status-panel">
+    <div class="status-panel">
       <span class="filter-label">Status</span>
       <div class="status-options">
         @for (status of statusOptions(); track status.value) {
@@ -62,45 +65,46 @@
     <p class="meta-message">Loading filters...</p>
   }
   @if (errorMessage() && !isSaving()) {
-    <p class="error-message">{{ errorMessage() }}</p>
+    <p class="error-message banner-error">{{ errorMessage() }}</p>
   }
   @if (isLoadingGrid()) {
-    <p class="meta-message">Loading loan syndicate details...</p>
+    <p class="meta-message grid-loading">Loading loans...</p>
   } @else if (statusMessage() && !errorMessage()) {
     <p class="status-message">{{ statusMessage() }}</p>
   }
-
-  <h2 class="table-title">Loan Syndicate Details</h2>
 
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
           <th class="hidden-column">Loan Key</th>
-          <th>Loan ID</th>
-          <th>Description</th>
-          <th>Loan Alias</th>
-          <th>Maturity Date</th>
-          <th>Default Status</th>
-          <th>Exit Plan</th>
-          <th>Exit Date</th>
-          <th>Maturity - Additional Detail</th>
-          <th>Date of DWH Update</th>
-          <th>Updated By</th>
+          @for (column of tableColumns; track column.key) {
+            <th>
+              <button
+                type="button"
+                class="dsa-th-sort"
+                (click)="toggleSort(column.key)"
+                [attr.aria-label]="'Sort by ' + column.label"
+              >
+                <span>{{ column.label }}</span>
+                <span class="dsa-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+              </button>
+            </th>
+          }
         </tr>
       </thead>
       <tbody>
-        @for (row of paginatedRows(); track row.loanKey) {
+        @for (row of paginatedRows(); track row.loanCode) {
           <tr>
             <td class="hidden-column">{{ row.loanKey }}</td>
-            <td>{{ row.loanId }}</td>
-            <td>{{ row.description }}</td>
+            <td>{{ row.loanCode }}</td>
+            <td>{{ row.loanName }}</td>
             <td>{{ row.loanAliasName }}</td>
             <td class="date-readonly">{{ formatDisplayDate(row.maturityDate) }}</td>
             <td>
               <select
                 class="select-input"
-                (change)="updateDefaultStatus(row.loanKey, $any($event.target).value)"
+                (change)="updateDefaultStatus(row.loanCode, $any($event.target).value)"
               >
                 <option value="" [selected]="!row.defaultStatus">—</option>
                 @for (opt of defaultStatusOptions(); track opt) {
@@ -111,7 +115,7 @@
             <td>
               <select
                 class="select-input"
-                (change)="updateExitPlan(row.loanKey, $any($event.target).value)"
+                (change)="updateExitPlan(row.loanCode, $any($event.target).value)"
               >
                 <option value="" [selected]="!row.exitPlan">—</option>
                 @for (opt of exitPlanOptions(); track opt) {
@@ -121,10 +125,13 @@
             </td>
             <td>
               <input
-                type="date"
-                class="date-input"
+                type="text"
+                class="quarter-input"
                 [value]="row.exitDate"
-                (input)="updateExitDate(row.loanKey, $any($event.target).value)"
+                (input)="updateExitDate(row.loanCode, $any($event.target).value)"
+                (blur)="normalizeExitDateField(row.loanCode)"
+                placeholder="Q#/YYYY"
+                aria-label="Exit Date (quarter and year)"
               />
             </td>
             <td>
@@ -132,16 +139,24 @@
                 type="text"
                 class="text-input"
                 [value]="row.maturityAdditionalDetail"
-                (input)="updateMaturityDetail(row.loanKey, $any($event.target).value)"
+                (input)="updateMaturityDetail(row.loanCode, $any($event.target).value)"
                 placeholder="Additional detail"
               />
             </td>
-            <td class="date-readonly">{{ formatDisplayDate(row.userUpdatedDate) }}</td>
-            <td>{{ row.userUpdatedBy }}</td>
+            <td class="date-readonly">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="date-readonly">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>
         } @empty {
           <tr>
-            <td colspan="11" class="empty-row">No loans loaded for the selected filters.</td>
+            <td colspan="11" class="empty-row">
+              @if (isLoadingGrid() || isLoadingFilters()) {
+                Loading loans...
+              } @else if (!selectedStatuses().length) {
+                Select at least one status to load loans.
+              } @else {
+                No loans match the current filters.
+              }
+            </td>
           </tr>
         }
       </tbody>
@@ -180,7 +195,13 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="clearSelection()">Clear Selection</button>
+    <button
+      type="button"
+      class="ks-btn ks-btn--accent"
+      (click)="saveChanges()"
+      [disabled]="isSaving() || !rows().length"
+    >
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>

@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 
 import { APP_API_CONFIG } from '../constants/api.config';
 
-/** Row from GET /api/DefaultDateCapture — mort.dim_loan (leaf, current). */
+/** Row from GET /api/DefaultDateCapture — loan_alias_relationship. */
 export type DefaultDateCaptureRowDto = {
   loanKey: number;
   loanId: string;
@@ -17,6 +17,7 @@ export type DefaultDateCaptureRowDto = {
 
 export type DefaultDateCaptureUpdatePayload = {
   loanKey: number;
+  loanCode: string;
   defaultDate: string | null;
   userUpdatedBy: string;
 };
@@ -36,11 +37,8 @@ export class DefaultDateCaptureApiService {
     return `${this.apiConfig.baseUrl}/api/DefaultDateCapture`;
   }
 
-  getLoans(loanAliasIds: number[], statuses: string[]) {
+  getLoans(statuses: string[]) {
     let params = new HttpParams();
-    for (const id of loanAliasIds) {
-      params = params.append('loanAliasIds', String(id));
-    }
     for (const status of statuses) {
       if (status.trim()) {
         params = params.append('statuses', status.trim());
