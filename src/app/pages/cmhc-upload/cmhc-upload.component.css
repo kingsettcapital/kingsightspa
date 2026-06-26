@@ -15,17 +15,6 @@
   flex-wrap: wrap;
 }
 
-.file-upload-fabric-link {
-  font-size: 0.8125rem;
-  color: var(--ks-color-primary);
-  text-decoration: underline;
-  white-space: nowrap;
-}
-
-.file-upload-fabric-link:hover {
-  color: var(--ks-color-navy);
-}
-
 .file-upload-field__label {
   margin-bottom: 0;
   flex-shrink: 0;

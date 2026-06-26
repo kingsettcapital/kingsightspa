@@ -1,8 +1,7 @@
 <section class="ks-fp non-ks-page">
   <h1>Non-KS Serviced Loans</h1>
-  <p class="subtitle">
-    Manually enter quarterly subjective input for loans not serviced by KingSett. Every field is a free-form
-    input — loan IDs are distinct UIDs (not from Yardi). Add rows, fill in data, then save.
+  <p class="subtitle instruction-banner">
+    Enter, per quarter, Quarterly snapshot values for Loans NOT serviced by KingSett.
   </p>
 
   @if (errorMessage() && !isSaving()) {
@@ -14,29 +13,26 @@
     <p class="status-message">{{ statusMessage() }}</p>
   }
 
-  <h2 class="table-title">Loan Details</h2>
-
   <div class="table-wrap">
     <table>
       <thead>
         <tr class="group-row">
-          <th colspan="2"></th>
-          <th colspan="5">Loan Data</th>
-          <th colspan="4">Key Dates</th>
+          <th colspan="6">Loan Data</th>
+          <th colspan="4" class="group-centered">Key Dates</th>
           <th colspan="4">Property</th>
           <th colspan="2">Principal</th>
           <th colspan="4">Interest</th>
-          <th colspan="4">Costs &amp; Tax</th>
-          <th colspan="2">Audit</th>
-          <th></th>
+          <th colspan="5">Costs &amp; Tax</th>
+          <th colspan="2"></th>
+          <th class="audit-col audit-col-actions"></th>
         </tr>
         <tr>
-          <th>Loan Name</th>
+          <th>Loan Alias</th>
           <th>As At</th>
           <th>Loan ID</th>
           <th>Servicer ID</th>
-          <th>Description</th>
-          <th>Investor</th>
+          <th>Loan Name</th>
+          <th>Investor Alias</th>
           <th>Default Date</th>
           <th>Maturity</th>
           <th>Interest Off</th>
@@ -56,21 +52,26 @@
           <th>Cost to Complete</th>
           <th>Tax Arrears</th>
           <th>Int. as of Memo</th>
-          <th>Modified By</th>
-          <th>DWH Update</th>
-          <th></th>
+          <th class="audit-col audit-col-by">Modified By</th>
+          <th class="audit-col audit-col-date">Modified Date</th>
+          <th class="audit-col audit-col-actions"></th>
         </tr>
       </thead>
       <tbody>
         @for (row of paginatedRows(); track rowTrackId(row)) {
           <tr>
             <td>
-              <input
+              <select
                 class="cell-input wide"
-                [value]="row.loanName"
-                (input)="updateTextField(row, 'loanName', $any($event.target).value)"
-                placeholder="Loan name"
-              />
+                [ngModel]="row.loanName"
+                (ngModelChange)="updateTextField(row, 'loanName', $event)"
+                [ngModelOptions]="{ standalone: true }"
+              >
+                <option value="">— Select —</option>
+                @for (alias of loanAliasOptions(); track alias.loanAliasId) {
+                  <option [value]="alias.loanAliasName">{{ alias.loanAliasName }}</option>
+                }
+              </select>
             </td>
             <td>
               <input
@@ -80,14 +81,7 @@
                 (input)="updateDateField(row, 'asAtDate', $any($event.target).value)"
               />
             </td>
-            <td>
-              <input
-                class="cell-input"
-                [value]="row.loanId"
-                (input)="updateTextField(row, 'loanId', $any($event.target).value)"
-                placeholder="UID"
-              />
-            </td>
+            <td class="readonly-cell loan-id-cell">{{ row.loanId || '—' }}</td>
             <td>
               <input
                 class="cell-input"
@@ -101,16 +95,21 @@
                 class="cell-input wide"
                 [value]="row.description"
                 (input)="updateTextField(row, 'description', $any($event.target).value)"
-                placeholder="Description"
+                placeholder="Loan name"
               />
             </td>
             <td>
-              <input
+              <select
                 class="cell-input"
-                [value]="row.investor"
-                (input)="updateTextField(row, 'investor', $any($event.target).value)"
-                placeholder="Investor"
-              />
+                [ngModel]="row.investor"
+                (ngModelChange)="updateTextField(row, 'investor', $event)"
+                [ngModelOptions]="{ standalone: true }"
+              >
+                <option value="">— Select —</option>
+                @for (alias of investorAliasOptions(); track alias.investorAliasId) {
+                  <option [value]="alias.investorAliasName">{{ alias.investorAliasName }}</option>
+                }
+              </select>
             </td>
             <td>
               <input
@@ -146,157 +145,172 @@
             </td>
             <td>
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 class="cell-input number"
-                [value]="formatNumber(row.securityValue)"
-                (input)="updateNumericField(row, 'securityValue', $any($event.target).value)"
-                step="0.01"
+                [value]="formatCurrencyInput(row.securityValue)"
+                (input)="updateCurrencyField(row, 'securityValue', $any($event.target).value)"
+                (blur)="normalizeCurrencyField(row, 'securityValue', $any($event.target))"
+                placeholder="$0.00"
+              />
+            </td>
+            <td>
+              <input
+                type="text"
+                inputmode="numeric"
+                class="cell-input number"
+                [value]="formatIntegerInput(row.units)"
+                (input)="updateIntegerField(row, 'units', $any($event.target).value)"
+                (blur)="normalizeIntegerField(row, 'units', $any($event.target))"
                 placeholder="0"
               />
             </td>
             <td>
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 class="cell-input number"
-                [value]="formatNumber(row.units)"
-                (input)="updateNumericField(row, 'units', $any($event.target).value)"
-                step="1"
+                [value]="formatDecimalInput(row.netAcres, 2)"
+                (input)="updateDecimalField(row, 'netAcres', $any($event.target).value, 2)"
+                (blur)="normalizeDecimalField(row, 'netAcres', $any($event.target), 2)"
+                placeholder="0.00"
+              />
+            </td>
+            <td>
+              <input
+                type="text"
+                inputmode="numeric"
+                class="cell-input number"
+                [value]="formatIntegerInput(row.squareFeet)"
+                (input)="updateIntegerField(row, 'squareFeet', $any($event.target).value)"
+                (blur)="normalizeIntegerField(row, 'squareFeet', $any($event.target))"
                 placeholder="0"
               />
             </td>
             <td>
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 class="cell-input number"
-                [value]="formatNumber(row.netAcres)"
-                (input)="updateNumericField(row, 'netAcres', $any($event.target).value)"
-                step="0.01"
-                placeholder="0"
+                [value]="formatPercentInput(row.interestRate)"
+                (input)="updatePercentField(row, $any($event.target).value)"
+                (blur)="normalizePercentField(row, $any($event.target))"
+                placeholder="0.00%"
               />
             </td>
             <td>
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 class="cell-input number"
-                [value]="formatNumber(row.squareFeet)"
-                (input)="updateNumericField(row, 'squareFeet', $any($event.target).value)"
-                step="1"
-                placeholder="0"
+                [value]="formatCurrencyInput(row.principalBalance)"
+                (input)="updateCurrencyField(row, 'principalBalance', $any($event.target).value)"
+                (blur)="normalizeCurrencyField(row, 'principalBalance', $any($event.target))"
+                placeholder="$0.00"
               />
             </td>
             <td>
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 class="cell-input number"
-                [value]="formatNumber(row.interestRate)"
-                (input)="updateNumericField(row, 'interestRate', $any($event.target).value)"
-                step="0.01"
-                placeholder="%"
+                [value]="formatCurrencyInput(row.outstandingInterest)"
+                (input)="updateCurrencyField(row, 'outstandingInterest', $any($event.target).value)"
+                (blur)="normalizeCurrencyField(row, 'outstandingInterest', $any($event.target))"
+                placeholder="$0.00"
               />
             </td>
             <td>
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 class="cell-input number"
-                [value]="formatNumber(row.principalBalance)"
-                (input)="updateNumericField(row, 'principalBalance', $any($event.target).value)"
-                step="0.01"
-                placeholder="0"
+                [value]="formatCurrencyInput(row.accruedInterest)"
+                (input)="updateCurrencyField(row, 'accruedInterest', $any($event.target).value)"
+                (blur)="normalizeCurrencyField(row, 'accruedInterest', $any($event.target))"
+                placeholder="$0.00"
               />
             </td>
             <td>
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 class="cell-input number"
-                [value]="formatNumber(row.outstandingInterest)"
-                (input)="updateNumericField(row, 'outstandingInterest', $any($event.target).value)"
-                step="0.01"
-                placeholder="0"
+                [value]="formatCurrencyInput(row.lateInterest)"
+                (input)="updateCurrencyField(row, 'lateInterest', $any($event.target).value)"
+                (blur)="normalizeCurrencyField(row, 'lateInterest', $any($event.target))"
+                placeholder="$0.00"
               />
             </td>
             <td>
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 class="cell-input number"
-                [value]="formatNumber(row.accruedInterest)"
-                (input)="updateNumericField(row, 'accruedInterest', $any($event.target).value)"
-                step="0.01"
-                placeholder="0"
+                [value]="formatCurrencyInput(row.interestAdjustment)"
+                (input)="updateCurrencyField(row, 'interestAdjustment', $any($event.target).value)"
+                (blur)="normalizeCurrencyField(row, 'interestAdjustment', $any($event.target))"
+                placeholder="$0.00"
               />
             </td>
             <td>
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 class="cell-input number"
-                [value]="formatNumber(row.lateInterest)"
-                (input)="updateNumericField(row, 'lateInterest', $any($event.target).value)"
-                step="0.01"
-                placeholder="0"
+                [value]="formatCurrencyInput(row.outstandingInvoices)"
+                (input)="updateCurrencyField(row, 'outstandingInvoices', $any($event.target).value)"
+                (blur)="normalizeCurrencyField(row, 'outstandingInvoices', $any($event.target))"
+                placeholder="$0.00"
               />
             </td>
             <td>
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 class="cell-input number"
-                [value]="formatNumber(row.interestAdjustment)"
-                (input)="updateNumericField(row, 'interestAdjustment', $any($event.target).value)"
-                step="0.01"
-                placeholder="0"
+                [value]="formatCurrencyInput(row.estRealizationCosts)"
+                (input)="updateCurrencyField(row, 'estRealizationCosts', $any($event.target).value)"
+                (blur)="normalizeCurrencyField(row, 'estRealizationCosts', $any($event.target))"
+                placeholder="$0.00"
               />
             </td>
             <td>
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 class="cell-input number"
-                [value]="formatNumber(row.outstandingInvoices)"
-                (input)="updateNumericField(row, 'outstandingInvoices', $any($event.target).value)"
-                step="0.01"
-                placeholder="0"
+                [value]="formatCurrencyInput(row.costToComplete)"
+                (input)="updateCurrencyField(row, 'costToComplete', $any($event.target).value)"
+                (blur)="normalizeCurrencyField(row, 'costToComplete', $any($event.target))"
+                placeholder="$0.00"
               />
             </td>
             <td>
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 class="cell-input number"
-                [value]="formatNumber(row.estRealizationCosts)"
-                (input)="updateNumericField(row, 'estRealizationCosts', $any($event.target).value)"
-                step="0.01"
-                placeholder="0"
+                [value]="formatCurrencyInput(row.taxArrears)"
+                (input)="updateCurrencyField(row, 'taxArrears', $any($event.target).value)"
+                (blur)="normalizeCurrencyField(row, 'taxArrears', $any($event.target))"
+                placeholder="$0.00"
               />
             </td>
             <td>
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 class="cell-input number"
-                [value]="formatNumber(row.costToComplete)"
-                (input)="updateNumericField(row, 'costToComplete', $any($event.target).value)"
-                step="0.01"
-                placeholder="0"
+                [value]="formatCurrencyInput(row.interestAsOfTaxMemo)"
+                (input)="updateCurrencyField(row, 'interestAsOfTaxMemo', $any($event.target).value)"
+                (blur)="normalizeCurrencyField(row, 'interestAsOfTaxMemo', $any($event.target))"
+                placeholder="$0.00"
               />
             </td>
-            <td>
-              <input
-                type="number"
-                class="cell-input number"
-                [value]="formatNumber(row.taxArrears)"
-                (input)="updateNumericField(row, 'taxArrears', $any($event.target).value)"
-                step="0.01"
-                placeholder="0"
-              />
-            </td>
-            <td>
-              <input
-                type="number"
-                class="cell-input number"
-                [value]="formatNumber(row.interestAsOfTaxMemo)"
-                (input)="updateNumericField(row, 'interestAsOfTaxMemo', $any($event.target).value)"
-                step="0.01"
-                placeholder="0"
-              />
-            </td>
-            <td class="readonly-cell">{{ row.userUpdatedBy }}</td>
-            <td class="readonly-cell">{{ formatDisplayDate(row.userUpdatedDate) }}</td>
-            <td>
+            <td class="readonly-cell audit-col audit-col-by">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="readonly-cell audit-col audit-col-date">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
+            <td class="audit-col audit-col-actions">
               <div class="row-actions">
                 @if (isNewRow(row)) {
                   <button type="button" class="btn-row-remove" (click)="removeRow(row)">Remove</button>
@@ -352,9 +366,4 @@
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>
-
-  <p class="footnote">
-    Information provided in this table is stored in the data warehouse and used in calculations and loan reporting.
-    Loan IDs are distinct UIDs created for non-Yardi loans. All quarterly fields are manual entry.
-  </p>
 </section>

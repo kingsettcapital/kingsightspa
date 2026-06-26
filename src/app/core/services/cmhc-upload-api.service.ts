@@ -12,21 +12,7 @@ export type FileUploadTypeOption = {
   extensions: string[];
   mimeTypes: string[];
   dropZoneHint: string;
-  /** Fabric portal link to browse uploaded files in OneLake. */
-  fabricBrowseUrl: string;
 };
-
-const FABRIC_WORKSPACE_ID = 'e9c14968-68a1-48d8-8bc8-b81663f54ce3';
-const FABRIC_LAKEHOUSE_ID = 'b94eb6e4-ea19-46e1-926c-b5711f33f2ff';
-
-function fabricFilesUrl(selectedPath: string): string {
-  const params = new URLSearchParams({
-    experience: 'power-bi',
-    selectedPath,
-    extensionScenario: 'openArtifact',
-  });
-  return `https://app.fabric.microsoft.com/groups/${FABRIC_WORKSPACE_ID}/lakehouses/${FABRIC_LAKEHOUSE_ID}?${params.toString()}`;
-}
 
 export const FILE_UPLOAD_TYPE_OPTIONS: FileUploadTypeOption[] = [
   {
@@ -40,7 +26,6 @@ export const FILE_UPLOAD_TYPE_OPTIONS: FileUploadTypeOption[] = [
       'application/vnd.ms-excel',
     ],
     dropZoneHint: 'Choose Excel file to upload or drag & drop here',
-    fabricBrowseUrl: fabricFilesUrl('Files/external_files/cmhc_file'),
   },
   {
     value: 'qr-slides',
@@ -49,7 +34,6 @@ export const FILE_UPLOAD_TYPE_OPTIONS: FileUploadTypeOption[] = [
     extensions: ['.pdf'],
     mimeTypes: ['application/pdf'],
     dropZoneHint: 'Choose QR slides PDF to upload or drag & drop here',
-    fabricBrowseUrl: fabricFilesUrl('Files/external_files/qr_slides'),
   },
 ];
 

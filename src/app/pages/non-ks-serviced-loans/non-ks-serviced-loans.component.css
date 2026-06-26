@@ -17,6 +17,64 @@
   letter-spacing: 0.02em;
 }
 
+.non-ks-page .table-wrap thead tr.group-row th.group-centered {
+  text-align: center;
+}
+
+.non-ks-page .table-wrap .audit-col-by {
+  position: sticky;
+  right: 13.5rem;
+  z-index: 2;
+  min-width: 8.5rem;
+  background: #ffffff;
+  box-shadow: -4px 0 6px -4px rgba(0, 0, 0, 0.12);
+}
+
+.non-ks-page .table-wrap .audit-col-date {
+  position: sticky;
+  right: 5.5rem;
+  z-index: 2;
+  min-width: 8rem;
+  background: #ffffff;
+}
+
+.non-ks-page .table-wrap .audit-col-actions {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  min-width: 5.5rem;
+  background: #ffffff;
+}
+
+.non-ks-page .table-wrap thead .audit-col-by,
+.non-ks-page .table-wrap thead .audit-col-date,
+.non-ks-page .table-wrap thead .audit-col-actions {
+  background: #f9fafb;
+}
+
+.non-ks-page .table-wrap thead tr.group-row .audit-col-actions {
+  background: #e5e7eb;
+  box-shadow: none;
+}
+
+.non-ks-page .instruction-banner {
+  background: #fef9c3;
+  border: 1px solid #fde047;
+  border-radius: 0.25rem;
+  padding: 0.65rem 0.85rem;
+  color: #713f12;
+}
+
+.non-ks-page .loan-id-cell {
+  font-weight: 600;
+  color: #374151;
+}
+
+.cell-input select,
+select.cell-input {
+  background: #ffffff;
+}
+
 .non-ks-page .table-wrap tbody td {
   font-size: 0.82rem;
   padding: 0.4rem 0.45rem;
@@ -38,6 +96,14 @@
 .cell-input.number {
   min-width: 5rem;
   text-align: right;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.cell-input.number::-webkit-outer-spin-button,
+.cell-input.number::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .cell-input.wide {

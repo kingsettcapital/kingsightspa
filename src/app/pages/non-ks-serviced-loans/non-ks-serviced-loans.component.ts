@@ -1,9 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
+import { InvestorAlias, InvestorApiService } from '../../core/services/investor-api.service';
+import { LoanAliasOptionDto, LoansApiService } from '../../core/services/loans-api.service';
 import {
   NonKsServicedLoanDto,
   NonKsServicedLoanPayload,
@@ -11,7 +14,8 @@ import {
 } from '../../core/services/non-ks-serviced-loans-api.service';
 
 type NonKsLoanRow = {
-  nonKsServicedLoanKey: number;
+  stableRowKey: string;
+  nonKsServicedLoanKey: string;
   clientRowId: number;
   loanName: string;
   asAtDate: string;
@@ -42,7 +46,10 @@ type NonKsLoanRow = {
   userUpdatedDate: string;
 };
 
-type RowSnapshot = Omit<NonKsLoanRow, 'nonKsServicedLoanKey' | 'clientRowId' | 'userUpdatedBy' | 'userUpdatedDate'>;
+type RowSnapshot = Omit<
+  NonKsLoanRow,
+  'stableRowKey' | 'nonKsServicedLoanKey' | 'clientRowId' | 'userUpdatedBy' | 'userUpdatedDate'
+>;
 
 const NUMERIC_FIELDS: (keyof RowSnapshot)[] = [
   'securityValue',
@@ -65,18 +72,22 @@ const NUMERIC_FIELDS: (keyof RowSnapshot)[] = [
 @Component({
   selector: 'app-non-ks-serviced-loans',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './non-ks-serviced-loans.component.html',
   styleUrl: './non-ks-serviced-loans.component.css',
 })
 export class NonKsServicedLoansComponent implements OnInit {
   private readonly api = inject(NonKsServicedLoansApiService);
+  private readonly loansApi = inject(LoansApiService);
+  private readonly investorApi = inject(InvestorApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
   private nextClientRowId = -1;
 
   readonly rows = signal<NonKsLoanRow[]>([]);
   readonly originalRowState = signal<Record<string, RowSnapshot>>({});
+  readonly loanAliasOptions = signal<LoanAliasOptionDto[]>([]);
+  readonly investorAliasOptions = signal<InvestorAlias[]>([]);
 
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
@@ -84,6 +95,8 @@ export class NonKsServicedLoansComponent implements OnInit {
   readonly isSaving = signal(false);
   readonly currentPage = signal(1);
   readonly pageSize = signal(this.defaultPageSize);
+
+  private pendingExtLoanCode = signal('NONKS-1');
 
   ngOnInit(): void {
     this.loadGrid();
@@ -119,19 +132,23 @@ export class NonKsServicedLoansComponent implements OnInit {
   });
 
   rowTrackId(row: NonKsLoanRow): string {
-    if (row.nonKsServicedLoanKey > 0) {
-      return `key-${row.nonKsServicedLoanKey}`;
+    if (row.stableRowKey) {
+      return `key-${row.stableRowKey}`;
     }
     return `new-${row.clientRowId}`;
   }
 
   isNewRow(row: NonKsLoanRow): boolean {
-    return row.nonKsServicedLoanKey <= 0;
+    return !row.stableRowKey;
   }
 
   addRow(): void {
-    const row = this.emptyRow(this.nextClientRowId);
+    const loanId = this.pendingExtLoanCode();
+    const row = { ...this.emptyRow(this.nextClientRowId), loanId };
     this.nextClientRowId -= 1;
+    this.pendingExtLoanCode.set(
+      `NONKS-${this.parseExtLoanCodeNumber(loanId) + 1}`,
+    );
     this.rows.set([row, ...this.rows()]);
     this.currentPage.set(1);
     this.clearMessages();
@@ -143,6 +160,7 @@ export class NonKsServicedLoansComponent implements OnInit {
     const snapshot = { ...this.originalRowState() };
     delete snapshot[trackId];
     this.originalRowState.set(snapshot);
+    this.syncPendingExtLoanCode();
     this.clearMessages();
   }
 
@@ -154,27 +172,126 @@ export class NonKsServicedLoansComponent implements OnInit {
     this.patchRow(row, { [field]: value.trim() } as Partial<NonKsLoanRow>);
   }
 
-  updateNumericField(row: NonKsLoanRow, field: keyof RowSnapshot, value: string): void {
-    this.patchRow(row, { [field]: this.parseNumericInput(value) } as Partial<NonKsLoanRow>);
+  updateCurrencyField(row: NonKsLoanRow, field: keyof RowSnapshot, value: string): void {
+    this.patchRow(row, { [field]: this.parseCurrencyInput(value) } as Partial<NonKsLoanRow>);
   }
 
-  formatNumber(value: number | null): string {
+  updatePercentField(row: NonKsLoanRow, value: string): void {
+    this.patchRow(row, { interestRate: this.parsePercentInput(value) });
+  }
+
+  updateIntegerField(row: NonKsLoanRow, field: keyof RowSnapshot, value: string): void {
+    this.patchRow(row, { [field]: this.parseIntegerInput(value) } as Partial<NonKsLoanRow>);
+  }
+
+  updateDecimalField(
+    row: NonKsLoanRow,
+    field: keyof RowSnapshot,
+    value: string,
+    fractionDigits: number,
+  ): void {
+    this.patchRow(row, {
+      [field]: this.parseDecimalInput(value, fractionDigits),
+    } as Partial<NonKsLoanRow>);
+  }
+
+  normalizeCurrencyField(
+    row: NonKsLoanRow,
+    field: keyof RowSnapshot,
+    input: HTMLInputElement,
+  ): void {
+    const parsed = this.parseCurrencyInput(input.value);
+    this.patchRow(row, { [field]: parsed } as Partial<NonKsLoanRow>);
+    input.value = this.formatCurrencyInput(parsed);
+  }
+
+  normalizePercentField(row: NonKsLoanRow, input: HTMLInputElement): void {
+    const parsed = this.parsePercentInput(input.value);
+    this.patchRow(row, { interestRate: parsed });
+    input.value = this.formatPercentInput(parsed);
+  }
+
+  normalizeIntegerField(
+    row: NonKsLoanRow,
+    field: keyof RowSnapshot,
+    input: HTMLInputElement,
+  ): void {
+    const parsed = this.parseIntegerInput(input.value);
+    this.patchRow(row, { [field]: parsed } as Partial<NonKsLoanRow>);
+    input.value = this.formatIntegerInput(parsed);
+  }
+
+  normalizeDecimalField(
+    row: NonKsLoanRow,
+    field: keyof RowSnapshot,
+    input: HTMLInputElement,
+    fractionDigits: number,
+  ): void {
+    const parsed = this.parseDecimalInput(input.value, fractionDigits);
+    this.patchRow(row, { [field]: parsed } as Partial<NonKsLoanRow>);
+    input.value = this.formatDecimalInput(parsed, fractionDigits);
+  }
+
+  formatCurrencyInput(value: number | null): string {
     if (value == null || !Number.isFinite(value)) {
       return '';
     }
-    return String(value);
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
   }
 
-  formatDisplayDate(value: string): string {
-    if (!value?.trim()) {
-      return '-';
+  formatPercentInput(value: number | null): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '';
     }
-    const iso = this.toDateInputValue(value);
-    if (!iso) {
+    return `${value.toFixed(2)}%`;
+  }
+
+  formatIntegerInput(value: number | null): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '';
+    }
+    return new Intl.NumberFormat('en-US', {
+      maximumFractionDigits: 0,
+    }).format(Math.trunc(value));
+  }
+
+  formatDecimalInput(value: number | null, fractionDigits: number): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '';
+    }
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    }).format(value);
+  }
+
+  formatModifiedDate(value: string): string {
+    if (!value?.trim()) {
+      return '—';
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
       return value;
     }
-    const [y, m, d] = iso.split('-');
-    return `${m}/${d}/${y}`;
+    return parsed.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  }
+
+  displayModifiedBy(value: string): string {
+    const trimmed = value?.trim();
+    return trimmed && trimmed !== '-' ? trimmed : '—';
   }
 
   saveChanges(): void {
@@ -217,10 +334,14 @@ export class NonKsServicedLoansComponent implements OnInit {
       requests.push(
         this.api
           .updateLoans({
-            loans: changedRows.map((row) => ({
-              ...this.toPayload(row, userUpdatedBy),
-              nonKsServicedLoanKey: row.nonKsServicedLoanKey,
-            })),
+            loans: changedRows.map((row) => {
+              const original = this.originalRowState()[this.rowTrackId(row)];
+              return {
+                ...this.toPayload(row, userUpdatedBy),
+                nonKsServicedLoanKey: row.stableRowKey || null,
+                originalAsAtDate: this.nullIfEmpty(original?.asAtDate ?? ''),
+              };
+            }),
           })
           .pipe(catchError((error) => {
             throw error;
@@ -228,8 +349,25 @@ export class NonKsServicedLoansComponent implements OnInit {
       );
     }
 
+    const savedPage = this.currentPage();
+    let resultIndex = 0;
+
     forkJoin(requests.length ? requests : [of(null)]).subscribe({
-      next: () => {
+      next: (results) => {
+        const savedRecords: NonKsServicedLoanDto[] = [];
+        if (newRows.length) {
+          const created = results[resultIndex++];
+          if (Array.isArray(created)) {
+            savedRecords.push(...created);
+          }
+        }
+        if (changedRows.length) {
+          const updated = results[resultIndex++];
+          if (Array.isArray(updated)) {
+            savedRecords.push(...updated);
+          }
+        }
+
         const parts = [];
         if (newRows.length) {
           parts.push(`${newRows.length} created`);
@@ -239,7 +377,7 @@ export class NonKsServicedLoansComponent implements OnInit {
         }
         this.statusMessage.set(`Save successful: ${parts.join(', ')}.`);
         this.isSaving.set(false);
-        this.loadGrid();
+        this.loadGrid(savedPage, savedRecords);
       },
       error: (error) => {
         this.errorMessage.set(this.extractBackendError(error));
@@ -264,18 +402,61 @@ export class NonKsServicedLoansComponent implements OnInit {
     this.currentPage.set(1);
   }
 
-  private loadGrid(): void {
+  private loadGrid(preservePage?: number, justSaved: NonKsServicedLoanDto[] = []): void {
     this.isLoadingGrid.set(true);
     this.errorMessage.set('');
     this.statusMessage.set('');
 
-    this.api.getAll().subscribe({
-      next: (response) => {
-        const records = this.normalizeRecords(response);
-        const mapped = records.map((r) => this.mapRow(r));
+    forkJoin({
+      records: this.api.getAll().pipe(catchError((error) => {
+        throw error;
+      })),
+      lookups: this.api.getLookups().pipe(catchError(() => of({ nextExtLoanCode: 'NONKS-1' }))),
+      loanAliases: this.loansApi.getLookups().pipe(
+        catchError(() => of({ loanAliases: [] as LoanAliasOptionDto[] })),
+      ),
+      investorAliases: this.investorApi.getAllAliases().pipe(catchError(() => of([]))),
+    }).subscribe({
+      next: ({ records, lookups, loanAliases, investorAliases }) => {
+        const normalized = this.mergeSavedRecords(this.normalizeRecords(records), justSaved);
+        const mapped = normalized.map((r) => this.mapRow(r));
         this.rows.set(mapped);
-        this.currentPage.set(1);
+        if (preservePage != null) {
+          this.currentPage.set(Math.min(preservePage, Math.max(1, Math.ceil(mapped.length / this.pageSize()) || 1)));
+        } else {
+          this.currentPage.set(1);
+        }
         this.snapshotOriginalState();
+
+        this.loanAliasOptions.set(
+          (loanAliases.loanAliases ?? [])
+            .map((alias) => ({
+              loanAliasId: Number(alias.loanAliasId ?? 0),
+              loanAliasName: String(alias.loanAliasName ?? '').trim(),
+            }))
+            .filter((alias) => alias.loanAliasName)
+            .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
+        );
+
+        this.investorAliasOptions.set(
+          investorAliases
+            .map((alias) => ({
+              investorAliasId: Number(alias.investorAliasId ?? 0),
+              investorAliasName: String(alias.investorAliasName ?? '').trim(),
+              createdBy: alias.createdBy ?? '',
+              createdDtm: alias.createdDtm ?? null,
+              updatedBy: alias.updatedBy ?? '',
+              updatedDtm: alias.updatedDtm ?? null,
+            }))
+            .filter((alias) => alias.investorAliasName)
+            .sort((a, b) => a.investorAliasName.localeCompare(b.investorAliasName)),
+        );
+
+        const apiNext =
+          this.pickString(lookups as Record<string, unknown>, 'nextExtLoanCode', 'NextExtLoanCode') ||
+          'NONKS-1';
+        this.syncPendingExtLoanCode(apiNext);
+
         this.statusMessage.set(
           mapped.length > 0
             ? `${mapped.length} record(s) loaded.`
@@ -294,7 +475,8 @@ export class NonKsServicedLoansComponent implements OnInit {
 
   private emptyRow(clientRowId: number): NonKsLoanRow {
     return {
-      nonKsServicedLoanKey: 0,
+      stableRowKey: '',
+      nonKsServicedLoanKey: '',
       clientRowId,
       loanName: '',
       asAtDate: '',
@@ -336,15 +518,37 @@ export class NonKsServicedLoansComponent implements OnInit {
 
   private mapRow(record: NonKsServicedLoanDto): NonKsLoanRow {
     const raw = record as NonKsServicedLoanDto & Record<string, unknown>;
+    const stableRowKey = this.pickRowKey(raw);
     return {
-      nonKsServicedLoanKey: this.pickNumber(raw, 'nonKsServicedLoanKey', 'NonKsServicedLoanKey'),
+      stableRowKey,
+      nonKsServicedLoanKey: stableRowKey,
       clientRowId: 0,
-      loanName: this.pickString(raw, 'loanName', 'LoanName'),
-      asAtDate: this.toDateInputValue(this.pickString(raw, 'asAtDate', 'AsAtDate') || null),
-      loanId: this.pickString(raw, 'loanId', 'LoanId'),
-      servicerId: this.pickString(raw, 'servicerId', 'ServicerId'),
-      description: this.pickString(raw, 'description', 'Description'),
-      investor: this.pickString(raw, 'investor', 'Investor'),
+      loanName: this.pickString(
+        raw,
+        'loanAliasName',
+        'LoanAliasName',
+        'loanName',
+        'LoanName',
+      ),
+      asAtDate: this.toDateInputValue(
+        this.pickString(raw, 'asAtDate', 'AsAtDate', 'asOfDate', 'AsOfDate') || null,
+      ),
+      loanId: this.pickString(raw, 'loanId', 'LoanId', 'extLoanCode', 'ExtLoanCode'),
+      servicerId: this.pickString(
+        raw,
+        'servicerId',
+        'ServicerId',
+        'syndicateLoanCode',
+        'SyndicateLoanCode',
+      ),
+      description: this.pickString(raw, 'description', 'Description', 'loanDescription', 'LoanDescription'),
+      investor: this.pickString(
+        raw,
+        'investorAliasName',
+        'InvestorAliasName',
+        'investor',
+        'Investor',
+      ),
       dateOfDefault: this.toDateInputValue(
         this.pickString(raw, 'dateOfDefault', 'DateOfDefault') || null,
       ),
@@ -378,6 +582,8 @@ export class NonKsServicedLoansComponent implements OnInit {
         raw,
         'outstandingInvoices',
         'OutstandingInvoices',
+        'outstandingInvoice',
+        'OutstandingInvoice',
         'outstandingInvested',
         'OutstandingInvested',
       ),
@@ -385,30 +591,59 @@ export class NonKsServicedLoansComponent implements OnInit {
         raw,
         'estRealizationCosts',
         'EstRealizationCosts',
+        'estimatedRealizationCosts',
+        'EstimatedRealizationCosts',
         'estRealizationCost',
         'EstRealizationCost',
       ),
       costToComplete: this.pickNullableNumber(raw, 'costToComplete', 'CostToComplete'),
-      taxArrears: this.pickNullableNumber(raw, 'taxArrears', 'TaxArrears'),
+      taxArrears: this.pickNullableNumber(
+        raw,
+        'taxArrears',
+        'TaxArrears',
+        'arrearsAsOf',
+        'ArrearsAsOf',
+      ),
       interestAsOfTaxMemo: this.pickNullableNumber(
         raw,
         'interestAsOfTaxMemo',
         'InterestAsOfTaxMemo',
       ),
       interestAdjustment: this.pickNullableNumber(raw, 'interestAdjustment', 'InterestAdjustment'),
-      userUpdatedBy: this.pickString(raw, 'userUpdatedBy', 'UserUpdatedBy', 'modifiedBy', 'ModifiedBy') || '-',
-      userUpdatedDate: this.pickString(raw, 'userUpdatedDate', 'UserUpdatedDate'),
+      userUpdatedBy:
+        this.pickString(
+          raw,
+          'userUpdatedBy',
+          'UserUpdatedBy',
+          'modifiedBy',
+          'ModifiedBy',
+          'updatedBy',
+          'UpdatedBy',
+        ) || '-',
+      userUpdatedDate: this.pickString(
+        raw,
+        'userUpdatedDate',
+        'UserUpdatedDate',
+        'updatedDatetime',
+        'UpdatedDatetime',
+        'modifiedDate',
+        'ModifiedDate',
+      ),
     };
   }
 
   private toPayload(row: NonKsLoanRow, userUpdatedBy: string): NonKsServicedLoanPayload {
+    const loanAlias = this.nullIfEmpty(row.loanName);
+    const investorAlias = this.nullIfEmpty(row.investor);
     return {
-      loanName: this.nullIfEmpty(row.loanName),
+      loanAliasName: loanAlias,
+      loanName: loanAlias,
       asAtDate: this.nullIfEmpty(row.asAtDate),
-      loanId: this.nullIfEmpty(row.loanId),
+      loanId: this.isNewRow(row) ? null : this.nullIfEmpty(row.loanId),
       servicerId: this.nullIfEmpty(row.servicerId),
       description: this.nullIfEmpty(row.description),
-      investor: this.nullIfEmpty(row.investor),
+      investorAliasName: investorAlias,
+      investor: investorAlias,
       dateOfDefault: this.nullIfEmpty(row.dateOfDefault),
       maturityDate: this.nullIfEmpty(row.maturityDate),
       interestOffDate: this.nullIfEmpty(row.interestOffDate),
@@ -513,8 +748,27 @@ export class NonKsServicedLoansComponent implements OnInit {
       if (NUMERIC_FIELDS.includes(key as keyof RowSnapshot)) {
         return value != null;
       }
+      if (key === 'loanId') {
+        return typeof value === 'string' && value.trim().length > 0;
+      }
       return typeof value === 'string' && value.trim().length > 0;
     });
+  }
+
+  private syncPendingExtLoanCode(apiNext = this.pendingExtLoanCode()): void {
+    let nextNumber = this.parseExtLoanCodeNumber(apiNext) || 1;
+    for (const row of this.rows()) {
+      const rowNumber = this.parseExtLoanCodeNumber(row.loanId);
+      if (rowNumber >= nextNumber) {
+        nextNumber = rowNumber + 1;
+      }
+    }
+    this.pendingExtLoanCode.set(`NONKS-${nextNumber}`);
+  }
+
+  private parseExtLoanCodeNumber(code: string): number {
+    const match = /^NONKS-(\d+)$/i.exec(code?.trim() ?? '');
+    return match ? Number.parseInt(match[1], 10) : 0;
   }
 
   private normalizeRecords(response: unknown): NonKsServicedLoanDto[] {
@@ -538,13 +792,83 @@ export class NonKsServicedLoansComponent implements OnInit {
     return trimmed ? trimmed : null;
   }
 
-  private parseNumericInput(value: string): number | null {
-    const trimmed = value?.trim().replace(/[,$%]/g, '') ?? '';
+  private parseCurrencyInput(value: string): number | null {
+    const trimmed = value.replace(/[$,\s]/g, '').trim();
     if (!trimmed) {
       return null;
     }
     const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? Number(parsed.toFixed(2)) : null;
+  }
+
+  private parseIntegerInput(value: string): number | null {
+    const trimmed = value.replace(/[,\s]/g, '').trim();
+    if (!trimmed) {
+      return null;
+    }
+    const parsed = Number.parseInt(trimmed, 10);
     return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private parseDecimalInput(value: string, fractionDigits: number): number | null {
+    const trimmed = value.replace(/[,\s]/g, '').trim();
+    if (!trimmed) {
+      return null;
+    }
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? Number(parsed.toFixed(fractionDigits)) : null;
+  }
+
+  private parsePercentInput(value: string): number | null {
+    const trimmed = value.replace(/%/g, '').trim();
+    if (!trimmed) {
+      return null;
+    }
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? Number(parsed.toFixed(2)) : null;
+  }
+
+  private mergeSavedRecords(
+    loaded: NonKsServicedLoanDto[],
+    saved: NonKsServicedLoanDto[],
+  ): NonKsServicedLoanDto[] {
+    if (!saved.length) {
+      return loaded;
+    }
+
+    const savedByKey = new Map(saved.map((row) => [this.recordKey(row), row]));
+    const merged = loaded.map((row) => savedByKey.get(this.recordKey(row)) ?? row);
+
+    for (const row of saved) {
+      const key = this.recordKey(row);
+      if (!merged.some((existing) => this.recordKey(existing) === key)) {
+        merged.push(row);
+      }
+    }
+
+    return merged;
+  }
+
+  private recordKey(record: NonKsServicedLoanDto): string {
+    const raw = record as NonKsServicedLoanDto & Record<string, unknown>;
+    const loanId = this.pickString(raw, 'loanId', 'LoanId', 'extLoanCode', 'ExtLoanCode');
+    const asAtDate = this.toDateInputValue(
+      this.pickString(raw, 'asAtDate', 'AsAtDate', 'asOfDate', 'AsOfDate') || null,
+    );
+    return `${loanId}|${asAtDate}`;
+  }
+
+  private pickRowKey(record: Record<string, unknown>): string {
+    for (const key of ['nonKsServicedLoanKey', 'NonKsServicedLoanKey']) {
+      const value = record[key];
+      if (typeof value === 'string' && value.trim()) {
+        return value.trim();
+      }
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return String(value);
+      }
+    }
+    return '';
   }
 
   private pickNumber(record: Record<string, unknown>, ...keys: string[]): number {

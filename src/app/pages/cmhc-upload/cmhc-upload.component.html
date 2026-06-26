@@ -27,14 +27,6 @@
         (ngModelChange)="onAsOfDateChange($event)"
         [disabled]="isUploading()"
       />
-      <a
-        class="file-upload-fabric-link"
-        [href]="activeFileTypeOption().fabricBrowseUrl"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Open {{ activeFileTypeOption().label }} folder in Fabric
-      </a>
     </div>
 
     <div
