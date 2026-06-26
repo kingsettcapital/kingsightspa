@@ -1,8 +1,8 @@
 <section class="ks-fp ltv-validation-page">
   <h1>LTV Validation</h1>
   <p class="subtitle">
-    Review AI-extracted LTV from QR slides at the child loan level. All loan aliases load by default —
-    search to narrow, or filter by status. Confirm unchanged values or save manual overrides.
+    Review LTV values extracted by AI from QR slides. Save manual overrides. Confirm AI LTV once review is
+    complete.
   </p>
 
   <div class="filters-row">
@@ -65,119 +65,269 @@
     <p class="error-message">{{ errorMessage() }}</p>
   }
   @if (isLoadingGrid()) {
-    <p class="meta-message">Loading security value details...</p>
+    <p class="meta-message">Loading LTV validation records...</p>
   } @else if (statusMessage() && !errorMessage()) {
     <p class="status-message">{{ statusMessage() }}</p>
   }
 
-  <h2 class="table-title">Security Value</h2>
+  <div class="ltv-workspace">
+    <p class="ltv-workspace__hint">Scroll horizontally to see all columns. Loan Code and Loan Name stay pinned on the left.</p>
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th class="hidden-column">Loan Key</th>
-          <th>Parent Loan ID</th>
-          <th>Child Loan ID</th>
-          <th>Description</th>
-          <th>Loan Alias</th>
-          <th>Investor Alias</th>
-          <th class="numeric-col">Security Value</th>
-          <th class="numeric-col">Exposure</th>
-          <th>Ranking</th>
-          <th class="numeric-col">LTV</th>
-          <th>AI Commentary</th>
-          <th>Date of LTV Update</th>
-          <th>Updated By</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (row of paginatedRows(); track row.loanKey) {
-          <tr>
-            <td class="hidden-column">{{ row.loanKey }}</td>
-            <td>{{ row.parentLoanId }}</td>
-            <td>{{ row.childLoanId }}</td>
-            <td>{{ row.description }}</td>
-            <td>{{ row.loanAliasName }}</td>
-            <td>{{ row.investorAliasName }}</td>
-            <td class="numeric-col">{{ formatCurrency(row.securityValue) }}</td>
-            <td class="numeric-col">{{ formatCurrency(row.exposure) }}</td>
-            <td>{{ formatRanking(row.ranking) }}</td>
-            <td class="numeric-col">
-              <span class="ltv-input-wrap">
-                <input
-                  type="number"
-                  class="ltv-input"
-                  [value]="formatPercent(row.ltv)"
-                  (input)="updateLtv(row.loanKey, $any($event.target).value)"
-                  placeholder="0"
-                  step="0.01"
-                  min="0"
-                  max="100"
+    <div class="ltv-table-row">
+      <div class="table-wrap" #gridTableWrap>
+        <table>
+          <thead>
+            <tr>
+              <th class="hidden-column">Loan Key</th>
+              @for (column of tableColumns; track column.key) {
+                <th [class]="columnClass(column.key)">
+                  <button
+                    type="button"
+                    class="ltv-th-sort"
+                    (click)="toggleSort(column.key)"
+                    [attr.aria-label]="'Sort by ' + column.label"
+                  >
+                    <span>{{ column.label }}</span>
+                    <span class="ltv-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+                  </button>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of paginatedRows(); track row.rowTrackId) {
+              <tr>
+                <td class="hidden-column">{{ row.loanKey }}</td>
+                <td [class]="stickyColumnClass('loanCode')">{{ row.loanCode }}</td>
+                <td [class]="stickyColumnClass('loanName')">{{ row.loanName }}</td>
+                <td>{{ row.loanAliasName }}</td>
+                <td>{{ row.investorAliasName }}</td>
+                <td class="numeric-col">{{ formatCurrency(row.securityValue) }}</td>
+                <td class="numeric-col">{{ formatCurrency(row.exposure) }}</td>
+                <td>{{ formatRanking(row.ranking) }}</td>
+                <td class="numeric-col">
+                  <span class="ltv-input-wrap">
+                    <input
+                      type="number"
+                      class="ltv-input"
+                      [value]="formatPercent(row.ltv)"
+                      (input)="updateLtv(row, $any($event.target).value)"
+                      placeholder="0"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                    />
+                    <span class="ltv-suffix">%</span>
+                  </span>
+                </td>
+                <td class="editable-col">
+                  <ng-select
+                    class="ltv-reason-select"
+                    [items]="updateReasonOptions"
+                    [multiple]="true"
+                    [closeOnSelect]="false"
+                    [clearable]="true"
+                    placeholder="Select reason(s)"
+                    [ngModel]="row.updateReasons"
+                    (ngModelChange)="updateUpdateReasons(row, $event)"
+                    [ngModelOptions]="{ standalone: true }"
+                  ></ng-select>
+                </td>
+                <td class="editable-col">
+                  <input
+                    type="text"
+                    class="ltv-comment-input"
+                    [value]="row.updateComment"
+                    (input)="updateUpdateComment(row, $any($event.target).value)"
+                    placeholder="Enter comment"
+                  />
+                </td>
+                <td class="numeric-col">{{ formatConfidenceScore(row.aiConfidenceScore) }}</td>
+                <td class="link-col">
+                  @if (row.qrSlideLink) {
+                    <button
+                      type="button"
+                      class="qr-slide-link"
+                      (click)="openQrSlide(row)"
+                      [title]="row.loanName"
+                    >
+                      {{ row.loanName }}
+                    </button>
+                  } @else {
+                    <span>—</span>
+                  }
+                </td>
+                <td class="audit-col">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+                <td class="audit-col">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td [attr.colspan]="tableColumns.length + 1" class="empty-row">
+                  No loans loaded for the selected filters.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="ltv-slide-pane" aria-label="QR slide preview">
+        <div class="ltv-slide-pane__header">
+          <h2>QR Slide Preview</h2>
+          @if (selectedQrSlideTitle()) {
+            <p class="ltv-slide-pane__title">{{ selectedQrSlideTitle() }}</p>
+          }
+          @if (pdfPreviewUrl() && !isLoadingPreview() && !previewError()) {
+            <p class="ltv-slide-pane__hint">Click the slide to open full view with zoom</p>
+          }
+        </div>
+        <div class="ltv-slide-pane__body">
+          @if (isLoadingPreview()) {
+            <p class="ltv-slide-pane__status">Loading QR slide…</p>
+          } @else if (previewError()) {
+            <p class="ltv-slide-pane__status ltv-slide-pane__status--error">{{ previewError() }}</p>
+          } @else if (pdfPreviewUrl()) {
+            <button
+              type="button"
+              class="ltv-slide-pane__viewport"
+              (click)="openPreviewModal()"
+              [attr.aria-label]="'Open full preview for ' + (selectedQrSlideTitle() || 'QR slide')"
+            >
+              @if (previewMediaType() === 'image') {
+                <img
+                  class="ltv-slide-pane__image"
+                  [src]="pdfPreviewUrl()"
+                  [alt]="selectedQrSlideTitle() || 'QR slide preview'"
                 />
-                <span class="ltv-suffix">%</span>
-              </span>
-            </td>
-            <td class="commentary-col">{{ row.aiCommentary }}</td>
-            <td class="date-readonly">{{ formatDisplayDate(row.userUpdatedDate) }}</td>
-            <td>{{ row.userUpdatedBy }}</td>
-          </tr>
-        } @empty {
-          <tr>
-            <td colspan="13" class="empty-row">No loans loaded for the selected filters.</td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  </div>
-
-  <div class="pagination">
-    <div class="pagination-left">
-      <label for="ltvPageSize">Rows per page</label>
-      <select
-        id="ltvPageSize"
-        [value]="pageSize()"
-        (change)="updatePageSize($any($event.target).value)"
-      >
-        <option value="5">5</option>
-        <option value="10">10</option>
-        <option value="20">20</option>
-        <option value="50">50</option>
-      </select>
+              } @else {
+                <iframe
+                  class="ltv-slide-pane__pdf"
+                  [src]="pdfPreviewUrl()"
+                  title="QR slide PDF preview"
+                ></iframe>
+              }
+            </button>
+          } @else {
+            <p class="ltv-slide-pane__status">
+              Select a QR Slide Link in the table to preview the slide here.
+            </p>
+          }
+        </div>
+      </aside>
     </div>
-    <div class="pagination-right">
-      <span class="page-range">{{ pageRangeLabel() }}</span>
-      <button type="button" class="pager-btn" (click)="goToPreviousPage()" [disabled]="currentPage() <= 1">
-        Prev
-      </button>
-      <span class="page-index">Page {{ currentPage() }} / {{ totalPages() }}</span>
-      <button
-        type="button"
-        class="pager-btn"
-        (click)="goToNextPage()"
-        [disabled]="currentPage() >= totalPages()"
-      >
-        Next
-      </button>
-    </div>
-  </div>
 
-  <div class="actions">
-    <button
-      type="button"
-      class="ks-btn ks-btn--accent"
-      (click)="confirmAiLtv()"
-      [disabled]="isConfirming() || !confirmableLoanKeys().length"
-    >
-      @if (isConfirming()) { Confirming… } @else { Confirm AI LTV }
-    </button>
-    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
-      @if (isSaving()) { Saving… } @else { Save Changes }
-    </button>
+    <div class="ltv-grid-footer">
+      <div class="pagination">
+        <div class="pagination-left">
+          <label for="ltvPageSize">Rows per page</label>
+          <select
+            id="ltvPageSize"
+            [value]="pageSize()"
+            (change)="updatePageSize($any($event.target).value)"
+          >
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+        <div class="pagination-right">
+          <span class="page-range">{{ pageRangeLabel() }}</span>
+          <button type="button" class="pager-btn" (click)="goToPreviousPage()" [disabled]="currentPage() <= 1">
+            Prev
+          </button>
+          <span class="page-index">Page {{ currentPage() }} / {{ totalPages() }}</span>
+          <button
+            type="button"
+            class="pager-btn"
+            (click)="goToNextPage()"
+            [disabled]="currentPage() >= totalPages()"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button
+          type="button"
+          class="ks-btn ks-btn--accent"
+          (click)="confirmAiLtv()"
+          [disabled]="isConfirming() || !confirmableLoanKeys().length"
+        >
+          @if (isConfirming()) { Confirming… } @else { Confirm AI LTV }
+        </button>
+        <button
+          type="button"
+          class="ks-btn ks-btn--accent"
+          (click)="saveChanges()"
+          [disabled]="isSaving() || !rows().length"
+        >
+          @if (isSaving()) { Saving… } @else { Save Changes }
+        </button>
+      </div>
+    </div>
   </div>
 
   <p class="footnote">
-    Information provided in this table is stored in the data warehouse and used in calculations and loan reporting.
-    Rows sort by security value (empty first), then ranking.
+    Information provided in this table is stored in the data warehouse and used in calculations and loan
+    reporting. Default sort is by security value (empty first), then ranking.
   </p>
 </section>
+
+@if (showPreviewModal()) {
+  <div class="ltv-preview-overlay" (click)="closePreviewModal()" role="presentation">
+    <div
+      class="ltv-preview-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ltv-preview-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="ltv-preview-dialog__header">
+        <h2 id="ltv-preview-title">{{ selectedQrSlideTitle() || 'QR Slide Preview' }}</h2>
+        <div class="ltv-preview-dialog__tools">
+          @if (pdfPreviewUrl() && !isLoadingPreview() && !previewError()) {
+            <button type="button" class="ltv-preview-zoom-btn" (click)="zoomOutPreview()" aria-label="Zoom out">
+              −
+            </button>
+            <button type="button" class="ltv-preview-zoom-btn ltv-preview-zoom-btn--label" (click)="resetPreviewZoom()">
+              {{ previewZoomLabel() }}
+            </button>
+            <button type="button" class="ltv-preview-zoom-btn" (click)="zoomInPreview()" aria-label="Zoom in">
+              +
+            </button>
+          }
+          <button type="button" class="ltv-preview-close" (click)="closePreviewModal()" aria-label="Close">
+            ×
+          </button>
+        </div>
+      </div>
+      <div class="ltv-preview-dialog__body">
+        @if (isLoadingPreview()) {
+          <p class="ltv-preview-status">Loading QR slide…</p>
+        } @else if (previewError()) {
+          <p class="ltv-preview-status ltv-preview-status--error">{{ previewError() }}</p>
+        } @else if (pdfPreviewUrl()) {
+          <div class="ltv-preview-dialog__viewport">
+            @if (previewMediaType() === 'image') {
+              <img
+                class="ltv-preview-image"
+                [src]="pdfPreviewUrl()"
+                [alt]="selectedQrSlideTitle() || 'QR slide preview'"
+                [style.width]="previewImageWidth()"
+              />
+            } @else {
+              <iframe
+                class="ltv-preview-pdf"
+                [src]="pdfPreviewUrl()"
+                title="QR slide PDF preview"
+                [style.width]="previewImageWidth()"
+              ></iframe>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

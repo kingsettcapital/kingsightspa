@@ -6,24 +6,30 @@ import { APP_API_CONFIG } from '../constants/api.config';
 /** Row from GET /api/LtvValidation — leaf child loans with AI-extracted LTV. */
 export type LtvValidationRowDto = {
   loanKey: number;
-  parentLoanId?: string | null;
+  loanCode?: string | null;
+  loanName?: string | null;
   childLoanId?: string | null;
-  loanId?: string | null;
-  description: string;
+  description?: string | null;
   loanAliasName: string;
   investorAliasName?: string | null;
   securityValue?: number | null;
   exposure?: number | null;
   ranking?: number | null;
   ltv?: number | null;
-  aiCommentary?: string | null;
+  updateReason?: string | null;
+  updateComment?: string | null;
+  aiConfidenceScore?: number | null;
+  qrSlideLink?: string | null;
   userUpdatedBy?: string | null;
   userUpdatedDate?: string | null;
 };
 
 export type LtvValidationUpdatePayload = {
   loanKey: number;
+  loanCode?: string | null;
   ltv: number | null;
+  updateReason?: string | null;
+  updateComment?: string | null;
   userUpdatedBy: string;
 };
 
