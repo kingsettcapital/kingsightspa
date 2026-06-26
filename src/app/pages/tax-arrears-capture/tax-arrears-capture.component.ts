@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -23,10 +23,11 @@ type AliasOption = {
 };
 
 type TaxArrearRow = {
+  stableRowId: string;
   taxArrearKey: number;
   loanKey: number;
-  loanId: string;
-  description: string;
+  loanCode: string;
+  loanName: string;
   loanAliasName: string;
   taxMemoDate: string;
   taxArrears: number | null;
@@ -45,12 +46,42 @@ type RowSnapshot = {
 
 type NewRecordForm = {
   loanAliasId: number | null;
-  loanKey: number | null;
+  loanCode: string | null;
   taxMemoDate: string;
   taxYear: string;
   taxArrears: string;
   notes: string;
 };
+
+type TaxArrearColumnKey =
+  | 'loanCode'
+  | 'loanName'
+  | 'loanAliasName'
+  | 'taxMemoDate'
+  | 'taxArrears'
+  | 'taxYear'
+  | 'notes'
+  | 'userUpdatedBy'
+  | 'userUpdatedDate';
+
+type TaxArrearTableColumn = {
+  key: TaxArrearColumnKey;
+  label: string;
+  editable?: boolean;
+  numeric?: boolean;
+};
+
+const TAX_ARREAR_TABLE_COLUMNS: TaxArrearTableColumn[] = [
+  { key: 'loanCode', label: 'Loan Code' },
+  { key: 'loanName', label: 'Loan Name' },
+  { key: 'loanAliasName', label: 'Loan Alias' },
+  { key: 'taxMemoDate', label: 'Tax Memo Date', editable: true },
+  { key: 'taxArrears', label: 'Tax Arrears', editable: true, numeric: true },
+  { key: 'taxYear', label: 'Tax Year', editable: true },
+  { key: 'notes', label: 'Notes', editable: true },
+  { key: 'userUpdatedBy', label: 'Modified By' },
+  { key: 'userUpdatedDate', label: 'Modified Date' },
+];
 
 const DEFAULT_STATUS_LABEL = 'Default';
 
@@ -69,12 +100,16 @@ export class TaxArrearsCaptureComponent implements OnInit {
   private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
 
+  readonly tableColumns = TAX_ARREAR_TABLE_COLUMNS;
+
   readonly aliasOptions = signal<AliasOption[]>([]);
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
   readonly taxYearOptions = signal<string[]>([]);
   readonly allLoans = signal<LoanDto[]>([]);
   readonly searchText = signal('');
-  readonly selectedLoanAliasIds = signal<number[]>([]);
+  readonly sortColumn = signal<TaxArrearColumnKey | null>(null);
+  readonly sortDirection = signal<'asc' | 'desc'>('asc');
+  readonly selectedLoanCodes = signal<string[]>([]);
   readonly selectedStatuses = signal<string[]>([]);
 
   readonly rows = signal<TaxArrearRow[]>([]);
@@ -92,24 +127,48 @@ export class TaxArrearsCaptureComponent implements OnInit {
   readonly currentPage = signal(1);
   readonly pageSize = signal(this.defaultPageSize);
 
+  private readonly loanSearchInput = viewChild<ElementRef<HTMLInputElement>>('loanSearchInput');
+
   ngOnInit(): void {
     this.loadFilters();
   }
 
-  readonly selectedAliases = computed(() => {
-    const ids = new Set(this.selectedLoanAliasIds());
-    return this.aliasOptions().filter((a) => ids.has(a.loanAliasId));
-  });
-
-  readonly searchedAliasOptions = computed(() => {
+  readonly searchedLoanOptions = computed(() => {
     const keyword = this.searchText().trim().toLowerCase();
     if (!keyword) {
       return [];
     }
-    const selectedIds = new Set(this.selectedLoanAliasIds());
-    return this.aliasOptions().filter(
-      (a) => !selectedIds.has(a.loanAliasId) && a.loanAliasName.toLowerCase().includes(keyword),
-    );
+
+    const selectedCodes = new Set(this.selectedLoanCodes());
+    const seen = new Set<string>();
+    const matches: TaxArrearRow[] = [];
+
+    for (const row of this.rows()) {
+      if (selectedCodes.has(row.loanCode) || seen.has(row.loanCode)) {
+        continue;
+      }
+      if (
+        row.loanCode.toLowerCase().includes(keyword) ||
+        row.loanName.toLowerCase().includes(keyword)
+      ) {
+        seen.add(row.loanCode);
+        matches.push(row);
+      }
+    }
+
+    return matches.sort((left, right) => left.loanCode.localeCompare(right.loanCode));
+  });
+
+  readonly selectedLoans = computed(() => {
+    const selectedCodes = new Set(this.selectedLoanCodes());
+    const seen = new Set<string>();
+    return this.rows().filter((row) => {
+      if (!selectedCodes.has(row.loanCode) || seen.has(row.loanCode)) {
+        return false;
+      }
+      seen.add(row.loanCode);
+      return true;
+    });
   });
 
   readonly modalLoanOptions = computed(() => {
@@ -117,36 +176,75 @@ export class TaxArrearsCaptureComponent implements OnInit {
     if (!aliasId) {
       return [];
     }
+
+    const alias = this.aliasOptions().find((option) => option.loanAliasId === aliasId);
+    if (!alias) {
+      return [];
+    }
+
+    const aliasName = alias.loanAliasName.trim().toLowerCase();
     return this.allLoans()
-      .filter((loan) => Number(loan.loanAliasKey ?? 0) === aliasId)
+      .filter((loan) => {
+        const keyMatch = Number(loan.loanAliasKey ?? 0) === aliasId;
+        const nameMatch = (loan.loanAliasName?.trim().toLowerCase() ?? '') === aliasName;
+        return keyMatch || nameMatch;
+      })
       .map((loan) => ({
-        loanKey: Number(loan.loanKey),
-        loanId: loan.loanCode?.trim() || '-',
-        description: loan.loanDesc?.trim() || '-',
+        loanCode: loan.loanCode?.trim() || '',
+        loanName: loan.loanDesc?.trim() || '—',
+        loanKey: Number(loan.loanKey) > 0 ? Number(loan.loanKey) : 0,
       }))
-      .filter((loan) => loan.loanKey > 0)
-      .sort((a, b) => a.loanId.localeCompare(b.loanId));
+      .filter((loan) => loan.loanCode.length > 0)
+      .sort((left, right) => left.loanCode.localeCompare(right.loanCode));
   });
 
   readonly modalLoanPreview = computed(() => {
-    const loanKey = this.newRecord().loanKey;
-    if (!loanKey) {
-      return { loanId: '-', description: '-' };
+    const loanCode = this.newRecord().loanCode;
+    if (!loanCode) {
+      return { loanCode: '—', loanName: '—' };
     }
-    const loan = this.modalLoanOptions().find((l) => l.loanKey === loanKey);
+    const loan = this.modalLoanOptions().find((option) => option.loanCode === loanCode);
     return {
-      loanId: loan?.loanId ?? '-',
-      description: loan?.description ?? '-',
+      loanCode: loan?.loanCode ?? loanCode,
+      loanName: loan?.loanName ?? '—',
     };
   });
 
+  readonly filteredRows = computed(() => {
+    const selectedCodes = this.selectedLoanCodes();
+    const keyword = this.searchText().trim().toLowerCase();
+
+    let rows = this.rows();
+
+    if (selectedCodes.length > 0) {
+      const codeSet = new Set(selectedCodes);
+      rows = rows.filter((row) => codeSet.has(row.loanCode));
+    } else if (keyword) {
+      rows = rows.filter((row) =>
+        this.tableColumns.some((column) =>
+          this.getCellDisplayValue(row, column.key).toLowerCase().includes(keyword),
+        ),
+      );
+    }
+
+    const activeSort = this.sortColumn();
+    if (activeSort) {
+      const direction = this.sortDirection() === 'asc' ? 1 : -1;
+      rows = [...rows].sort(
+        (left, right) => this.compareRows(left, right, activeSort) * direction,
+      );
+    }
+
+    return rows;
+  });
+
   readonly totalPages = computed(() => {
-    const total = this.rows().length;
+    const total = this.filteredRows().length;
     return total === 0 ? 1 : Math.ceil(total / this.pageSize());
   });
 
   readonly paginatedRows = computed(() => {
-    const rows = this.rows();
+    const rows = this.filteredRows();
     const pageSize = this.pageSize();
     const maxPage = this.totalPages();
     const safePage = Math.max(1, Math.min(this.currentPage(), maxPage));
@@ -158,7 +256,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
   });
 
   readonly pageRangeLabel = computed(() => {
-    const total = this.rows().length;
+    const total = this.filteredRows().length;
     if (total === 0) {
       return '0 - 0 of 0';
     }
@@ -170,43 +268,58 @@ export class TaxArrearsCaptureComponent implements OnInit {
   });
 
   rowTrackId(row: TaxArrearRow): string {
-    if (row.taxArrearKey > 0) {
-      return `key-${row.taxArrearKey}`;
-    }
-    return `loan-${row.loanKey}-year-${row.taxYear}`;
+    return row.stableRowId;
   }
 
   updateSearch(value: string): void {
     this.searchText.set(value);
+    this.currentPage.set(1);
     this.clearMessages();
   }
 
-  selectAlias(alias: AliasOption): void {
-    if (this.selectedLoanAliasIds().includes(alias.loanAliasId)) {
+  selectLoan(row: TaxArrearRow): void {
+    if (this.selectedLoanCodes().includes(row.loanCode)) {
       return;
     }
-    this.selectedLoanAliasIds.set([...this.selectedLoanAliasIds(), alias.loanAliasId]);
+    this.selectedLoanCodes.set([...this.selectedLoanCodes(), row.loanCode]);
     this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
-    this.loadGrid();
   }
 
-  removeSelectedAlias(loanAliasId: number): void {
-    this.selectedLoanAliasIds.set(
-      this.selectedLoanAliasIds().filter((id) => id !== loanAliasId),
-    );
+  removeSelectedLoan(loanCode: string): void {
+    this.selectedLoanCodes.set(this.selectedLoanCodes().filter((code) => code !== loanCode));
     this.currentPage.set(1);
     this.clearMessages();
-    this.loadGrid();
   }
 
-  clearAliasSelection(): void {
+  clearSelection(): void {
     this.searchText.set('');
-    this.selectedLoanAliasIds.set([]);
+    this.selectedLoanCodes.set([]);
+    this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
-    this.loadGrid();
+    const input = this.loanSearchInput()?.nativeElement;
+    if (input) {
+      input.value = '';
+    }
+  }
+
+  toggleSort(column: TaxArrearColumnKey): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+    this.currentPage.set(1);
+  }
+
+  sortIndicator(column: TaxArrearColumnKey): string {
+    if (this.sortColumn() !== column) {
+      return '↕';
+    }
+    return this.sortDirection() === 'asc' ? '↑' : '↓';
   }
 
   toggleStatus(statusValue: string): void {
@@ -229,7 +342,19 @@ export class TaxArrearsCaptureComponent implements OnInit {
   }
 
   updateTaxArrears(rowId: string, value: string): void {
-    this.patchRow(rowId, { taxArrears: this.parseNumericInput(value) });
+    this.patchRow(rowId, { taxArrears: this.parseCurrencyInput(value) });
+  }
+
+  formatTaxArrearsInput(value: number | null): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '';
+    }
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
   }
 
   updateTaxYear(rowId: string, value: string): void {
@@ -257,15 +382,14 @@ export class TaxArrearsCaptureComponent implements OnInit {
     this.newRecord.set({
       ...this.newRecord(),
       loanAliasId,
-      loanKey: null,
+      loanCode: null,
     });
     this.dialogError.set('');
   }
 
   updateNewRecordLoan(value: string): void {
-    const parsed = Number(value);
-    const loanKey = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-    this.newRecord.set({ ...this.newRecord(), loanKey });
+    const loanCode = value?.trim() || null;
+    this.newRecord.set({ ...this.newRecord(), loanCode });
     this.dialogError.set('');
   }
 
@@ -279,7 +403,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
       return;
     }
     const form = this.newRecord();
-    if (!form.loanKey) {
+    if (!form.loanCode) {
       this.dialogError.set('Select a loan for the new record.');
       return;
     }
@@ -294,10 +418,12 @@ export class TaxArrearsCaptureComponent implements OnInit {
       return;
     }
 
+    const selectedLoan = this.modalLoanOptions().find((loan) => loan.loanCode === form.loanCode);
     const request: TaxArrearsCaptureCreateRequest = {
-      loanKey: form.loanKey,
+      loanKey: selectedLoan?.loanKey ?? 0,
+      loanCode: form.loanCode,
       taxMemoDate: form.taxMemoDate.trim() || null,
-      taxArrears: this.parseNumericInput(form.taxArrears),
+      taxArrears: this.parseCurrencyInput(form.taxArrears),
       taxYear: form.taxYear.trim() || null,
       notes: form.notes.trim() || null,
       userUpdatedBy,
@@ -333,12 +459,6 @@ export class TaxArrearsCaptureComponent implements OnInit {
       return;
     }
 
-    const invalid = changedRows.find((row) => row.taxArrearKey <= 0);
-    if (invalid) {
-      this.errorMessage.set('Cannot update records without a tax arrears key. Use Add New Record instead.');
-      return;
-    }
-
     const userUpdatedBy = this.currentAppUser.getUpdatedBy();
     if (!userUpdatedBy) {
       this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
@@ -346,18 +466,23 @@ export class TaxArrearsCaptureComponent implements OnInit {
     }
 
     const request: TaxArrearsCaptureBulkUpdateRequest = {
-      taxArrears: changedRows.map((row) => ({
-        taxArrearKey: row.taxArrearKey,
-        taxMemoDate: row.taxMemoDate.trim() || null,
-        taxArrears: row.taxArrears,
-        taxYear: row.taxYear.trim() || null,
-        notes: row.notes.trim() || null,
-        userUpdatedBy,
-      })),
+      taxArrears: changedRows.map((row) => {
+        const original = this.originalRowState()[this.rowTrackId(row)];
+        return {
+          taxArrearKey: row.taxArrearKey,
+          loanCode: row.loanCode,
+          originalTaxYear: original?.taxYear ?? row.taxYear,
+          taxMemoDate: row.taxMemoDate.trim() || null,
+          taxArrears: row.taxArrears,
+          taxYear: row.taxYear.trim() || null,
+          notes: row.notes.trim() || null,
+          userUpdatedBy,
+        };
+      }),
     };
 
     this.isSaving.set(true);
-    this.statusMessage.set('');
+    this.statusMessage.set('Saving changes...');
     this.errorMessage.set('');
 
     this.taxArrearsApi.saveRecords(request).subscribe({
@@ -392,7 +517,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
 
   formatDisplayDate(value: string): string {
     if (!value?.trim()) {
-      return '-';
+      return '—';
     }
     const iso = this.toDateInputValue(value);
     if (!iso) {
@@ -402,20 +527,61 @@ export class TaxArrearsCaptureComponent implements OnInit {
     return `${m}/${d}/${y}`;
   }
 
-  formatCurrency(value: number | null): string {
-    if (value == null || !Number.isFinite(value)) {
-      return '';
+  formatModifiedDate(value: string): string {
+    if (!value?.trim()) {
+      return '—';
     }
-    return String(value);
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return this.formatDisplayDate(value);
+    }
+    return parsed.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  }
+
+  displayModifiedBy(value: string): string {
+    const trimmed = value?.trim();
+    return trimmed && trimmed !== '-' ? trimmed : '—';
+  }
+
+  getCellDisplayValue(row: TaxArrearRow, column: TaxArrearColumnKey): string {
+    switch (column) {
+      case 'loanCode':
+        return row.loanCode;
+      case 'loanName':
+        return row.loanName;
+      case 'loanAliasName':
+        return row.loanAliasName;
+      case 'taxMemoDate':
+        return this.formatDisplayDate(row.taxMemoDate);
+      case 'taxArrears':
+        return this.formatTaxArrearsInput(row.taxArrears);
+      case 'taxYear':
+        return row.taxYear || '—';
+      case 'notes':
+        return row.notes || '—';
+      case 'userUpdatedBy':
+        return this.displayModifiedBy(row.userUpdatedBy);
+      case 'userUpdatedDate':
+        return this.formatModifiedDate(row.userUpdatedDate);
+      default:
+        return '';
+    }
   }
 
   private emptyNewRecord(): NewRecordForm {
-    const currentYear = String(new Date().getFullYear());
     return {
       loanAliasId: null,
-      loanKey: null,
+      loanCode: null,
       taxMemoDate: '',
-      taxYear: currentYear,
+      taxYear: String(new Date().getFullYear()),
       taxArrears: '',
       notes: '',
     };
@@ -453,14 +619,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
         this.allLoans.set(Array.isArray(loans) ? loans : []);
         this.taxYearOptions.set(this.buildTaxYearOptions(lookups));
         this.isLoadingFilters.set(false);
-
-        if (!this.aliasOptions().length) {
-          this.errorMessage.set(
-            'Unable to load loan alias list. Verify GET /api/LoanAlias and CORS.',
-          );
-        } else {
-          this.loadGrid();
-        }
+        this.loadGrid();
       },
       error: () => {
         this.isLoadingFilters.set(false);
@@ -469,44 +628,8 @@ export class TaxArrearsCaptureComponent implements OnInit {
     });
   }
 
-  private buildTaxYearOptions(lookups: unknown): string[] {
-    const years = new Set<string>();
-    const current = new Date().getFullYear();
-    for (let y = current + 1; y >= current - 15; y -= 1) {
-      years.add(String(y));
-    }
-    if (lookups && typeof lookups === 'object') {
-      const fromApi = (lookups as Record<string, unknown>)['taxYears'];
-      if (Array.isArray(fromApi)) {
-        for (const year of fromApi) {
-          const normalized = String(year).trim();
-          if (normalized) {
-            years.add(normalized);
-          }
-        }
-      }
-    }
-    return [...years].sort((a, b) => Number(b) - Number(a));
-  }
-
-  private resolveLoanAliasIds(): number[] {
-    const selected = this.selectedLoanAliasIds();
-    if (selected.length > 0) {
-      return selected;
-    }
-    return this.aliasOptions().map((a) => a.loanAliasId).filter((id) => id > 0);
-  }
-
   private loadGrid(): void {
-    const loanAliasIds = this.resolveLoanAliasIds();
     const statuses = this.selectedStatuses();
-
-    if (!loanAliasIds.length) {
-      this.rows.set([]);
-      this.originalRowState.set({});
-      this.statusMessage.set('No loan aliases available to load.');
-      return;
-    }
 
     if (!statuses.length) {
       this.rows.set([]);
@@ -519,10 +642,9 @@ export class TaxArrearsCaptureComponent implements OnInit {
     this.errorMessage.set('');
     this.statusMessage.set('');
 
-    this.taxArrearsApi.getRecords(loanAliasIds, statuses).subscribe({
-      next: (response) => {
-        const records = this.normalizeRecords(response);
-        const mapped = records.map((r) => this.mapRow(r));
+    this.taxArrearsApi.getRecords(statuses).subscribe({
+      next: (records) => {
+        const mapped = records.map((record) => this.mapRow(record));
         this.rows.set(mapped);
         this.mergeTaxYearsFromRows(mapped);
         this.currentPage.set(1);
@@ -543,49 +665,40 @@ export class TaxArrearsCaptureComponent implements OnInit {
     });
   }
 
-  private mergeTaxYearsFromRows(rows: TaxArrearRow[]): void {
-    const years = new Set(this.taxYearOptions());
-    for (const row of rows) {
-      if (row.taxYear.trim()) {
-        years.add(row.taxYear.trim());
-      }
-    }
-    this.taxYearOptions.set([...years].sort((a, b) => Number(b) - Number(a)));
-  }
-
-  private normalizeRecords(response: unknown): TaxArrearsCaptureRowDto[] {
-    if (Array.isArray(response)) {
-      return response as TaxArrearsCaptureRowDto[];
-    }
-    if (response && typeof response === 'object') {
-      const obj = response as Record<string, unknown>;
-      for (const key of ['taxArrears', 'records', 'data', 'results', 'items', 'value']) {
-        const candidate = obj[key];
-        if (Array.isArray(candidate)) {
-          return candidate as TaxArrearsCaptureRowDto[];
-        }
-      }
-    }
-    return [];
-  }
-
   private mapRow(record: TaxArrearsCaptureRowDto): TaxArrearRow {
     const raw = record as TaxArrearsCaptureRowDto & Record<string, unknown>;
+    const taxArrearKey = this.pickNumber(raw, 'taxArrearKey', 'TaxArrearKey');
+    const loanCode = this.pickString(raw, 'loanId', 'LoanId', 'loanCode', 'LoanCode') || '—';
+    const taxYear = this.pickString(raw, 'taxYear', 'TaxYear');
+    const stableRowId =
+      taxArrearKey > 0 ? `key-${taxArrearKey}` : `loan-${loanCode}-year-${taxYear || 'none'}`;
+
     return {
-      taxArrearKey: this.pickNumber(raw, 'taxArrearKey', 'TaxArrearKey'),
+      stableRowId,
+      taxArrearKey,
       loanKey: this.pickNumber(raw, 'loanKey', 'LoanKey'),
-      loanId: this.pickString(raw, 'loanId', 'LoanId') || '-',
-      description: this.pickString(raw, 'description', 'Description') || '-',
-      loanAliasName: this.pickString(raw, 'loanAliasName', 'LoanAliasName') || '-',
+      loanCode,
+      loanName: this.pickString(raw, 'description', 'Description') || '—',
+      loanAliasName: this.pickString(raw, 'loanAliasName', 'LoanAliasName') || '—',
       taxMemoDate: this.toDateInputValue(
         this.pickString(raw, 'taxMemoDate', 'TaxMemoDate') || null,
       ),
       taxArrears: this.pickNullableNumber(raw, 'taxArrears', 'TaxArrears'),
-      taxYear: this.pickString(raw, 'taxYear', 'TaxYear'),
+      taxYear,
       notes: this.pickString(raw, 'notes', 'Notes'),
-      userUpdatedBy: this.pickString(raw, 'userUpdatedBy', 'UserUpdatedBy') || '-',
+      userUpdatedBy: this.pickString(raw, 'userUpdatedBy', 'UserUpdatedBy') || '',
       userUpdatedDate: this.pickString(raw, 'userUpdatedDate', 'UserUpdatedDate'),
     };
+  }
+
+  private revertUnsavedChanges(): void {
+    const original = this.originalRowState();
+    this.rows.update((rows) =>
+      rows.map((row) => {
+        const snapshot = original[this.rowTrackId(row)];
+        return snapshot ? { ...row, ...snapshot } : row;
+      }),
+    );
   }
 
   private snapshotOriginalState(): void {
@@ -617,6 +730,82 @@ export class TaxArrearsCaptureComponent implements OnInit {
       current.taxYear !== original.taxYear ||
       current.notes !== original.notes
     );
+  }
+
+  private mergeTaxYearsFromRows(rows: TaxArrearRow[]): void {
+    const years = new Set(this.taxYearOptions());
+    for (const row of rows) {
+      if (row.taxYear.trim()) {
+        years.add(row.taxYear.trim());
+      }
+    }
+    this.taxYearOptions.set([...years].sort((a, b) => Number(b) - Number(a)));
+  }
+
+  private buildTaxYearOptions(lookups: unknown): string[] {
+    const years = new Set<string>();
+    const current = new Date().getFullYear();
+    for (let y = current + 1; y >= current - 15; y -= 1) {
+      years.add(String(y));
+    }
+    if (lookups && typeof lookups === 'object') {
+      const fromApi = (lookups as Record<string, unknown>)['taxYears'];
+      if (Array.isArray(fromApi)) {
+        for (const year of fromApi) {
+          const normalized = String(year).trim();
+          if (normalized) {
+            years.add(normalized);
+          }
+        }
+      }
+    }
+    return [...years].sort((a, b) => Number(b) - Number(a));
+  }
+
+  private compareRows(left: TaxArrearRow, right: TaxArrearRow, column: TaxArrearColumnKey): number {
+    switch (column) {
+      case 'loanCode':
+        return left.loanCode.localeCompare(right.loanCode, undefined, { sensitivity: 'base' });
+      case 'loanName':
+        return left.loanName.localeCompare(right.loanName, undefined, { sensitivity: 'base' });
+      case 'loanAliasName':
+        return left.loanAliasName.localeCompare(right.loanAliasName, undefined, {
+          sensitivity: 'base',
+        });
+      case 'taxMemoDate':
+        return this.dateSortValue(left.taxMemoDate) - this.dateSortValue(right.taxMemoDate);
+      case 'taxArrears':
+        return (left.taxArrears ?? 0) - (right.taxArrears ?? 0);
+      case 'taxYear':
+        return Number(left.taxYear) - Number(right.taxYear);
+      case 'notes':
+        return left.notes.localeCompare(right.notes, undefined, { sensitivity: 'base' });
+      case 'userUpdatedBy':
+        return left.userUpdatedBy.localeCompare(right.userUpdatedBy, undefined, {
+          sensitivity: 'base',
+        });
+      case 'userUpdatedDate':
+        return this.dateSortValue(left.userUpdatedDate) - this.dateSortValue(right.userUpdatedDate);
+      default:
+        return 0;
+    }
+  }
+
+  private dateSortValue(value: string): number {
+    if (!value?.trim()) {
+      return 0;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+  }
+
+  private parseCurrencyInput(value: string): number | null {
+    const trimmed = value.replace(/[$,\s]/g, '').trim();
+    if (!trimmed) {
+      return null;
+    }
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
   private pickNumber(record: Record<string, unknown>, ...keys: string[]): number {
@@ -668,15 +857,6 @@ export class TaxArrearsCaptureComponent implements OnInit {
       }
     }
     return '';
-  }
-
-  private parseNumericInput(value: string): number | null {
-    const trimmed = value?.trim() ?? '';
-    if (!trimmed) {
-      return null;
-    }
-    const parsed = Number(trimmed.replace(/,/g, ''));
-    return Number.isFinite(parsed) ? parsed : null;
   }
 
   private toDateInputValue(value: string | null | undefined): string {

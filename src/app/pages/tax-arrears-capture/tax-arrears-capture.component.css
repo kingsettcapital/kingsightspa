@@ -1,16 +1,20 @@
 /* Page-specific styles — shared layout via .ks-fp in theme/_form-page.scss */
 
 .tax-arrears-page .actions {
-  justify-content: space-between;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.filter-panel select {
-  width: 100%;
-  border: 1px solid #d1d5db;
-  height: 2.25rem;
-  padding: 0 0.5rem;
-  font-size: 0.875rem;
-  border-radius: 6px;
+.result-code {
+  display: inline-block;
+  min-width: 7rem;
+  color: #111827;
+  font-weight: 700;
+}
+
+.grid-loading {
+  margin: 0 0 0.75rem;
 }
 
 .hidden-column {
@@ -35,6 +39,7 @@
   padding: 0.2rem 0.45rem;
   font-size: 0.88rem;
   max-width: 100%;
+  background: #ffffff;
 }
 
 .date-input {
@@ -53,6 +58,38 @@
 .text-input {
   min-width: 10rem;
   width: 100%;
+}
+
+.ta-th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ta-th-sort:hover {
+  color: #1d4ed8;
+}
+
+.ta-th-sort__icon {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.status-message {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: #065f46;
+}
+
+.banner-error {
+  margin-bottom: 0.75rem;
 }
 
 .ta-overlay {
@@ -125,18 +162,23 @@
   color: #374151;
 }
 
-.form-field input,
-.form-field select,
-.form-field textarea {
+.modal-field-control {
   width: 100%;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   padding: 0.45rem 0.55rem;
   font-size: 0.875rem;
   box-sizing: border-box;
+  height: 2.25rem;
+  background: #ffffff;
 }
 
-.form-field textarea {
+.modal-field-control.currency-input {
+  text-align: right;
+}
+
+textarea.modal-field-control {
+  height: auto;
   min-height: 4.5rem;
   resize: vertical;
 }
@@ -148,6 +190,8 @@
   padding: 0.45rem 0.55rem;
   font-size: 0.875rem;
   border-radius: 6px;
+  min-height: 2.25rem;
+  box-sizing: border-box;
 }
 
 .form-grid {
