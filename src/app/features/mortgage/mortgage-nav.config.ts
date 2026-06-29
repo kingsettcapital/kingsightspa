@@ -10,7 +10,7 @@ export const MORTGAGE_NAV_ITEMS: MortgageNavItem[] = [
   { label: 'Loan Assignment', path: 'loan-alias-assignment' },
   { label: 'Investor Alias', path: 'investor-alias' },
   { label: 'Investor Assignment', path: 'investor-alias-assignment' },
-  { label: 'Loan Exposure Markers', path: 'security-value' },
+  { label: 'Security Value', path: 'security-value' },
   { label: 'File Upload', path: 'cmhc-upload' },
   { label: 'Other Cost Capture', path: 'other-cost-capture' },
   { label: 'Default Date', path: 'default-date-capture' },

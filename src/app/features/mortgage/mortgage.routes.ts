@@ -42,6 +42,11 @@ export const MORTGAGE_ROUTES: Routes = [
       ),
   },
   {
+    path: 'loan-exposure-markers',
+    redirectTo: 'security-value',
+    pathMatch: 'full',
+  },
+  {
     path: 'security-value',
     loadComponent: () =>
       import('../../pages/security-value/security-value.component').then(

@@ -515,27 +515,59 @@ export class SecurityValueComponent implements OnInit {
     if (!options.length) {
       return [];
     }
-    const preferred = options.find(
-      (o) =>
-        o.displayLabel.toLowerCase() === DEFAULT_STATUS_LABEL.toLowerCase() ||
-        o.value === '2',
-    );
+    const preferred = options.find((o) => {
+      const label = o.displayLabel.trim().toLowerCase();
+      return (
+        label === DEFAULT_STATUS_LABEL.toLowerCase() ||
+        label === 'in default' ||
+        o.value === '2'
+      );
+    });
     const fallback = options.find((o) => o.value !== '(null)') ?? options[0];
     return [preferred?.value ?? fallback.value];
   }
 
+  /** Selected alias tags, or all aliases when none selected. */
+  private resolveLoanAliasIds(): number[] {
+    const selected = this.selectedLoanAliasIds();
+    if (selected.length > 0) {
+      return selected;
+    }
+    return this.aliasOptions()
+      .map((alias) => alias.loanAliasId)
+      .filter((id) => id > 0);
+  }
+
   /** Tag selection reloads the grid; empty selection loads all aliases from the API. */
   private loadGridData(): void {
-    const loanAliasIds = this.selectedLoanAliasIds();
+    const loanAliasIds = this.resolveLoanAliasIds();
+
+    if (!loanAliasIds.length) {
+      this.rows.set([]);
+      this.originalRowState.set({});
+      this.statusMessage.set('No loan aliases available to load.');
+      this.isLoadingGrid.set(false);
+      return;
+    }
+
+    const statuses = this.selectedStatuses();
+    if (!statuses.length) {
+      this.rows.set([]);
+      this.originalRowState.set({});
+      this.statusMessage.set('Select at least one status to load security values.');
+      this.isLoadingGrid.set(false);
+      return;
+    }
 
     this.isLoadingGrid.set(true);
     this.errorMessage.set('');
     this.statusMessage.set('Loading security values...');
 
     this.securityValueApi
-      .getSecurityValues(loanAliasIds, this.selectedStatuses())
+      .getSecurityValues(loanAliasIds, statuses)
       .subscribe({
-        next: (records) => {
+        next: (response) => {
+          const records = this.normalizeSecurityValueRecords(response);
           const mappedRows = records
             .map((record) => this.mapSecurityValueToRow(record))
             .filter((row) => row.loanAliasId > 0);
@@ -560,8 +592,27 @@ export class SecurityValueComponent implements OnInit {
       });
   }
 
+  private normalizeSecurityValueRecords(response: unknown): LoanSecurityValueDto[] {
+    if (Array.isArray(response)) {
+      return response as LoanSecurityValueDto[];
+    }
+    if (response && typeof response === 'object') {
+      const candidate = response as Record<string, unknown>;
+      for (const key of ['data', 'records', 'items', 'loanSecurityValues', 'results']) {
+        const value = candidate[key];
+        if (Array.isArray(value)) {
+          return value as LoanSecurityValueDto[];
+        }
+      }
+    }
+    return [];
+  }
+
   private mapAliasOption(record: LoanAlias): AliasOption {
-    const loanAliasId = Number(record.loanAliasId ?? record.loanAliasKey ?? 0);
+    const raw = record as LoanAlias & Record<string, unknown>;
+    const loanAliasId = Number(
+      raw.loanAliasId ?? raw.loanAliasKey ?? raw['loan_alias_id'] ?? raw['loan_alias_key'] ?? 0,
+    );
     return {
       loanAliasId,
       loanAliasName: record.loanAliasName?.trim() || '-',
@@ -569,25 +620,30 @@ export class SecurityValueComponent implements OnInit {
   }
 
   private mapSecurityValueToRow(record: LoanSecurityValueDto): SecurityValueRow {
-    const loanAliasId = Number(record.loanAliasId ?? record.loanAliasKey ?? 0);
-    const collateralPerYardi = this.toNumber(
-      record.collateralPerYardi ?? record.collateralValue,
+    const raw = record as LoanSecurityValueDto & Record<string, unknown>;
+    const loanAliasId = Number(
+      raw.loanAliasId ?? raw.loanAliasKey ?? raw['loan_alias_id'] ?? raw['loan_alias_key'] ?? 0,
     );
-    const storedSecurity = this.toNumber(record.securityValue);
+    const collateralPerYardi = this.toNumber(
+      raw.collateralPerYardi ?? raw.collateralValue ?? raw['collateral_per_yardi'],
+    );
+    const storedSecurity = this.toNumber(raw.securityValue ?? raw['security_value']);
 
     return {
       loanAliasId,
-      loanAliasName: record.loanAliasName?.trim() || '-',
+      loanAliasName: String(raw.loanAliasName ?? raw['loan_alias_name'] ?? '').trim() || '-',
       collateralPerYardi,
       securityValue: storedSecurity ?? collateralPerYardi,
-      units: this.toNumber(record.units),
+      units: this.toNumber(raw.units),
       squareFeet: this.toNumber(
-        record.squareFeet ?? (record as { square_feet?: number | null }).square_feet,
+        raw.squareFeet ?? raw['square_feet'] ?? (raw as { sf?: number | null }).sf,
       ),
-      acres: this.toNumber(record.acres),
+      acres: this.toNumber(raw.acres),
       updatedBy:
-        record.updatedBy?.trim() || record.userUpdatedBy?.trim() || '',
-      updatedDtm: this.coerceDateString(record.updatedDtm ?? record.userUpdatedDate ?? ''),
+        String(raw.updatedBy ?? raw.userUpdatedBy ?? raw['updated_by'] ?? '').trim() || '',
+      updatedDtm: this.coerceDateString(
+        raw.updatedDtm ?? raw.userUpdatedDate ?? raw['updated_dtm'] ?? raw['user_updated_date'] ?? '',
+      ),
     };
   }
 
