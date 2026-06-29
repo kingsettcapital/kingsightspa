@@ -3,6 +3,7 @@ import { Component, computed, ElementRef, inject, OnInit, signal, viewChild } fr
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 
+import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import {
   InvestorAlias,
@@ -92,30 +93,32 @@ export class InvestorComponent implements OnInit {
       if (selectedCodes.has(row.investorCode)) {
         return false;
       }
-      return (
-        row.investorCode.toLowerCase().includes(keyword) ||
-        row.investorName.toLowerCase().includes(keyword) ||
-        row.investorAliasName.toLowerCase().includes(keyword)
-      );
+      return filterRowsByTableSearch(
+        [row],
+        keyword,
+        this.tableColumns,
+        (candidate, key) => this.getCellDisplayValue(candidate, key),
+      ).length > 0;
     });
   });
 
   readonly filteredRows = computed(() => {
     const selectedCodes = this.selectedInvestorCodes();
-    const keyword = this.searchText().trim().toLowerCase();
+    const keyword = this.searchText();
 
     let rows = this.rows();
 
     if (selectedCodes.length > 0) {
       const selectedCodeSet = new Set(selectedCodes);
       rows = rows.filter((row) => selectedCodeSet.has(row.investorCode));
-    } else if (keyword) {
-      rows = rows.filter((row) =>
-        this.tableColumns.some((column) =>
-          this.getCellDisplayValue(row, column.key).toLowerCase().includes(keyword),
-        ),
-      );
     }
+
+    rows = filterRowsByTableSearch(
+      rows,
+      keyword,
+      this.tableColumns,
+      (row, key) => this.getCellDisplayValue(row, key),
+    );
 
     const activeSort = this.sortColumn();
     if (activeSort) {

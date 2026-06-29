@@ -239,8 +239,7 @@
   font-size: 0.85rem;
 }
 
-.qr-slide-link {
-  display: inline;
+.confidence-score-link {
   border: 0;
   background: transparent;
   color: #2563eb;
@@ -248,14 +247,11 @@
   cursor: pointer;
   padding: 0;
   font: inherit;
-  font-size: 0.875rem;
-  line-height: 1.35;
-  text-align: left;
-  white-space: normal;
-  word-break: break-word;
+  font-size: inherit;
+  font-variant-numeric: tabular-nums;
 }
 
-.qr-slide-link:hover {
+.confidence-score-link:hover {
   color: #1d4ed8;
 }
 

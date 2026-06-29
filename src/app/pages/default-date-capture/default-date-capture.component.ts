@@ -3,6 +3,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import {
   DefaultDateCaptureApiService,
@@ -118,20 +119,21 @@ export class DefaultDateCaptureComponent implements OnInit {
 
   readonly filteredRows = computed(() => {
     const selectedNames = this.selectedAliasNames();
-    const keyword = this.searchText().trim().toLowerCase();
+    const keyword = this.searchText();
 
     let rows = this.rows();
 
     if (selectedNames.length > 0) {
       const nameSet = new Set(selectedNames.map((n) => n.toLowerCase()));
       rows = rows.filter((row) => nameSet.has(row.loanAliasName.trim().toLowerCase()));
-    } else if (keyword) {
-      rows = rows.filter((row) =>
-        this.tableColumns.some((column) =>
-          this.getCellDisplayValue(row, column.key).toLowerCase().includes(keyword),
-        ),
-      );
     }
+
+    rows = filterRowsByTableSearch(
+      rows,
+      keyword,
+      this.tableColumns,
+      (row, key) => this.getCellDisplayValue(row, key),
+    );
 
     const activeSort = this.sortColumn();
     if (activeSort) {

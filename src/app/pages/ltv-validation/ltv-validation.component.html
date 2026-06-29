@@ -2,7 +2,7 @@
   <h1>LTV Validation</h1>
   <p class="subtitle">
     Review LTV values extracted by AI from QR slides. Save manual overrides. Confirm AI LTV once review is
-    complete.
+    complete to send notification of review completion.
   </p>
 
   <div class="filters-row">
@@ -13,7 +13,7 @@
           type="text"
           [value]="searchText()"
           (input)="updateSearch($any($event.target).value)"
-          placeholder="Search and add loan aliases"
+          placeholder="Enter Search Value"
         />
       </div>
 
@@ -142,19 +142,18 @@
                     placeholder="Enter comment"
                   />
                 </td>
-                <td class="numeric-col">{{ formatConfidenceScore(row.aiConfidenceScore) }}</td>
-                <td class="link-col">
+                <td class="numeric-col">
                   @if (row.qrSlideLink) {
                     <button
                       type="button"
-                      class="qr-slide-link"
+                      class="confidence-score-link"
                       (click)="openQrSlide(row)"
-                      [title]="row.loanName"
+                      [title]="'View QR slide for ' + row.loanName"
                     >
-                      {{ row.loanName }}
+                      {{ formatConfidenceScore(row.aiConfidenceScore) }}
                     </button>
                   } @else {
-                    <span>—</span>
+                    {{ formatConfidenceScore(row.aiConfidenceScore) }}
                   }
                 </td>
                 <td class="audit-col">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
@@ -209,7 +208,7 @@
             </button>
           } @else {
             <p class="ltv-slide-pane__status">
-              Select a QR Slide Link in the table to preview the slide here.
+              Select an AI Confidence Score in the table to preview the slide here.
             </p>
           }
         </div>

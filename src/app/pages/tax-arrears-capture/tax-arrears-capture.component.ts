@@ -3,6 +3,7 @@ import { Component, computed, ElementRef, inject, OnInit, signal, viewChild } fr
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import { LoanDto, LoansApiService } from '../../core/services/loans-api.service';
@@ -134,8 +135,8 @@ export class TaxArrearsCaptureComponent implements OnInit {
   }
 
   readonly searchedLoanOptions = computed(() => {
-    const keyword = this.searchText().trim().toLowerCase();
-    if (!keyword) {
+    const keyword = this.searchText();
+    if (!keyword.trim()) {
       return [];
     }
 
@@ -148,8 +149,12 @@ export class TaxArrearsCaptureComponent implements OnInit {
         continue;
       }
       if (
-        row.loanCode.toLowerCase().includes(keyword) ||
-        row.loanName.toLowerCase().includes(keyword)
+        filterRowsByTableSearch(
+          [row],
+          keyword,
+          this.tableColumns,
+          (candidate, key) => this.getCellDisplayValue(candidate, key),
+        ).length > 0
       ) {
         seen.add(row.loanCode);
         matches.push(row);
@@ -212,20 +217,21 @@ export class TaxArrearsCaptureComponent implements OnInit {
 
   readonly filteredRows = computed(() => {
     const selectedCodes = this.selectedLoanCodes();
-    const keyword = this.searchText().trim().toLowerCase();
+    const keyword = this.searchText();
 
     let rows = this.rows();
 
     if (selectedCodes.length > 0) {
       const codeSet = new Set(selectedCodes);
       rows = rows.filter((row) => codeSet.has(row.loanCode));
-    } else if (keyword) {
-      rows = rows.filter((row) =>
-        this.tableColumns.some((column) =>
-          this.getCellDisplayValue(row, column.key).toLowerCase().includes(keyword),
-        ),
-      );
     }
+
+    rows = filterRowsByTableSearch(
+      rows,
+      keyword,
+      this.tableColumns,
+      (row, key) => this.getCellDisplayValue(row, key),
+    );
 
     const activeSort = this.sortColumn();
     if (activeSort) {

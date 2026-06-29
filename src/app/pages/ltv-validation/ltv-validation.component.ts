@@ -17,6 +17,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { APP_API_CONFIG } from '../../core/constants/api.config';
+import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
@@ -72,7 +73,6 @@ type LtvColumnKey =
   | 'updateReasons'
   | 'updateComment'
   | 'aiConfidenceScore'
-  | 'qrSlideLink'
   | 'userUpdatedBy'
   | 'userUpdatedDate';
 
@@ -102,7 +102,6 @@ const LTV_TABLE_COLUMNS: LtvTableColumn[] = [
   { key: 'updateReasons', label: 'Update Reason' },
   { key: 'updateComment', label: 'Update Comment' },
   { key: 'aiConfidenceScore', label: 'AI Confidence Score' },
-  { key: 'qrSlideLink', label: 'QR Slide Link' },
   { key: 'userUpdatedBy', label: 'Modified By' },
   { key: 'userUpdatedDate', label: 'Modified Date' },
 ];
@@ -189,6 +188,13 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   readonly filteredRows = computed(() => {
     let rows = this.rows();
 
+    rows = filterRowsByTableSearch(
+      rows,
+      this.searchText(),
+      this.tableColumns,
+      (row, key) => this.getCellDisplayValue(row, key),
+    );
+
     const activeSort = this.sortColumn();
     if (activeSort) {
       const direction = this.sortDirection() === 'asc' ? 1 : -1;
@@ -246,6 +252,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
 
   updateSearch(value: string): void {
     this.searchText.set(value);
+    this.currentPage.set(1);
     this.clearMessages();
   }
 
@@ -591,9 +598,6 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       case 'updateComment':
         classes.push('editable-col');
         break;
-      case 'qrSlideLink':
-        classes.push('link-col');
-        break;
       case 'userUpdatedBy':
       case 'userUpdatedDate':
         classes.push('audit-col');
@@ -785,8 +789,6 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
         return row.updateComment;
       case 'aiConfidenceScore':
         return this.formatConfidenceScore(row.aiConfidenceScore);
-      case 'qrSlideLink':
-        return row.qrSlideLabel;
       case 'userUpdatedBy':
         return this.displayModifiedBy(row.userUpdatedBy);
       case 'userUpdatedDate':

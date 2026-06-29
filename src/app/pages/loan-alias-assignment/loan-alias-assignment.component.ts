@@ -3,6 +3,9 @@ import { Component, computed, ElementRef, inject, OnInit, signal, viewChild } fr
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 
+import {
+  filterRowsByTableSearch,
+} from '../../core/utils/mortgage-table-search';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
@@ -93,31 +96,32 @@ export class LoanAliasAssignmentComponent implements OnInit {
       if (selectedCodes.has(row.loanCode)) {
         return false;
       }
-      return (
-        row.loanCode.toLowerCase().includes(keyword) ||
-        row.loanName.toLowerCase().includes(keyword) ||
-        row.loanAliasName.toLowerCase().includes(keyword)
-      );
+      return filterRowsByTableSearch(
+        [row],
+        keyword,
+        this.tableColumns,
+        (candidate, key) => this.getCellDisplayValue(candidate, key),
+      ).length > 0;
     });
   });
 
   readonly filteredRows = computed(() => {
     const selectedCodes = this.selectedLoanCodes();
-    const keyword = this.searchText().trim().toLowerCase();
+    const keyword = this.searchText();
 
     let rows = this.rows();
 
     if (selectedCodes.length > 0) {
       const selectedCodeSet = new Set(selectedCodes);
       rows = rows.filter((row) => selectedCodeSet.has(row.loanCode));
-    } else if (keyword) {
-      rows = rows.filter(
-        (row) =>
-          row.loanCode.toLowerCase().includes(keyword) ||
-          row.loanName.toLowerCase().includes(keyword) ||
-          row.loanAliasName.toLowerCase().includes(keyword),
-      );
     }
+
+    rows = filterRowsByTableSearch(
+      rows,
+      keyword,
+      this.tableColumns,
+      (row, key) => this.getCellDisplayValue(row, key),
+    );
 
     const activeSort = this.sortColumn();
     if (activeSort) {
@@ -211,6 +215,23 @@ export class LoanAliasAssignmentComponent implements OnInit {
   displayModifiedBy(value: string): string {
     const trimmed = value?.trim();
     return trimmed && trimmed !== '-' ? trimmed : '—';
+  }
+
+  getCellDisplayValue(row: LoanRow, column: LoanAssignmentColumnKey): string {
+    switch (column) {
+      case 'loanCode':
+        return row.loanCode;
+      case 'loanName':
+        return row.loanName;
+      case 'loanAliasName':
+        return row.loanAliasName;
+      case 'userUpdatedBy':
+        return this.displayModifiedBy(row.userUpdatedBy);
+      case 'userUpdatedDate':
+        return this.formatModifiedDate(row.userUpdatedDate);
+      default:
+        return '';
+    }
   }
 
   selectLoan(row: LoanRow): void {

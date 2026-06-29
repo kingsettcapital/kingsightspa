@@ -3,6 +3,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
@@ -128,21 +129,20 @@ export class SecurityValueComponent implements OnInit {
 
   readonly filteredRows = computed(() => {
     const selectedIds = this.selectedLoanAliasIds();
+    const keyword = this.searchText();
     let rows = this.rows();
 
     if (selectedIds.length > 0) {
       const selectedIdSet = new Set(selectedIds);
       rows = rows.filter((row) => selectedIdSet.has(row.loanAliasId));
-    } else {
-      const keyword = this.searchText().trim().toLowerCase();
-      if (keyword) {
-        rows = rows.filter((row) =>
-          this.tableColumns.some((column) =>
-            this.getCellDisplayValue(row, column.key).toLowerCase().includes(keyword),
-          ),
-        );
-      }
     }
+
+    rows = filterRowsByTableSearch(
+      rows,
+      keyword,
+      this.tableColumns,
+      (row, key) => this.getCellDisplayValue(row, key),
+    );
 
     const activeSort = this.sortColumn();
     if (activeSort) {
