@@ -208,16 +208,32 @@
 .ltv-input-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.35rem;
+  width: 100%;
+  min-width: 6.5rem;
 }
 
 .ltv-input {
+  flex: 1 1 auto;
+  min-width: 4.5rem;
   border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
   height: 2rem;
-  width: 4.5rem;
-  padding: 0.2rem 0.45rem;
+  padding: 0.2rem 0.5rem;
   font-size: 0.88rem;
   text-align: right;
+  background: #ffffff;
+  color: #111827;
+}
+
+.ltv-input:focus {
+  outline: none;
+  border-color: var(--ks-color-primary, #c8922a);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ks-color-primary, #c8922a) 12%, transparent);
+}
+
+.ltv-input::placeholder {
+  color: #9ca3af;
 }
 
 .ltv-suffix {
