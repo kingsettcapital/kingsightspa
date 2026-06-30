@@ -3,12 +3,10 @@ import { HttpClient } from '@angular/common/http';
 import {
   Component,
   computed,
-  ElementRef,
   inject,
   OnDestroy,
   OnInit,
   signal,
-  viewChild,
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
@@ -95,13 +93,13 @@ const LTV_TABLE_COLUMNS: LtvTableColumn[] = [
   { key: 'loanName', label: 'Loan Name' },
   { key: 'loanAliasName', label: 'Loan Alias' },
   { key: 'investorAliasName', label: 'Investor Alias' },
-  { key: 'securityValue', label: 'Security Value' },
+  { key: 'securityValue', label: 'Sec. Value' },
   { key: 'exposure', label: 'Exposure' },
-  { key: 'ranking', label: 'Ranking' },
+  { key: 'ranking', label: 'Rank' },
   { key: 'ltv', label: 'LTV' },
   { key: 'updateReasons', label: 'Update Reason' },
   { key: 'updateComment', label: 'Update Comment' },
-  { key: 'aiConfidenceScore', label: 'AI Confidence Score' },
+  { key: 'aiConfidenceScore', label: 'AI Score' },
   { key: 'userUpdatedBy', label: 'Modified By' },
   { key: 'userUpdatedDate', label: 'Modified Date' },
 ];
@@ -147,6 +145,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   readonly previewZoom = signal(1);
 
   readonly showPreviewModal = signal(false);
+  readonly slidePaneCollapsed = signal(false);
 
   private previewObjectUrl: string | null = null;
 
@@ -158,8 +157,6 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   readonly isConfirming = signal(false);
   readonly currentPage = signal(1);
   readonly pageSize = signal(this.defaultPageSize);
-
-  private readonly gridTableWrap = viewChild<ElementRef<HTMLElement>>('gridTableWrap');
 
   ngOnInit(): void {
     this.loadFilters();
@@ -529,6 +526,18 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     this.currentPage.set(1);
   }
 
+  toggleSlidePane(): void {
+    this.slidePaneCollapsed.update((collapsed) => !collapsed);
+  }
+
+  truncateDisplay(value: string | null | undefined, maxLength: number): string {
+    const trimmed = value?.trim() || '—';
+    if (trimmed.length <= maxLength) {
+      return trimmed;
+    }
+    return `${trimmed.slice(0, maxLength - 1)}…`;
+  }
+
   formatCurrency(value: number | null): string {
     if (value == null || !Number.isFinite(value)) {
       return '-';
@@ -538,6 +547,36 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       currency: 'CAD',
       maximumFractionDigits: 2,
     }).format(value);
+  }
+
+  formatCompactCurrency(value: number | null): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '-';
+    }
+    const abs = Math.abs(value);
+    if (abs >= 1_000_000) {
+      return new Intl.NumberFormat('en-CA', {
+        style: 'currency',
+        currency: 'CAD',
+        notation: 'compact',
+        maximumFractionDigits: 1,
+      }).format(value);
+    }
+    if (abs >= 10_000) {
+      return new Intl.NumberFormat('en-CA', {
+        style: 'currency',
+        currency: 'CAD',
+        maximumFractionDigits: 0,
+      }).format(value);
+    }
+    return this.formatCurrency(value);
+  }
+
+  currencyTitle(value: number | null): string | null {
+    if (value == null || !Number.isFinite(value)) {
+      return null;
+    }
+    return this.formatCurrency(value);
   }
 
   formatPercent(value: number | null): string {
@@ -586,39 +625,45 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   }
 
   columnClass(column: LtvColumnKey): string {
-    const classes: string[] = [];
+    const classes: string[] = ['ltv-cell'];
     switch (column) {
+      case 'loanCode':
+        classes.push('ltv-col--code');
+        break;
+      case 'loanName':
+        classes.push('ltv-col--name');
+        break;
+      case 'loanAliasName':
+        classes.push('ltv-col--alias');
+        break;
+      case 'investorAliasName':
+        classes.push('ltv-col--investor');
+        break;
       case 'securityValue':
       case 'exposure':
+        classes.push('numeric-col', 'ltv-col--currency');
+        break;
+      case 'ranking':
+        classes.push('numeric-col', 'ltv-col--rank');
+        break;
       case 'ltv':
-      case 'aiConfidenceScore':
-        classes.push('numeric-col');
+        classes.push('numeric-col', 'ltv-col--ltv', 'editable-col');
         break;
       case 'updateReasons':
+        classes.push('editable-col', 'ltv-col--reason');
+        break;
       case 'updateComment':
-        classes.push('editable-col');
+        classes.push('editable-col', 'ltv-col--comment');
+        break;
+      case 'aiConfidenceScore':
+        classes.push('numeric-col', 'ltv-col--confidence');
         break;
       case 'userUpdatedBy':
       case 'userUpdatedDate':
-        classes.push('audit-col');
+        classes.push('audit-col', 'ltv-col--audit');
         break;
     }
-    const stickyClass = this.stickyColumnClass(column);
-    if (stickyClass) {
-      classes.push(stickyClass);
-    }
     return classes.join(' ');
-  }
-
-  stickyColumnClass(column: LtvColumnKey): string {
-    switch (column) {
-      case 'loanCode':
-        return 'ltv-sticky ltv-sticky--code';
-      case 'loanName':
-        return 'ltv-sticky ltv-sticky--name';
-      default:
-        return '';
-    }
   }
 
   private patchRow(rowTrackId: string, patch: Partial<LtvValidationRow>): void {
@@ -710,7 +755,6 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
             : 'No loans returned for the selected filters.',
         );
         this.isLoadingGrid.set(false);
-        this.resetTableScroll();
       },
       error: (error) => {
         this.rows.set([]);
@@ -1055,14 +1099,5 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   private clearMessages(): void {
     this.statusMessage.set('');
     this.errorMessage.set('');
-  }
-
-  private resetTableScroll(): void {
-    queueMicrotask(() => {
-      const wrap = this.gridTableWrap()?.nativeElement;
-      if (wrap) {
-        wrap.scrollLeft = 0;
-      }
-    });
   }
 }

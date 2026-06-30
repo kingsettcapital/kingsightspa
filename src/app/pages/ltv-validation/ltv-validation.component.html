@@ -2,7 +2,7 @@
   <h1>LTV Validation</h1>
   <p class="subtitle">
     Review LTV values extracted by AI from QR slides. Save manual overrides.<br />
-    Confirm AI LTV once review is complete to send notification of review completion.
+    Confirm LTV once review is complete to send notification of review completion.
   </p>
 
   <div class="filters-row">
@@ -71,11 +71,24 @@
   }
 
   <div class="ltv-workspace">
-    <p class="ltv-workspace__hint">Scroll horizontally to see all columns. Loan Code and Loan Name stay pinned on the left.</p>
-
-    <div class="ltv-table-row">
-      <div class="table-wrap" #gridTableWrap>
+    <div class="ltv-table-row" [class.ltv-table-row--pane-collapsed]="slidePaneCollapsed()">
+      <div class="table-wrap">
         <table>
+          <colgroup>
+            <col class="ltv-col--code" />
+            <col class="ltv-col--name" />
+            <col class="ltv-col--alias" />
+            <col class="ltv-col--investor" />
+            <col class="ltv-col--currency" />
+            <col class="ltv-col--currency" />
+            <col class="ltv-col--rank" />
+            <col class="ltv-col--ltv" />
+            <col class="ltv-col--reason" />
+            <col class="ltv-col--comment" />
+            <col class="ltv-col--confidence" />
+            <col class="ltv-col--audit" />
+            <col class="ltv-col--audit" />
+          </colgroup>
           <thead>
             <tr>
               <th class="hidden-column">Loan Key</th>
@@ -98,14 +111,29 @@
             @for (row of paginatedRows(); track row.rowTrackId) {
               <tr>
                 <td class="hidden-column">{{ row.loanKey }}</td>
-                <td [class]="stickyColumnClass('loanCode')">{{ row.loanCode }}</td>
-                <td [class]="stickyColumnClass('loanName')">{{ row.loanName }}</td>
-                <td>{{ row.loanAliasName }}</td>
-                <td>{{ row.investorAliasName }}</td>
-                <td class="numeric-col">{{ formatCurrency(row.securityValue) }}</td>
-                <td class="numeric-col">{{ formatCurrency(row.exposure) }}</td>
-                <td>{{ formatRanking(row.ranking) }}</td>
-                <td class="numeric-col editable-col">
+                <td [class]="columnClass('loanCode')">{{ row.loanCode }}</td>
+                <td [class]="columnClass('loanName')">{{ row.loanName }}</td>
+                <td [class]="columnClass('loanAliasName')">{{ row.loanAliasName }}</td>
+                <td
+                  [class]="columnClass('investorAliasName')"
+                  [attr.title]="row.investorAliasName"
+                >
+                  {{ truncateDisplay(row.investorAliasName, 12) }}
+                </td>
+                <td
+                  [class]="columnClass('securityValue')"
+                  [attr.title]="currencyTitle(row.securityValue)"
+                >
+                  {{ formatCompactCurrency(row.securityValue) }}
+                </td>
+                <td
+                  [class]="columnClass('exposure')"
+                  [attr.title]="currencyTitle(row.exposure)"
+                >
+                  {{ formatCompactCurrency(row.exposure) }}
+                </td>
+                <td [class]="columnClass('ranking')">{{ formatRanking(row.ranking) }}</td>
+                <td [class]="columnClass('ltv')">
                   <span class="ltv-input-wrap">
                     <input
                       type="text"
@@ -120,7 +148,7 @@
                     <span class="ltv-suffix">%</span>
                   </span>
                 </td>
-                <td class="editable-col">
+                <td [class]="columnClass('updateReasons')">
                   <ng-select
                     class="ltv-reason-select"
                     [items]="updateReasonOptions"
@@ -133,7 +161,7 @@
                     [ngModelOptions]="{ standalone: true }"
                   ></ng-select>
                 </td>
-                <td class="editable-col">
+                <td [class]="columnClass('updateComment')">
                   <input
                     type="text"
                     class="ltv-comment-input"
@@ -142,7 +170,7 @@
                     placeholder="Enter comment"
                   />
                 </td>
-                <td class="numeric-col">
+                <td [class]="columnClass('aiConfidenceScore')">
                   @if (row.qrSlideLink) {
                     <button
                       type="button"
@@ -156,8 +184,8 @@
                     {{ formatConfidenceScore(row.aiConfidenceScore) }}
                   }
                 </td>
-                <td class="audit-col">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
-                <td class="audit-col">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
+                <td [class]="columnClass('userUpdatedBy')">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+                <td [class]="columnClass('userUpdatedDate')">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
               </tr>
             } @empty {
               <tr>
@@ -170,16 +198,31 @@
         </table>
       </div>
 
-      <aside class="ltv-slide-pane" aria-label="QR slide preview">
+      <aside
+        class="ltv-slide-pane"
+        [class.ltv-slide-pane--collapsed]="slidePaneCollapsed()"
+        aria-label="QR slide preview"
+      >
         <div class="ltv-slide-pane__header">
           <h2>QR Slide Preview</h2>
+          <button
+            type="button"
+            class="ltv-slide-pane__toggle"
+            (click)="toggleSlidePane()"
+            [attr.aria-expanded]="!slidePaneCollapsed()"
+            [attr.aria-label]="slidePaneCollapsed() ? 'Maximize QR slide preview' : 'Minimize QR slide preview'"
+            [title]="slidePaneCollapsed() ? 'Maximize preview' : 'Minimize preview'"
+          >
+            {{ slidePaneCollapsed() ? '◀' : '▶' }}
+          </button>
+        </div>
+        @if (!slidePaneCollapsed()) {
           @if (selectedQrSlideTitle()) {
             <p class="ltv-slide-pane__title">{{ selectedQrSlideTitle() }}</p>
           }
           @if (pdfPreviewUrl() && !isLoadingPreview() && !previewError()) {
             <p class="ltv-slide-pane__hint">Click the slide to open full view with zoom</p>
           }
-        </div>
         <div class="ltv-slide-pane__body">
           @if (isLoadingPreview()) {
             <p class="ltv-slide-pane__status">Loading QR slide…</p>
@@ -212,6 +255,9 @@
             </p>
           }
         </div>
+        } @else {
+          <p class="ltv-slide-pane__collapsed-label">Preview</p>
+        }
       </aside>
     </div>
 
@@ -254,7 +300,7 @@
           (click)="confirmAiLtv()"
           [disabled]="isConfirming() || !confirmableLoanKeys().length"
         >
-          @if (isConfirming()) { Confirming… } @else { Confirm AI LTV }
+          @if (isConfirming()) { Confirming… } @else { Confirm LTV }
         </button>
         <button
           type="button"
