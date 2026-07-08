@@ -1,13 +1,67 @@
 <section class="ks-fp non-ks-page">
-  <h1>Non-KS Serviced Loans</h1>
-  <p class="subtitle instruction-banner">
-    Enter, per quarter, Quarterly snapshot values for Loans NOT serviced by KingSett.
-  </p>
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">Non-KS Serviced Loans</h1>
+        <p class="ks-page__subtitle instruction-banner">
+          Enter, per quarter, Quarterly snapshot values for Loans NOT serviced by KingSett.
+        </p>
+      </div>
+
+      <div class="ks-fp__filters-compact">
+        <div class="ks-fp__search-block">
+          <label class="ks-fp__filter-label" for="nonKsLoanSearch">Search Loans</label>
+          <ng-select
+            id="nonKsLoanSearch"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="loanSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Search loans..."
+            [ngModel]="selectedLoanKeys()"
+            (ngModelChange)="updateSelectedLoans($event)"
+          ></ng-select>
+          <button
+            type="button"
+            class="ks-fp__clear-selection"
+            (click)="clearSelection()"
+            [disabled]="!selectedLoanKeys().length && !selectedStatuses().length"
+          >
+            Clear Selection
+          </button>
+        </div>
+
+        <div class="ks-fp__status-block">
+          <label class="ks-fp__filter-label" for="nonKsStatus">Status</label>
+          <ng-select
+            id="nonKsStatus"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="statusSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Select status..."
+            [ngModel]="selectedStatuses()"
+            (ngModelChange)="updateSelectedStatuses($event)"
+          ></ng-select>
+        </div>
+      </div>
+    </div>
+  </div>
 
   @if (errorMessage() && !isSaving()) {
     <p class="error-message">{{ errorMessage() }}</p>
   }
-  @if (isLoadingGrid()) {
+  @if (isLoadingGrid() || isLoadingStatuses()) {
     <p class="meta-message">Loading loan records...</p>
   } @else if (statusMessage() && !errorMessage()) {
     <p class="status-message">{{ statusMessage() }}</p>
@@ -321,7 +375,13 @@
         } @empty {
           <tr>
             <td colspan="28" class="empty-row">
-              No records loaded. Click <strong>Add Row</strong> to enter loan data.
+              @if (!selectedStatuses().length) {
+                Select at least one Status to view Non-KS loan records.
+              } @else if (selectedLoanKeys().length) {
+                No records match the selected loan filters.
+              } @else {
+                No records loaded for the selected status. Click <strong>Add Row</strong> to enter loan data.
+              }
             </td>
           </tr>
         }
@@ -334,6 +394,7 @@
       <label for="nonKsPageSize">Rows per page</label>
       <select
         id="nonKsPageSize"
+        class="page-size-select"
         [value]="pageSize()"
         (change)="updatePageSize($any($event.target).value)"
       >
@@ -341,6 +402,7 @@
         <option value="10">10</option>
         <option value="20">20</option>
         <option value="50">50</option>
+        <option value="100">100</option>
       </select>
     </div>
     <div class="pagination-right">

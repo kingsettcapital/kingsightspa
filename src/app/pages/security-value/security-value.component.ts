@@ -1,9 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { NgSelectComponent } from '@ng-select/ng-select';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
+import {
+  resolveDefaultStatusValues,
+  toStatusSelectOptions,
+} from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
@@ -48,6 +54,7 @@ type SecurityValueTableColumn = {
   key: SecurityValueColumnKey;
   label: string;
   numeric?: boolean;
+  audit?: boolean;
 };
 
 const SECURITY_VALUE_TABLE_COLUMNS: SecurityValueTableColumn[] = [
@@ -57,17 +64,14 @@ const SECURITY_VALUE_TABLE_COLUMNS: SecurityValueTableColumn[] = [
   { key: 'units', label: 'Units', numeric: true },
   { key: 'squareFeet', label: 'SF', numeric: true },
   { key: 'acres', label: 'Acres', numeric: true },
-  { key: 'updatedBy', label: 'Modified By' },
-  { key: 'updatedDtm', label: 'Modified Date' },
+  { key: 'updatedBy', label: 'Modified By', audit: true },
+  { key: 'updatedDtm', label: 'Modified Date', audit: true },
 ];
-
-/** displayLabel from API for default grid filter (dim_status). */
-const DEFAULT_STATUS_LABEL = 'Default';
 
 @Component({
   selector: 'app-security-value',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, NgSelectComponent],
   templateUrl: './security-value.component.html',
   styleUrl: './security-value.component.css',
 })
@@ -111,6 +115,15 @@ export class SecurityValueComponent implements OnInit {
     const selectedIds = new Set(this.selectedLoanAliasIds());
     return this.aliasOptions().filter((alias) => selectedIds.has(alias.loanAliasId));
   });
+
+  readonly aliasSelectOptions = computed(() =>
+    this.aliasOptions().map((alias) => ({
+      label: alias.loanAliasName,
+      value: alias.loanAliasId,
+    })),
+  );
+
+  readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
 
   readonly searchedAliasOptions = computed(() => {
     const keyword = this.searchText().trim().toLowerCase();
@@ -261,25 +274,33 @@ export class SecurityValueComponent implements OnInit {
     }
   }
 
-  selectAlias(alias: AliasOption): void {
-    if (this.selectedLoanAliasIds().includes(alias.loanAliasId)) {
-      return;
-    }
-
-    this.selectedLoanAliasIds.set([...this.selectedLoanAliasIds(), alias.loanAliasId]);
+  updateSelectedAliases(ids: number[] | null): void {
+    this.selectedLoanAliasIds.set(ids ?? []);
     this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGridData();
   }
 
-  removeSelectedAlias(loanAliasId: number): void {
-    this.selectedLoanAliasIds.set(
-      this.selectedLoanAliasIds().filter((id) => id !== loanAliasId),
-    );
+  updateSelectedStatuses(statuses: string[] | null): void {
+    this.selectedStatuses.set(statuses ?? []);
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGridData();
+  }
+
+  selectAlias(alias: AliasOption): void {
+    if (this.selectedLoanAliasIds().includes(alias.loanAliasId)) {
+      return;
+    }
+
+    this.updateSelectedAliases([...this.selectedLoanAliasIds(), alias.loanAliasId]);
+  }
+
+  removeSelectedAlias(loanAliasId: number): void {
+    this.updateSelectedAliases(
+      this.selectedLoanAliasIds().filter((id) => id !== loanAliasId),
+    );
   }
 
   toggleStatus(status: string): void {
@@ -287,9 +308,7 @@ export class SecurityValueComponent implements OnInit {
     const next = current.includes(status)
       ? current.filter((s) => s !== status)
       : [...current, status];
-    this.selectedStatuses.set(next);
-    this.clearMessages();
-    this.loadGridData();
+    this.updateSelectedStatuses(next);
   }
 
   isStatusSelected(status: string): boolean {
@@ -312,6 +331,7 @@ export class SecurityValueComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedLoanAliasIds.set([]);
+    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGridData();
@@ -455,7 +475,7 @@ export class SecurityValueComponent implements OnInit {
       next: ({ statuses, aliases }) => {
         const statusOptions = this.normalizeStatusOptions(statuses);
         this.statusOptions.set(statusOptions);
-        this.selectedStatuses.set(this.resolveDefaultStatusValues(statusOptions));
+        this.selectedStatuses.set(resolveDefaultStatusValues(statusOptions));
         this.isLoadingStatuses.set(false);
 
         if (!statusOptions.length) {
@@ -509,22 +529,6 @@ export class SecurityValueComponent implements OnInit {
         return { value, displayLabel: displayLabel || value };
       })
       .filter((row) => row.value.length > 0 || row.displayLabel.length > 0);
-  }
-
-  private resolveDefaultStatusValues(options: LoanStatusFilterOption[]): string[] {
-    if (!options.length) {
-      return [];
-    }
-    const preferred = options.find((o) => {
-      const label = o.displayLabel.trim().toLowerCase();
-      return (
-        label === DEFAULT_STATUS_LABEL.toLowerCase() ||
-        label === 'in default' ||
-        o.value === '2'
-      );
-    });
-    const fallback = options.find((o) => o.value !== '(null)') ?? options[0];
-    return [preferred?.value ?? fallback.value];
   }
 
   /** Selected alias tags, or all aliases when none selected. */

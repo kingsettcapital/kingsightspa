@@ -16,6 +16,10 @@ import { catchError } from 'rxjs/operators';
 
 import { APP_API_CONFIG } from '../../core/constants/api.config';
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
+import {
+  resolveDefaultStatusValues,
+  toStatusSelectOptions,
+} from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
@@ -77,6 +81,7 @@ type LtvColumnKey =
 type LtvTableColumn = {
   key: LtvColumnKey;
   label: string;
+  audit?: boolean;
 };
 
 export const LTV_UPDATE_REASON_OPTIONS = [
@@ -100,11 +105,9 @@ const LTV_TABLE_COLUMNS: LtvTableColumn[] = [
   { key: 'updateReasons', label: 'Update Reason' },
   { key: 'updateComment', label: 'Update Comment' },
   { key: 'aiConfidenceScore', label: 'AI Score' },
-  { key: 'userUpdatedBy', label: 'Modified By' },
-  { key: 'userUpdatedDate', label: 'Modified Date' },
+  { key: 'userUpdatedBy', label: 'Modified By', audit: true },
+  { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
 ];
-
-const DEFAULT_STATUS_LABEL = 'Default';
 
 @Component({
   selector: 'app-ltv-validation',
@@ -170,6 +173,15 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     const ids = new Set(this.selectedLoanAliasIds());
     return this.aliasOptions().filter((a) => ids.has(a.loanAliasId));
   });
+
+  readonly aliasSelectOptions = computed(() =>
+    this.aliasOptions().map((a) => ({
+      label: a.loanAliasName,
+      value: a.loanAliasId,
+    })),
+  );
+
+  readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
 
   readonly searchedAliasOptions = computed(() => {
     const keyword = this.searchText().trim().toLowerCase();
@@ -251,6 +263,30 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     this.searchText.set(value);
     this.currentPage.set(1);
     this.clearMessages();
+  }
+
+  updateSelectedAliases(ids: number[] | null): void {
+    this.selectedLoanAliasIds.set(ids ?? []);
+    this.searchText.set('');
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
+  }
+
+  updateSelectedStatuses(statuses: string[] | null): void {
+    this.selectedStatuses.set(statuses ?? []);
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
+  }
+
+  clearSelection(): void {
+    this.searchText.set('');
+    this.selectedLoanAliasIds.set([]);
+    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
   }
 
   selectAlias(alias: AliasOption): void {
@@ -694,7 +730,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
             .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
         );
         this.statusOptions.set(this.normalizeStatusOptions(statuses));
-        this.selectedStatuses.set(this.resolveDefaultStatusValues(this.statusOptions()));
+        this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
         this.isLoadingFilters.set(false);
 
         if (!this.aliasOptions().length) {
@@ -1054,18 +1090,6 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       value: String(row['value'] ?? '').trim(),
       displayLabel: String(row['displayLabel'] ?? row['value'] ?? '').trim(),
     }));
-  }
-
-  private resolveDefaultStatusValues(options: LoanStatusFilterOption[]): string[] {
-    if (!options.length) {
-      return [];
-    }
-    const preferred = options.find(
-      (o) =>
-        o.displayLabel.toLowerCase() === DEFAULT_STATUS_LABEL.toLowerCase() ||
-        o.displayLabel.toLowerCase() === 'in default',
-    );
-    return [preferred?.value ?? options.find((o) => o.value !== '(null)')?.value ?? options[0].value];
   }
 
   private extractBackendError(

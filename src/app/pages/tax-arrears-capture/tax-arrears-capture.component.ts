@@ -1,9 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { NgSelectComponent } from '@ng-select/ng-select';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
+import {
+  resolveDefaultStatusValues,
+  toStatusSelectOptions,
+} from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import { LoanDto, LoansApiService } from '../../core/services/loans-api.service';
@@ -70,6 +76,7 @@ type TaxArrearTableColumn = {
   label: string;
   editable?: boolean;
   numeric?: boolean;
+  audit?: boolean;
 };
 
 const TAX_ARREAR_TABLE_COLUMNS: TaxArrearTableColumn[] = [
@@ -80,16 +87,14 @@ const TAX_ARREAR_TABLE_COLUMNS: TaxArrearTableColumn[] = [
   { key: 'taxArrears', label: 'Tax Arrears', editable: true, numeric: true },
   { key: 'taxYear', label: 'Tax Year', editable: true },
   { key: 'notes', label: 'Notes', editable: true },
-  { key: 'userUpdatedBy', label: 'Modified By' },
-  { key: 'userUpdatedDate', label: 'Modified Date' },
+  { key: 'userUpdatedBy', label: 'Modified By', audit: true },
+  { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
 ];
-
-const DEFAULT_STATUS_LABEL = 'Default';
 
 @Component({
   selector: 'app-tax-arrears-capture',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, NgSelectComponent],
   templateUrl: './tax-arrears-capture.component.html',
   styleUrl: './tax-arrears-capture.component.css',
 })
@@ -127,8 +132,6 @@ export class TaxArrearsCaptureComponent implements OnInit {
   readonly newRecord = signal<NewRecordForm>(this.emptyNewRecord());
   readonly currentPage = signal(1);
   readonly pageSize = signal(this.defaultPageSize);
-
-  private readonly loanSearchInput = viewChild<ElementRef<HTMLInputElement>>('loanSearchInput');
 
   ngOnInit(): void {
     this.loadFilters();
@@ -175,6 +178,27 @@ export class TaxArrearsCaptureComponent implements OnInit {
       return true;
     });
   });
+
+  readonly aliasSelectOptions = computed(() => {
+    const seenCodes = new Set<string>();
+    return this.allLoans()
+      .map((loan) => {
+        const loanCode = loan.loanCode?.trim() ?? '';
+        if (!loanCode || seenCodes.has(loanCode)) {
+          return null;
+        }
+        seenCodes.add(loanCode);
+        const loanName = loan.loanDesc?.trim() || '—';
+        return {
+          label: `${loanCode} — ${loanName}`,
+          value: loanCode,
+        };
+      })
+      .filter((v): v is { label: string; value: string } => Boolean(v))
+      .sort((a, b) => a.value.localeCompare(b.value));
+  });
+
+  readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
 
   readonly modalLoanOptions = computed(() => {
     const aliasId = this.newRecord().loanAliasId;
@@ -283,6 +307,21 @@ export class TaxArrearsCaptureComponent implements OnInit {
     this.clearMessages();
   }
 
+  updateSelectedAliases(codes: string[] | null): void {
+    this.selectedLoanCodes.set(codes ?? []);
+    this.searchText.set('');
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
+  }
+
+  updateSelectedStatuses(statuses: string[] | null): void {
+    this.selectedStatuses.set(statuses ?? []);
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
+  }
+
   selectLoan(row: TaxArrearRow): void {
     if (this.selectedLoanCodes().includes(row.loanCode)) {
       return;
@@ -302,13 +341,11 @@ export class TaxArrearsCaptureComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedLoanCodes.set([]);
+    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
     this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
-    const input = this.loanSearchInput()?.nativeElement;
-    if (input) {
-      input.value = '';
-    }
+    this.loadGrid();
   }
 
   toggleSort(column: TaxArrearColumnKey): void {
@@ -621,7 +658,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
             .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
         );
         this.statusOptions.set(this.normalizeStatusOptions(statuses));
-        this.selectedStatuses.set(this.resolveDefaultStatusValues(this.statusOptions()));
+        this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
         this.allLoans.set(Array.isArray(loans) ? loans : []);
         this.taxYearOptions.set(this.buildTaxYearOptions(lookups));
         this.isLoadingFilters.set(false);
@@ -894,18 +931,6 @@ export class TaxArrearsCaptureComponent implements OnInit {
       value: String(row['value'] ?? '').trim(),
       displayLabel: String(row['displayLabel'] ?? row['value'] ?? '').trim(),
     }));
-  }
-
-  private resolveDefaultStatusValues(options: LoanStatusFilterOption[]): string[] {
-    if (!options.length) {
-      return [];
-    }
-    const preferred = options.find(
-      (o) =>
-        o.displayLabel.toLowerCase() === DEFAULT_STATUS_LABEL.toLowerCase() ||
-        o.displayLabel.toLowerCase() === 'in default',
-    );
-    return [preferred?.value ?? options.find((o) => o.value !== '(null)')?.value ?? options[0].value];
   }
 
   private extractBackendError(error: unknown, fallback = 'Failed to load or save tax arrears data.'): string {

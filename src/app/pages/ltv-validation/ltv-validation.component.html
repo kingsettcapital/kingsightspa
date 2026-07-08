@@ -1,59 +1,60 @@
 <section class="ks-fp ltv-validation-page">
-  <h1>LTV Validation</h1>
-  <p class="subtitle">
-    Review LTV values extracted by AI from QR slides. Save manual overrides.<br />
-    Confirm LTV once review is complete to send notification of review completion.
-  </p>
-
-  <div class="filters-row">
-    <div class="filter-panel alias-panel">
-      <span class="filter-label">Loan Alias</span>
-      <div class="search-input-wrap">
-        <input
-          type="text"
-          [value]="searchText()"
-          (input)="updateSearch($any($event.target).value)"
-          placeholder="Enter Search Value"
-        />
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">LTV Validation</h1>
+        <p class="ks-page__subtitle">
+          Review LTV values extracted by AI from QR slides. Save manual overrides.<br />
+          Confirm LTV once review is complete to send notification of review completion.
+        </p>
       </div>
 
-      @if (searchedAliasOptions().length > 0) {
-        <ul class="search-results">
-          @for (alias of searchedAliasOptions(); track alias.loanAliasId) {
-            <li>
-              <button type="button" (click)="selectAlias(alias)">{{ alias.loanAliasName }}</button>
-            </li>
-          }
-        </ul>
-      }
-
-      <div class="selected-alias-tags">
-        @for (selected of selectedAliases(); track selected.loanAliasId) {
-          <button type="button" class="alias-tag" (click)="removeSelectedAlias(selected.loanAliasId)">
-            <span>{{ selected.loanAliasName }}</span>
-            <span class="tag-close">x</span>
+      <div class="ks-fp__filters-compact">
+        <div class="ks-fp__search-block">
+          <label class="ks-fp__filter-label" for="ltvLoanAliasSearch">Search Loans</label>
+          <ng-select
+            id="ltvLoanAliasSearch"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="aliasSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Search loan aliases..."
+            [ngModel]="selectedLoanAliasIds()"
+            (ngModelChange)="updateSelectedAliases($event)"
+          ></ng-select>
+          <button
+            type="button"
+            class="ks-fp__clear-selection"
+            (click)="clearSelection()"
+            [disabled]="!selectedLoanAliasIds().length && !selectedStatuses().length"
+          >
+            Clear Selection
           </button>
-        }
-      </div>
+        </div>
 
-      @if (selectedAliases().length > 0) {
-        <button type="button" class="link-clear" (click)="clearAliasSelection()">Clear aliases</button>
-      }
-    </div>
-
-    <div class="filter-panel status-panel">
-      <span class="filter-label">Status</span>
-      <div class="status-options">
-        @for (status of statusOptions(); track status.value) {
-          <label class="status-option">
-            <input
-              type="checkbox"
-              [checked]="isStatusSelected(status.value)"
-              (change)="toggleStatus(status.value)"
-            />
-            <span>{{ status.displayLabel }}</span>
-          </label>
-        }
+        <div class="ks-fp__status-block">
+          <label class="ks-fp__filter-label" for="ltvStatusSelect">Status</label>
+          <ng-select
+            id="ltvStatusSelect"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="statusSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Select status..."
+            [ngModel]="selectedStatuses()"
+            (ngModelChange)="updateSelectedStatuses($event)"
+          ></ng-select>
+        </div>
       </div>
     </div>
   </div>
@@ -267,6 +268,7 @@
           <label for="ltvPageSize">Rows per page</label>
           <select
             id="ltvPageSize"
+            class="page-size-select"
             [value]="pageSize()"
             (change)="updatePageSize($any($event.target).value)"
           >
@@ -274,6 +276,7 @@
             <option value="10">10</option>
             <option value="20">20</option>
             <option value="50">50</option>
+            <option value="100">100</option>
           </select>
         </div>
         <div class="pagination-right">

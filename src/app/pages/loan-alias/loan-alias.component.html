@@ -1,41 +1,61 @@
 <section class="ks-fp la-page">
 
-  <!-- ── Page header ───────────────────────────────────────────────────────── -->
-  <div class="la-header">
-    <h1>Loan Alias Management</h1>
-    <p class="la-subtitle">
-      Create, View and Edit Loan Alias Master List.
-      For Deletion of a Loan Alias, please ensure there are no Loans assigned to the Loan Alias and send an email to
-      <a class="la-subtitle__link" href="mailto:ITSupport@KingSettCapital.com">ITSupport@KingSettCapital.com</a>
-      to request the deletion the Loan Alias.
-    </p>
-  </div>
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">Loan Alias Management</h1>
+        <p class="ks-page__subtitle la-subtitle">
+          Create, View and Edit Loan Alias Master List.
+          For Deletion of a Loan Alias, please ensure there are no Loans assigned to the Loan Alias and send an email to
+          <a class="la-subtitle__link" href="mailto:ITSupport@KingSettCapital.com">ITSupport@KingSettCapital.com</a>
+          to request the deletion the Loan Alias.
+        </p>
+      </div>
 
-  <!-- ── Toolbar: search + add ─────────────────────────────────────────────── -->
-  <div class="la-toolbar">
-    <div class="la-search-wrap">
-      <span class="la-search-icon" aria-hidden="true">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-      </span>
-      <input
-        type="text"
-        class="la-search-input"
-        placeholder="Enter Search Value"
-        [value]="searchTerm()"
-        (input)="updateSearch($any($event.target).value)"
-        aria-label="Search loan aliases"
-      />
+      <div class="ks-fp__filters-compact">
+        <div class="ks-fp__search-block">
+          <label class="ks-fp__filter-label" for="loanAliasSearch">Search</label>
+          <input
+            id="loanAliasSearch"
+            type="text"
+            class="ks-fp__search-input"
+            placeholder="Enter Search Value"
+            [value]="searchTerm()"
+            (input)="updateSearch($any($event.target).value)"
+            aria-label="Search loan aliases"
+          />
+
+          @if (searchTerm().trim() && aliasSuggestions().length > 0) {
+            <ul class="ks-fp__autocomplete">
+              @for (alias of aliasSuggestions(); track alias.loanAliasId) {
+                <li>
+                  <button type="button" (click)="selectAliasSuggestion(alias)">
+                    {{ alias.loanAliasName }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          <button
+            type="button"
+            class="ks-fp__clear-selection"
+            (click)="clearSelection()"
+            [disabled]="!searchTerm().trim().length"
+          >
+            Clear Selection
+          </button>
+        </div>
+
+        <button type="button" class="ks-btn ks-btn--accent" (click)="openCreateDialog()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add New Alias
+        </button>
+      </div>
     </div>
-    <button type="button" class="ks-btn ks-btn--accent" (click)="openCreateDialog()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
-      Add New Alias
-    </button>
   </div>
 
   <!-- ── Status / error strip ──────────────────────────────────────────────── -->
@@ -58,7 +78,14 @@
         <thead>
           <tr>
             @for (column of tableColumns; track column.key) {
-              <th>
+              <th
+                [class.audit-col]="
+                  column.key === 'updatedBy' ||
+                  column.key === 'updatedDtm' ||
+                  column.key === 'createdBy' ||
+                  column.key === 'createdDtm'
+                "
+              >
                 <button
                   type="button"
                   class="la-th-sort"
@@ -78,10 +105,10 @@
             <tr>
               <td class="col-id">{{ alias.loanAliasId }}</td>
               <td class="col-name">{{ alias.loanAliasName }}</td>
-              <td>{{ displayUserName(alias.updatedBy) }}</td>
-              <td>{{ formatAuditDate(alias.updatedDtm) }}</td>
-              <td>{{ displayUserName(alias.createdBy) }}</td>
-              <td>{{ formatAuditDate(alias.createdDtm) }}</td>
+              <td class="audit-col">{{ displayUserName(alias.updatedBy) }}</td>
+              <td class="audit-col">{{ formatAuditDate(alias.updatedDtm) }}</td>
+              <td class="audit-col">{{ displayUserName(alias.createdBy) }}</td>
+              <td class="audit-col">{{ formatAuditDate(alias.createdDtm) }}</td>
               <td class="col-actions">
                 <div class="row-actions">
                   <button
@@ -119,45 +146,63 @@
     <!-- ── Pagination ─────────────────────────────────────────────────────── -->
     @if (totalPages() > 1 || filteredAliases().length > 0) {
       <div class="la-pagination">
-        <span class="la-page-range">{{ pageRangeLabel() }}</span>
-
-        <div class="la-page-controls">
-          <button
-            type="button"
-            class="pager-btn"
-            (click)="goToPreviousPage()"
-            [disabled]="currentPage() <= 1"
-            aria-label="Previous page"
+        <div class="pagination-left">
+          <label for="pageSize">Rows per page</label>
+          <select
+            id="pageSize"
+            class="page-size-select"
+            [value]="pageSize()"
+            (change)="updatePageSize($any($event.target).value)"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
-            Prev
-          </button>
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
 
-          @for (page of pageNumbers(); track page) {
+        <div class="pagination-right">
+          <span class="la-page-range">{{ pageRangeLabel() }}</span>
+
+          <div class="la-page-controls">
             <button
               type="button"
               class="pager-btn"
-              [class.pager-btn--active]="currentPage() === page"
-              (click)="goToPage(page)"
-            >{{ page }}</button>
-          }
+              (click)="goToPreviousPage()"
+              [disabled]="currentPage() <= 1"
+              aria-label="Previous page"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+              Prev
+            </button>
 
-          <button
-            type="button"
-            class="pager-btn"
-            (click)="goToNextPage()"
-            [disabled]="currentPage() >= totalPages()"
-            aria-label="Next page"
-          >
-            Next
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
-          </button>
+            @for (page of pageNumbers(); track page) {
+              <button
+                type="button"
+                class="pager-btn"
+                [class.pager-btn--active]="currentPage() === page"
+                (click)="goToPage(page)"
+              >{{ page }}</button>
+            }
+
+            <button
+              type="button"
+              class="pager-btn"
+              (click)="goToNextPage()"
+              [disabled]="currentPage() >= totalPages()"
+              aria-label="Next page"
+            >
+              Next
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     }

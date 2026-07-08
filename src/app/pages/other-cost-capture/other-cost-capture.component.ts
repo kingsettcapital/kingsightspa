@@ -1,9 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { NgSelectComponent } from '@ng-select/ng-select';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
+import {
+  resolveDefaultStatusValues,
+  toStatusSelectOptions,
+} from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
@@ -51,6 +57,7 @@ type OtherCostTableColumn = {
   key: OtherCostColumnKey;
   label: string;
   numeric?: boolean;
+  audit?: boolean;
 };
 
 const OTHER_COST_TABLE_COLUMNS: OtherCostTableColumn[] = [
@@ -60,16 +67,14 @@ const OTHER_COST_TABLE_COLUMNS: OtherCostTableColumn[] = [
   { key: 'outstandingInvoices', label: 'Outstanding Invoice', numeric: true },
   { key: 'estRealizationCosts', label: 'Est Realization Costs', numeric: true },
   { key: 'costToComplete', label: 'Cost to Complete', numeric: true },
-  { key: 'userUpdatedBy', label: 'Modified By' },
-  { key: 'userUpdatedDate', label: 'Modified Date' },
+  { key: 'userUpdatedBy', label: 'Modified By', audit: true },
+  { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
 ];
-
-const DEFAULT_STATUS_LABEL = 'Default';
 
 @Component({
   selector: 'app-other-cost-capture',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, NgSelectComponent],
   templateUrl: './other-cost-capture.component.html',
   styleUrl: './other-cost-capture.component.css',
 })
@@ -109,6 +114,15 @@ export class OtherCostCaptureComponent implements OnInit {
     const selectedIds = new Set(this.selectedLoanAliasIds());
     return this.aliasOptions().filter((alias) => selectedIds.has(alias.loanAliasId));
   });
+
+  readonly aliasSelectOptions = computed(() =>
+    this.aliasOptions().map((alias) => ({
+      label: alias.loanAliasName,
+      value: alias.loanAliasId,
+    })),
+  );
+
+  readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
 
   readonly searchedAliasOptions = computed(() => {
     const keyword = this.searchText().trim().toLowerCase();
@@ -191,6 +205,21 @@ export class OtherCostCaptureComponent implements OnInit {
     this.searchText.set(value);
     this.currentPage.set(1);
     this.clearMessages();
+  }
+
+  updateSelectedAliases(ids: number[] | null): void {
+    this.selectedLoanAliasIds.set(ids ?? []);
+    this.searchText.set('');
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
+  }
+
+  updateSelectedStatuses(statuses: string[] | null): void {
+    this.selectedStatuses.set(statuses ?? []);
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
   }
 
   selectAlias(alias: AliasOption): void {
@@ -313,9 +342,11 @@ export class OtherCostCaptureComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedLoanAliasIds.set([]);
+    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
     this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
+    this.loadGrid();
   }
 
   saveChanges(): void {
@@ -411,7 +442,7 @@ export class OtherCostCaptureComponent implements OnInit {
             .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
         );
         this.statusOptions.set(this.normalizeStatusOptions(statuses));
-        this.selectedStatuses.set(this.resolveDefaultStatusValues(this.statusOptions()));
+        this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
         this.isLoadingFilters.set(false);
         this.loadGrid();
       },
@@ -485,18 +516,6 @@ export class OtherCostCaptureComponent implements OnInit {
       value: String(row['value'] ?? '').trim(),
       displayLabel: String(row['displayLabel'] ?? row['value'] ?? '').trim(),
     }));
-  }
-
-  private resolveDefaultStatusValues(options: LoanStatusFilterOption[]): string[] {
-    if (!options.length) {
-      return [];
-    }
-    const preferred = options.find(
-      (o) =>
-        o.displayLabel.toLowerCase() === DEFAULT_STATUS_LABEL.toLowerCase() ||
-        o.displayLabel.toLowerCase() === 'in default',
-    );
-    return [preferred?.value ?? options.find((o) => o.value !== '(null)')?.value ?? options[0].value];
   }
 
   private snapshotOriginalState(): void {

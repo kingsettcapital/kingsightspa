@@ -1,54 +1,68 @@
 <section class="ks-fp loan-alias-assignment-page">
-  <h1>Loan Alias Assignment</h1>
-  <p class="subtitle">Search loans and assign alias names from the master list</p>
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">Loan Alias Assignment</h1>
+        <p class="ks-page__subtitle">Search loans and assign alias names from the master list</p>
+      </div>
 
-  <div class="search-panel">
-    <label for="loanSearch">Search Loans</label>
-    <div class="search-input-wrap">
-      <span class="search-icon" aria-hidden="true"></span>
-      <input
-        #loanSearchInput
-        id="loanSearch"
-        type="text"
-        [value]="searchText()"
-        (input)="updateSearch($any($event.target).value)"
-        placeholder="Enter Search Value"
-      />
+      <div class="ks-fp__filters-compact">
+        <div class="ks-fp__search-block">
+          <label class="ks-fp__filter-label" for="loanSearch">Search Loans</label>
+          <ng-select
+            id="loanSearch"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="loanSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Search loans..."
+            [ngModel]="selectedLoanCodes()"
+            (ngModelChange)="updateSelectedLoans($event)"
+          ></ng-select>
+
+          <button
+            type="button"
+            class="ks-fp__clear-selection"
+            (click)="clearSelection()"
+            [disabled]="!selectedLoanCodes().length && !selectedStatuses().length"
+          >
+            Clear Selection
+          </button>
+        </div>
+
+        <div class="ks-fp__status-block">
+          <label class="ks-fp__filter-label" for="loanAliasAssignmentStatus">Status</label>
+          <ng-select
+            id="loanAliasAssignmentStatus"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="statusSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Select status..."
+            [ngModel]="selectedStatuses()"
+            (ngModelChange)="updateSelectedStatuses($event)"
+          ></ng-select>
+        </div>
+      </div>
     </div>
-
-    @if (searchedLoanOptions().length > 0) {
-      <ul class="search-results">
-        @for (row of searchedLoanOptions(); track row.loanCode) {
-          <li>
-            <button type="button" (click)="selectLoan(row)">
-              <span class="result-code">{{ row.loanCode }}</span>
-              <span>{{ row.loanName }}</span>
-            </button>
-          </li>
-        }
-      </ul>
-    }
-
-    <div class="selected-loan-tags">
-      @for (selectedLoan of selectedLoans(); track selectedLoan.loanCode) {
-        <button
-          type="button"
-          class="loan-tag"
-          (click)="removeSelectedLoan(selectedLoan.loanCode)"
-        >
-          <span>{{ selectedLoan.loanCode }}&nbsp; {{ selectedLoan.loanName }}</span>
-          <span class="tag-close">x</span>
-        </button>
-      }
-    </div>
-
-    @if (isLoading()) {
-      <p class="meta-message">Loading loans...</p>
-    }
-    @if (errorMessage() && !isSaving()) {
-      <p class="error-message">{{ errorMessage() }}</p>
-    }
   </div>
+
+  @if (isLoading()) {
+    <p class="meta-message">Loading loans...</p>
+  }
+  @if (errorMessage() && !isSaving()) {
+    <p class="error-message">{{ errorMessage() }}</p>
+  }
 
   <div class="table-wrap">
     <table>
@@ -56,7 +70,7 @@
         <tr>
           <th class="hidden-column">Loan Key</th>
           @for (column of tableColumns; track column.key) {
-            <th>
+            <th [class.audit-col]="column.audit">
               <button
                 type="button"
                 class="la-th-sort"
@@ -91,12 +105,20 @@
                 }
               </select>
             </td>
-            <td class="date-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
-            <td class="date-cell">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
+            <td class="audit-col date-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="audit-col date-cell">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>
         } @empty {
           <tr>
-            <td colspan="6" class="empty-row">No loans found for this search.</td>
+            <td colspan="6" class="empty-row">
+              @if (!selectedStatuses().length) {
+                Select at least one Status to view loans.
+              } @else if (selectedLoanCodes().length) {
+                No loans match the selected loan filters.
+              } @else {
+                No loans found for the selected status.
+              }
+            </td>
           </tr>
         }
       </tbody>
@@ -108,6 +130,7 @@
       <label for="pageSize">Rows per page</label>
       <select
         id="pageSize"
+        class="page-size-select"
         [value]="pageSize()"
         (change)="updatePageSize($any($event.target).value)"
       >
@@ -115,6 +138,7 @@
         <option value="10">10</option>
         <option value="20">20</option>
         <option value="50">50</option>
+        <option value="100">100</option>
       </select>
     </div>
     <div class="pagination-right">
@@ -135,7 +159,6 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="ks-btn ks-btn--accent" (click)="clearSelection()">Clear Selection</button>
     <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving()">
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>

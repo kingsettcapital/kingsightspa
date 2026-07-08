@@ -1,9 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { NgSelectComponent } from '@ng-select/ng-select';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
+import {
+  resolveDefaultStatusValues,
+  toStatusSelectOptions,
+} from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import {
   DefaultDateCaptureApiService,
@@ -45,6 +51,7 @@ type DefaultDateTableColumn = {
   key: DefaultDateColumnKey;
   label: string;
   editable?: boolean;
+  audit?: boolean;
 };
 
 const DEFAULT_DATE_TABLE_COLUMNS: DefaultDateTableColumn[] = [
@@ -53,16 +60,14 @@ const DEFAULT_DATE_TABLE_COLUMNS: DefaultDateTableColumn[] = [
   { key: 'loanAliasName', label: 'Loan Alias' },
   { key: 'loanTermDefaultDate', label: 'Loan Term Default Date' },
   { key: 'defaultDate', label: 'Default Date', editable: true },
-  { key: 'userUpdatedBy', label: 'Modified By' },
-  { key: 'userUpdatedDate', label: 'Modified Date' },
+  { key: 'userUpdatedBy', label: 'Modified By', audit: true },
+  { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
 ];
-
-const DEFAULT_STATUS_LABEL = 'Default';
 
 @Component({
   selector: 'app-default-date-capture',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, NgSelectComponent],
   templateUrl: './default-date-capture.component.html',
   styleUrl: './default-date-capture.component.css',
 })
@@ -102,6 +107,15 @@ export class DefaultDateCaptureComponent implements OnInit {
     const names = new Set(this.selectedAliasNames().map((n) => n.toLowerCase()));
     return this.aliasOptions().filter((a) => names.has(a.loanAliasName.toLowerCase()));
   });
+
+  readonly aliasSelectOptions = computed(() =>
+    this.aliasOptions().map((alias) => ({
+      label: alias.loanAliasName,
+      value: alias.loanAliasName,
+    })),
+  );
+
+  readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
 
   readonly searchedAliasOptions = computed(() => {
     const keyword = this.searchText().trim().toLowerCase();
@@ -181,6 +195,21 @@ export class DefaultDateCaptureComponent implements OnInit {
     this.clearMessages();
   }
 
+  updateSelectedAliases(names: string[] | null): void {
+    this.selectedAliasNames.set(names ?? []);
+    this.searchText.set('');
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
+  }
+
+  updateSelectedStatuses(statuses: string[] | null): void {
+    this.selectedStatuses.set(statuses ?? []);
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
+  }
+
   selectAlias(alias: AliasOption): void {
     const name = alias.loanAliasName.trim();
     if (!name || this.selectedAliasNames().includes(name)) {
@@ -203,9 +232,11 @@ export class DefaultDateCaptureComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedAliasNames.set([]);
+    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
     this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
+    this.loadGrid();
   }
 
   toggleSort(column: DefaultDateColumnKey): void {
@@ -390,7 +421,7 @@ export class DefaultDateCaptureComponent implements OnInit {
       next: ({ aliases, statuses }) => {
         this.aliasOptions.set(this.normalizeAliases(aliases));
         this.statusOptions.set(this.normalizeStatusOptions(statuses));
-        this.selectedStatuses.set(this.resolveDefaultStatusValues(this.statusOptions()));
+        this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
         this.isLoadingFilters.set(false);
         this.loadGrid();
       },
@@ -551,18 +582,6 @@ export class DefaultDateCaptureComponent implements OnInit {
       value: String(row['value'] ?? '').trim(),
       displayLabel: String(row['displayLabel'] ?? row['value'] ?? '').trim(),
     }));
-  }
-
-  private resolveDefaultStatusValues(options: LoanStatusFilterOption[]): string[] {
-    if (!options.length) {
-      return [];
-    }
-    const preferred = options.find(
-      (o) =>
-        o.displayLabel.toLowerCase() === DEFAULT_STATUS_LABEL.toLowerCase() ||
-        o.displayLabel.toLowerCase() === 'in default',
-    );
-    return [preferred?.value ?? options.find((o) => o.value !== '(null)')?.value ?? options[0].value];
   }
 
   private extractBackendError(error: unknown): string {

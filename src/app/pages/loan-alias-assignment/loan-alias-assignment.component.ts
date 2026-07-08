@@ -1,13 +1,24 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { NgSelectComponent } from '@ng-select/ng-select';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 import {
   filterRowsByTableSearch,
 } from '../../core/utils/mortgage-table-search';
+import {
+  normalizeStatusOptions,
+  resolveDefaultStatusValues,
+  toStatusSelectOptions,
+} from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
+import {
+  LoanSecurityValueApiService,
+  LoanStatusFilterOption,
+} from '../../core/services/loan-security-value-api.service';
 import {
   LoanBulkUpdateRequest,
   LoanDto,
@@ -34,26 +45,30 @@ type LoanAssignmentColumnKey =
 type LoanAssignmentTableColumn = {
   key: LoanAssignmentColumnKey;
   label: string;
+  audit?: boolean;
 };
+
+type LoanSelectOption = { value: string; label: string };
 
 const LOAN_ASSIGNMENT_TABLE_COLUMNS: LoanAssignmentTableColumn[] = [
   { key: 'loanCode', label: 'Loan Code' },
   { key: 'loanName', label: 'Loan Name' },
   { key: 'loanAliasName', label: 'Loan Alias' },
-  { key: 'userUpdatedBy', label: 'Modified By' },
-  { key: 'userUpdatedDate', label: 'Modified Date' },
+  { key: 'userUpdatedBy', label: 'Modified By', audit: true },
+  { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
 ];
 
 @Component({
   selector: 'app-loan-alias-assignment',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NgSelectComponent],
   templateUrl: './loan-alias-assignment.component.html',
   styleUrl: './loan-alias-assignment.component.css',
 })
 export class LoanAliasAssignmentComponent implements OnInit {
   private readonly loansApi = inject(LoansApiService);
   private readonly loanAliasApi = inject(LoanAliasApiService);
+  private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
 
@@ -63,6 +78,10 @@ export class LoanAliasAssignmentComponent implements OnInit {
   readonly sortColumn = signal<LoanAssignmentColumnKey | null>(null);
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
   readonly selectedLoanCodes = signal<string[]>([]);
+  readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
+  readonly selectedStatuses = signal<string[]>([]);
+  /** Alias names that match the selected Status filter (from LoanSecurityValue). */
+  readonly statusMatchingAliasNames = signal<Set<string> | null>(null);
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
   readonly isLoading = signal(false);
@@ -74,7 +93,22 @@ export class LoanAliasAssignmentComponent implements OnInit {
   readonly aliasOptions = signal<LoanAlias[]>([]);
   readonly originalRowState = signal<Record<string, number | null>>({});
 
-  private readonly loanSearchInput = viewChild<ElementRef<HTMLInputElement>>('loanSearchInput');
+  readonly loanSelectOptions = computed<LoanSelectOption[]>(() => {
+    const seen = new Set<string>();
+    const options: LoanSelectOption[] = [];
+    for (const row of this.rows()) {
+      if (!row.loanCode || seen.has(row.loanCode)) continue;
+      seen.add(row.loanCode);
+      options.push({
+        value: row.loanCode,
+        label: `${row.loanCode} ${row.loanName}`.trim(),
+      });
+    }
+
+    return options.sort((a, b) => a.value.localeCompare(b.value, undefined, { sensitivity: 'base' }));
+  });
+
+  readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
 
   ngOnInit(): void {
     this.loadData();
@@ -106,10 +140,27 @@ export class LoanAliasAssignmentComponent implements OnInit {
   });
 
   readonly filteredRows = computed(() => {
+    const statuses = this.selectedStatuses();
+    if (!statuses.length) {
+      return [];
+    }
+
     const selectedCodes = this.selectedLoanCodes();
     const keyword = this.searchText();
+    const statusAliases = this.statusMatchingAliasNames();
 
     let rows = this.rows();
+
+    if (statusAliases) {
+      rows = rows.filter((row) => {
+        const alias = row.loanAliasName.trim().toLowerCase();
+        // Keep unassigned / empty-alias rows so they remain assignable.
+        if (!alias || alias === '—') {
+          return true;
+        }
+        return statusAliases.has(alias);
+      });
+    }
 
     if (selectedCodes.length > 0) {
       const selectedCodeSet = new Set(selectedCodes);
@@ -172,6 +223,20 @@ export class LoanAliasAssignmentComponent implements OnInit {
     this.searchText.set(value);
     this.currentPage.set(1);
     this.clearMessages();
+  }
+
+  updateSelectedLoans(values: string[] | null): void {
+    this.searchText.set('');
+    this.selectedLoanCodes.set(values ?? []);
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  updateSelectedStatuses(statuses: string[] | null): void {
+    this.selectedStatuses.set(statuses ?? []);
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.refreshStatusMatchingAliases();
   }
 
   toggleSort(column: LoanAssignmentColumnKey): void {
@@ -273,14 +338,11 @@ export class LoanAliasAssignmentComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedLoanCodes.set([]);
+    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
     this.revertUnsavedAliasChanges();
     this.currentPage.set(1);
     this.clearMessages();
-
-    const input = this.loanSearchInput()?.nativeElement;
-    if (input) {
-      input.value = '';
-    }
+    this.refreshStatusMatchingAliases();
   }
 
   goToPreviousPage(): void {
@@ -398,8 +460,9 @@ export class LoanAliasAssignmentComponent implements OnInit {
     forkJoin({
       loans: this.loansApi.getLoans(),
       aliases: this.loanAliasApi.getAllAliases(),
+      statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ loans, aliases }) => {
+      next: ({ loans, aliases, statuses }) => {
         const normalizedAliases = this.normalizeAliases(aliases);
         const mappedRows = loans.map((record, index) =>
           this.mapApiLoanToRow(record, index, normalizedAliases),
@@ -409,6 +472,14 @@ export class LoanAliasAssignmentComponent implements OnInit {
         this.aliasOptions.set(normalizedAliases);
         this.currentPage.set(1);
         this.snapshotOriginalState();
+
+        const statusOptions = normalizeStatusOptions(statuses);
+        this.statusOptions.set(statusOptions);
+        if (!this.selectedStatuses().length) {
+          this.selectedStatuses.set(resolveDefaultStatusValues(statusOptions));
+        }
+        this.refreshStatusMatchingAliases();
+
         this.statusMessage.set(
           mappedRows.length > 0
             ? `${mappedRows.length} loan(s) loaded.`
@@ -419,9 +490,41 @@ export class LoanAliasAssignmentComponent implements OnInit {
       error: () => {
         this.rows.set([]);
         this.aliasOptions.set([]);
+        this.statusMatchingAliasNames.set(null);
         this.statusMessage.set('');
         this.errorMessage.set('Unable to load loans. Verify API availability and CORS.');
         this.isLoading.set(false);
+      },
+    });
+  }
+
+  private refreshStatusMatchingAliases(): void {
+    const statuses = this.selectedStatuses();
+    if (!statuses.length) {
+      this.statusMatchingAliasNames.set(new Set());
+      return;
+    }
+
+    const aliasIds = this.aliasOptions()
+      .map((alias) => this.getAliasKey(alias))
+      .filter((id) => id > 0);
+
+    if (!aliasIds.length) {
+      this.statusMatchingAliasNames.set(null);
+      return;
+    }
+
+    this.securityValueApi.getSecurityValues(aliasIds, statuses).subscribe({
+      next: (rows) => {
+        const names = new Set(
+          rows
+            .map((row) => String(row.loanAliasName ?? '').trim().toLowerCase())
+            .filter((name) => name.length > 0),
+        );
+        this.statusMatchingAliasNames.set(names);
+      },
+      error: () => {
+        this.statusMatchingAliasNames.set(null);
       },
     });
   }

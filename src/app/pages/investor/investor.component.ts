@@ -1,9 +1,16 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { NgSelectComponent } from '@ng-select/ng-select';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
+import {
+  normalizeStatusOptions,
+  resolveDefaultStatusValues,
+  toStatusSelectOptions,
+} from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import {
   InvestorAlias,
@@ -11,6 +18,10 @@ import {
   InvestorBulkUpdateRequest,
   InvestorDto,
 } from '../../core/services/investor-api.service';
+import {
+  LoanSecurityValueApiService,
+  LoanStatusFilterOption,
+} from '../../core/services/loan-security-value-api.service';
 
 type InvestorRow = {
   investorKey: number;
@@ -32,25 +43,29 @@ type InvestorAssignmentColumnKey =
 type InvestorAssignmentTableColumn = {
   key: InvestorAssignmentColumnKey;
   label: string;
+  audit?: boolean;
 };
+
+type InvestorSelectOption = { value: string; label: string };
 
 const INVESTOR_ASSIGNMENT_TABLE_COLUMNS: InvestorAssignmentTableColumn[] = [
   { key: 'investorCode', label: 'Investor Code' },
   { key: 'investorName', label: 'Investor Name' },
   { key: 'investorAliasName', label: 'Investor Alias' },
-  { key: 'userUpdatedBy', label: 'Modified By' },
-  { key: 'userUpdatedDate', label: 'Modified Date' },
+  { key: 'userUpdatedBy', label: 'Modified By', audit: true },
+  { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
 ];
 
 @Component({
   selector: 'app-investor',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NgSelectComponent],
   templateUrl: './investor.component.html',
   styleUrl: './investor.component.css',
 })
 export class InvestorComponent implements OnInit {
   private readonly investorApi = inject(InvestorApiService);
+  private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
 
@@ -60,6 +75,8 @@ export class InvestorComponent implements OnInit {
   readonly sortColumn = signal<InvestorAssignmentColumnKey | null>(null);
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
   readonly selectedInvestorCodes = signal<string[]>([]);
+  readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
+  readonly selectedStatuses = signal<string[]>([]);
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
   readonly isLoading = signal(false);
@@ -71,7 +88,23 @@ export class InvestorComponent implements OnInit {
   readonly aliasOptions = signal<InvestorAlias[]>([]);
   readonly originalRowState = signal<Record<string, number | null>>({});
 
-  private readonly investorSearchInput = viewChild<ElementRef<HTMLInputElement>>('investorSearchInput');
+  readonly investorSelectOptions = computed<InvestorSelectOption[]>(() => {
+    const seen = new Set<string>();
+    const options: InvestorSelectOption[] = [];
+
+    for (const row of this.rows()) {
+      if (!row.investorCode || seen.has(row.investorCode)) continue;
+      seen.add(row.investorCode);
+      options.push({
+        value: row.investorCode,
+        label: `${row.investorCode} ${row.investorName}`.trim(),
+      });
+    }
+
+    return options.sort((a, b) => a.value.localeCompare(b.value, undefined, { sensitivity: 'base' }));
+  });
+
+  readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
 
   ngOnInit(): void {
     this.loadData();
@@ -168,6 +201,19 @@ export class InvestorComponent implements OnInit {
   updateSearch(value: string): void {
     this.searchText.set(value);
     this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  updateSelectedInvestors(values: string[] | null): void {
+    this.searchText.set('');
+    this.selectedInvestorCodes.set(values ?? []);
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  updateSelectedStatuses(statuses: string[] | null): void {
+    // Status is UI-only on this page (investors have no loan-alias status mapping).
+    this.selectedStatuses.set(statuses ?? []);
     this.clearMessages();
   }
 
@@ -270,14 +316,10 @@ export class InvestorComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedInvestorCodes.set([]);
+    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
     this.revertUnsavedAliasChanges();
     this.currentPage.set(1);
     this.clearMessages();
-
-    const input = this.investorSearchInput()?.nativeElement;
-    if (input) {
-      input.value = '';
-    }
   }
 
   goToPreviousPage(): void {
@@ -395,8 +437,9 @@ export class InvestorComponent implements OnInit {
     forkJoin({
       investors: this.investorApi.getInvestors(),
       aliases: this.investorApi.getAllAliases(),
+      statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ investors, aliases }) => {
+      next: ({ investors, aliases, statuses }) => {
         const normalizedAliases = this.normalizeAliases(aliases);
         const mappedRows = investors.map((record, index) =>
           this.mapApiInvestorToRow(record, index, normalizedAliases),
@@ -406,6 +449,13 @@ export class InvestorComponent implements OnInit {
         this.aliasOptions.set(normalizedAliases);
         this.currentPage.set(1);
         this.snapshotOriginalState();
+
+        const statusOptions = normalizeStatusOptions(statuses);
+        this.statusOptions.set(statusOptions);
+        if (!this.selectedStatuses().length) {
+          this.selectedStatuses.set(resolveDefaultStatusValues(statusOptions));
+        }
+
         this.statusMessage.set(
           mappedRows.length > 0
             ? `${mappedRows.length} investor(s) loaded.`

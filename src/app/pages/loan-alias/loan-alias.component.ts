@@ -42,6 +42,8 @@ export class LoanAliasComponent implements OnInit {
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
 
+  private readonly defaultPageSize = 10;
+
   readonly tableColumns = LOAN_ALIAS_TABLE_COLUMNS;
 
   readonly aliases = signal<LoanAlias[]>([]);
@@ -49,7 +51,7 @@ export class LoanAliasComponent implements OnInit {
   readonly sortColumn = signal<LoanAliasColumnKey | null>(null);
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
   readonly currentPage = signal(1);
-  readonly pageSize = 10;
+  readonly pageSize = signal(this.defaultPageSize);
 
   readonly isLoading = signal(false);
   readonly isSaving = signal(false);
@@ -86,7 +88,7 @@ export class LoanAliasComponent implements OnInit {
   });
 
   readonly totalPages = computed(() =>
-    Math.max(1, Math.ceil(this.filteredAliases().length / this.pageSize)),
+    Math.max(1, Math.ceil(this.filteredAliases().length / this.pageSize())),
   );
 
   readonly paginatedAliases = computed(() => {
@@ -96,8 +98,8 @@ export class LoanAliasComponent implements OnInit {
     if (safePage !== this.currentPage()) {
       queueMicrotask(() => this.currentPage.set(safePage));
     }
-    const start = (safePage - 1) * this.pageSize;
-    return filtered.slice(start, start + this.pageSize);
+    const start = (safePage - 1) * this.pageSize();
+    return filtered.slice(start, start + this.pageSize());
   });
 
   readonly pageRangeLabel = computed(() => {
@@ -105,8 +107,8 @@ export class LoanAliasComponent implements OnInit {
     if (total === 0) return '0–0 of 0';
     const maxPage = this.totalPages();
     const safePage = Math.max(1, Math.min(this.currentPage(), maxPage));
-    const start = (safePage - 1) * this.pageSize + 1;
-    const end = Math.min(start + this.pageSize - 1, total);
+    const start = (safePage - 1) * this.pageSize() + 1;
+    const end = Math.min(start + this.pageSize() - 1, total);
     return `${start}–${end} of ${total}`;
   });
 
@@ -136,6 +138,39 @@ export class LoanAliasComponent implements OnInit {
 
   updateSearch(value: string): void {
     this.searchTerm.set(value);
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  readonly aliasSuggestions = computed(() => {
+    const term = this.searchTerm().trim().toLowerCase();
+    if (!term) {
+      return [];
+    }
+
+    return this.aliases()
+      .filter((alias) => alias.loanAliasName.toLowerCase().includes(term))
+      .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName, undefined, { sensitivity: 'base' }))
+      .slice(0, 10);
+  });
+
+  selectAliasSuggestion(alias: LoanAlias): void {
+    this.searchTerm.set(alias.loanAliasName);
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  clearSelection(): void {
+    this.searchTerm.set('');
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  updatePageSize(value: string): void {
+    const parsed = Number(value);
+    const normalized =
+      Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : this.defaultPageSize;
+    this.pageSize.set(normalized);
     this.currentPage.set(1);
     this.clearMessages();
   }

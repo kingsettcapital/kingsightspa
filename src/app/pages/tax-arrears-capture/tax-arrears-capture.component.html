@@ -1,61 +1,60 @@
 <section class="ks-fp tax-arrears-page">
-  <h1>Capture Tax Arrears from Quarter Tax Memo</h1>
-  <p class="subtitle">
-    Enter Annual Tax Arrears outstanding per Loan as reported on each Quarterly Tax Memo by Adding a New
-    Record to the Table.
-  </p>
-
-  <div class="filters-row">
-    <div class="search-panel">
-      <label for="loanCodeSearch">Loan Code</label>
-      <div class="search-input-wrap">
-        <span class="search-icon" aria-hidden="true"></span>
-        <input
-          #loanSearchInput
-          id="loanCodeSearch"
-          type="text"
-          [value]="searchText()"
-          (input)="updateSearch($any($event.target).value)"
-          placeholder="Enter Search Value"
-        />
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">Capture Tax Arrears from Quarter Tax Memo</h1>
+        <p class="ks-page__subtitle">
+          Enter Annual Tax Arrears outstanding per Loan as reported on each Quarterly Tax Memo by Adding a
+          New Record to the Table.
+        </p>
       </div>
 
-      @if (searchedLoanOptions().length > 0) {
-        <ul class="search-results">
-          @for (row of searchedLoanOptions(); track row.loanCode) {
-            <li>
-              <button type="button" (click)="selectLoan(row)">
-                <span class="result-code">{{ row.loanCode }}</span>
-                <span>{{ row.loanName }}</span>
-              </button>
-            </li>
-          }
-        </ul>
-      }
-
-      <div class="selected-loan-tags">
-        @for (selected of selectedLoans(); track selected.loanCode) {
-          <button type="button" class="loan-tag" (click)="removeSelectedLoan(selected.loanCode)">
-            <span>{{ selected.loanCode }}&nbsp; {{ selected.loanName }}</span>
-            <span class="tag-close">x</span>
+      <div class="ks-fp__filters-compact">
+        <div class="ks-fp__search-block">
+          <label class="ks-fp__filter-label" for="taxArrearsLoanSearch">Search Loans</label>
+          <ng-select
+            id="taxArrearsLoanSearch"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="aliasSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Search loans..."
+            [ngModel]="selectedLoanCodes()"
+            (ngModelChange)="updateSelectedAliases($event)"
+          ></ng-select>
+          <button
+            type="button"
+            class="ks-fp__clear-selection"
+            (click)="clearSelection()"
+            [disabled]="!selectedLoanCodes().length && !selectedStatuses().length"
+          >
+            Clear Selection
           </button>
-        }
-      </div>
-    </div>
+        </div>
 
-    <div class="status-panel">
-      <span class="filter-label">Status</span>
-      <div class="status-options">
-        @for (status of statusOptions(); track status.value) {
-          <label class="status-option">
-            <input
-              type="checkbox"
-              [checked]="isStatusSelected(status.value)"
-              (change)="toggleStatus(status.value)"
-            />
-            <span>{{ status.displayLabel }}</span>
-          </label>
-        }
+        <div class="ks-fp__status-block">
+          <label class="ks-fp__filter-label" for="taxArrearsStatus">Status</label>
+          <ng-select
+            id="taxArrearsStatus"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="statusSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Select status..."
+            [ngModel]="selectedStatuses()"
+            (ngModelChange)="updateSelectedStatuses($event)"
+          ></ng-select>
+        </div>
       </div>
     </div>
   </div>
@@ -79,7 +78,7 @@
           <th class="hidden-column">Tax Arrear Key</th>
           <th class="hidden-column">Loan Key</th>
           @for (column of tableColumns; track column.key) {
-            <th [class.numeric-col]="column.numeric">
+            <th [class.numeric-col]="column.numeric" [class.audit-col]="column.audit">
               <button
                 type="button"
                 class="ta-th-sort"
@@ -139,8 +138,8 @@
                 placeholder="Notes"
               />
             </td>
-            <td class="date-readonly">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
-            <td class="date-readonly">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
+            <td class="date-readonly audit-col updated-by-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="date-readonly audit-col">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>
         } @empty {
           <tr>
@@ -164,6 +163,7 @@
       <label for="taxArrearsPageSize">Rows per page</label>
       <select
         id="taxArrearsPageSize"
+        class="page-size-select"
         [value]="pageSize()"
         (change)="updatePageSize($any($event.target).value)"
       >
@@ -171,6 +171,7 @@
         <option value="10">10</option>
         <option value="20">20</option>
         <option value="50">50</option>
+        <option value="100">100</option>
       </select>
     </div>
     <div class="pagination-right">
@@ -192,7 +193,6 @@
 
   <div class="actions">
     <button type="button" class="ks-btn ks-btn--accent" (click)="openAddDialog()">Add New Record</button>
-    <button type="button" class="ks-btn ks-btn--accent" (click)="clearSelection()">Clear Selection</button>
     <button
       type="button"
       class="ks-btn ks-btn--accent"

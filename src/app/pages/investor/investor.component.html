@@ -1,54 +1,68 @@
 <section class="ks-fp investor-page">
-  <h1>Investor Alias Assignment</h1>
-  <p class="subtitle">Search investors and assign alias names from the master list</p>
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">Investor Alias Assignment</h1>
+        <p class="ks-page__subtitle">Search investors and assign alias names from the master list</p>
+      </div>
 
-  <div class="search-panel">
-    <label for="investorSearch">Search Investors</label>
-    <div class="search-input-wrap">
-      <span class="search-icon" aria-hidden="true"></span>
-      <input
-        #investorSearchInput
-        id="investorSearch"
-        type="text"
-        [value]="searchText()"
-        (input)="updateSearch($any($event.target).value)"
-        placeholder="Enter Search Value"
-      />
+      <div class="ks-fp__filters-compact">
+        <div class="ks-fp__search-block">
+          <label class="ks-fp__filter-label" for="investorSearch">Search Investors</label>
+          <ng-select
+            id="investorSearch"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="investorSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Search investors..."
+            [ngModel]="selectedInvestorCodes()"
+            (ngModelChange)="updateSelectedInvestors($event)"
+          ></ng-select>
+
+          <button
+            type="button"
+            class="ks-fp__clear-selection"
+            (click)="clearSelection()"
+            [disabled]="!selectedInvestorCodes().length && !selectedStatuses().length"
+          >
+            Clear Selection
+          </button>
+        </div>
+
+        <div class="ks-fp__status-block">
+          <label class="ks-fp__filter-label" for="investorAssignmentStatus">Status</label>
+          <ng-select
+            id="investorAssignmentStatus"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="statusSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Select status..."
+            [ngModel]="selectedStatuses()"
+            (ngModelChange)="updateSelectedStatuses($event)"
+          ></ng-select>
+        </div>
+      </div>
     </div>
-
-    @if (searchedInvestorOptions().length > 0) {
-      <ul class="search-results">
-        @for (row of searchedInvestorOptions(); track row.investorCode) {
-          <li>
-            <button type="button" (click)="selectInvestor(row)">
-              <span class="result-code">{{ row.investorCode }}</span>
-              <span>{{ row.investorName }}</span>
-            </button>
-          </li>
-        }
-      </ul>
-    }
-
-    <div class="selected-investor-tags">
-      @for (selectedInvestor of selectedInvestors(); track selectedInvestor.investorCode) {
-        <button
-          type="button"
-          class="investor-tag"
-          (click)="removeSelectedInvestor(selectedInvestor.investorCode)"
-        >
-          <span>{{ selectedInvestor.investorCode }}&nbsp; {{ selectedInvestor.investorName }}</span>
-          <span class="tag-close">x</span>
-        </button>
-      }
-    </div>
-
-    @if (isLoading()) {
-      <p class="meta-message">Loading investors...</p>
-    }
-    @if (errorMessage() && !isSaving()) {
-      <p class="error-message">{{ errorMessage() }}</p>
-    }
   </div>
+
+  @if (isLoading()) {
+    <p class="meta-message">Loading investors...</p>
+  }
+  @if (errorMessage() && !isSaving()) {
+    <p class="error-message">{{ errorMessage() }}</p>
+  }
 
   <div class="table-wrap">
     <table>
@@ -56,7 +70,7 @@
         <tr>
           <th class="hidden-column">Investor Key</th>
           @for (column of tableColumns; track column.key) {
-            <th>
+            <th [class.audit-col]="column.audit">
               <button
                 type="button"
                 class="inv-th-sort"
@@ -91,8 +105,8 @@
                 }
               </select>
             </td>
-            <td class="date-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
-            <td class="date-cell">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
+            <td class="audit-col date-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="audit-col date-cell">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>
         } @empty {
           <tr>
@@ -108,6 +122,7 @@
       <label for="pageSize">Rows per page</label>
       <select
         id="pageSize"
+        class="page-size-select"
         [value]="pageSize()"
         (change)="updatePageSize($any($event.target).value)"
       >
@@ -115,6 +130,7 @@
         <option value="10">10</option>
         <option value="20">20</option>
         <option value="50">50</option>
+        <option value="100">100</option>
       </select>
     </div>
     <div class="pagination-right">
@@ -135,7 +151,6 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="ks-btn ks-btn--accent" (click)="clearSelection()">Clear Selection</button>
     <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving()">
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
