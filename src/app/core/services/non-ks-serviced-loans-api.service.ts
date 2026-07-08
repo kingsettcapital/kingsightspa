@@ -10,6 +10,8 @@ export type NonKsServicedLoanDto = {
   loanName?: string | null;
   asAtDate?: string | null;
   loanId?: string | null;
+  loanCode?: string | null;
+  extLoanCode?: string | null;
   servicerId?: string | null;
   description?: string | null;
   investorAliasName?: string | null;
@@ -31,7 +33,6 @@ export type NonKsServicedLoanDto = {
   estRealizationCosts?: number | null;
   costToComplete?: number | null;
   taxArrears?: number | null;
-  interestAsOfTaxMemo?: number | null;
   interestAdjustment?: number | null;
   userUpdatedBy?: string | null;
   userUpdatedDate?: string | null;

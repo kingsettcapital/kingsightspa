@@ -3,7 +3,7 @@
     <div class="ks-fp__title-row">
       <div class="ks-page__heading">
         <h1 class="ks-page__title">Non-KS Serviced Loans</h1>
-        <p class="ks-page__subtitle instruction-banner">
+        <p class="ks-page__subtitle">
           Enter, per quarter, Quarterly snapshot values for Loans NOT serviced by KingSett.
         </p>
       </div>
@@ -58,7 +58,7 @@
     </div>
   </div>
 
-  @if (errorMessage() && !isSaving()) {
+  @if (errorMessage() && !isSaving() && !showEntryDialog()) {
     <p class="error-message">{{ errorMessage() }}</p>
   }
   @if (isLoadingGrid() || isLoadingStatuses()) {
@@ -70,317 +70,76 @@
   <div class="table-wrap">
     <table>
       <thead>
-        <tr class="group-row">
-          <th colspan="6">Loan Data</th>
-          <th colspan="4" class="group-centered">Key Dates</th>
-          <th colspan="4">Property</th>
-          <th colspan="2">Principal</th>
-          <th colspan="4">Interest</th>
-          <th colspan="5">Costs &amp; Tax</th>
-          <th colspan="2"></th>
-          <th class="audit-col audit-col-actions"></th>
-        </tr>
         <tr>
-          <th>Loan Alias</th>
-          <th>As At</th>
-          <th>Loan ID</th>
-          <th>Servicer ID</th>
-          <th>Loan Name</th>
-          <th>Investor Alias</th>
-          <th>Default Date</th>
-          <th>Maturity</th>
-          <th>Interest Off</th>
-          <th>Tax Memo</th>
-          <th>Security Value</th>
-          <th>Units</th>
-          <th>Net Acres</th>
-          <th>SF</th>
-          <th>Interest Rate</th>
-          <th>Principal</th>
-          <th>Outstanding Int.</th>
-          <th>Accrued Int.</th>
-          <th>Late Int.</th>
-          <th>Int. Adj.</th>
-          <th>Outstanding Inv.</th>
-          <th>Est. Realization</th>
-          <th>Cost to Complete</th>
-          <th>Tax Arrears</th>
-          <th>Int. as of Memo</th>
-          <th class="audit-col audit-col-by">Modified By</th>
-          <th class="audit-col audit-col-date">Modified Date</th>
-          <th class="audit-col audit-col-actions"></th>
+          <th class="select-col" aria-label="Select row"></th>
+          @for (column of tableColumns; track column.key) {
+            <th
+              [class.numeric-col]="column.numeric"
+              [class.audit-col]="column.audit"
+              [class.audit-col-by]="column.key === 'userUpdatedBy'"
+              [class.audit-col-date]="column.key === 'userUpdatedDate'"
+            >
+              <button
+                type="button"
+                class="non-ks-th-sort"
+                (click)="toggleSort(column.key)"
+                [attr.aria-label]="'Sort by ' + column.label"
+              >
+                <span>{{ column.label }}</span>
+                <span class="non-ks-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+              </button>
+            </th>
+          }
         </tr>
       </thead>
       <tbody>
         @for (row of paginatedRows(); track rowTrackId(row)) {
-          <tr>
-            <td>
-              <select
-                class="cell-input wide"
-                [ngModel]="row.loanName"
-                (ngModelChange)="updateTextField(row, 'loanName', $event)"
-                [ngModelOptions]="{ standalone: true }"
-              >
-                <option value="">— Select —</option>
-                @for (alias of loanAliasOptions(); track alias.loanAliasId) {
-                  <option [value]="alias.loanAliasName">{{ alias.loanAliasName }}</option>
-                }
-              </select>
-            </td>
-            <td>
+          <tr [class.row-selected]="isRowSelected(row)">
+            <td class="select-col">
               <input
-                type="date"
-                class="cell-input date"
-                [value]="row.asAtDate"
-                (input)="updateDateField(row, 'asAtDate', $any($event.target).value)"
+                type="checkbox"
+                class="row-select-checkbox"
+                [checked]="isRowSelected(row)"
+                (change)="toggleRowSelection(row)"
+                [attr.aria-label]="'Select row ' + (row.loanCode || row.loanName || 'record')"
               />
             </td>
-            <td class="readonly-cell loan-id-cell">{{ row.loanId || '—' }}</td>
-            <td>
-              <input
-                class="cell-input"
-                [value]="row.servicerId"
-                (input)="updateTextField(row, 'servicerId', $any($event.target).value)"
-                placeholder="Servicer"
-              />
-            </td>
-            <td>
-              <input
-                class="cell-input wide"
-                [value]="row.description"
-                (input)="updateTextField(row, 'description', $any($event.target).value)"
-                placeholder="Loan name"
-              />
-            </td>
-            <td>
-              <select
-                class="cell-input"
-                [ngModel]="row.investor"
-                (ngModelChange)="updateTextField(row, 'investor', $event)"
-                [ngModelOptions]="{ standalone: true }"
-              >
-                <option value="">— Select —</option>
-                @for (alias of investorAliasOptions(); track alias.investorAliasId) {
-                  <option [value]="alias.investorAliasName">{{ alias.investorAliasName }}</option>
-                }
-              </select>
-            </td>
-            <td>
-              <input
-                type="date"
-                class="cell-input date"
-                [value]="row.dateOfDefault"
-                (input)="updateDateField(row, 'dateOfDefault', $any($event.target).value)"
-              />
-            </td>
-            <td>
-              <input
-                type="date"
-                class="cell-input date"
-                [value]="row.maturityDate"
-                (input)="updateDateField(row, 'maturityDate', $any($event.target).value)"
-              />
-            </td>
-            <td>
-              <input
-                type="date"
-                class="cell-input date"
-                [value]="row.interestOffDate"
-                (input)="updateDateField(row, 'interestOffDate', $any($event.target).value)"
-              />
-            </td>
-            <td>
-              <input
-                type="date"
-                class="cell-input date"
-                [value]="row.taxMemoDate"
-                (input)="updateDateField(row, 'taxMemoDate', $any($event.target).value)"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="decimal"
-                class="cell-input number"
-                [value]="formatCurrencyInput(row.securityValue)"
-                (input)="updateCurrencyField(row, 'securityValue', $any($event.target).value)"
-                (blur)="normalizeCurrencyField(row, 'securityValue', $any($event.target))"
-                placeholder="$0.00"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="numeric"
-                class="cell-input number"
-                [value]="formatIntegerInput(row.units)"
-                (input)="updateIntegerField(row, 'units', $any($event.target).value)"
-                (blur)="normalizeIntegerField(row, 'units', $any($event.target))"
-                placeholder="0"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="decimal"
-                class="cell-input number"
-                [value]="formatDecimalInput(row.netAcres, 2)"
-                (input)="updateDecimalField(row, 'netAcres', $any($event.target).value, 2)"
-                (blur)="normalizeDecimalField(row, 'netAcres', $any($event.target), 2)"
-                placeholder="0.00"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="numeric"
-                class="cell-input number"
-                [value]="formatIntegerInput(row.squareFeet)"
-                (input)="updateIntegerField(row, 'squareFeet', $any($event.target).value)"
-                (blur)="normalizeIntegerField(row, 'squareFeet', $any($event.target))"
-                placeholder="0"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="decimal"
-                class="cell-input number"
-                [value]="formatPercentInput(row.interestRate)"
-                (input)="updatePercentField(row, $any($event.target).value)"
-                (blur)="normalizePercentField(row, $any($event.target))"
-                placeholder="0.00%"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="decimal"
-                class="cell-input number"
-                [value]="formatCurrencyInput(row.principalBalance)"
-                (input)="updateCurrencyField(row, 'principalBalance', $any($event.target).value)"
-                (blur)="normalizeCurrencyField(row, 'principalBalance', $any($event.target))"
-                placeholder="$0.00"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="decimal"
-                class="cell-input number"
-                [value]="formatCurrencyInput(row.outstandingInterest)"
-                (input)="updateCurrencyField(row, 'outstandingInterest', $any($event.target).value)"
-                (blur)="normalizeCurrencyField(row, 'outstandingInterest', $any($event.target))"
-                placeholder="$0.00"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="decimal"
-                class="cell-input number"
-                [value]="formatCurrencyInput(row.accruedInterest)"
-                (input)="updateCurrencyField(row, 'accruedInterest', $any($event.target).value)"
-                (blur)="normalizeCurrencyField(row, 'accruedInterest', $any($event.target))"
-                placeholder="$0.00"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="decimal"
-                class="cell-input number"
-                [value]="formatCurrencyInput(row.lateInterest)"
-                (input)="updateCurrencyField(row, 'lateInterest', $any($event.target).value)"
-                (blur)="normalizeCurrencyField(row, 'lateInterest', $any($event.target))"
-                placeholder="$0.00"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="decimal"
-                class="cell-input number"
-                [value]="formatCurrencyInput(row.interestAdjustment)"
-                (input)="updateCurrencyField(row, 'interestAdjustment', $any($event.target).value)"
-                (blur)="normalizeCurrencyField(row, 'interestAdjustment', $any($event.target))"
-                placeholder="$0.00"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="decimal"
-                class="cell-input number"
-                [value]="formatCurrencyInput(row.outstandingInvoices)"
-                (input)="updateCurrencyField(row, 'outstandingInvoices', $any($event.target).value)"
-                (blur)="normalizeCurrencyField(row, 'outstandingInvoices', $any($event.target))"
-                placeholder="$0.00"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="decimal"
-                class="cell-input number"
-                [value]="formatCurrencyInput(row.estRealizationCosts)"
-                (input)="updateCurrencyField(row, 'estRealizationCosts', $any($event.target).value)"
-                (blur)="normalizeCurrencyField(row, 'estRealizationCosts', $any($event.target))"
-                placeholder="$0.00"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="decimal"
-                class="cell-input number"
-                [value]="formatCurrencyInput(row.costToComplete)"
-                (input)="updateCurrencyField(row, 'costToComplete', $any($event.target).value)"
-                (blur)="normalizeCurrencyField(row, 'costToComplete', $any($event.target))"
-                placeholder="$0.00"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="decimal"
-                class="cell-input number"
-                [value]="formatCurrencyInput(row.taxArrears)"
-                (input)="updateCurrencyField(row, 'taxArrears', $any($event.target).value)"
-                (blur)="normalizeCurrencyField(row, 'taxArrears', $any($event.target))"
-                placeholder="$0.00"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                inputmode="decimal"
-                class="cell-input number"
-                [value]="formatCurrencyInput(row.interestAsOfTaxMemo)"
-                (input)="updateCurrencyField(row, 'interestAsOfTaxMemo', $any($event.target).value)"
-                (blur)="normalizeCurrencyField(row, 'interestAsOfTaxMemo', $any($event.target))"
-                placeholder="$0.00"
-              />
-            </td>
+            <td>{{ formatTextDisplay(row.loanName) }}</td>
+            <td>{{ formatDateDisplay(row.asAtDate) }}</td>
+            <td class="loan-code-cell">{{ formatTextDisplay(row.loanCode) }}</td>
+            <td>{{ formatTextDisplay(row.servicerId) }}</td>
+            <td>{{ formatTextDisplay(row.description) }}</td>
+            <td>{{ formatTextDisplay(row.investor) }}</td>
+            <td>{{ formatDateDisplay(row.dateOfDefault) }}</td>
+            <td>{{ formatDateDisplay(row.maturityDate) }}</td>
+            <td>{{ formatDateDisplay(row.interestOffDate) }}</td>
+            <td>{{ formatDateDisplay(row.taxMemoDate) }}</td>
+            <td class="numeric-cell">{{ formatCurrencyDisplay(row.securityValue) }}</td>
+            <td class="numeric-cell">{{ formatIntegerDisplay(row.units) }}</td>
+            <td class="numeric-cell">{{ formatDecimalDisplay(row.netAcres, 2) }}</td>
+            <td class="numeric-cell">{{ formatIntegerDisplay(row.squareFeet) }}</td>
+            <td class="numeric-cell">{{ formatPercentDisplay(row.interestRate) }}</td>
+            <td class="numeric-cell">{{ formatCurrencyDisplay(row.principalBalance) }}</td>
+            <td class="numeric-cell">{{ formatCurrencyDisplay(row.outstandingInterest) }}</td>
+            <td class="numeric-cell">{{ formatCurrencyDisplay(row.accruedInterest) }}</td>
+            <td class="numeric-cell">{{ formatCurrencyDisplay(row.lateInterest) }}</td>
+            <td class="numeric-cell">{{ formatCurrencyDisplay(row.interestAdjustment) }}</td>
+            <td class="numeric-cell">{{ formatCurrencyDisplay(row.outstandingInvoices) }}</td>
+            <td class="numeric-cell">{{ formatCurrencyDisplay(row.estRealizationCosts) }}</td>
+            <td class="numeric-cell">{{ formatCurrencyDisplay(row.costToComplete) }}</td>
+            <td class="numeric-cell">{{ formatCurrencyDisplay(row.taxArrears) }}</td>
             <td class="readonly-cell audit-col audit-col-by">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
             <td class="readonly-cell audit-col audit-col-date">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
-            <td class="audit-col audit-col-actions">
-              <div class="row-actions">
-                @if (isNewRow(row)) {
-                  <button type="button" class="btn-row-remove" (click)="removeRow(row)">Remove</button>
-                }
-              </div>
-            </td>
           </tr>
         } @empty {
           <tr>
-            <td colspan="28" class="empty-row">
+            <td colspan="27" class="empty-row">
               @if (!selectedStatuses().length) {
                 Select at least one Status to view Non-KS loan records.
               } @else if (selectedLoanKeys().length) {
                 No records match the selected loan filters.
               } @else {
-                No records loaded for the selected status. Click <strong>Add Row</strong> to enter loan data.
+                No records loaded for the selected status. Click <strong>Add New Row</strong> to enter loan data.
               }
             </td>
           </tr>
@@ -423,9 +182,394 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="ks-btn ks-btn--accent" (click)="addRow()">Add Row</button>
-    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving()">
-      @if (isSaving()) { Saving… } @else { Save Changes }
+    <button type="button" class="ks-btn ks-btn--accent" (click)="openAddDialog()">Add New Row</button>
+    <button
+      type="button"
+      class="ks-btn ks-btn--accent"
+      (click)="openUpdateDialog()"
+      [disabled]="!hasSelectedRow()"
+    >
+      Update Row
+    </button>
+    <button
+      type="button"
+      class="ks-btn ks-btn--accent"
+      (click)="openDuplicateDialog()"
+      [disabled]="!hasSelectedRow()"
+    >
+      Duplicate Row
     </button>
   </div>
 </section>
+
+@if (showEntryDialog() && dialogDraft(); as draft) {
+  <div class="non-ks-dialog-overlay" (click)="closeEntryDialog()" role="presentation">
+    <div
+      class="non-ks-dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'non-ks-dialog-title'"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="non-ks-dialog-header">
+        <h2 id="non-ks-dialog-title">{{ dialogTitle() }}</h2>
+        <button type="button" class="dlg-close" (click)="closeEntryDialog()" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="non-ks-dialog-body">
+        <div class="non-ks-dialog-grid">
+          <section class="non-ks-panel non-ks-panel--loan">
+            <h3 class="non-ks-panel__title">Loan Data</h3>
+            <div class="non-ks-panel__fields">
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-loan-code">Loan Code</label>
+                <input
+                  id="dlg-loan-code"
+                  type="text"
+                  class="cell-input dlg-readonly"
+                  [value]="draft.lockedLoanCode ?? draft.loanCode"
+                  readonly
+                  tabindex="-1"
+                  aria-readonly="true"
+                />
+                @if (dialogMode() === 'duplicate') {
+                  <p class="dlg-field-note">Same Loan Code as the selected row; not editable when duplicating.</p>
+                }
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-servicer-id">Servicer ID</label>
+                <input
+                  id="dlg-servicer-id"
+                  type="text"
+                  class="cell-input"
+                  [value]="draft.servicerId"
+                  (input)="updateDialogTextField('servicerId', $any($event.target).value)"
+                  placeholder="Servicer"
+                />
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-loan-alias">Loan Alias</label>
+                <select
+                  id="dlg-loan-alias"
+                  class="cell-input wide"
+                  [ngModel]="draft.loanName"
+                  (ngModelChange)="updateDialogTextField('loanName', $event)"
+                  [ngModelOptions]="{ standalone: true }"
+                >
+                  <option value="">— Select —</option>
+                  @for (alias of loanAliasOptions(); track alias.loanAliasId) {
+                    <option [value]="alias.loanAliasName">{{ alias.loanAliasName }}</option>
+                  }
+                </select>
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-description">Loan Name / Description</label>
+                <input
+                  id="dlg-description"
+                  type="text"
+                  class="cell-input wide"
+                  [value]="draft.description"
+                  (input)="updateDialogTextField('description', $any($event.target).value)"
+                  placeholder="Loan name"
+                />
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-investor">Investor Alias</label>
+                <select
+                  id="dlg-investor"
+                  class="cell-input"
+                  [ngModel]="draft.investor"
+                  (ngModelChange)="updateDialogTextField('investor', $event)"
+                  [ngModelOptions]="{ standalone: true }"
+                >
+                  <option value="">— Select —</option>
+                  @for (alias of investorAliasOptions(); track alias.investorAliasId) {
+                    <option [value]="alias.investorAliasName">{{ alias.investorAliasName }}</option>
+                  }
+                </select>
+              </div>
+              <div class="dlg-field-row">
+                <div class="dlg-field">
+                  <label class="dlg-label" for="dlg-units">Units</label>
+                  <input
+                    id="dlg-units"
+                    type="text"
+                    inputmode="numeric"
+                    class="cell-input number"
+                    [value]="formatIntegerInput(draft.units)"
+                    (input)="updateDialogIntegerField('units', $any($event.target).value)"
+                    (blur)="normalizeDialogIntegerField('units', $any($event.target))"
+                    placeholder="0"
+                  />
+                </div>
+                <div class="dlg-field">
+                  <label class="dlg-label" for="dlg-net-acres">Net Acres</label>
+                  <input
+                    id="dlg-net-acres"
+                    type="text"
+                    inputmode="decimal"
+                    class="cell-input number"
+                    [value]="formatDecimalInput(draft.netAcres, 2)"
+                    (input)="updateDialogDecimalField('netAcres', $any($event.target).value, 2)"
+                    (blur)="normalizeDialogDecimalField('netAcres', $any($event.target), 2)"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div class="dlg-field">
+                  <label class="dlg-label" for="dlg-sf">SF</label>
+                  <input
+                    id="dlg-sf"
+                    type="text"
+                    inputmode="numeric"
+                    class="cell-input number"
+                    [value]="formatIntegerInput(draft.squareFeet)"
+                    (input)="updateDialogIntegerField('squareFeet', $any($event.target).value)"
+                    (blur)="normalizeDialogIntegerField('squareFeet', $any($event.target))"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div class="dlg-field-row">
+                <div class="dlg-field">
+                  <label class="dlg-label" for="dlg-security-value">Security Value</label>
+                  <input
+                    id="dlg-security-value"
+                    type="text"
+                    inputmode="decimal"
+                    class="cell-input number"
+                    [value]="formatCurrencyInput(draft.securityValue)"
+                    (input)="updateDialogCurrencyField('securityValue', $any($event.target).value)"
+                    (blur)="normalizeDialogCurrencyField('securityValue', $any($event.target))"
+                    placeholder="$0.00"
+                  />
+                </div>
+                <div class="dlg-field">
+                  <label class="dlg-label" for="dlg-principal">Principal</label>
+                  <input
+                    id="dlg-principal"
+                    type="text"
+                    inputmode="decimal"
+                    class="cell-input number"
+                    [value]="formatCurrencyInput(draft.principalBalance)"
+                    (input)="updateDialogCurrencyField('principalBalance', $any($event.target).value)"
+                    (blur)="normalizeDialogCurrencyField('principalBalance', $any($event.target))"
+                    placeholder="$0.00"
+                  />
+                </div>
+                <div class="dlg-field">
+                  <label class="dlg-label" for="dlg-interest-rate">Interest Rate</label>
+                  <input
+                    id="dlg-interest-rate"
+                    type="text"
+                    inputmode="decimal"
+                    class="cell-input number"
+                    [value]="formatPercentInput(draft.interestRate)"
+                    (input)="updateDialogPercentField($any($event.target).value)"
+                    (blur)="normalizeDialogPercentField($any($event.target))"
+                    placeholder="0.00%"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="non-ks-panel non-ks-panel--as-at">
+            <h3 class="non-ks-panel__title">As At Date</h3>
+            <div class="non-ks-panel__fields">
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-as-at">As At Date</label>
+                <input
+                  id="dlg-as-at"
+                  type="date"
+                  class="cell-input date"
+                  [value]="draft.asAtDate"
+                  (input)="updateDialogDateField('asAtDate', $any($event.target).value)"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section class="non-ks-panel non-ks-panel--dates">
+            <h3 class="non-ks-panel__title">Key Dates</h3>
+            <div class="non-ks-panel__fields">
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-default-date">Date of Default</label>
+                <input
+                  id="dlg-default-date"
+                  type="date"
+                  class="cell-input date"
+                  [value]="draft.dateOfDefault"
+                  (input)="updateDialogDateField('dateOfDefault', $any($event.target).value)"
+                />
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-maturity">Maturity Date</label>
+                <input
+                  id="dlg-maturity"
+                  type="date"
+                  class="cell-input date"
+                  [value]="draft.maturityDate"
+                  (input)="updateDialogDateField('maturityDate', $any($event.target).value)"
+                />
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-interest-off">Interest Off Date</label>
+                <input
+                  id="dlg-interest-off"
+                  type="date"
+                  class="cell-input date"
+                  [value]="draft.interestOffDate"
+                  (input)="updateDialogDateField('interestOffDate', $any($event.target).value)"
+                />
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-tax-memo">Tax Memo Date</label>
+                <input
+                  id="dlg-tax-memo"
+                  type="date"
+                  class="cell-input date"
+                  [value]="draft.taxMemoDate"
+                  (input)="updateDialogDateField('taxMemoDate', $any($event.target).value)"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section class="non-ks-panel non-ks-panel--interest">
+            <h3 class="non-ks-panel__title">Interest</h3>
+            <div class="non-ks-panel__fields">
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-outstanding-interest">Outstanding Interest</label>
+                <input
+                  id="dlg-outstanding-interest"
+                  type="text"
+                  inputmode="decimal"
+                  class="cell-input number"
+                  [value]="formatCurrencyInput(draft.outstandingInterest)"
+                  (input)="updateDialogCurrencyField('outstandingInterest', $any($event.target).value)"
+                  (blur)="normalizeDialogCurrencyField('outstandingInterest', $any($event.target))"
+                  placeholder="$0.00"
+                />
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-accrued-interest">Accrued Interest</label>
+                <input
+                  id="dlg-accrued-interest"
+                  type="text"
+                  inputmode="decimal"
+                  class="cell-input number"
+                  [value]="formatCurrencyInput(draft.accruedInterest)"
+                  (input)="updateDialogCurrencyField('accruedInterest', $any($event.target).value)"
+                  (blur)="normalizeDialogCurrencyField('accruedInterest', $any($event.target))"
+                  placeholder="$0.00"
+                />
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-interest-adjustment">Interest Adjustment</label>
+                <input
+                  id="dlg-interest-adjustment"
+                  type="text"
+                  inputmode="decimal"
+                  class="cell-input number"
+                  [value]="formatCurrencyInput(draft.interestAdjustment)"
+                  (input)="updateDialogCurrencyField('interestAdjustment', $any($event.target).value)"
+                  (blur)="normalizeDialogCurrencyField('interestAdjustment', $any($event.target))"
+                  placeholder="$0.00"
+                />
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-late-interest">Late Interest</label>
+                <input
+                  id="dlg-late-interest"
+                  type="text"
+                  inputmode="decimal"
+                  class="cell-input number"
+                  [value]="formatCurrencyInput(draft.lateInterest)"
+                  (input)="updateDialogCurrencyField('lateInterest', $any($event.target).value)"
+                  (blur)="normalizeDialogCurrencyField('lateInterest', $any($event.target))"
+                  placeholder="$0.00"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section class="non-ks-panel non-ks-panel--costs">
+            <h3 class="non-ks-panel__title">Costs and Tax Arrears</h3>
+            <div class="non-ks-panel__fields">
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-outstanding-invoices">Outstanding Invoices</label>
+                <input
+                  id="dlg-outstanding-invoices"
+                  type="text"
+                  inputmode="decimal"
+                  class="cell-input number"
+                  [value]="formatCurrencyInput(draft.outstandingInvoices)"
+                  (input)="updateDialogCurrencyField('outstandingInvoices', $any($event.target).value)"
+                  (blur)="normalizeDialogCurrencyField('outstandingInvoices', $any($event.target))"
+                  placeholder="$0.00"
+                />
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-est-realization">Est Realization Cost</label>
+                <input
+                  id="dlg-est-realization"
+                  type="text"
+                  inputmode="decimal"
+                  class="cell-input number"
+                  [value]="formatCurrencyInput(draft.estRealizationCosts)"
+                  (input)="updateDialogCurrencyField('estRealizationCosts', $any($event.target).value)"
+                  (blur)="normalizeDialogCurrencyField('estRealizationCosts', $any($event.target))"
+                  placeholder="$0.00"
+                />
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-cost-to-complete">Cost to Complete</label>
+                <input
+                  id="dlg-cost-to-complete"
+                  type="text"
+                  inputmode="decimal"
+                  class="cell-input number"
+                  [value]="formatCurrencyInput(draft.costToComplete)"
+                  (input)="updateDialogCurrencyField('costToComplete', $any($event.target).value)"
+                  (blur)="normalizeDialogCurrencyField('costToComplete', $any($event.target))"
+                  placeholder="$0.00"
+                />
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-tax-arrears">Tax Arrears</label>
+                <input
+                  id="dlg-tax-arrears"
+                  type="text"
+                  inputmode="decimal"
+                  class="cell-input number"
+                  [value]="formatCurrencyInput(draft.taxArrears)"
+                  (input)="updateDialogCurrencyField('taxArrears', $any($event.target).value)"
+                  (blur)="normalizeDialogCurrencyField('taxArrears', $any($event.target))"
+                  placeholder="$0.00"
+                />
+              </div>
+            </div>
+          </section>
+        </div>
+
+        @if (dialogError()) {
+          <p class="dlg-error">{{ dialogError() }}</p>
+        }
+      </div>
+
+      <div class="non-ks-dialog-footer">
+        <button type="button" class="ks-btn" (click)="closeEntryDialog()" [disabled]="isSaving()">
+          Cancel
+        </button>
+        <button type="button" class="ks-btn ks-btn--accent" (click)="saveEntryDialog()" [disabled]="isSaving()">
+          @if (isSaving()) { Saving… } @else { Save Changes }
+        </button>
+      </div>
+    </div>
+  </div>
+}
