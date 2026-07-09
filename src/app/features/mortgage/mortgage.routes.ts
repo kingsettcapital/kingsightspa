@@ -117,4 +117,11 @@ export const MORTGAGE_ROUTES: Routes = [
         (m) => m.NonKsServicedLoansComponent,
       ),
   },
+  {
+    path: 'notifications',
+    loadComponent: () =>
+      import('../../pages/notifications/notifications.component').then(
+        (m) => m.NotificationsComponent,
+      ),
+  },
 ];

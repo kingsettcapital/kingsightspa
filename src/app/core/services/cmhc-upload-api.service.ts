@@ -38,12 +38,13 @@ export const FILE_UPLOAD_TYPE_OPTIONS: FileUploadTypeOption[] = [
 ];
 
 /**
- * Mirrors mort.CMHC_upload_historytbl / CmhcUploadHistoryDto.
+ * Mirrors subjective_input.file_upload_history / CmhcUploadHistoryDto.
  * uploaded_by is UNIQUEIDENTIFIER in SQL (GUID string in JSON).
  */
 export type CmhcUploadHistoryRecord = {
   fileId: number;
   filename: string;
+  fileType?: string | null;
   uploadedDate: string;
   uploadedBy: string;
   uploadedByUserId?: number | null;

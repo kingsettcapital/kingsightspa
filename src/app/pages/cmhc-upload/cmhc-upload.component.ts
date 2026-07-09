@@ -173,15 +173,37 @@ export class CmhcUploadComponent implements OnInit {
     });
   }
 
+  formatFileTypeLabel(value: string | null | undefined, filename?: string): string {
+    const normalized = (value ?? '').trim().toLowerCase();
+    const match = this.fileTypeOptions.find((option) => option.value === normalized);
+    if (match) {
+      return match.label;
+    }
+
+    const name = (filename ?? '').toLowerCase();
+    if (name.endsWith('.pdf')) {
+      return this.fileTypeOptions.find((option) => option.value === 'qr-slides')?.label ?? 'QR slides (PDF)';
+    }
+    if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.xlsm')) {
+      return this.fileTypeOptions.find((option) => option.value === 'cmhc')?.label ?? 'CMHC (Excel)';
+    }
+
+    return normalized || '-';
+  }
+
   formatAsOfDateDisplay(value: string): string {
     if (!value?.trim()) {
       return '-';
     }
-    const [year, month, day] = value.split('-');
-    if (year && month && day) {
+
+    const trimmed = value.trim();
+    const dateOnly = trimmed.length >= 10 ? trimmed.slice(0, 10) : trimmed;
+    const [year, month, day] = dateOnly.split('-');
+    if (year?.length === 4 && month && day) {
       return `${month}/${day}/${year}`;
     }
-    const parsed = new Date(value);
+
+    const parsed = new Date(trimmed);
     if (Number.isNaN(parsed.getTime())) {
       return value;
     }
@@ -262,6 +284,7 @@ export class CmhcUploadComponent implements OnInit {
     return {
       fileId: Number(row['fileId'] ?? row['file_id'] ?? 0),
       filename: String(row['filename'] ?? row['fileName'] ?? '').trim(),
+      fileType: String(row['fileType'] ?? row['file_type'] ?? '').trim() || null,
       uploadedDate: String(row['uploadedDate'] ?? row['uploaded_date'] ?? ''),
       uploadedBy: uploadedByName,
       uploadedByUserId:

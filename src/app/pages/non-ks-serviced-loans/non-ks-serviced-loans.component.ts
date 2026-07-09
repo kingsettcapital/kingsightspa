@@ -5,16 +5,8 @@ import { NgSelectComponent } from '@ng-select/ng-select';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
-import {
-  resolveDefaultStatusValues,
-  toStatusSelectOptions,
-} from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { InvestorAlias, InvestorApiService } from '../../core/services/investor-api.service';
-import {
-  LoanSecurityValueApiService,
-  LoanStatusFilterOption,
-} from '../../core/services/loan-security-value-api.service';
 import { LoanAliasOptionDto, LoansApiService } from '../../core/services/loans-api.service';
 import {
   NonKsServicedLoanDto,
@@ -144,7 +136,6 @@ export class NonKsServicedLoansComponent implements OnInit {
   private readonly api = inject(NonKsServicedLoansApiService);
   private readonly loansApi = inject(LoansApiService);
   private readonly investorApi = inject(InvestorApiService);
-  private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
 
@@ -153,16 +144,11 @@ export class NonKsServicedLoansComponent implements OnInit {
   readonly originalRowState = signal<Record<string, RowSnapshot>>({});
   readonly loanAliasOptions = signal<LoanAliasOptionDto[]>([]);
   readonly investorAliasOptions = signal<InvestorAlias[]>([]);
-  readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
   readonly selectedLoanKeys = signal<string[]>([]);
-  readonly selectedStatuses = signal<string[]>([]);
-  /** Alias names that match the selected Status filter (from LoanSecurityValue). */
-  readonly statusMatchingAliasNames = signal<Set<string> | null>(null);
 
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
   readonly isLoadingGrid = signal(false);
-  readonly isLoadingStatuses = signal(false);
   readonly isSaving = signal(false);
   readonly currentPage = signal(1);
   readonly pageSize = signal(this.defaultPageSize);
@@ -223,25 +209,8 @@ export class NonKsServicedLoansComponent implements OnInit {
       .sort((a, b) => a.label.localeCompare(b.label));
   });
 
-  readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
-
   readonly filteredRows = computed(() => {
-    const statuses = this.selectedStatuses();
-    if (!statuses.length) {
-      return [];
-    }
-
-    const statusAliases = this.statusMatchingAliasNames();
     let rows = this.rows();
-
-    if (statusAliases) {
-      rows = rows.filter((row) => {
-        if (this.isNewRow(row) && !row.loanName.trim()) {
-          return true;
-        }
-        return statusAliases.has(row.loanName.trim().toLowerCase());
-      });
-    }
 
     const selected = this.selectedLoanKeys();
     if (selected.length) {
@@ -302,19 +271,10 @@ export class NonKsServicedLoansComponent implements OnInit {
     this.clearMessages();
   }
 
-  updateSelectedStatuses(statuses: string[] | null): void {
-    this.selectedStatuses.set(statuses ?? []);
-    this.currentPage.set(1);
-    this.clearMessages();
-    this.refreshStatusMatchingAliases();
-  }
-
   clearSelection(): void {
     this.selectedLoanKeys.set([]);
-    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
     this.currentPage.set(1);
     this.clearMessages();
-    this.refreshStatusMatchingAliases();
   }
 
   rowTrackId(row: NonKsLoanRow): string {
@@ -625,7 +585,6 @@ export class NonKsServicedLoansComponent implements OnInit {
 
   private loadGrid(preservePage?: number, justSaved: NonKsServicedLoanDto[] = []): void {
     this.isLoadingGrid.set(true);
-    this.isLoadingStatuses.set(true);
     this.errorMessage.set('');
     this.statusMessage.set('');
 
@@ -638,9 +597,8 @@ export class NonKsServicedLoansComponent implements OnInit {
         catchError(() => of({ loanAliases: [] as LoanAliasOptionDto[] })),
       ),
       investorAliases: this.investorApi.getAllAliases().pipe(catchError(() => of([]))),
-      statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ records, lookups, loanAliases, investorAliases, statuses }) => {
+      next: ({ records, lookups, loanAliases, investorAliases }) => {
         const normalized = this.mergeSavedRecords(this.normalizeRecords(records), justSaved);
         const mapped = normalized.map((r) => this.mapRow(r));
         this.rows.set(mapped);
@@ -675,14 +633,6 @@ export class NonKsServicedLoansComponent implements OnInit {
             .sort((a, b) => a.investorAliasName.localeCompare(b.investorAliasName)),
         );
 
-        const statusOptions = this.normalizeStatusOptions(statuses);
-        this.statusOptions.set(statusOptions);
-        if (!this.selectedStatuses().length) {
-          this.selectedStatuses.set(resolveDefaultStatusValues(statusOptions));
-        }
-        this.isLoadingStatuses.set(false);
-        this.refreshStatusMatchingAliases();
-
         const apiNext =
           this.pickString(lookups as Record<string, unknown>, 'nextExtLoanCode', 'NextExtLoanCode') ||
           'NONKS-1';
@@ -698,66 +648,10 @@ export class NonKsServicedLoansComponent implements OnInit {
       error: (error) => {
         this.rows.set([]);
         this.originalRowState.set({});
-        this.statusMatchingAliasNames.set(null);
         this.errorMessage.set(this.extractBackendError(error));
         this.isLoadingGrid.set(false);
-        this.isLoadingStatuses.set(false);
       },
     });
-  }
-
-  private refreshStatusMatchingAliases(): void {
-    const statuses = this.selectedStatuses();
-    if (!statuses.length) {
-      this.statusMatchingAliasNames.set(new Set());
-      return;
-    }
-
-    const aliasIds = this.loanAliasOptions()
-      .map((alias) => alias.loanAliasId)
-      .filter((id) => id > 0);
-
-    if (!aliasIds.length) {
-      // Options still loading or empty — don't hide existing Non-KS rows yet.
-      this.statusMatchingAliasNames.set(null);
-      return;
-    }
-
-    this.securityValueApi.getSecurityValues(aliasIds, statuses).subscribe({
-      next: (rows) => {
-        const names = new Set(
-          rows
-            .map((row) => String(row.loanAliasName ?? '').trim().toLowerCase())
-            .filter((name) => name.length > 0),
-        );
-        this.statusMatchingAliasNames.set(names);
-      },
-      error: () => {
-        // Status lookup failed — keep grid usable with no status narrowing.
-        this.statusMatchingAliasNames.set(null);
-      },
-    });
-  }
-
-  private normalizeStatusOptions(statuses: unknown): LoanStatusFilterOption[] {
-    if (!Array.isArray(statuses) || !statuses.length) {
-      return [];
-    }
-    if (typeof statuses[0] === 'string') {
-      return (statuses as string[])
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
-        .map((s) => ({ value: s, displayLabel: s }));
-    }
-    return (statuses as Record<string, unknown>[])
-      .map((row) => {
-        const value = String(row['value'] ?? row['statusKey'] ?? row['status_key'] ?? '').trim();
-        const displayLabel = String(
-          row['displayLabel'] ?? row['statusName'] ?? row['status_name'] ?? value,
-        ).trim();
-        return { value, displayLabel: displayLabel || value };
-      })
-      .filter((row) => row.value.length > 0 || row.displayLabel.length > 0);
   }
 
   private emptyRow(clientRowId: number): NonKsLoanRow {
@@ -1262,6 +1156,16 @@ export class NonKsServicedLoansComponent implements OnInit {
     return match ? Number.parseInt(match[1], 10) : 0;
   }
 
+  private compareLoanCodes(left: string, right: string): number {
+    const leftNumber = this.parseExtLoanCodeNumber(left);
+    const rightNumber = this.parseExtLoanCodeNumber(right);
+    if (leftNumber !== rightNumber) {
+      return leftNumber - rightNumber;
+    }
+
+    return left.localeCompare(right, undefined, { sensitivity: 'base', numeric: true });
+  }
+
   private normalizeRecords(response: unknown): NonKsServicedLoanDto[] {
     if (Array.isArray(response)) {
       return response as NonKsServicedLoanDto[];
@@ -1307,6 +1211,8 @@ export class NonKsServicedLoansComponent implements OnInit {
       case 'taxArrears':
       case 'interestAdjustment':
         return (left[column] ?? 0) - (right[column] ?? 0);
+      case 'loanCode':
+        return this.compareLoanCodes(left.loanCode, right.loanCode);
       default:
         return left[column].localeCompare(right[column], undefined, { sensitivity: 'base' });
     }

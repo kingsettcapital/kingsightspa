@@ -102,6 +102,8 @@
           <tr>
             <th class="hidden-column">File Id</th>
             <th>File Name</th>
+            <th>File Type</th>
+            <th>As Of</th>
             <th>Uploaded Date</th>
             <th>Uploaded By</th>
           </tr>
@@ -109,17 +111,19 @@
         <tbody>
           @if (isLoadingHistory()) {
             <tr>
-              <td colspan="4" class="empty-row">Loading upload history…</td>
+              <td colspan="6" class="empty-row">Loading upload history…</td>
             </tr>
           } @else if (history().length === 0) {
             <tr>
-              <td colspan="4" class="empty-row">No files uploaded yet.</td>
+              <td colspan="6" class="empty-row">No files uploaded yet.</td>
             </tr>
           } @else {
             @for (row of history(); track row.fileId) {
               <tr>
                 <td class="hidden-column">{{ row.fileId }}</td>
                 <td>{{ row.filename }}</td>
+                <td>{{ formatFileTypeLabel(row.fileType, row.filename) }}</td>
+                <td>{{ formatAsOfDateDisplay(row.asOfDate ?? '') }}</td>
                 <td>{{ formatUploadedDate(row.uploadedDate) }}</td>
                 <td>{{ formatUploadedBy(row) }}</td>
               </tr>

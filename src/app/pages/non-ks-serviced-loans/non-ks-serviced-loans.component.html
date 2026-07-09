@@ -30,29 +30,10 @@
             type="button"
             class="ks-fp__clear-selection"
             (click)="clearSelection()"
-            [disabled]="!selectedLoanKeys().length && !selectedStatuses().length"
+            [disabled]="!selectedLoanKeys().length"
           >
             Clear Selection
           </button>
-        </div>
-
-        <div class="ks-fp__status-block">
-          <label class="ks-fp__filter-label" for="nonKsStatus">Status</label>
-          <ng-select
-            id="nonKsStatus"
-            class="ks-ng-select"
-            appendTo="body"
-            [items]="statusSelectOptions()"
-            bindLabel="label"
-            bindValue="value"
-            [multiple]="true"
-            [searchable]="true"
-            [closeOnSelect]="false"
-            [clearable]="true"
-            placeholder="Select status..."
-            [ngModel]="selectedStatuses()"
-            (ngModelChange)="updateSelectedStatuses($event)"
-          ></ng-select>
         </div>
       </div>
     </div>
@@ -61,7 +42,7 @@
   @if (errorMessage() && !isSaving() && !showEntryDialog()) {
     <p class="error-message">{{ errorMessage() }}</p>
   }
-  @if (isLoadingGrid() || isLoadingStatuses()) {
+  @if (isLoadingGrid()) {
     <p class="meta-message">Loading loan records...</p>
   } @else if (statusMessage() && !errorMessage()) {
     <p class="status-message">{{ statusMessage() }}</p>
@@ -134,12 +115,10 @@
         } @empty {
           <tr>
             <td colspan="27" class="empty-row">
-              @if (!selectedStatuses().length) {
-                Select at least one Status to view Non-KS loan records.
-              } @else if (selectedLoanKeys().length) {
+              @if (selectedLoanKeys().length) {
                 No records match the selected loan filters.
               } @else {
-                No records loaded for the selected status. Click <strong>Add New Row</strong> to enter loan data.
+                No records loaded. Click <strong>Add New Row</strong> to enter loan data.
               }
             </td>
           </tr>
