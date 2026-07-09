@@ -84,6 +84,37 @@ const NUMERIC_FIELDS: (keyof RowSnapshot)[] = [
   'interestAdjustment',
 ];
 
+/** Interest and costs currency fields may be negative. */
+const NEGATIVE_ALLOWED_CURRENCY_FIELDS = new Set<keyof RowSnapshot>([
+  'outstandingInterest',
+  'accruedInterest',
+  'interestAdjustment',
+  'lateInterest',
+  'outstandingInvoices',
+  'estRealizationCosts',
+  'costToComplete',
+  'taxArrears',
+]);
+
+const DIALOG_INTEGER_FIELDS = new Set<keyof RowSnapshot>(['units', 'squareFeet']);
+
+const DIALOG_DECIMAL_FIELDS: Partial<Record<keyof RowSnapshot, number>> = {
+  netAcres: 2,
+};
+
+const DIALOG_CURRENCY_FIELDS = new Set<keyof RowSnapshot>([
+  'securityValue',
+  'principalBalance',
+  'outstandingInterest',
+  'accruedInterest',
+  'interestAdjustment',
+  'lateInterest',
+  'outstandingInvoices',
+  'estRealizationCosts',
+  'costToComplete',
+  'taxArrears',
+]);
+
 type NonKsColumnKey =
   | keyof RowSnapshot
   | 'userUpdatedBy'
@@ -161,6 +192,8 @@ export class NonKsServicedLoansComponent implements OnInit {
   readonly dialogMode = signal<DialogMode>('create');
   readonly selectedRowTrackId = signal<string | null>(null);
   readonly dialogDraft = signal<DialogDraft | null>(null);
+  /** Raw in-progress text for dialog numeric inputs (avoids reformat-on-keystroke). */
+  readonly dialogFieldText = signal<Record<string, string>>({});
   readonly dialogError = signal('');
 
   readonly hasSelectedRow = computed(() => this.selectedRowTrackId() !== null);
@@ -301,6 +334,7 @@ export class NonKsServicedLoansComponent implements OnInit {
   openAddDialog(): void {
     const loanCode = this.pendingExtLoanCode();
     this.dialogMode.set('create');
+    this.dialogFieldText.set({});
     this.dialogDraft.set(this.emptyDialogDraft(loanCode));
     this.dialogError.set('');
     this.showEntryDialog.set(true);
@@ -312,6 +346,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       return;
     }
     this.dialogMode.set('update');
+    this.dialogFieldText.set({});
     this.dialogDraft.set(this.rowToDialogDraft(row));
     this.dialogError.set('');
     this.showEntryDialog.set(true);
@@ -323,6 +358,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       return;
     }
     this.dialogMode.set('duplicate');
+    this.dialogFieldText.set({});
     this.dialogDraft.set(this.rowToDuplicateDialogDraft(row));
     this.dialogError.set('');
     this.showEntryDialog.set(true);
@@ -331,6 +367,7 @@ export class NonKsServicedLoansComponent implements OnInit {
   closeEntryDialog(): void {
     this.showEntryDialog.set(false);
     this.dialogDraft.set(null);
+    this.dialogFieldText.set({});
     this.dialogError.set('');
   }
 
@@ -338,6 +375,8 @@ export class NonKsServicedLoansComponent implements OnInit {
     if (this.isSaving()) {
       return;
     }
+
+    this.commitAllDialogNumericFields();
 
     const draft = this.dialogDraft();
     if (!draft) {
@@ -372,62 +411,104 @@ export class NonKsServicedLoansComponent implements OnInit {
     this.saveCreatedDraft(draft, userUpdatedBy, savedPage, mode);
   }
 
-  updateDialogTextField(field: keyof RowSnapshot, value: string): void {
-    this.patchDialogDraft({ [field]: value } as Partial<DialogDraft>);
+  dialogInputDisplay(field: string, formatted: string): string {
+    const raw = this.dialogFieldText()[field];
+    return raw !== undefined ? raw : formatted;
   }
 
-  updateDialogDateField(field: keyof RowSnapshot, value: string): void {
-    this.patchDialogDraft({ [field]: value.trim() } as Partial<DialogDraft>);
+  onDialogInputText(field: string, value: string): void {
+    this.dialogFieldText.update((current) => ({ ...current, [field]: value }));
+    this.dialogError.set('');
   }
 
-  updateDialogCurrencyField(field: keyof RowSnapshot, value: string): void {
-    this.patchDialogDraft({
-      [field]: this.parseCurrencyInput(value),
-    } as Partial<DialogDraft>);
-  }
-
-  updateDialogPercentField(value: string): void {
-    this.patchDialogDraft({ interestRate: this.parsePercentInput(value) });
-  }
-
-  updateDialogIntegerField(field: keyof RowSnapshot, value: string): void {
-    this.patchDialogDraft({
-      [field]: this.parseIntegerInput(value),
-    } as Partial<DialogDraft>);
-  }
-
-  updateDialogDecimalField(field: keyof RowSnapshot, value: string, fractionDigits: number): void {
-    this.patchDialogDraft({
-      [field]: this.parseDecimalInput(value, fractionDigits),
-    } as Partial<DialogDraft>);
-  }
-
-  normalizeDialogCurrencyField(field: keyof RowSnapshot, input: HTMLInputElement): void {
-    const parsed = this.parseCurrencyInput(input.value);
-    this.patchDialogDraft({ [field]: parsed } as Partial<DialogDraft>);
-    input.value = this.formatCurrencyInput(parsed);
-  }
-
-  normalizeDialogPercentField(input: HTMLInputElement): void {
-    const parsed = this.parsePercentInput(input.value);
-    this.patchDialogDraft({ interestRate: parsed });
-    input.value = this.formatPercentInput(parsed);
-  }
-
-  normalizeDialogIntegerField(field: keyof RowSnapshot, input: HTMLInputElement): void {
+  commitDialogIntegerField(field: keyof RowSnapshot, input: HTMLInputElement): void {
     const parsed = this.parseIntegerInput(input.value);
     this.patchDialogDraft({ [field]: parsed } as Partial<DialogDraft>);
+    this.clearDialogFieldText(field);
     input.value = this.formatIntegerInput(parsed);
   }
 
-  normalizeDialogDecimalField(
+  commitDialogDecimalField(
     field: keyof RowSnapshot,
     input: HTMLInputElement,
     fractionDigits: number,
   ): void {
     const parsed = this.parseDecimalInput(input.value, fractionDigits);
     this.patchDialogDraft({ [field]: parsed } as Partial<DialogDraft>);
+    this.clearDialogFieldText(field);
     input.value = this.formatDecimalInput(parsed, fractionDigits);
+  }
+
+  commitDialogCurrencyField(field: keyof RowSnapshot, input: HTMLInputElement): void {
+    const allowNegative = NEGATIVE_ALLOWED_CURRENCY_FIELDS.has(field);
+    const parsed = this.parseCurrencyInput(input.value, allowNegative);
+    this.patchDialogDraft({ [field]: parsed } as Partial<DialogDraft>);
+    this.clearDialogFieldText(field);
+    input.value = this.formatCurrencyInput(parsed);
+  }
+
+  commitDialogPercentField(input: HTMLInputElement): void {
+    const parsed = this.parsePercentInput(input.value);
+    this.patchDialogDraft({ interestRate: parsed });
+    this.clearDialogFieldText('interestRate');
+    input.value = this.formatPercentInput(parsed);
+  }
+
+  private clearDialogFieldText(field: string): void {
+    this.dialogFieldText.update((current) => {
+      if (!(field in current)) {
+        return current;
+      }
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  }
+
+  private commitAllDialogNumericFields(): void {
+    const pending = this.dialogFieldText();
+    const keys = Object.keys(pending);
+    if (!keys.length) {
+      return;
+    }
+
+    const patch: Partial<DialogDraft> = {};
+    for (const fieldName of keys) {
+      const field = fieldName as keyof RowSnapshot;
+      const raw = pending[fieldName] ?? '';
+      if (field === 'interestRate') {
+        patch.interestRate = this.parsePercentInput(raw);
+        continue;
+      }
+      if (DIALOG_INTEGER_FIELDS.has(field)) {
+        patch[field] = this.parseIntegerInput(raw) as never;
+        continue;
+      }
+      if (field in DIALOG_DECIMAL_FIELDS) {
+        const digits = DIALOG_DECIMAL_FIELDS[field] ?? 2;
+        patch[field] = this.parseDecimalInput(raw, digits) as never;
+        continue;
+      }
+      if (DIALOG_CURRENCY_FIELDS.has(field)) {
+        patch[field] = this.parseCurrencyInput(
+          raw,
+          NEGATIVE_ALLOWED_CURRENCY_FIELDS.has(field),
+        ) as never;
+      }
+    }
+
+    if (Object.keys(patch).length) {
+      this.patchDialogDraft(patch);
+    }
+    this.dialogFieldText.set({});
+  }
+
+  updateDialogTextField(field: keyof RowSnapshot, value: string): void {
+    this.patchDialogDraft({ [field]: value } as Partial<DialogDraft>);
+  }
+
+  updateDialogDateField(field: keyof RowSnapshot, value: string): void {
+    this.patchDialogDraft({ [field]: value.trim() } as Partial<DialogDraft>);
   }
 
   formatCurrencyDisplay(value: number | null): string {
@@ -1231,18 +1312,24 @@ export class NonKsServicedLoansComponent implements OnInit {
     return trimmed ? trimmed : null;
   }
 
-  private parseCurrencyInput(value: string): number | null {
+  private parseCurrencyInput(value: string, allowNegative = false): number | null {
     const trimmed = value.replace(/[$,\s]/g, '').trim();
-    if (!trimmed) {
+    if (!trimmed || trimmed === '-' || trimmed === '-.' || trimmed === '.') {
       return null;
     }
     const parsed = Number(trimmed);
-    return Number.isFinite(parsed) ? Number(parsed.toFixed(2)) : null;
+    if (!Number.isFinite(parsed)) {
+      return null;
+    }
+    if (!allowNegative && parsed < 0) {
+      return null;
+    }
+    return Number(parsed.toFixed(2));
   }
 
   private parseIntegerInput(value: string): number | null {
     const trimmed = value.replace(/[,\s]/g, '').trim();
-    if (!trimmed) {
+    if (!trimmed || trimmed === '-') {
       return null;
     }
     const parsed = Number.parseInt(trimmed, 10);
@@ -1251,20 +1338,26 @@ export class NonKsServicedLoansComponent implements OnInit {
 
   private parseDecimalInput(value: string, fractionDigits: number): number | null {
     const trimmed = value.replace(/[,\s]/g, '').trim();
-    if (!trimmed) {
+    if (!trimmed || trimmed === '-' || trimmed === '-.' || trimmed === '.') {
       return null;
     }
     const parsed = Number(trimmed);
-    return Number.isFinite(parsed) ? Number(parsed.toFixed(fractionDigits)) : null;
+    if (!Number.isFinite(parsed)) {
+      return null;
+    }
+    return Number(parsed.toFixed(fractionDigits));
   }
 
   private parsePercentInput(value: string): number | null {
     const trimmed = value.replace(/%/g, '').trim();
-    if (!trimmed) {
+    if (!trimmed || trimmed === '-' || trimmed === '-.' || trimmed === '.') {
       return null;
     }
     const parsed = Number(trimmed);
-    return Number.isFinite(parsed) ? Number(parsed.toFixed(2)) : null;
+    if (!Number.isFinite(parsed)) {
+      return null;
+    }
+    return Number(parsed.toFixed(2));
   }
 
   private mergeSavedRecords(

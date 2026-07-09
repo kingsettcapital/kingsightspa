@@ -280,9 +280,9 @@
                     type="text"
                     inputmode="numeric"
                     class="cell-input number"
-                    [value]="formatIntegerInput(draft.units)"
-                    (input)="updateDialogIntegerField('units', $any($event.target).value)"
-                    (blur)="normalizeDialogIntegerField('units', $any($event.target))"
+                    [value]="dialogInputDisplay('units', formatIntegerInput(draft.units))"
+                    (input)="onDialogInputText('units', $any($event.target).value)"
+                    (blur)="commitDialogIntegerField('units', $any($event.target))"
                     placeholder="0"
                   />
                 </div>
@@ -293,9 +293,9 @@
                     type="text"
                     inputmode="decimal"
                     class="cell-input number"
-                    [value]="formatDecimalInput(draft.netAcres, 2)"
-                    (input)="updateDialogDecimalField('netAcres', $any($event.target).value, 2)"
-                    (blur)="normalizeDialogDecimalField('netAcres', $any($event.target), 2)"
+                    [value]="dialogInputDisplay('netAcres', formatDecimalInput(draft.netAcres, 2))"
+                    (input)="onDialogInputText('netAcres', $any($event.target).value)"
+                    (blur)="commitDialogDecimalField('netAcres', $any($event.target), 2)"
                     placeholder="0.00"
                   />
                 </div>
@@ -306,9 +306,9 @@
                     type="text"
                     inputmode="numeric"
                     class="cell-input number"
-                    [value]="formatIntegerInput(draft.squareFeet)"
-                    (input)="updateDialogIntegerField('squareFeet', $any($event.target).value)"
-                    (blur)="normalizeDialogIntegerField('squareFeet', $any($event.target))"
+                    [value]="dialogInputDisplay('squareFeet', formatIntegerInput(draft.squareFeet))"
+                    (input)="onDialogInputText('squareFeet', $any($event.target).value)"
+                    (blur)="commitDialogIntegerField('squareFeet', $any($event.target))"
                     placeholder="0"
                   />
                 </div>
@@ -321,9 +321,9 @@
                     type="text"
                     inputmode="decimal"
                     class="cell-input number"
-                    [value]="formatCurrencyInput(draft.securityValue)"
-                    (input)="updateDialogCurrencyField('securityValue', $any($event.target).value)"
-                    (blur)="normalizeDialogCurrencyField('securityValue', $any($event.target))"
+                    [value]="dialogInputDisplay('securityValue', formatCurrencyInput(draft.securityValue))"
+                    (input)="onDialogInputText('securityValue', $any($event.target).value)"
+                    (blur)="commitDialogCurrencyField('securityValue', $any($event.target))"
                     placeholder="$0.00"
                   />
                 </div>
@@ -334,9 +334,9 @@
                     type="text"
                     inputmode="decimal"
                     class="cell-input number"
-                    [value]="formatCurrencyInput(draft.principalBalance)"
-                    (input)="updateDialogCurrencyField('principalBalance', $any($event.target).value)"
-                    (blur)="normalizeDialogCurrencyField('principalBalance', $any($event.target))"
+                    [value]="dialogInputDisplay('principalBalance', formatCurrencyInput(draft.principalBalance))"
+                    (input)="onDialogInputText('principalBalance', $any($event.target).value)"
+                    (blur)="commitDialogCurrencyField('principalBalance', $any($event.target))"
                     placeholder="$0.00"
                   />
                 </div>
@@ -347,9 +347,9 @@
                     type="text"
                     inputmode="decimal"
                     class="cell-input number"
-                    [value]="formatPercentInput(draft.interestRate)"
-                    (input)="updateDialogPercentField($any($event.target).value)"
-                    (blur)="normalizeDialogPercentField($any($event.target))"
+                    [value]="dialogInputDisplay('interestRate', formatPercentInput(draft.interestRate))"
+                    (input)="onDialogInputText('interestRate', $any($event.target).value)"
+                    (blur)="commitDialogPercentField($any($event.target))"
                     placeholder="0.00%"
                   />
                 </div>
@@ -429,9 +429,9 @@
                   type="text"
                   inputmode="decimal"
                   class="cell-input number"
-                  [value]="formatCurrencyInput(draft.outstandingInterest)"
-                  (input)="updateDialogCurrencyField('outstandingInterest', $any($event.target).value)"
-                  (blur)="normalizeDialogCurrencyField('outstandingInterest', $any($event.target))"
+                    [value]="dialogInputDisplay('outstandingInterest', formatCurrencyInput(draft.outstandingInterest))"
+                    (input)="onDialogInputText('outstandingInterest', $any($event.target).value)"
+                    (blur)="commitDialogCurrencyField('outstandingInterest', $any($event.target))"
                   placeholder="$0.00"
                 />
               </div>
@@ -442,9 +442,9 @@
                   type="text"
                   inputmode="decimal"
                   class="cell-input number"
-                  [value]="formatCurrencyInput(draft.accruedInterest)"
-                  (input)="updateDialogCurrencyField('accruedInterest', $any($event.target).value)"
-                  (blur)="normalizeDialogCurrencyField('accruedInterest', $any($event.target))"
+                    [value]="dialogInputDisplay('accruedInterest', formatCurrencyInput(draft.accruedInterest))"
+                    (input)="onDialogInputText('accruedInterest', $any($event.target).value)"
+                    (blur)="commitDialogCurrencyField('accruedInterest', $any($event.target))"
                   placeholder="$0.00"
                 />
               </div>
@@ -455,9 +455,9 @@
                   type="text"
                   inputmode="decimal"
                   class="cell-input number"
-                  [value]="formatCurrencyInput(draft.interestAdjustment)"
-                  (input)="updateDialogCurrencyField('interestAdjustment', $any($event.target).value)"
-                  (blur)="normalizeDialogCurrencyField('interestAdjustment', $any($event.target))"
+                    [value]="dialogInputDisplay('interestAdjustment', formatCurrencyInput(draft.interestAdjustment))"
+                    (input)="onDialogInputText('interestAdjustment', $any($event.target).value)"
+                    (blur)="commitDialogCurrencyField('interestAdjustment', $any($event.target))"
                   placeholder="$0.00"
                 />
               </div>
@@ -468,9 +468,9 @@
                   type="text"
                   inputmode="decimal"
                   class="cell-input number"
-                  [value]="formatCurrencyInput(draft.lateInterest)"
-                  (input)="updateDialogCurrencyField('lateInterest', $any($event.target).value)"
-                  (blur)="normalizeDialogCurrencyField('lateInterest', $any($event.target))"
+                    [value]="dialogInputDisplay('lateInterest', formatCurrencyInput(draft.lateInterest))"
+                    (input)="onDialogInputText('lateInterest', $any($event.target).value)"
+                    (blur)="commitDialogCurrencyField('lateInterest', $any($event.target))"
                   placeholder="$0.00"
                 />
               </div>
@@ -487,9 +487,9 @@
                   type="text"
                   inputmode="decimal"
                   class="cell-input number"
-                  [value]="formatCurrencyInput(draft.outstandingInvoices)"
-                  (input)="updateDialogCurrencyField('outstandingInvoices', $any($event.target).value)"
-                  (blur)="normalizeDialogCurrencyField('outstandingInvoices', $any($event.target))"
+                    [value]="dialogInputDisplay('outstandingInvoices', formatCurrencyInput(draft.outstandingInvoices))"
+                    (input)="onDialogInputText('outstandingInvoices', $any($event.target).value)"
+                    (blur)="commitDialogCurrencyField('outstandingInvoices', $any($event.target))"
                   placeholder="$0.00"
                 />
               </div>
@@ -500,9 +500,9 @@
                   type="text"
                   inputmode="decimal"
                   class="cell-input number"
-                  [value]="formatCurrencyInput(draft.estRealizationCosts)"
-                  (input)="updateDialogCurrencyField('estRealizationCosts', $any($event.target).value)"
-                  (blur)="normalizeDialogCurrencyField('estRealizationCosts', $any($event.target))"
+                    [value]="dialogInputDisplay('estRealizationCosts', formatCurrencyInput(draft.estRealizationCosts))"
+                    (input)="onDialogInputText('estRealizationCosts', $any($event.target).value)"
+                    (blur)="commitDialogCurrencyField('estRealizationCosts', $any($event.target))"
                   placeholder="$0.00"
                 />
               </div>
@@ -513,9 +513,9 @@
                   type="text"
                   inputmode="decimal"
                   class="cell-input number"
-                  [value]="formatCurrencyInput(draft.costToComplete)"
-                  (input)="updateDialogCurrencyField('costToComplete', $any($event.target).value)"
-                  (blur)="normalizeDialogCurrencyField('costToComplete', $any($event.target))"
+                    [value]="dialogInputDisplay('costToComplete', formatCurrencyInput(draft.costToComplete))"
+                    (input)="onDialogInputText('costToComplete', $any($event.target).value)"
+                    (blur)="commitDialogCurrencyField('costToComplete', $any($event.target))"
                   placeholder="$0.00"
                 />
               </div>
@@ -526,9 +526,9 @@
                   type="text"
                   inputmode="decimal"
                   class="cell-input number"
-                  [value]="formatCurrencyInput(draft.taxArrears)"
-                  (input)="updateDialogCurrencyField('taxArrears', $any($event.target).value)"
-                  (blur)="normalizeDialogCurrencyField('taxArrears', $any($event.target))"
+                    [value]="dialogInputDisplay('taxArrears', formatCurrencyInput(draft.taxArrears))"
+                    (input)="onDialogInputText('taxArrears', $any($event.target).value)"
+                    (blur)="commitDialogCurrencyField('taxArrears', $any($event.target))"
                   placeholder="$0.00"
                 />
               </div>
