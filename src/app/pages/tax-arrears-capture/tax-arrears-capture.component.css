@@ -1,5 +1,20 @@
 /* Page-specific styles — shared layout via .ks-fp in theme/_form-page.scss */
 
+.select-col {
+  width: 2.5rem;
+  text-align: center;
+}
+
+.row-select-checkbox {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+tr.row-selected {
+  background: #fffbeb;
+}
+
 .tax-arrears-page .actions {
   justify-content: flex-end;
   gap: 0.5rem;

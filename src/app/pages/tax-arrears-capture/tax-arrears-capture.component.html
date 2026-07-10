@@ -69,12 +69,15 @@
     <p class="meta-message grid-loading">Loading tax arrears records...</p>
   } @else if (statusMessage() && !errorMessage()) {
     <p class="status-message">{{ statusMessage() }}</p>
+  } @else if (gridLoadMessage() && !errorMessage()) {
+    <p class="status-message">{{ gridLoadMessage() }}</p>
   }
 
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
+          <th class="select-col" aria-label="Select row"></th>
           <th class="hidden-column">Tax Arrear Key</th>
           <th class="hidden-column">Loan Key</th>
           @for (column of tableColumns; track column.key) {
@@ -94,7 +97,16 @@
       </thead>
       <tbody>
         @for (row of paginatedRows(); track rowTrackId(row)) {
-          <tr>
+          <tr [class.row-selected]="isRowSelected(row)">
+            <td class="select-col">
+              <input
+                type="checkbox"
+                class="row-select-checkbox"
+                [checked]="isRowSelected(row)"
+                (change)="toggleRowSelection(row)"
+                [attr.aria-label]="'Select row ' + row.loanCode"
+              />
+            </td>
             <td class="hidden-column">{{ row.taxArrearKey }}</td>
             <td class="hidden-column">{{ row.loanKey }}</td>
             <td>{{ row.loanCode }}</td>
@@ -143,7 +155,7 @@
           </tr>
         } @empty {
           <tr>
-            <td colspan="11" class="empty-row">
+            <td colspan="12" class="empty-row">
               @if (isLoadingGrid() || isLoadingFilters()) {
                 Loading tax arrears records...
               } @else if (!selectedStatuses().length) {
@@ -192,7 +204,15 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="ks-btn ks-btn--accent" (click)="openAddDialog()">Add New Record</button>
+    <button type="button" class="ks-btn ks-btn--accent" (click)="openAddDialog()">Add New Row</button>
+    <button
+      type="button"
+      class="ks-btn ks-btn--accent"
+      (click)="openDuplicateDialog()"
+      [disabled]="!hasSelectedRow()"
+    >
+      Duplicate Row
+    </button>
     <button
       type="button"
       class="ks-btn ks-btn--accent"
@@ -218,7 +238,7 @@
       (click)="$event.stopPropagation()"
     >
       <div class="ta-dialog-header">
-        <h2 id="dlg-add-tax-arrears-title">Add A New Record</h2>
+        <h2 id="dlg-add-tax-arrears-title">{{ dialogTitle() }}</h2>
         <button type="button" class="dlg-close" (click)="closeAddDialog()" aria-label="Close">×</button>
       </div>
 
@@ -325,7 +345,7 @@
           Cancel
         </button>
         <button type="button" class="ks-btn ks-btn--accent" (click)="createRecord()" [disabled]="isCreating()">
-          @if (isCreating()) { Saving… } @else { Save Record }
+          @if (isCreating()) { Saving… } @else { Save Row }
         </button>
       </div>
     </div>

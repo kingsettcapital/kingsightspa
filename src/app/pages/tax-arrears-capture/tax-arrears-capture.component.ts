@@ -60,6 +60,8 @@ type NewRecordForm = {
   notes: string;
 };
 
+type RecordDialogMode = 'create' | 'duplicate';
+
 type TaxArrearColumnKey =
   | 'loanCode'
   | 'loanName'
@@ -128,6 +130,8 @@ export class TaxArrearsCaptureComponent implements OnInit {
   readonly isSaving = signal(false);
   readonly isCreating = signal(false);
   readonly showAddDialog = signal(false);
+  readonly dialogMode = signal<RecordDialogMode>('create');
+  readonly selectedRowTrackId = signal<string | null>(null);
   readonly dialogError = signal('');
   readonly newRecord = signal<NewRecordForm>(this.emptyNewRecord());
   readonly currentPage = signal(1);
@@ -297,6 +301,35 @@ export class TaxArrearsCaptureComponent implements OnInit {
     return `${start} - ${end} of ${total}`;
   });
 
+  readonly hasSelectedRow = computed(() => this.selectedRowTrackId() !== null);
+
+  readonly dialogTitle = computed(() =>
+    this.dialogMode() === 'duplicate' ? 'Duplicate Row' : 'Add New Row',
+  );
+
+  readonly gridLoadMessage = computed(() => {
+    if (this.isLoadingGrid() || this.isLoadingFilters()) {
+      return '';
+    }
+    if (!this.selectedStatuses().length) {
+      return 'Select at least one status to load records.';
+    }
+
+    const total = this.rows().length;
+    const visible = this.filteredRows().length;
+    if (total === 0) {
+      return 'No tax arrears records returned for the selected filters.';
+    }
+
+    const hasLoanFilter =
+      this.selectedLoanCodes().length > 0 || this.searchText().trim().length > 0;
+    if (hasLoanFilter && visible !== total) {
+      return `${visible} record(s) shown (${total} loaded for selected status).`;
+    }
+
+    return `${visible} record(s) loaded.`;
+  });
+
   rowTrackId(row: TaxArrearRow): string {
     return row.stableRowId;
   }
@@ -409,7 +442,20 @@ export class TaxArrearsCaptureComponent implements OnInit {
   }
 
   openAddDialog(): void {
+    this.dialogMode.set('create');
     this.newRecord.set(this.emptyNewRecord());
+    this.dialogError.set('');
+    this.showAddDialog.set(true);
+  }
+
+  openDuplicateDialog(): void {
+    const row = this.findSelectedRow();
+    if (!row) {
+      return;
+    }
+
+    this.dialogMode.set('duplicate');
+    this.newRecord.set(this.rowToNewRecordForm(row));
     this.dialogError.set('');
     this.showAddDialog.set(true);
   }
@@ -417,6 +463,51 @@ export class TaxArrearsCaptureComponent implements OnInit {
   closeAddDialog(): void {
     this.showAddDialog.set(false);
     this.dialogError.set('');
+  }
+
+  toggleRowSelection(row: TaxArrearRow): void {
+    const trackId = this.rowTrackId(row);
+    this.selectedRowTrackId.set(this.selectedRowTrackId() === trackId ? null : trackId);
+    this.clearMessages();
+  }
+
+  isRowSelected(row: TaxArrearRow): boolean {
+    return this.selectedRowTrackId() === this.rowTrackId(row);
+  }
+
+  private findSelectedRow(): TaxArrearRow | null {
+    const trackId = this.selectedRowTrackId();
+    if (!trackId) {
+      return null;
+    }
+    return this.rows().find((row) => this.rowTrackId(row) === trackId) ?? null;
+  }
+
+  private rowToNewRecordForm(row: TaxArrearRow): NewRecordForm {
+    return {
+      loanAliasId: this.resolveLoanAliasId(row),
+      loanCode: row.loanCode === '—' ? null : row.loanCode,
+      taxMemoDate: row.taxMemoDate,
+      taxYear: row.taxYear || String(new Date().getFullYear()),
+      taxArrears: row.taxArrears != null ? this.formatTaxArrearsInput(row.taxArrears) : '',
+      notes: row.notes,
+    };
+  }
+
+  private resolveLoanAliasId(row: TaxArrearRow): number | null {
+    const aliasName = row.loanAliasName.trim().toLowerCase();
+    if (aliasName && aliasName !== '—') {
+      const byName = this.aliasOptions().find(
+        (alias) => alias.loanAliasName.trim().toLowerCase() === aliasName,
+      );
+      if (byName) {
+        return byName.loanAliasId;
+      }
+    }
+
+    const loan = this.allLoans().find((candidate) => candidate.loanCode?.trim() === row.loanCode);
+    const loanAliasKey = Number(loan?.loanAliasKey ?? 0);
+    return loanAliasKey > 0 ? loanAliasKey : null;
   }
 
   updateNewRecordAlias(value: string): void {
@@ -479,7 +570,11 @@ export class TaxArrearsCaptureComponent implements OnInit {
       next: () => {
         this.isCreating.set(false);
         this.closeAddDialog();
-        this.statusMessage.set('New tax arrears record added.');
+        this.statusMessage.set(
+          this.dialogMode() === 'duplicate'
+            ? 'New tax arrears row created from duplicate.'
+            : 'New tax arrears row added.',
+        );
         this.errorMessage.set('');
         this.loadGrid();
       },
@@ -677,7 +772,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
     if (!statuses.length) {
       this.rows.set([]);
       this.originalRowState.set({});
-      this.statusMessage.set('Select at least one status to load records.');
+      this.isLoadingGrid.set(false);
       return;
     }
 
@@ -692,11 +787,6 @@ export class TaxArrearsCaptureComponent implements OnInit {
         this.mergeTaxYearsFromRows(mapped);
         this.currentPage.set(1);
         this.snapshotOriginalState();
-        this.statusMessage.set(
-          mapped.length > 0
-            ? `${mapped.length} record(s) loaded.`
-            : 'No tax arrears records returned for the selected filters.',
-        );
         this.isLoadingGrid.set(false);
       },
       error: (error) => {
