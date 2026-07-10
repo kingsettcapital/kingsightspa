@@ -3,6 +3,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs';
 import { UserRole } from '../../core/enums/user-role.enum';
 import { AuthService } from '../../core/services/auth.service';
+import { NotificationUnreadCountService } from '../../core/services/notification-unread-count.service';
 import {
   LucideAngularModule,
   LUCIDE_ICONS,
@@ -57,6 +58,7 @@ import { ToastContainerComponent } from '../../shared/components/toast/toast-con
 export class MainLayoutComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly notificationUnreadCount = inject(NotificationUnreadCountService);
 
   isSidebarExpanded = signal(true);
   isMobileNavOpen = signal(false);
@@ -65,6 +67,7 @@ export class MainLayoutComponent implements OnInit {
   hideAppSidebar = signal(this.shouldHideAppChrome(this.router.url));
 
   ngOnInit(): void {
+    this.notificationUnreadCount.refresh();
     this.syncDropdownToRoute(this.router.url);
     this.hideAppSidebar.set(this.shouldHideAppChrome(this.router.url));
 
@@ -74,9 +77,12 @@ export class MainLayoutComponent implements OnInit {
         const navigation = event as NavigationEnd;
         this.syncDropdownToRoute(navigation.urlAfterRedirects);
         this.hideAppSidebar.set(this.shouldHideAppChrome(navigation.urlAfterRedirects));
+        this.notificationUnreadCount.refresh();
         this.closeMobileNav();
       });
   }
+
+  readonly unreadNotificationCount = this.notificationUnreadCount.count;
 
   readonly currentUser = computed(() => {
     const user = this.authService.currentUser();

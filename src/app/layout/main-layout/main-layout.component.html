@@ -148,8 +148,18 @@
             <a
               routerLink="/mortgage/notifications"
               routerLinkActive="ks-sidebar__sublink--active"
-              class="ks-sidebar__sublink"
-            >Notifications</a>
+              class="ks-sidebar__sublink ks-sidebar__sublink--notifications"
+            >
+              <span class="ks-sidebar__sublink-label">Notifications</span>
+              @if (unreadNotificationCount() > 0) {
+                <span
+                  class="ks-sidebar__notification-badge"
+                  [attr.aria-label]="unreadNotificationCount() + ' unread notifications'"
+                >
+                  {{ unreadNotificationCount() > 99 ? '99+' : unreadNotificationCount() }}
+                </span>
+              }
+            </a>
           </div>
         }
       </div>

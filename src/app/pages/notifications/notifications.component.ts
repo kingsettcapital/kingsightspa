@@ -5,6 +5,7 @@ import {
   NotificationRecord,
   NotificationsApiService,
 } from '../../core/services/notifications-api.service';
+import { NotificationUnreadCountService } from '../../core/services/notification-unread-count.service';
 
 @Component({
   selector: 'app-notifications',
@@ -15,6 +16,7 @@ import {
 })
 export class NotificationsComponent implements OnInit {
   private readonly notificationsApi = inject(NotificationsApiService);
+  private readonly notificationUnreadCount = inject(NotificationUnreadCountService);
 
   readonly notifications = signal<NotificationRecord[]>([]);
   readonly isLoading = signal(false);
@@ -49,6 +51,7 @@ export class NotificationsComponent implements OnInit {
             item.notificationId === row.notificationId ? { ...item, isRead: true } : item,
           ),
         );
+        this.notificationUnreadCount.syncFromRecords(this.notifications());
         this.statusMessage.set('Notification marked as read.');
         this.isSaving.set(false);
       },
@@ -70,6 +73,7 @@ export class NotificationsComponent implements OnInit {
     this.notificationsApi.markAllAsRead().subscribe({
       next: () => {
         this.notifications.update((rows) => rows.map((row) => ({ ...row, isRead: true })));
+        this.notificationUnreadCount.syncFromRecords(this.notifications());
         this.statusMessage.set('All notifications marked as read.');
         this.isSaving.set(false);
       },
@@ -111,10 +115,12 @@ export class NotificationsComponent implements OnInit {
               new Date(right.updatedDate).getTime() - new Date(left.updatedDate).getTime(),
           ),
         );
+        this.notificationUnreadCount.syncFromRecords(this.notifications());
         this.isLoading.set(false);
       },
       error: (error: { status?: number }) => {
         this.notifications.set([]);
+        this.notificationUnreadCount.syncFromRecords([]);
         this.errorMessage.set(
           error?.status === 500
             ? 'Unable to load notifications. Ensure subjective_input.notifications exists (run kingsightapi SQL scripts) and restart the API.'
