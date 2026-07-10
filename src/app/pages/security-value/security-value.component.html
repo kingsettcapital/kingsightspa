@@ -68,6 +68,10 @@
   }
   @if (isLoadingGrid()) {
     <p class="meta-message grid-loading">Loading security values...</p>
+  } @else if (statusMessage() && !errorMessage()) {
+    <p class="status-message">{{ statusMessage() }}</p>
+  } @else if (gridLoadMessage() && !errorMessage()) {
+    <p class="status-message">{{ gridLoadMessage() }}</p>
   }
 
   <div class="table-wrap">

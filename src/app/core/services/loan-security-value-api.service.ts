@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 
 import { APP_API_CONFIG } from '../constants/api.config';
+import { appendMortgageStatusParams } from '../utils/mortgage-status-query.util';
 
 /** Mirrors LoanSecurityValueDto from GET /api/LoanSecurityValue */
 export type LoanSecurityValueDto = {
@@ -60,11 +61,7 @@ export class LoanSecurityValueApiService {
     for (const id of loanAliasIds) {
       params = params.append('loanAliasIds', String(id));
     }
-    for (const status of statuses) {
-      if (status.trim()) {
-        params = params.append('statuses', status.trim());
-      }
-    }
+    params = appendMortgageStatusParams(params, statuses);
     return this.http.get<LoanSecurityValueDto[]>(this.baseUrl, { params });
   }
 

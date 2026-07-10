@@ -5,9 +5,9 @@ import { NgSelectComponent } from '@ng-select/ng-select';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import {
-  resolveDefaultStatusValues,
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
@@ -307,28 +307,17 @@ export class TaxArrearsCaptureComponent implements OnInit {
     this.dialogMode() === 'duplicate' ? 'Duplicate Row' : 'Add New Row',
   );
 
-  readonly gridLoadMessage = computed(() => {
-    if (this.isLoadingGrid() || this.isLoadingFilters()) {
-      return '';
-    }
-    if (!this.selectedStatuses().length) {
-      return 'Select at least one status to load records.';
-    }
-
-    const total = this.rows().length;
-    const visible = this.filteredRows().length;
-    if (total === 0) {
-      return 'No tax arrears records returned for the selected filters.';
-    }
-
-    const hasLoanFilter =
-      this.selectedLoanCodes().length > 0 || this.searchText().trim().length > 0;
-    if (hasLoanFilter && visible !== total) {
-      return `${visible} record(s) shown (${total} loaded for selected status).`;
-    }
-
-    return `${visible} record(s) loaded.`;
-  });
+  readonly gridLoadMessage = computed(() =>
+    buildMortgageGridLoadMessage({
+      isLoading: this.isLoadingGrid() || this.isLoadingFilters(),
+      totalRows: this.rows().length,
+      visibleRows: this.filteredRows().length,
+      hasClientFilter:
+        this.selectedLoanCodes().length > 0 || this.searchText().trim().length > 0,
+      entitySingular: 'record',
+      emptyMessage: 'No tax arrears records returned for the selected filters.',
+    }),
+  );
 
   rowTrackId(row: TaxArrearRow): string {
     return row.stableRowId;
@@ -374,7 +363,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedLoanCodes.set([]);
-    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
+    this.selectedStatuses.set([]);
     this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
@@ -753,7 +742,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
             .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
         );
         this.statusOptions.set(this.normalizeStatusOptions(statuses));
-        this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
+        this.selectedStatuses.set([]);
         this.allLoans.set(Array.isArray(loans) ? loans : []);
         this.taxYearOptions.set(this.buildTaxYearOptions(lookups));
         this.isLoadingFilters.set(false);
@@ -768,13 +757,6 @@ export class TaxArrearsCaptureComponent implements OnInit {
 
   private loadGrid(): void {
     const statuses = this.selectedStatuses();
-
-    if (!statuses.length) {
-      this.rows.set([]);
-      this.originalRowState.set({});
-      this.isLoadingGrid.set(false);
-      return;
-    }
 
     this.isLoadingGrid.set(true);
     this.errorMessage.set('');

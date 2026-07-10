@@ -1,5 +1,78 @@
 /* Page-specific styles — shared layout via .ks-fp in theme/_form-page.scss */
 
+.subjective-page .table-wrap table {
+  table-layout: fixed;
+  min-width: 82rem;
+}
+
+/* Enlarged identity columns */
+.dsa-col--name {
+  width: 17%;
+  min-width: 11rem;
+}
+
+.dsa-col--alias {
+  width: 13%;
+  min-width: 8.5rem;
+}
+
+.dsa-col--default-status,
+.dsa-col--exit-plan {
+  width: 11%;
+}
+
+.dsa-col--maturity-detail {
+  width: 14%;
+}
+
+/* Compact but readable columns */
+.subjective-page .table-wrap .dsa-col--code {
+  width: 6.5%;
+  min-width: 5.75rem;
+  white-space: nowrap;
+}
+
+.subjective-page .table-wrap .dsa-col--maturity {
+  width: 7%;
+  min-width: 7rem;
+  white-space: nowrap;
+}
+
+.subjective-page .table-wrap .dsa-col--exit-date {
+  width: 6%;
+  min-width: 5.75rem;
+}
+
+.subjective-page .table-wrap .dsa-col--audit-by.audit-col,
+.subjective-page .table-wrap thead th.dsa-col--audit-by {
+  width: 8.25rem;
+  max-width: 9.5rem;
+  min-width: 7.75rem;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.subjective-page .table-wrap .dsa-col--audit-date.audit-col,
+.subjective-page .table-wrap thead th.dsa-col--audit-date {
+  width: 8.5rem;
+  max-width: 9.5rem;
+  min-width: 8rem;
+  white-space: nowrap;
+}
+
+.subjective-page .table-wrap thead th.dsa-col--code,
+.subjective-page .table-wrap thead th.dsa-col--maturity,
+.subjective-page .table-wrap thead th.dsa-col--exit-date {
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.dsa-col--name,
+.dsa-col--alias {
+  word-break: break-word;
+}
+
 .grid-loading {
   margin: 0 0 0.75rem;
 }
@@ -24,15 +97,18 @@
 }
 
 .select-input {
-  min-width: 9.5rem;
+  min-width: 0;
+  width: 100%;
 }
 
 .quarter-input {
-  min-width: 6.5rem;
+  min-width: 0;
+  width: 100%;
+  max-width: 6.5rem;
 }
 
 .text-input {
-  min-width: 10rem;
+  min-width: 0;
   width: 100%;
 }
 

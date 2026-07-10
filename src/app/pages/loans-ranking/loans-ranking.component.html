@@ -63,6 +63,11 @@
   @if (errorMessage() && !isSaving()) {
     <p class="error-message">{{ errorMessage() }}</p>
   }
+  @if (!isLoading() && statusMessage() && !isSaving()) {
+    <p class="status">{{ statusMessage() }}</p>
+  } @else if (!isLoading() && gridLoadMessage()) {
+    <p class="meta-message">{{ gridLoadMessage() }}</p>
+  }
 
   <div class="table-wrap">
     <table>
@@ -151,12 +156,12 @@
         } @empty {
           <tr>
             <td colspan="11" class="empty-row">
-              @if (!selectedStatuses().length) {
-                Select at least one Status to view loans.
-              } @else if (selectedLoanCodes().length) {
+              @if (isLoading()) {
+                Loading loans...
+              } @else if (selectedLoanCodes().length || searchText().trim()) {
                 No loans match the selected loan filters.
               } @else {
-                No loans found for the selected status.
+                No loans match the current filters.
               }
             </td>
           </tr>

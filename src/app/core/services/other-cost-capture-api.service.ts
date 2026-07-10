@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 
 import { APP_API_CONFIG } from '../constants/api.config';
+import { appendMortgageStatusParams } from '../utils/mortgage-status-query.util';
 
 /** Row from GET /api/OtherCostCapture — maps loan_alias_relationship. */
 export type OtherCostCaptureRowDto = {
@@ -45,11 +46,7 @@ export class OtherCostCaptureApiService {
     if (loanAliasId != null && loanAliasId > 0) {
       params = params.set('loanAliasId', String(loanAliasId));
     }
-    for (const status of statuses) {
-      if (status.trim()) {
-        params = params.append('statuses', status.trim());
-      }
-    }
+    params = appendMortgageStatusParams(params, statuses);
     return this.http.get<OtherCostCaptureRowDto[]>(this.baseUrl, { params });
   }
 

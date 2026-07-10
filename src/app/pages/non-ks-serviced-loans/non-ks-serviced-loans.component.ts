@@ -6,6 +6,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
+import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import { InvestorAlias, InvestorApiService } from '../../core/services/investor-api.service';
 import { LoanAliasOptionDto, LoansApiService } from '../../core/services/loans-api.service';
 import {
@@ -268,6 +269,17 @@ export class NonKsServicedLoansComponent implements OnInit {
 
     return rows;
   });
+
+  readonly gridLoadMessage = computed(() =>
+    buildMortgageGridLoadMessage({
+      isLoading: this.isLoadingGrid(),
+      totalRows: this.rows().length,
+      visibleRows: this.filteredRows().length,
+      hasClientFilter: this.selectedLoanKeys().length > 0,
+      entitySingular: 'record',
+      emptyMessage: 'No records yet. Use Add New Row to enter quarterly data.',
+    }),
+  );
 
   readonly totalPages = computed(() => {
     const total = this.filteredRows().length;
@@ -719,11 +731,6 @@ export class NonKsServicedLoansComponent implements OnInit {
           'NONKS-1';
         this.syncPendingExtLoanCode(apiNext);
 
-        this.statusMessage.set(
-          mapped.length > 0
-            ? `${mapped.length} record(s) loaded.`
-            : 'No records yet. Use Add New Row to enter quarterly data.',
-        );
         this.isLoadingGrid.set(false);
       },
       error: (error) => {

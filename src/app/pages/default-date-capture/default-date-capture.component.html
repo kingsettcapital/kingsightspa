@@ -66,6 +66,8 @@
     <p class="meta-message grid-loading">Loading loans...</p>
   } @else if (statusMessage() && !errorMessage()) {
     <p class="status-message">{{ statusMessage() }}</p>
+  } @else if (gridLoadMessage() && !errorMessage()) {
+    <p class="status-message">{{ gridLoadMessage() }}</p>
   }
 
   <div class="table-wrap">
@@ -112,8 +114,6 @@
             <td colspan="8" class="empty-row">
               @if (isLoadingGrid() || isLoadingFilters()) {
                 Loading loans...
-              } @else if (!selectedStatuses().length) {
-                Select at least one status to load loans.
               } @else {
                 No loans match the current filters.
               }

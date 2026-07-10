@@ -69,15 +69,23 @@
     <p class="meta-message grid-loading">Loading loans...</p>
   } @else if (statusMessage() && !errorMessage()) {
     <p class="status-message">{{ statusMessage() }}</p>
+  } @else if (gridLoadMessage() && !errorMessage()) {
+    <p class="status-message">{{ gridLoadMessage() }}</p>
   }
 
   <div class="table-wrap">
     <table>
+      <colgroup>
+        <col class="hidden-column" />
+        @for (column of tableColumns; track column.key) {
+          <col [class]="column.colClass ?? ''" />
+        }
+      </colgroup>
       <thead>
         <tr>
           <th class="hidden-column">Loan Key</th>
           @for (column of tableColumns; track column.key) {
-            <th [class.audit-col]="column.audit">
+            <th [class]="column.colClass" [class.audit-col]="column.audit">
               <button
                 type="button"
                 class="dsa-th-sort"
@@ -95,11 +103,11 @@
         @for (row of paginatedRows(); track row.loanCode) {
           <tr>
             <td class="hidden-column">{{ row.loanKey }}</td>
-            <td>{{ row.loanCode }}</td>
-            <td>{{ row.loanName }}</td>
-            <td>{{ row.loanAliasName }}</td>
-            <td class="date-readonly">{{ formatDisplayDate(row.maturityDate) }}</td>
-            <td>
+            <td class="dsa-col--code">{{ row.loanCode }}</td>
+            <td class="dsa-col--name">{{ row.loanName }}</td>
+            <td class="dsa-col--alias">{{ row.loanAliasName }}</td>
+            <td class="date-readonly dsa-col--maturity">{{ formatDisplayDate(row.maturityDate) }}</td>
+            <td class="dsa-col--default-status">
               <select
                 class="select-input"
                 (change)="updateDefaultStatus(row.loanCode, $any($event.target).value)"
@@ -110,7 +118,7 @@
                 }
               </select>
             </td>
-            <td>
+            <td class="dsa-col--exit-plan">
               <select
                 class="select-input"
                 (change)="updateExitPlan(row.loanCode, $any($event.target).value)"
@@ -121,7 +129,7 @@
                 }
               </select>
             </td>
-            <td>
+            <td class="dsa-col--exit-date">
               <input
                 type="text"
                 class="quarter-input"
@@ -132,7 +140,7 @@
                 aria-label="Exit Date (quarter and year)"
               />
             </td>
-            <td>
+            <td class="dsa-col--maturity-detail">
               <input
                 type="text"
                 class="text-input"
@@ -141,16 +149,14 @@
                 placeholder="Additional detail"
               />
             </td>
-            <td class="date-readonly audit-col updated-by-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
-            <td class="date-readonly audit-col">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
+            <td class="date-readonly audit-col updated-by-cell dsa-col--audit-by">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="date-readonly audit-col dsa-col--audit-date">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>
         } @empty {
           <tr>
             <td colspan="11" class="empty-row">
               @if (isLoadingGrid() || isLoadingFilters()) {
                 Loading loans...
-              } @else if (!selectedStatuses().length) {
-                Select at least one status to load loans.
               } @else {
                 No loans match the current filters.
               }

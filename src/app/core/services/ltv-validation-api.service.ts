@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 
 import { APP_API_CONFIG } from '../constants/api.config';
+import { appendMortgageStatusParams } from '../utils/mortgage-status-query.util';
 
 /** Row from GET /api/LtvValidation — leaf child loans with AI-extracted LTV. */
 export type LtvValidationRowDto = {
@@ -58,11 +59,7 @@ export class LtvValidationApiService {
     for (const id of loanAliasIds) {
       params = params.append('loanAliasIds', String(id));
     }
-    for (const status of statuses) {
-      if (status.trim()) {
-        params = params.append('statuses', status.trim());
-      }
-    }
+    params = appendMortgageStatusParams(params, statuses);
     return this.http.get<LtvValidationRowDto[] | Record<string, unknown>>(this.baseUrl, { params });
   }
 

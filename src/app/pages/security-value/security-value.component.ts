@@ -6,8 +6,8 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
+import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import {
-  resolveDefaultStatusValues,
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
@@ -167,6 +167,18 @@ export class SecurityValueComponent implements OnInit {
 
     return rows;
   });
+
+  readonly gridLoadMessage = computed(() =>
+    buildMortgageGridLoadMessage({
+      isLoading: this.isLoadingGrid() || this.isLoadingAliases() || this.isLoadingStatuses(),
+      totalRows: this.rows().length,
+      visibleRows: this.filteredRows().length,
+      hasClientFilter:
+        this.selectedLoanAliasIds().length > 0 || this.searchText().trim().length > 0,
+      entitySingular: 'row',
+      emptyMessage: 'No security value rows returned for the selected filters.',
+    }),
+  );
 
   readonly totalFilteredRows = computed(() => this.filteredRows().length);
 
@@ -331,7 +343,7 @@ export class SecurityValueComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedLoanAliasIds.set([]);
-    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
+    this.selectedStatuses.set([]);
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGridData();
@@ -475,7 +487,6 @@ export class SecurityValueComponent implements OnInit {
       next: ({ statuses, aliases }) => {
         const statusOptions = this.normalizeStatusOptions(statuses);
         this.statusOptions.set(statusOptions);
-        this.selectedStatuses.set(resolveDefaultStatusValues(statusOptions));
         this.isLoadingStatuses.set(false);
 
         if (!statusOptions.length) {
@@ -555,17 +566,10 @@ export class SecurityValueComponent implements OnInit {
     }
 
     const statuses = this.selectedStatuses();
-    if (!statuses.length) {
-      this.rows.set([]);
-      this.originalRowState.set({});
-      this.statusMessage.set('Select at least one status to load security values.');
-      this.isLoadingGrid.set(false);
-      return;
-    }
 
     this.isLoadingGrid.set(true);
     this.errorMessage.set('');
-    this.statusMessage.set('Loading security values...');
+    this.statusMessage.set('');
 
     this.securityValueApi
       .getSecurityValues(loanAliasIds, statuses)
@@ -579,11 +583,7 @@ export class SecurityValueComponent implements OnInit {
           this.rows.set(mappedRows);
           this.currentPage.set(1);
           this.snapshotOriginalState();
-          this.statusMessage.set(
-            mappedRows.length > 0
-              ? `${mappedRows.length} row(s) loaded.`
-              : 'No security value rows returned for the selected filters.',
-          );
+          this.statusMessage.set('');
           this.isLoadingGrid.set(false);
         },
         error: (error) => {

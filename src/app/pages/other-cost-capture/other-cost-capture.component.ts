@@ -6,8 +6,8 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
+import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import {
-  resolveDefaultStatusValues,
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
@@ -171,6 +171,17 @@ export class OtherCostCaptureComponent implements OnInit {
 
     return rows;
   });
+
+  readonly gridLoadMessage = computed(() =>
+    buildMortgageGridLoadMessage({
+      isLoading: this.isLoadingGrid() || this.isLoadingFilters(),
+      totalRows: this.rows().length,
+      visibleRows: this.filteredRows().length,
+      hasClientFilter:
+        this.selectedLoanAliasIds().length > 0 || this.searchText().trim().length > 0,
+      emptyMessage: 'No loans returned for the selected filters.',
+    }),
+  );
 
   readonly totalPages = computed(() => {
     const total = this.filteredRows().length;
@@ -342,7 +353,7 @@ export class OtherCostCaptureComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedLoanAliasIds.set([]);
-    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
+    this.selectedStatuses.set([]);
     this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
@@ -442,7 +453,6 @@ export class OtherCostCaptureComponent implements OnInit {
             .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
         );
         this.statusOptions.set(this.normalizeStatusOptions(statuses));
-        this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
         this.isLoadingFilters.set(false);
         this.loadGrid();
       },
@@ -456,13 +466,6 @@ export class OtherCostCaptureComponent implements OnInit {
   private loadGrid(): void {
     const statuses = this.selectedStatuses();
 
-    if (!statuses.length) {
-      this.rows.set([]);
-      this.originalRowState.set({});
-      this.statusMessage.set('Select at least one status to load loans.');
-      return;
-    }
-
     this.isLoadingGrid.set(true);
     this.errorMessage.set('');
     this.statusMessage.set('');
@@ -473,11 +476,6 @@ export class OtherCostCaptureComponent implements OnInit {
         this.rows.set(mapped);
         this.currentPage.set(1);
         this.snapshotOriginalState();
-        this.statusMessage.set(
-          mapped.length > 0
-            ? `${mapped.length} loan(s) loaded.`
-            : 'No loans returned for the selected filters.',
-        );
         this.isLoadingGrid.set(false);
       },
       error: (error) => {

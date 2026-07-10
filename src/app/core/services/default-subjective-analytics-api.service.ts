@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 
 import { APP_API_CONFIG } from '../constants/api.config';
+import { appendMortgageStatusParams } from '../utils/mortgage-status-query.util';
 
 /** Row from GET /api/DefaultSubjectiveAnalytics — loan_alias_relationship. */
 export type DefaultSubjectiveAnalyticsRowDto = {
@@ -55,12 +56,7 @@ export class DefaultSubjectiveAnalyticsApiService {
   }
 
   getLoans(statuses: string[]) {
-    let params = new HttpParams();
-    for (const status of statuses) {
-      if (status.trim()) {
-        params = params.append('statuses', status.trim());
-      }
-    }
+    const params = appendMortgageStatusParams(new HttpParams(), statuses);
     return this.http.get<DefaultSubjectiveAnalyticsRowDto[]>(this.baseUrl, { params });
   }
 

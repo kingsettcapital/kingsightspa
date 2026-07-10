@@ -10,8 +10,8 @@ import {
   EXIT_PLAN_OPTIONS,
 } from '../../core/constants/default-subjective-analytics-options';
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
+import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import {
-  resolveDefaultStatusValues,
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
@@ -69,19 +69,25 @@ type SubjectiveTableColumn = {
   label: string;
   editable?: 'defaultStatus' | 'exitPlan' | 'exitDate' | 'maturityAdditionalDetail';
   audit?: boolean;
+  colClass?: string;
 };
 
 const SUBJECTIVE_TABLE_COLUMNS: SubjectiveTableColumn[] = [
-  { key: 'loanCode', label: 'Loan Code' },
-  { key: 'loanName', label: 'Loan Name' },
-  { key: 'loanAliasName', label: 'Loan Alias' },
-  { key: 'maturityDate', label: 'Maturity Date' },
-  { key: 'defaultStatus', label: 'Default Status', editable: 'defaultStatus' },
-  { key: 'exitPlan', label: 'Exit Plan', editable: 'exitPlan' },
-  { key: 'exitDate', label: 'Exit Date', editable: 'exitDate' },
-  { key: 'maturityAdditionalDetail', label: 'Maturity - Additional Detail', editable: 'maturityAdditionalDetail' },
-  { key: 'userUpdatedBy', label: 'Modified By', audit: true },
-  { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
+  { key: 'loanCode', label: 'Loan Code', colClass: 'dsa-col--code' },
+  { key: 'loanName', label: 'Loan Name', colClass: 'dsa-col--name' },
+  { key: 'loanAliasName', label: 'Loan Alias', colClass: 'dsa-col--alias' },
+  { key: 'maturityDate', label: 'Maturity Date', colClass: 'dsa-col--maturity' },
+  { key: 'defaultStatus', label: 'Default Status', editable: 'defaultStatus', colClass: 'dsa-col--default-status' },
+  { key: 'exitPlan', label: 'Exit Plan', editable: 'exitPlan', colClass: 'dsa-col--exit-plan' },
+  { key: 'exitDate', label: 'Exit Date', editable: 'exitDate', colClass: 'dsa-col--exit-date' },
+  {
+    key: 'maturityAdditionalDetail',
+    label: 'Maturity - Additional Detail',
+    editable: 'maturityAdditionalDetail',
+    colClass: 'dsa-col--maturity-detail',
+  },
+  { key: 'userUpdatedBy', label: 'Modified By', audit: true, colClass: 'dsa-col--audit-by' },
+  { key: 'userUpdatedDate', label: 'Modified Date', audit: true, colClass: 'dsa-col--audit-date' },
 ];
 const NA_OPTION = 'n/a';
 
@@ -188,6 +194,17 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
     return rows;
   });
 
+  readonly gridLoadMessage = computed(() =>
+    buildMortgageGridLoadMessage({
+      isLoading: this.isLoadingGrid() || this.isLoadingFilters(),
+      totalRows: this.rows().length,
+      visibleRows: this.filteredRows().length,
+      hasClientFilter:
+        this.selectedAliasNames().length > 0 || this.searchText().trim().length > 0,
+      emptyMessage: 'No loans returned for the selected filters.',
+    }),
+  );
+
   readonly totalPages = computed(() => {
     const total = this.filteredRows().length;
     return total === 0 ? 1 : Math.ceil(total / this.pageSize());
@@ -260,7 +277,7 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedAliasNames.set([]);
-    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
+    this.selectedStatuses.set([]);
     this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
@@ -488,7 +505,7 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
       next: ({ aliases, statuses, lookups }) => {
         this.aliasOptions.set(this.normalizeAliases(aliases));
         this.statusOptions.set(this.normalizeStatusOptions(statuses));
-        this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
+        this.selectedStatuses.set([]);
         this.applyLookupOptions(lookups);
         this.isLoadingFilters.set(false);
         this.loadGrid();
@@ -503,13 +520,6 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
   private loadGrid(): void {
     const statuses = this.selectedStatuses();
 
-    if (!statuses.length) {
-      this.rows.set([]);
-      this.originalRowState.set({});
-      this.statusMessage.set('Select at least one status to load loans.');
-      return;
-    }
-
     this.isLoadingGrid.set(true);
     this.errorMessage.set('');
     this.statusMessage.set('');
@@ -521,11 +531,6 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
         this.mergeRowValuesIntoDropdownOptions(mapped);
         this.currentPage.set(1);
         this.snapshotOriginalState();
-        this.statusMessage.set(
-          mapped.length > 0
-            ? `${mapped.length} loan(s) loaded.`
-            : 'No loans returned for the selected filters.',
-        );
         this.isLoadingGrid.set(false);
       },
       error: (error) => {

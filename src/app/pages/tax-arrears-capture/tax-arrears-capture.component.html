@@ -158,8 +158,6 @@
             <td colspan="12" class="empty-row">
               @if (isLoadingGrid() || isLoadingFilters()) {
                 Loading tax arrears records...
-              } @else if (!selectedStatuses().length) {
-                Select at least one status to load records.
               } @else {
                 No tax arrears records match the current filters.
               }

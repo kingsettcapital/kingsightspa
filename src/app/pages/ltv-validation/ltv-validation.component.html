@@ -69,6 +69,8 @@
     <p class="meta-message">Loading LTV validation records...</p>
   } @else if (statusMessage() && !errorMessage()) {
     <p class="status-message">{{ statusMessage() }}</p>
+  } @else if (gridLoadMessage() && !errorMessage()) {
+    <p class="status-message">{{ gridLoadMessage() }}</p>
   }
 
   <div class="ltv-workspace">

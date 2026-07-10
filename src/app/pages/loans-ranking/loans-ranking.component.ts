@@ -6,9 +6,9 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
+import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import {
   normalizeStatusOptions,
-  resolveDefaultStatusValues,
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
@@ -171,17 +171,13 @@ export class LoansRankingComponent implements OnInit {
 
   readonly filteredRows = computed(() => {
     const statuses = this.selectedStatuses();
-    if (!statuses.length) {
-      return [];
-    }
-
     const selectedCodes = this.selectedLoanCodes();
     const keyword = this.searchText();
     const statusAliases = this.statusMatchingAliasNames();
 
     let rows = this.rows();
 
-    if (statusAliases) {
+    if (statuses.length > 0 && statusAliases) {
       rows = rows.filter((row) => {
         const alias = row.loanAliasName.trim().toLowerCase();
         // Keep unassigned / empty-alias rows so they remain assignable.
@@ -214,6 +210,19 @@ export class LoansRankingComponent implements OnInit {
 
     return rows;
   });
+
+  readonly gridLoadMessage = computed(() =>
+    buildMortgageGridLoadMessage({
+      isLoading: this.isLoading(),
+      totalRows: this.rows().length,
+      visibleRows: this.filteredRows().length,
+      hasClientFilter:
+        this.selectedStatuses().length > 0 ||
+        this.selectedLoanCodes().length > 0 ||
+        this.searchText().trim().length > 0,
+      emptyMessage: 'No loans returned.',
+    }),
+  );
 
   readonly totalFilteredRows = computed(() => this.filteredRows().length);
 
@@ -392,7 +401,7 @@ export class LoansRankingComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedLoanCodes.set([]);
-    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
+    this.selectedStatuses.set([]);
     this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
@@ -524,14 +533,8 @@ export class LoansRankingComponent implements OnInit {
 
         const statusOptions = normalizeStatusOptions(statuses);
         this.statusOptions.set(statusOptions);
-        if (!this.selectedStatuses().length) {
-          this.selectedStatuses.set(resolveDefaultStatusValues(statusOptions));
-        }
         this.refreshStatusMatchingAliases();
 
-        this.statusMessage.set(
-          mappedRows.length > 0 ? `${mappedRows.length} loan(s) loaded.` : 'No loans returned.',
-        );
         this.isLoading.set(false);
       },
       error: () => {
@@ -547,7 +550,7 @@ export class LoansRankingComponent implements OnInit {
   private refreshStatusMatchingAliases(): void {
     const statuses = this.selectedStatuses();
     if (!statuses.length) {
-      this.statusMatchingAliasNames.set(new Set());
+      this.statusMatchingAliasNames.set(null);
       return;
     }
 
