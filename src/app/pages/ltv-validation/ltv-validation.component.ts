@@ -47,6 +47,7 @@ type LtvValidationRow = {
   securityValue: number | null;
   exposure: number | null;
   ranking: number | null;
+  priorLtv: number | null;
   ltv: number | null;
   updateReasons: string[];
   updateComment: string;
@@ -71,7 +72,9 @@ type LtvColumnKey =
   | 'securityValue'
   | 'exposure'
   | 'ranking'
+  | 'priorLtv'
   | 'ltv'
+  | 'ltvChange'
   | 'updateReasons'
   | 'updateComment'
   | 'aiConfidenceScore'
@@ -85,11 +88,12 @@ type LtvTableColumn = {
 };
 
 export const LTV_UPDATE_REASON_OPTIONS = [
-  'Loan ID Missing',
-  'Incorrect LTV Version Used',
+  'Loan ID Missing from Slides',
+  'Incorrect LTV Picked Up',
   'Mapped to Wrong Investor',
   'No Slide in Pack',
   'Slide Value Incorrect',
+  'Yardi Value Incorrect',
   'OTHER',
 ] as const;
 
@@ -101,7 +105,9 @@ const LTV_TABLE_COLUMNS: LtvTableColumn[] = [
   { key: 'securityValue', label: 'Sec. Value' },
   { key: 'exposure', label: 'Exposure' },
   { key: 'ranking', label: 'Rank' },
-  { key: 'ltv', label: 'LTV' },
+  { key: 'priorLtv', label: 'Prior LTV' },
+  { key: 'ltv', label: 'Current LTV' },
+  { key: 'ltvChange', label: 'LTV Change' },
   { key: 'updateReasons', label: 'Update Reason' },
   { key: 'updateComment', label: 'Update Comment' },
   { key: 'aiConfidenceScore', label: 'AI Score' },
@@ -486,6 +492,22 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const ltvChangedWithoutReason = changedRows.filter((row) => {
+      const original = this.originalRowState()[row.rowTrackId];
+      return (
+        original &&
+        row.ltv !== original.ltv &&
+        this.serializeUpdateReasons(row.updateReasons).length === 0
+      );
+    });
+    if (ltvChangedWithoutReason.length) {
+      this.errorMessage.set(
+        'Update Reason is required when Current LTV is modified.',
+      );
+      this.statusMessage.set('');
+      return;
+    }
+
     const userUpdatedBy = this.currentAppUser.getUpdatedBy();
     if (!userUpdatedBy) {
       this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
@@ -632,6 +654,34 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     return String(value);
   }
 
+  formatLtvDisplay(value: number | null): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '-';
+    }
+    return `${value}%`;
+  }
+
+  computeLtvChange(row: LtvValidationRow): number | null {
+    if (row.ltv == null || row.priorLtv == null) {
+      return null;
+    }
+    return Math.round((row.ltv - row.priorLtv) * 100) / 100;
+  }
+
+  formatLtvChange(row: LtvValidationRow): string {
+    const change = this.computeLtvChange(row);
+    if (change == null) {
+      return '-';
+    }
+    const prefix = change > 0 ? '+' : '';
+    return `${prefix}${change}%`;
+  }
+
+  isLtvChanged(row: LtvValidationRow): boolean {
+    const original = this.originalRowState()[row.rowTrackId];
+    return !!original && row.ltv !== original.ltv;
+  }
+
   formatConfidenceScore(value: number | null): string {
     if (value == null || !Number.isFinite(value)) {
       return '-';
@@ -692,8 +742,14 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       case 'ranking':
         classes.push('numeric-col', 'ltv-col--rank');
         break;
+      case 'priorLtv':
+        classes.push('numeric-col', 'ltv-col--prior-ltv');
+        break;
       case 'ltv':
         classes.push('numeric-col', 'ltv-col--ltv', 'editable-col');
+        break;
+      case 'ltvChange':
+        classes.push('numeric-col', 'ltv-col--ltv-change');
         break;
       case 'updateReasons':
         classes.push('editable-col', 'ltv-col--reason');
@@ -825,9 +881,15 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       case 'securityValue':
       case 'exposure':
       case 'ranking':
+      case 'priorLtv':
       case 'ltv':
       case 'aiConfidenceScore':
         return (left[column] ?? Number.NEGATIVE_INFINITY) - (right[column] ?? Number.NEGATIVE_INFINITY);
+      case 'ltvChange':
+        return (
+          (this.computeLtvChange(left) ?? Number.NEGATIVE_INFINITY) -
+          (this.computeLtvChange(right) ?? Number.NEGATIVE_INFINITY)
+        );
       case 'userUpdatedDate':
         return this.dateSortValue(left.userUpdatedDate) - this.dateSortValue(right.userUpdatedDate);
       case 'updateReasons':
@@ -859,8 +921,12 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
         return this.formatCurrency(row.exposure);
       case 'ranking':
         return this.formatRanking(row.ranking);
+      case 'priorLtv':
+        return this.formatLtvDisplay(row.priorLtv);
       case 'ltv':
         return row.ltv == null ? '' : `${row.ltv}%`;
+      case 'ltvChange':
+        return this.formatLtvChange(row);
       case 'updateReasons':
         return this.serializeUpdateReasons(row.updateReasons);
       case 'updateComment':
@@ -914,7 +980,8 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       securityValue: this.pickNullableNumber(raw, 'securityValue', 'SecurityValue'),
       exposure: this.pickNullableNumber(raw, 'exposure', 'Exposure'),
       ranking: this.pickNullableNumber(raw, 'ranking', 'Ranking', 'loanRanking', 'LoanRanking'),
-      ltv: this.pickNullableNumber(raw, 'ltv', 'Ltv', 'LTV'),
+      priorLtv: this.pickNullableNumber(raw, 'priorLtv', 'PriorLtv', 'prior_ltv'),
+      ltv: this.pickNullableNumber(raw, 'ltv', 'Ltv', 'LTV', 'currentLtv', 'CurrentLtv'),
       updateReasons: this.parseUpdateReasons(
         this.pickString(raw, 'updateReason', 'UpdateReason'),
       ),

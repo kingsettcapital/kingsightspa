@@ -85,7 +85,9 @@
             <col class="ltv-col--currency" />
             <col class="ltv-col--currency" />
             <col class="ltv-col--rank" />
+            <col class="ltv-col--prior-ltv" />
             <col class="ltv-col--ltv" />
+            <col class="ltv-col--ltv-change" />
             <col class="ltv-col--reason" />
             <col class="ltv-col--comment" />
             <col class="ltv-col--confidence" />
@@ -136,6 +138,7 @@
                   {{ formatCompactCurrency(row.exposure) }}
                 </td>
                 <td [class]="columnClass('ranking')">{{ formatRanking(row.ranking) }}</td>
+                <td [class]="columnClass('priorLtv')">{{ formatLtvDisplay(row.priorLtv) }}</td>
                 <td [class]="columnClass('ltv')">
                   <span class="ltv-input-wrap">
                     <input
@@ -146,14 +149,16 @@
                       (ngModelChange)="updateLtv(row, $event)"
                       [ngModelOptions]="{ standalone: true }"
                       placeholder="0"
-                      [attr.aria-label]="'LTV for ' + row.loanCode"
+                      [attr.aria-label]="'Current LTV for ' + row.loanCode"
                     />
                     <span class="ltv-suffix">%</span>
                   </span>
                 </td>
+                <td [class]="columnClass('ltvChange')">{{ formatLtvChange(row) }}</td>
                 <td [class]="columnClass('updateReasons')">
                   <ng-select
                     class="ltv-reason-select"
+                    [class.ltv-reason-select--required]="isLtvChanged(row)"
                     [items]="updateReasonOptions"
                     [multiple]="true"
                     [closeOnSelect]="false"
@@ -162,6 +167,7 @@
                     [ngModel]="row.updateReasons"
                     (ngModelChange)="updateUpdateReasons(row, $event)"
                     [ngModelOptions]="{ standalone: true }"
+                    [attr.aria-required]="isLtvChanged(row)"
                   ></ng-select>
                 </td>
                 <td [class]="columnClass('updateComment')">

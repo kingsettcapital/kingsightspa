@@ -16,6 +16,7 @@ export type LtvValidationRowDto = {
   securityValue?: number | null;
   exposure?: number | null;
   ranking?: number | null;
+  priorLtv?: number | null;
   ltv?: number | null;
   updateReason?: string | null;
   updateComment?: string | null;

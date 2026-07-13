@@ -250,9 +250,11 @@
   max-width: 3ch;
 }
 
-.ltv-col--ltv {
+.ltv-col--prior-ltv,
+.ltv-col--ltv,
+.ltv-col--ltv-change {
   width: 4.5%;
-  max-width: 6ch;
+  max-width: 7ch;
 }
 
 .ltv-col--reason {
@@ -281,7 +283,9 @@
 
 .ltv-col--currency,
 .ltv-col--rank,
+.ltv-col--prior-ltv,
 .ltv-col--ltv,
+.ltv-col--ltv-change,
 .ltv-col--confidence {
   white-space: nowrap;
   overflow: hidden;
@@ -379,6 +383,15 @@
   width: 100%;
   min-width: 0;
   font-size: 0.75rem;
+}
+
+.ltv-reason-select--required ::ng-deep .ng-select-container {
+  border-color: #d97706;
+  box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.15);
+}
+
+.ltv-col--ltv-change {
+  font-weight: 500;
 }
 
 .confidence-score-link {
