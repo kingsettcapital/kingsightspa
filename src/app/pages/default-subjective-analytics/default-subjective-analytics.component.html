@@ -131,13 +131,11 @@
             </td>
             <td class="dsa-col--exit-date">
               <input
-                type="text"
-                class="quarter-input"
+                type="date"
+                class="date-input"
                 [value]="row.exitDate"
                 (input)="updateExitDate(row.loanCode, $any($event.target).value)"
-                (blur)="normalizeExitDateField(row.loanCode)"
-                placeholder="Q#/YYYY"
-                aria-label="Exit Date (quarter and year)"
+                aria-label="Exit Date"
               />
             </td>
             <td class="dsa-col--maturity-detail">

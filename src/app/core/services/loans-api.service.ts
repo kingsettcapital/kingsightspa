@@ -16,6 +16,7 @@ export type LoanDto = {
   loanAliasKey?: number | null;
   loanAliasName?: string | null;
   investorName?: string | null;
+  investorAliasName?: string | null;
   loanRanking?: number | null;
   dummyLoanLink?: string | null;
   isLoanInterestApplicable?: boolean | null;
@@ -91,6 +92,8 @@ export class LoansApiService {
               LoanAliasName: loan.loanAliasName,
               investorName: loan.investorName,
               InvestorName: loan.investorName,
+              investorAliasName: loan.investorAliasName,
+              InvestorAliasName: loan.investorAliasName,
               loanRanking: loan.loanRanking,
               LoanRanking: loan.loanRanking,
               dummyLoanLink: loan.dummyLoanLink,

@@ -32,6 +32,7 @@ type LoanAttributeRow = {
   loanAliasName: string;
   loanAliasKey: number | null;
   investorName: string;
+  investorAliasName: string;
   ranking: number;
   dummyLoanLink: string;
   lateInterestApplicable: boolean;
@@ -52,7 +53,7 @@ type LoanAttributeColumnKey =
   | 'loanCode'
   | 'loanDescription'
   | 'loanAliasName'
-  | 'investorName'
+  | 'investorAliasName'
   | 'ranking'
   | 'dummyLoanLink'
   | 'lateInterestApplicable'
@@ -71,9 +72,9 @@ type LoanAttributeTableColumn = {
 
 const LOAN_ATTRIBUTE_TABLE_COLUMNS: LoanAttributeTableColumn[] = [
   { key: 'loanCode', label: 'Loan Code' },
-  { key: 'loanDescription', label: 'Loan Description' },
-  { key: 'loanAliasName', label: 'Loan Alias', editable: true },
-  { key: 'investorName', label: 'Investor Name' },
+  { key: 'loanDescription', label: 'Loan Name' },
+  { key: 'loanAliasName', label: 'Loan Alias' },
+  { key: 'investorAliasName', label: 'Investor Alias' },
   { key: 'ranking', label: 'Ranking', editable: true },
   { key: 'dummyLoanLink', label: 'Dummy Loan Link', editable: true },
   { key: 'lateInterestApplicable', label: 'Late Interest Applicable', editable: true },
@@ -329,8 +330,8 @@ export class LoansRankingComponent implements OnInit {
         return row.loanDescription;
       case 'loanAliasName':
         return row.loanAliasName;
-      case 'investorName':
-        return row.investorName;
+      case 'investorAliasName':
+        return row.investorAliasName;
       case 'ranking':
         return String(row.ranking);
       case 'dummyLoanLink':
@@ -514,7 +515,7 @@ export class LoansRankingComponent implements OnInit {
   private loadLoans(): void {
     this.isLoading.set(true);
     this.errorMessage.set('');
-    this.statusMessage.set('Loading loans...');
+    this.statusMessage.set('');
 
     forkJoin({
       loans: this.loansApi.getLoans(),
@@ -535,6 +536,7 @@ export class LoansRankingComponent implements OnInit {
         this.statusOptions.set(statusOptions);
         this.refreshStatusMatchingAliases();
 
+        this.statusMessage.set('');
         this.isLoading.set(false);
       },
       error: () => {
@@ -613,6 +615,7 @@ export class LoansRankingComponent implements OnInit {
       loanAliasName: record.loanAliasName?.trim() || '—',
       loanAliasKey,
       investorName: record.investorName?.trim() || '—',
+      investorAliasName: record.investorAliasName?.trim() || '—',
       ranking: Number.isFinite(parsedRanking) && parsedRanking > 0 ? Math.trunc(parsedRanking) : 0,
       dummyLoanLink: record.dummyLoanLink?.trim() ?? '',
       lateInterestApplicable,
@@ -724,8 +727,8 @@ export class LoansRankingComponent implements OnInit {
         return left.loanAliasName.localeCompare(right.loanAliasName, undefined, {
           sensitivity: 'base',
         });
-      case 'investorName':
-        return left.investorName.localeCompare(right.investorName, undefined, {
+      case 'investorAliasName':
+        return left.investorAliasName.localeCompare(right.investorAliasName, undefined, {
           sensitivity: 'base',
         });
       case 'ranking':

@@ -98,14 +98,21 @@
     <p class="table-title">Upload History</p>
     <div class="ks-fp__table-wrap">
       <table class="ks-fp__table file-upload-history__table">
+        <colgroup>
+          <col class="fu-col--filename" />
+          <col class="fu-col--filetype" />
+          <col class="fu-col--asof" />
+          <col class="fu-col--uploaded-by" />
+          <col class="fu-col--uploaded-date" />
+        </colgroup>
         <thead>
           <tr>
             <th class="hidden-column">File Id</th>
-            <th>File Name</th>
-            <th>File Type</th>
-            <th>As Of</th>
-            <th>Uploaded Date</th>
-            <th>Uploaded By</th>
+            <th class="fu-col--filename">File Name</th>
+            <th class="fu-col--filetype">File Type</th>
+            <th class="fu-col--asof">As Of</th>
+            <th class="fu-col--uploaded-by">Uploaded By</th>
+            <th class="fu-col--uploaded-date">Uploaded Date</th>
           </tr>
         </thead>
         <tbody>
@@ -121,11 +128,11 @@
             @for (row of history(); track row.fileId) {
               <tr>
                 <td class="hidden-column">{{ row.fileId }}</td>
-                <td>{{ row.filename }}</td>
-                <td>{{ formatFileTypeLabel(row.fileType, row.filename) }}</td>
-                <td>{{ formatAsOfDateDisplay(row.asOfDate ?? '') }}</td>
-                <td>{{ formatUploadedDate(row.uploadedDate) }}</td>
-                <td>{{ formatUploadedBy(row) }}</td>
+                <td class="fu-col--filename">{{ row.filename }}</td>
+                <td class="fu-col--filetype">{{ formatFileTypeLabel(row.fileType, row.filename) }}</td>
+                <td class="fu-col--asof">{{ formatAsOfDateDisplay(row.asOfDate ?? '') }}</td>
+                <td class="fu-col--uploaded-by">{{ formatUploadedBy(row) }}</td>
+                <td class="fu-col--uploaded-date">{{ formatUploadedDate(row.uploadedDate) }}</td>
               </tr>
             }
           }

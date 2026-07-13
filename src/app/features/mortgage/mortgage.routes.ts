@@ -42,6 +42,11 @@ export const MORTGAGE_ROUTES: Routes = [
       ),
   },
   {
+    path: 'investor-alias-assignment',
+    loadComponent: () =>
+      import('../../pages/investor/investor.component').then((m) => m.InvestorComponent),
+  },
+  {
     path: 'loan-exposure-markers',
     redirectTo: 'security-value',
     pathMatch: 'full',

@@ -39,8 +39,8 @@
 }
 
 .subjective-page .table-wrap .dsa-col--exit-date {
-  width: 6%;
-  min-width: 5.75rem;
+  width: 9%;
+  min-width: 9.75rem;
 }
 
 .subjective-page .table-wrap .dsa-col--audit-by.audit-col,
@@ -49,8 +49,8 @@
   max-width: 9.5rem;
   min-width: 7.75rem;
   white-space: normal;
-  overflow-wrap: normal;
-  word-break: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .subjective-page .table-wrap .dsa-col--audit-date.audit-col,
@@ -87,7 +87,7 @@
 }
 
 .select-input,
-.quarter-input,
+.date-input,
 .text-input {
   border: 1px solid #d1d5db;
   height: 2rem;
@@ -96,15 +96,15 @@
   max-width: 100%;
 }
 
+.date-input {
+  min-width: 0;
+  width: 100%;
+  background: #ffffff;
+}
+
 .select-input {
   min-width: 0;
   width: 100%;
-}
-
-.quarter-input {
-  min-width: 0;
-  width: 100%;
-  max-width: 6.5rem;
 }
 
 .text-input {

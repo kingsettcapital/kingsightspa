@@ -95,20 +95,8 @@
             <td class="hidden-column">{{ row.loanKey }}</td>
             <td>{{ row.loanCode }}</td>
             <td>{{ row.loanDescription }}</td>
-            <td>
-              <select
-                class="alias-select"
-                [ngModel]="row.loanAliasKey"
-                (ngModelChange)="updateLoanAlias(row.loanCode, $event)"
-                [ngModelOptions]="{ standalone: true }"
-              >
-                <option [ngValue]="null">— None —</option>
-                @for (alias of loanAliasOptions(); track alias.loanAliasId) {
-                  <option [ngValue]="alias.loanAliasId">{{ alias.loanAliasName }}</option>
-                }
-              </select>
-            </td>
-            <td>{{ row.investorName }}</td>
+            <td>{{ row.loanAliasName }}</td>
+            <td>{{ row.investorAliasName }}</td>
             <td>
               <input
                 type="text"

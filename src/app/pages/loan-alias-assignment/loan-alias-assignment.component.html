@@ -96,19 +96,30 @@
             <td>{{ row.loanCode }}</td>
             <td>{{ row.loanName }}</td>
             <td>
-              <select
-                class="alias-select"
+              <ng-select
+                #aliasSelect
+                class="ks-ng-select alias-ng-select"
+                appendTo="body"
+                [items]="aliasSelectItems()"
+                bindLabel="label"
+                bindValue="value"
+                [searchable]="true"
+                [clearable]="true"
+                placeholder="— Select alias —"
                 [ngModel]="aliasSelectValue(row)"
                 (ngModelChange)="updateAlias(row.loanCode, $event)"
                 [ngModelOptions]="{ standalone: true }"
               >
-                <option value="">— Select alias —</option>
-                @for (alias of aliasOptions(); track getAliasKey(alias)) {
-                  <option [value]="'' + getAliasKey(alias)">
-                    {{ alias.loanAliasName }}
-                  </option>
-                }
-              </select>
+                <ng-template ng-footer-tmp>
+                  <button
+                    type="button"
+                    class="alias-add-btn"
+                    (click)="aliasSelect.close(); openAliasDialog(row.loanCode)"
+                  >
+                    + Add New Alias
+                  </button>
+                </ng-template>
+              </ng-select>
             </td>
             <td class="audit-col date-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
             <td class="audit-col date-cell">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
@@ -173,3 +184,68 @@
     <p class="status">{{ statusMessage() }}</p>
   }
 </section>
+
+@if (showAliasDialog()) {
+  <div class="la-overlay" (click)="closeAliasDialog()" role="presentation">
+    <div
+      class="la-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="alias-dlg-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="la-dialog-header">
+        <h2 id="alias-dlg-title">Add New Loan Alias</h2>
+        <button type="button" class="dlg-close" (click)="closeAliasDialog()" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="la-dialog-body">
+        <div class="dlg-field">
+          <label class="dlg-label" for="alias-create-name">
+            Loan Alias Name <span class="dlg-required">*</span>
+          </label>
+          <input
+            id="alias-create-name"
+            type="text"
+            class="dlg-input"
+            placeholder="Enter alias name"
+            [value]="aliasDialogName()"
+            (input)="aliasDialogName.set($any($event.target).value)"
+            (keyup.enter)="createAliasFromDialog(true)"
+            autofocus
+          />
+        </div>
+        @if (aliasDialogError()) {
+          <p class="dlg-error">{{ aliasDialogError() }}</p>
+        }
+      </div>
+
+      <div class="la-dialog-footer">
+        <button type="button" class="ks-btn" (click)="closeAliasDialog()" [disabled]="isCreatingAlias()">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="ks-btn"
+          (click)="createAliasFromDialog(false)"
+          [disabled]="!aliasDialogName().trim() || isCreatingAlias()"
+        >
+          @if (isCreatingAlias()) { Creating… } @else { Create }
+        </button>
+        <button
+          type="button"
+          class="ks-btn ks-btn--accent"
+          (click)="createAliasFromDialog(true)"
+          [disabled]="!aliasDialogName().trim() || isCreatingAlias()"
+        >
+          @if (isCreatingAlias()) { Creating… } @else { Create + Assign }
+        </button>
+      </div>
+    </div>
+  </div>
+}

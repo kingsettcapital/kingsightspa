@@ -1,16 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NgSelectComponent } from '@ng-select/ng-select';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { NgFooterTemplateDirective, NgSelectComponent } from '@ng-select/ng-select';
+import { forkJoin } from 'rxjs';
 
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
-import {
-  normalizeStatusOptions,
-  resolveDefaultStatusValues,
-  toStatusSelectOptions,
-} from '../../core/utils/mortgage-status-filter.util';
+import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import {
   InvestorAlias,
@@ -18,10 +13,6 @@ import {
   InvestorBulkUpdateRequest,
   InvestorDto,
 } from '../../core/services/investor-api.service';
-import {
-  LoanSecurityValueApiService,
-  LoanStatusFilterOption,
-} from '../../core/services/loan-security-value-api.service';
 
 type InvestorRow = {
   investorKey: number;
@@ -59,13 +50,12 @@ const INVESTOR_ASSIGNMENT_TABLE_COLUMNS: InvestorAssignmentTableColumn[] = [
 @Component({
   selector: 'app-investor',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectComponent],
+  imports: [CommonModule, FormsModule, NgSelectComponent, NgFooterTemplateDirective],
   templateUrl: './investor.component.html',
   styleUrl: './investor.component.css',
 })
 export class InvestorComponent implements OnInit {
   private readonly investorApi = inject(InvestorApiService);
-  private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
 
@@ -75,8 +65,6 @@ export class InvestorComponent implements OnInit {
   readonly sortColumn = signal<InvestorAssignmentColumnKey | null>(null);
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
   readonly selectedInvestorCodes = signal<string[]>([]);
-  readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
-  readonly selectedStatuses = signal<string[]>([]);
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
   readonly isLoading = signal(false);
@@ -87,6 +75,20 @@ export class InvestorComponent implements OnInit {
   readonly rows = signal<InvestorRow[]>([]);
   readonly aliasOptions = signal<InvestorAlias[]>([]);
   readonly originalRowState = signal<Record<string, number | null>>({});
+
+  readonly showAliasDialog = signal(false);
+  readonly aliasDialogName = signal('');
+  readonly aliasDialogError = signal('');
+  readonly isCreatingAlias = signal(false);
+  private readonly aliasDialogRowCode = signal<string | null>(null);
+
+  readonly aliasSelectItems = computed(() =>
+    this.aliasOptions()
+      .map((alias) => ({ value: String(this.getAliasKey(alias)), label: alias.investorAliasName }))
+      .sort((left, right) =>
+        left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }),
+      ),
+  );
 
   readonly investorSelectOptions = computed<InvestorSelectOption[]>(() => {
     const seen = new Set<string>();
@@ -103,8 +105,6 @@ export class InvestorComponent implements OnInit {
 
     return options.sort((a, b) => a.value.localeCompare(b.value, undefined, { sensitivity: 'base' }));
   });
-
-  readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
 
   ngOnInit(): void {
     this.loadData();
@@ -166,6 +166,19 @@ export class InvestorComponent implements OnInit {
 
   readonly totalFilteredRows = computed(() => this.filteredRows().length);
 
+  readonly gridLoadMessage = computed(() =>
+    buildMortgageGridLoadMessage({
+      isLoading: this.isLoading(),
+      totalRows: this.rows().length,
+      visibleRows: this.filteredRows().length,
+      hasClientFilter:
+        this.selectedInvestorCodes().length > 0 ||
+        this.searchText().trim().length > 0,
+      entitySingular: 'investor',
+      emptyMessage: 'No investors returned.',
+    }),
+  );
+
   readonly totalPages = computed(() => {
     const totalRows = this.totalFilteredRows();
     if (totalRows === 0) {
@@ -208,12 +221,6 @@ export class InvestorComponent implements OnInit {
     this.searchText.set('');
     this.selectedInvestorCodes.set(values ?? []);
     this.currentPage.set(1);
-    this.clearMessages();
-  }
-
-  updateSelectedStatuses(statuses: string[] | null): void {
-    // Status is UI-only on this page (investors have no loan-alias status mapping).
-    this.selectedStatuses.set(statuses ?? []);
     this.clearMessages();
   }
 
@@ -316,10 +323,68 @@ export class InvestorComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedInvestorCodes.set([]);
-    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
     this.revertUnsavedAliasChanges();
     this.currentPage.set(1);
     this.clearMessages();
+  }
+
+  openAliasDialog(investorCode: string | null): void {
+    this.aliasDialogRowCode.set(investorCode);
+    this.aliasDialogName.set('');
+    this.aliasDialogError.set('');
+    this.showAliasDialog.set(true);
+  }
+
+  closeAliasDialog(): void {
+    this.showAliasDialog.set(false);
+    this.aliasDialogName.set('');
+    this.aliasDialogError.set('');
+    this.aliasDialogRowCode.set(null);
+  }
+
+  createAliasFromDialog(assignToRow: boolean): void {
+    const name = this.aliasDialogName().trim();
+    if (!name || this.isCreatingAlias()) {
+      return;
+    }
+
+    const createdBy = this.currentAppUser.getUpdatedBy();
+    if (!createdBy) {
+      this.aliasDialogError.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
+    const duplicate = this.aliasOptions().find(
+      (alias) => alias.investorAliasName.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicate) {
+      this.aliasDialogError.set('An investor alias with this name already exists.');
+      return;
+    }
+
+    const targetCode = this.aliasDialogRowCode();
+    this.isCreatingAlias.set(true);
+    this.aliasDialogError.set('');
+
+    this.investorApi.createAlias({ investorAliasName: name, createdBy }).subscribe({
+      next: (created) => {
+        const [record] = this.normalizeAliases([created]);
+        this.aliasOptions.set([...this.aliasOptions(), record]);
+        this.isCreatingAlias.set(false);
+        this.closeAliasDialog();
+
+        if (assignToRow && targetCode && this.getAliasKey(record) > 0) {
+          this.updateAlias(targetCode, String(this.getAliasKey(record)));
+          this.statusMessage.set(`Alias "${record.investorAliasName}" created and assigned.`);
+        } else {
+          this.statusMessage.set(`Alias "${record.investorAliasName}" created.`);
+        }
+      },
+      error: () => {
+        this.aliasDialogError.set('Failed to create investor alias. Please try again.');
+        this.isCreatingAlias.set(false);
+      },
+    });
   }
 
   goToPreviousPage(): void {
@@ -342,9 +407,9 @@ export class InvestorComponent implements OnInit {
     return alias.investorAliasId;
   }
 
-  aliasSelectValue(row: InvestorRow): string {
+  aliasSelectValue(row: InvestorRow): string | null {
     const key = this.resolveRowAliasKey(row);
-    return key != null && key > 0 ? String(key) : '';
+    return key != null && key > 0 ? String(key) : null;
   }
 
   saveChanges(): void {
@@ -437,10 +502,11 @@ export class InvestorComponent implements OnInit {
     forkJoin({
       investors: this.investorApi.getInvestors(),
       aliases: this.investorApi.getAllAliases(),
-      statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ investors, aliases, statuses }) => {
-        const normalizedAliases = this.normalizeAliases(aliases);
+      next: ({ investors, aliases }) => {
+        const normalizedAliases = this.normalizeAliases(aliases).filter((alias) =>
+          this.isMeaningfulAliasName(alias.investorAliasName),
+        );
         const mappedRows = investors.map((record, index) =>
           this.mapApiInvestorToRow(record, index, normalizedAliases),
         );
@@ -450,17 +516,7 @@ export class InvestorComponent implements OnInit {
         this.currentPage.set(1);
         this.snapshotOriginalState();
 
-        const statusOptions = normalizeStatusOptions(statuses);
-        this.statusOptions.set(statusOptions);
-        if (!this.selectedStatuses().length) {
-          this.selectedStatuses.set(resolveDefaultStatusValues(statusOptions));
-        }
-
-        this.statusMessage.set(
-          mappedRows.length > 0
-            ? `${mappedRows.length} investor(s) loaded.`
-            : 'No investors returned.',
-        );
+        this.statusMessage.set('');
         this.isLoading.set(false);
       },
       error: () => {
@@ -484,15 +540,23 @@ export class InvestorComponent implements OnInit {
         ? aliases.find((a) => this.getAliasKey(a) === investorAliasKey)
         : undefined;
 
+    const resolvedName = alias?.investorAliasName ?? record.investorAliasName?.trim() ?? '';
+    const hasMeaningfulAlias = alias != null && this.isMeaningfulAliasName(resolvedName);
+
     return {
       investorKey: record.investorKey,
       investorCode: record.investorCode || `INV-${index + 1}`,
       investorName: record.investorName?.trim() || '—',
-      investorAliasKey,
-      investorAliasName: alias?.investorAliasName ?? record.investorAliasName?.trim() ?? '',
+      investorAliasKey: hasMeaningfulAlias ? investorAliasKey : null,
+      investorAliasName: hasMeaningfulAlias ? resolvedName : '',
       userUpdatedBy: record.userUpdatedBy?.trim() ?? '',
       userUpdatedDate: record.userUpdatedDate ?? '',
     };
+  }
+
+  /** Legacy data uses placeholders like "." or "-" for "no alias"; treat those as empty. */
+  private isMeaningfulAliasName(name: string | null | undefined): boolean {
+    return /[\p{L}\p{N}]/u.test((name ?? '').trim());
   }
 
   private resolveInvestorAliasKey(record: InvestorDto, aliases: InvestorAlias[]): number | null {

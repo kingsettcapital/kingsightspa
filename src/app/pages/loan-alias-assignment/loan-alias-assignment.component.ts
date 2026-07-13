@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NgSelectComponent } from '@ng-select/ng-select';
+import { NgFooterTemplateDirective, NgSelectComponent } from '@ng-select/ng-select';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -61,7 +61,7 @@ const LOAN_ASSIGNMENT_TABLE_COLUMNS: LoanAssignmentTableColumn[] = [
 @Component({
   selector: 'app-loan-alias-assignment',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectComponent],
+  imports: [CommonModule, FormsModule, NgSelectComponent, NgFooterTemplateDirective],
   templateUrl: './loan-alias-assignment.component.html',
   styleUrl: './loan-alias-assignment.component.css',
 })
@@ -92,6 +92,20 @@ export class LoanAliasAssignmentComponent implements OnInit {
   readonly rows = signal<LoanRow[]>([]);
   readonly aliasOptions = signal<LoanAlias[]>([]);
   readonly originalRowState = signal<Record<string, number | null>>({});
+
+  readonly showAliasDialog = signal(false);
+  readonly aliasDialogName = signal('');
+  readonly aliasDialogError = signal('');
+  readonly isCreatingAlias = signal(false);
+  private readonly aliasDialogRowCode = signal<string | null>(null);
+
+  readonly aliasSelectItems = computed(() =>
+    this.aliasOptions()
+      .map((alias) => ({ value: String(this.getAliasKey(alias)), label: alias.loanAliasName }))
+      .sort((left, right) =>
+        left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }),
+      ),
+  );
 
   readonly loanSelectOptions = computed<LoanSelectOption[]>(() => {
     const seen = new Set<string>();
@@ -354,6 +368,65 @@ export class LoanAliasAssignmentComponent implements OnInit {
     this.refreshStatusMatchingAliases();
   }
 
+  openAliasDialog(loanCode: string | null): void {
+    this.aliasDialogRowCode.set(loanCode);
+    this.aliasDialogName.set('');
+    this.aliasDialogError.set('');
+    this.showAliasDialog.set(true);
+  }
+
+  closeAliasDialog(): void {
+    this.showAliasDialog.set(false);
+    this.aliasDialogName.set('');
+    this.aliasDialogError.set('');
+    this.aliasDialogRowCode.set(null);
+  }
+
+  createAliasFromDialog(assignToRow: boolean): void {
+    const name = this.aliasDialogName().trim();
+    if (!name || this.isCreatingAlias()) {
+      return;
+    }
+
+    const createdBy = this.currentAppUser.getUpdatedBy();
+    if (!createdBy) {
+      this.aliasDialogError.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
+    const duplicate = this.aliasOptions().find(
+      (alias) => alias.loanAliasName.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicate) {
+      this.aliasDialogError.set('A loan alias with this name already exists.');
+      return;
+    }
+
+    const targetCode = this.aliasDialogRowCode();
+    this.isCreatingAlias.set(true);
+    this.aliasDialogError.set('');
+
+    this.loanAliasApi.create({ loanAliasName: name, createdBy }).subscribe({
+      next: (created) => {
+        const [record] = this.normalizeAliases([created]);
+        this.aliasOptions.set([...this.aliasOptions(), record]);
+        this.isCreatingAlias.set(false);
+        this.closeAliasDialog();
+
+        if (assignToRow && targetCode && this.getAliasKey(record) > 0) {
+          this.updateAlias(targetCode, String(this.getAliasKey(record)));
+          this.statusMessage.set(`Alias "${record.loanAliasName}" created and assigned.`);
+        } else {
+          this.statusMessage.set(`Alias "${record.loanAliasName}" created.`);
+        }
+      },
+      error: () => {
+        this.aliasDialogError.set('Failed to create loan alias. Please try again.');
+        this.isCreatingAlias.set(false);
+      },
+    });
+  }
+
   goToPreviousPage(): void {
     this.currentPage.set(Math.max(1, this.currentPage() - 1));
   }
@@ -375,9 +448,9 @@ export class LoanAliasAssignmentComponent implements OnInit {
     return key != null ? Number(key) : 0;
   }
 
-  aliasSelectValue(row: LoanRow): string {
+  aliasSelectValue(row: LoanRow): string | null {
     const key = this.resolveRowAliasKey(row);
-    return key != null && key > 0 ? String(key) : '';
+    return key != null && key > 0 ? String(key) : null;
   }
 
   saveChanges(): void {
@@ -472,7 +545,9 @@ export class LoanAliasAssignmentComponent implements OnInit {
       statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
     }).subscribe({
       next: ({ loans, aliases, statuses }) => {
-        const normalizedAliases = this.normalizeAliases(aliases);
+        const normalizedAliases = this.normalizeAliases(aliases).filter((alias) =>
+          this.isMeaningfulAliasName(alias.loanAliasName),
+        );
         const mappedRows = loans.map((record, index) =>
           this.mapApiLoanToRow(record, index, normalizedAliases),
         );
@@ -486,6 +561,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
         this.statusOptions.set(statusOptions);
         this.refreshStatusMatchingAliases();
 
+        this.statusMessage.set('');
         this.isLoading.set(false);
       },
       error: () => {
@@ -540,15 +616,23 @@ export class LoanAliasAssignmentComponent implements OnInit {
       ? aliases.find((a) => this.getAliasKey(a) === loanAliasKey)
       : undefined;
 
+    const resolvedName = alias?.loanAliasName ?? record.loanAliasName?.trim() ?? '';
+    const hasMeaningfulAlias = alias != null && this.isMeaningfulAliasName(resolvedName);
+
     return {
       loanKey: record.loanKey,
       loanCode: record.loanCode || `LOAN-${index + 1}`,
       loanName: record.loanDesc?.trim() || '—',
-      loanAliasKey,
-      loanAliasName: alias?.loanAliasName ?? record.loanAliasName?.trim() ?? '',
+      loanAliasKey: hasMeaningfulAlias ? loanAliasKey : null,
+      loanAliasName: hasMeaningfulAlias ? resolvedName : '',
       userUpdatedBy: record.userUpdatedBy?.trim() ?? '',
       userUpdatedDate: record.userUpdatedDate ?? '',
     };
+  }
+
+  /** Legacy data uses placeholders like "." or "-" for "no alias"; treat those as empty. */
+  private isMeaningfulAliasName(name: string | null | undefined): boolean {
+    return /[\p{L}\p{N}]/u.test((name ?? '').trim());
   }
 
   private resolveLoanAliasKey(record: LoanDto, aliases: LoanAlias[]): number | null {

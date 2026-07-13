@@ -328,17 +328,6 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
     this.patchRow(loanCode, { exitDate: value.trim() });
   }
 
-  normalizeExitDateField(loanCode: string): void {
-    const row = this.rows().find((r) => r.loanCode === loanCode);
-    if (!row) {
-      return;
-    }
-    const normalized = this.toExitDateQuarterYear(row.exitDate);
-    if (normalized !== row.exitDate) {
-      this.patchRow(loanCode, { exitDate: normalized });
-    }
-  }
-
   updateMaturityDetail(loanCode: string, value: string): void {
     this.patchRow(loanCode, { maturityAdditionalDetail: value });
   }
@@ -379,11 +368,6 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
     return trimmed && trimmed !== '-' ? trimmed : '—';
   }
 
-  formatExitDateDisplay(value: string): string {
-    const normalized = this.toExitDateQuarterYear(value);
-    return normalized || '—';
-  }
-
   getCellDisplayValue(row: SubjectiveRow, column: SubjectiveColumnKey): string {
     switch (column) {
       case 'loanCode':
@@ -399,7 +383,7 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
       case 'exitPlan':
         return row.exitPlan || '—';
       case 'exitDate':
-        return this.formatExitDateDisplay(row.exitDate);
+        return this.formatDisplayDate(row.exitDate);
       case 'maturityAdditionalDetail':
         return row.maturityAdditionalDetail || '—';
       case 'userUpdatedBy':
@@ -436,7 +420,7 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
         loanCode: row.loanCode,
         defaultStatus: this.nullIfEmpty(row.defaultStatus),
         exitPlan: this.nullIfEmpty(this.normalizeExitPlan(row.exitPlan)),
-        exitDate: this.nullIfEmpty(this.toExitDateQuarterYear(row.exitDate)),
+        exitDate: this.nullIfEmpty(row.exitDate),
         maturityAdditionalDetail: this.nullIfEmpty(row.maturityAdditionalDetail),
         userUpdatedBy,
       })),
@@ -571,7 +555,7 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
       exitPlan: this.normalizeExitPlan(
         this.pickField(raw, 'exitPlan', 'ExitPlan', 'subjectiveExitPlan', 'SubjectiveExitPlan'),
       ),
-      exitDate: this.toExitDateQuarterYear(exitDateRaw),
+      exitDate: this.toDateInputValue(exitDateRaw),
       maturityAdditionalDetail: this.pickField(
         raw,
         'maturityAdditionalDetail',
@@ -639,39 +623,6 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
     }
     const alias = LEGACY_EXIT_PLAN_ALIASES[trimmed.toLowerCase()];
     return alias ?? trimmed;
-  }
-
-  private toExitDateQuarterYear(value: string): string {
-    if (!value?.trim()) {
-      return '';
-    }
-
-    const trimmed = value.trim();
-    if (trimmed.toLowerCase() === NA_OPTION) {
-      return NA_OPTION;
-    }
-
-    const quarterMatch = trimmed.match(/^Q?\s*([1-4])\s*[\/\-]\s*(\d{4})$/i);
-    if (quarterMatch) {
-      return `Q${quarterMatch[1]}/${quarterMatch[2]}`;
-    }
-
-    const iso = this.toDateInputValue(trimmed);
-    if (iso) {
-      const [, month, year] = iso.split('-');
-      const quarter = Math.floor((Number(month) - 1) / 3) + 1;
-      return `Q${quarter}/${year}`;
-    }
-
-    const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (slashMatch) {
-      const month = Number(slashMatch[1]);
-      const year = slashMatch[3];
-      const quarter = Math.floor((month - 1) / 3) + 1;
-      return `Q${quarter}/${year}`;
-    }
-
-    return trimmed;
   }
 
   private pickNumber(record: Record<string, unknown>, ...keys: string[]): number {
@@ -785,7 +736,7 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
       case 'exitPlan':
         return left.exitPlan.localeCompare(right.exitPlan, undefined, { sensitivity: 'base' });
       case 'exitDate':
-        return this.quarterSortValue(left.exitDate) - this.quarterSortValue(right.exitDate);
+        return this.dateSortValue(left.exitDate) - this.dateSortValue(right.exitDate);
       case 'maturityAdditionalDetail':
         return left.maturityAdditionalDetail.localeCompare(right.maturityAdditionalDetail, undefined, {
           sensitivity: 'base',
@@ -807,15 +758,6 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
     }
     const parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
-  }
-
-  private quarterSortValue(value: string): number {
-    const normalized = this.toExitDateQuarterYear(value);
-    const match = normalized.match(/^Q([1-4])\/(\d{4})$/i);
-    if (!match) {
-      return 0;
-    }
-    return Number(match[2]) * 10 + Number(match[1]);
   }
 
   private toDateInputValue(value: string | null | undefined): string {

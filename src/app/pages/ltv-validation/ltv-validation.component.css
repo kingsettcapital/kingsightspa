@@ -218,6 +218,8 @@
   font-size: 0.75rem;
   line-height: 1.25;
   padding: 0.45rem 0.4rem;
+  text-align: left;
+  vertical-align: top;
 }
 
 /* Column widths (colgroup + cell classes) */

@@ -104,6 +104,43 @@
 
 .file-upload-history__table {
   min-width: 40rem;
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* Column widths */
+.fu-col--filename {
+  width: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.fu-col--filetype {
+  width: 9rem;
+}
+
+.fu-col--asof {
+  width: 6.5rem;
+}
+
+.fu-col--uploaded-by,
+.fu-col--uploaded-date {
+  width: 8.5rem;
+}
+
+/* Smaller, lighter audit-style columns */
+.file-upload-history .ks-fp__table td.fu-col--uploaded-by,
+.file-upload-history .ks-fp__table td.fu-col--uploaded-date {
+  font-size: 0.75rem;
+  color: var(--ks-color-text-muted);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.file-upload-history .ks-fp__table th.fu-col--uploaded-by,
+.file-upload-history .ks-fp__table th.fu-col--uploaded-date {
+  font-size: 0.75rem;
 }
 
 /* Ensure history grid matches other ks-fp tables (no legacy ks-table navy header) */
