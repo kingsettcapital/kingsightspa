@@ -118,6 +118,13 @@
                   >
                     + Add New Alias
                   </button>
+                  <button
+                    type="button"
+                    class="alias-add-btn alias-add-btn--secondary"
+                    (click)="aliasSelect.close(); openAliasEditDialog(row.loanCode)"
+                  >
+                    ✎ Update Alias
+                  </button>
                 </ng-template>
               </ng-select>
             </td>
@@ -195,7 +202,13 @@
       (click)="$event.stopPropagation()"
     >
       <div class="la-dialog-header">
-        <h2 id="alias-dlg-title">Add New Loan Alias</h2>
+        <h2 id="alias-dlg-title">
+          @if (aliasDialogMode() === 'edit') {
+            Update Loan Alias
+          } @else {
+            Add New Loan Alias
+          }
+        </h2>
         <button type="button" class="dlg-close" (click)="closeAliasDialog()" aria-label="Close">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -205,6 +218,31 @@
       </div>
 
       <div class="la-dialog-body">
+        @if (aliasDialogMode() === 'edit') {
+          <p class="dlg-hint">
+            Renaming an alias updates the name everywhere it is assigned. Loan assignments stay intact.
+          </p>
+          <div class="dlg-field">
+            <label class="dlg-label" for="alias-edit-select">
+              Existing Alias <span class="dlg-required">*</span>
+            </label>
+            <ng-select
+              id="alias-edit-select"
+              class="ks-ng-select"
+              appendTo="body"
+              [items]="aliasSelectItems()"
+              bindLabel="label"
+              bindValue="value"
+              [searchable]="true"
+              [clearable]="false"
+              placeholder="Select alias to update"
+              [ngModel]="aliasDialogEditValue()"
+              (ngModelChange)="onAliasDialogEditKeyChange($event)"
+              [ngModelOptions]="{ standalone: true }"
+            ></ng-select>
+          </div>
+        }
+
         <div class="dlg-field">
           <label class="dlg-label" for="alias-create-name">
             Loan Alias Name <span class="dlg-required">*</span>
@@ -213,10 +251,10 @@
             id="alias-create-name"
             type="text"
             class="dlg-input"
-            placeholder="Enter alias name"
+            [placeholder]="aliasDialogMode() === 'edit' ? 'Enter updated alias name' : 'Enter alias name'"
             [value]="aliasDialogName()"
             (input)="aliasDialogName.set($any($event.target).value)"
-            (keyup.enter)="createAliasFromDialog(true)"
+            (keyup.enter)="aliasDialogMode() === 'edit' ? saveAliasRenameFromDialog() : createAliasFromDialog(true)"
             autofocus
           />
         </div>
@@ -229,22 +267,33 @@
         <button type="button" class="ks-btn" (click)="closeAliasDialog()" [disabled]="isCreatingAlias()">
           Cancel
         </button>
-        <button
-          type="button"
-          class="ks-btn"
-          (click)="createAliasFromDialog(false)"
-          [disabled]="!aliasDialogName().trim() || isCreatingAlias()"
-        >
-          @if (isCreatingAlias()) { Creating… } @else { Create }
-        </button>
-        <button
-          type="button"
-          class="ks-btn ks-btn--accent"
-          (click)="createAliasFromDialog(true)"
-          [disabled]="!aliasDialogName().trim() || isCreatingAlias()"
-        >
-          @if (isCreatingAlias()) { Creating… } @else { Create + Assign }
-        </button>
+        @if (aliasDialogMode() === 'edit') {
+          <button
+            type="button"
+            class="ks-btn ks-btn--accent"
+            (click)="saveAliasRenameFromDialog()"
+            [disabled]="!aliasDialogEditKey() || !aliasDialogName().trim() || isCreatingAlias()"
+          >
+            @if (isCreatingAlias()) { Saving… } @else { Save }
+          </button>
+        } @else {
+          <button
+            type="button"
+            class="ks-btn"
+            (click)="createAliasFromDialog(false)"
+            [disabled]="!aliasDialogName().trim() || isCreatingAlias()"
+          >
+            @if (isCreatingAlias()) { Creating… } @else { Create }
+          </button>
+          <button
+            type="button"
+            class="ks-btn ks-btn--accent"
+            (click)="createAliasFromDialog(true)"
+            [disabled]="!aliasDialogName().trim() || isCreatingAlias()"
+          >
+            @if (isCreatingAlias()) { Creating… } @else { Create + Assign }
+          </button>
+        }
       </div>
     </div>
   </div>

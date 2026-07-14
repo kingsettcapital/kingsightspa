@@ -104,6 +104,22 @@
   background: #eff6ff;
 }
 
+.alias-add-btn--secondary {
+  color: #374151;
+  border-top: 1px solid #e5e7eb;
+}
+
+.alias-add-btn--secondary:hover {
+  background: #f3f4f6;
+}
+
+.dlg-hint {
+  margin: 0 0 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #6b7280;
+}
+
 /* ── Add New Alias dialog ──────────────────────────────────────────────────── */
 .la-overlay {
   position: fixed;

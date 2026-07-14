@@ -94,10 +94,12 @@ export class LoanAliasAssignmentComponent implements OnInit {
   readonly originalRowState = signal<Record<string, number | null>>({});
 
   readonly showAliasDialog = signal(false);
+  readonly aliasDialogMode = signal<'create' | 'edit'>('create');
   readonly aliasDialogName = signal('');
   readonly aliasDialogError = signal('');
   readonly isCreatingAlias = signal(false);
   private readonly aliasDialogRowCode = signal<string | null>(null);
+  readonly aliasDialogEditKey = signal<number | null>(null);
 
   readonly aliasSelectItems = computed(() =>
     this.aliasOptions()
@@ -369,20 +371,57 @@ export class LoanAliasAssignmentComponent implements OnInit {
   }
 
   openAliasDialog(loanCode: string | null): void {
+    this.aliasDialogMode.set('create');
     this.aliasDialogRowCode.set(loanCode);
+    this.aliasDialogEditKey.set(null);
     this.aliasDialogName.set('');
     this.aliasDialogError.set('');
     this.showAliasDialog.set(true);
   }
 
+  openAliasEditDialog(loanCode: string | null): void {
+    this.aliasDialogMode.set('edit');
+    this.aliasDialogRowCode.set(loanCode);
+    this.aliasDialogError.set('');
+
+    const row = loanCode ? this.rows().find((r) => r.loanCode === loanCode) : null;
+    const key = row?.loanAliasKey != null && row.loanAliasKey > 0 ? row.loanAliasKey : null;
+    this.aliasDialogEditKey.set(key);
+
+    const alias = key
+      ? this.aliasOptions().find((a) => this.getAliasKey(a) === key)
+      : null;
+    this.aliasDialogName.set(alias?.loanAliasName ?? '');
+    this.showAliasDialog.set(true);
+  }
+
+  onAliasDialogEditKeyChange(value: string | null): void {
+    const key = value ? Number(value) : null;
+    this.aliasDialogEditKey.set(Number.isFinite(key) && key! > 0 ? key : null);
+    const alias = this.aliasOptions().find((a) => this.getAliasKey(a) === key);
+    this.aliasDialogName.set(alias?.loanAliasName ?? '');
+    this.aliasDialogError.set('');
+  }
+
+  aliasDialogEditValue(): string | null {
+    const key = this.aliasDialogEditKey();
+    return key != null && key > 0 ? `${key}` : null;
+  }
+
   closeAliasDialog(): void {
     this.showAliasDialog.set(false);
+    this.aliasDialogMode.set('create');
     this.aliasDialogName.set('');
     this.aliasDialogError.set('');
     this.aliasDialogRowCode.set(null);
+    this.aliasDialogEditKey.set(null);
   }
 
   createAliasFromDialog(assignToRow: boolean): void {
+    if (this.aliasDialogMode() !== 'create') {
+      return;
+    }
+
     const name = this.aliasDialogName().trim();
     if (!name || this.isCreatingAlias()) {
       return;
@@ -422,6 +461,87 @@ export class LoanAliasAssignmentComponent implements OnInit {
       },
       error: () => {
         this.aliasDialogError.set('Failed to create loan alias. Please try again.');
+        this.isCreatingAlias.set(false);
+      },
+    });
+  }
+
+  saveAliasRenameFromDialog(): void {
+    if (this.aliasDialogMode() !== 'edit' || this.isCreatingAlias()) {
+      return;
+    }
+
+    const aliasKey = this.aliasDialogEditKey();
+    const name = this.aliasDialogName().trim();
+    if (!aliasKey || aliasKey <= 0) {
+      this.aliasDialogError.set('Select an existing alias to update.');
+      return;
+    }
+    if (!name) {
+      this.aliasDialogError.set('Alias name is required.');
+      return;
+    }
+
+    const updatedBy = this.currentAppUser.getUpdatedBy();
+    if (!updatedBy) {
+      this.aliasDialogError.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
+    const current = this.aliasOptions().find((a) => this.getAliasKey(a) === aliasKey);
+    if (!current) {
+      this.aliasDialogError.set('Selected alias was not found.');
+      return;
+    }
+
+    if (current.loanAliasName.trim().toLowerCase() === name.toLowerCase()) {
+      this.closeAliasDialog();
+      this.statusMessage.set('No alias name change detected.');
+      return;
+    }
+
+    const duplicate = this.aliasOptions().find(
+      (alias) =>
+        this.getAliasKey(alias) !== aliasKey &&
+        alias.loanAliasName.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicate) {
+      this.aliasDialogError.set('A loan alias with this name already exists.');
+      return;
+    }
+
+    this.isCreatingAlias.set(true);
+    this.aliasDialogError.set('');
+
+    this.loanAliasApi.update(aliasKey, { loanAliasName: name, updatedBy }).subscribe({
+      next: (updated) => {
+        const renamed =
+          this.normalizeAliases([updated])[0] ??
+          ({ ...current, loanAliasName: name } as LoanAlias);
+
+        this.aliasOptions.set(
+          this.aliasOptions().map((alias) =>
+            this.getAliasKey(alias) === aliasKey ? renamed : alias,
+          ),
+        );
+
+        // Keep assignments (keys) intact; refresh displayed names everywhere this alias is used.
+        this.rows.set(
+          this.rows().map((row) =>
+            row.loanAliasKey === aliasKey
+              ? { ...row, loanAliasName: renamed.loanAliasName }
+              : row,
+          ),
+        );
+
+        this.isCreatingAlias.set(false);
+        this.closeAliasDialog();
+        this.statusMessage.set(
+          `Alias renamed to "${renamed.loanAliasName}". All assignments remain intact.`,
+        );
+      },
+      error: () => {
+        this.aliasDialogError.set('Failed to update loan alias. Please try again.');
         this.isCreatingAlias.set(false);
       },
     });

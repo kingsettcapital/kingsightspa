@@ -53,7 +53,9 @@ type RowSnapshot = {
 
 type NewRecordForm = {
   loanAliasId: number | null;
+  loanAliasName: string;
   loanCode: string | null;
+  loanName: string;
   taxMemoDate: string;
   taxYear: string;
   taxArrears: string;
@@ -232,15 +234,37 @@ export class TaxArrearsCaptureComponent implements OnInit {
   });
 
   readonly modalLoanPreview = computed(() => {
-    const loanCode = this.newRecord().loanCode;
+    const form = this.newRecord();
+    const loanCode = form.loanCode;
     if (!loanCode) {
-      return { loanCode: '—', loanName: '—' };
+      return { loanCode: '—', loanName: form.loanName || '—' };
     }
-    const loan = this.modalLoanOptions().find((option) => option.loanCode === loanCode);
+    const fromModal = this.modalLoanOptions().find((option) => option.loanCode === loanCode);
+    if (fromModal) {
+      return {
+        loanCode: fromModal.loanCode,
+        loanName: fromModal.loanName,
+      };
+    }
+    const fromAll = this.allLoans().find((loan) => loan.loanCode?.trim() === loanCode);
     return {
-      loanCode: loan?.loanCode ?? loanCode,
-      loanName: loan?.loanName ?? '—',
+      loanCode,
+      loanName: form.loanName || fromAll?.loanDesc?.trim() || '—',
     };
+  });
+
+  readonly modalAliasPreview = computed(() => {
+    const form = this.newRecord();
+    if (form.loanAliasName.trim() && form.loanAliasName !== '—') {
+      return form.loanAliasName;
+    }
+    const aliasId = form.loanAliasId;
+    if (!aliasId) {
+      return '—';
+    }
+    return (
+      this.aliasOptions().find((alias) => alias.loanAliasId === aliasId)?.loanAliasName ?? '—'
+    );
   });
 
   readonly filteredRows = computed(() => {
@@ -475,9 +499,11 @@ export class TaxArrearsCaptureComponent implements OnInit {
   private rowToNewRecordForm(row: TaxArrearRow): NewRecordForm {
     return {
       loanAliasId: this.resolveLoanAliasId(row),
+      loanAliasName: row.loanAliasName === '—' ? '' : row.loanAliasName,
       loanCode: row.loanCode === '—' ? null : row.loanCode,
+      loanName: row.loanName === '—' ? '' : row.loanName,
       taxMemoDate: row.taxMemoDate,
-      taxYear: row.taxYear || String(new Date().getFullYear()),
+      taxYear: row.taxYear?.trim() || '',
       taxArrears: row.taxArrears != null ? this.formatTaxArrearsInput(row.taxArrears) : '',
       notes: row.notes,
     };
@@ -502,17 +528,26 @@ export class TaxArrearsCaptureComponent implements OnInit {
   updateNewRecordAlias(value: string): void {
     const parsed = Number(value);
     const loanAliasId = Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    const aliasName =
+      this.aliasOptions().find((alias) => alias.loanAliasId === loanAliasId)?.loanAliasName ?? '';
     this.newRecord.set({
       ...this.newRecord(),
       loanAliasId,
+      loanAliasName: aliasName,
       loanCode: null,
+      loanName: '',
     });
     this.dialogError.set('');
   }
 
   updateNewRecordLoan(value: string): void {
     const loanCode = value?.trim() || null;
-    this.newRecord.set({ ...this.newRecord(), loanCode });
+    const loan = this.modalLoanOptions().find((option) => option.loanCode === loanCode);
+    this.newRecord.set({
+      ...this.newRecord(),
+      loanCode,
+      loanName: loan?.loanName ?? '',
+    });
     this.dialogError.set('');
   }
 
@@ -542,8 +577,11 @@ export class TaxArrearsCaptureComponent implements OnInit {
     }
 
     const selectedLoan = this.modalLoanOptions().find((loan) => loan.loanCode === form.loanCode);
+    const fallbackLoan = this.allLoans().find((loan) => loan.loanCode?.trim() === form.loanCode);
     const request: TaxArrearsCaptureCreateRequest = {
-      loanKey: selectedLoan?.loanKey ?? 0,
+      loanKey:
+        selectedLoan?.loanKey ??
+        (Number(fallbackLoan?.loanKey) > 0 ? Number(fallbackLoan?.loanKey) : 0),
       loanCode: form.loanCode,
       taxMemoDate: form.taxMemoDate.trim() || null,
       taxArrears: this.parseCurrencyInput(form.taxArrears),
@@ -558,6 +596,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
     this.taxArrearsApi.createRecord(request).subscribe({
       next: () => {
         this.isCreating.set(false);
+        this.selectedRowTrackId.set(null);
         this.closeAddDialog();
         this.statusMessage.set(
           this.dialogMode() === 'duplicate'
@@ -706,7 +745,9 @@ export class TaxArrearsCaptureComponent implements OnInit {
   private emptyNewRecord(): NewRecordForm {
     return {
       loanAliasId: null,
+      loanAliasName: '',
       loanCode: null,
+      loanName: '',
       taxMemoDate: '',
       taxYear: String(new Date().getFullYear()),
       taxArrears: '',
@@ -764,9 +805,10 @@ export class TaxArrearsCaptureComponent implements OnInit {
 
     this.taxArrearsApi.getRecords(statuses).subscribe({
       next: (records) => {
-        const mapped = records.map((record) => this.mapRow(record));
+        const mapped = records.map((record, index) => this.mapRow(record, index));
         this.rows.set(mapped);
         this.mergeTaxYearsFromRows(mapped);
+        this.selectedRowTrackId.set(null);
         this.currentPage.set(1);
         this.snapshotOriginalState();
         this.isLoadingGrid.set(false);
@@ -780,13 +822,17 @@ export class TaxArrearsCaptureComponent implements OnInit {
     });
   }
 
-  private mapRow(record: TaxArrearsCaptureRowDto): TaxArrearRow {
+  private mapRow(record: TaxArrearsCaptureRowDto, index = 0): TaxArrearRow {
     const raw = record as TaxArrearsCaptureRowDto & Record<string, unknown>;
     const taxArrearKey = this.pickNumber(raw, 'taxArrearKey', 'TaxArrearKey');
     const loanCode = this.pickString(raw, 'loanId', 'LoanId', 'loanCode', 'LoanCode') || '—';
     const taxYear = this.pickString(raw, 'taxYear', 'TaxYear');
+    const taxMemoDate = this.pickString(raw, 'taxMemoDate', 'TaxMemoDate');
+    const userUpdatedDate = this.pickString(raw, 'userUpdatedDate', 'UserUpdatedDate');
     const stableRowId =
-      taxArrearKey > 0 ? `key-${taxArrearKey}` : `loan-${loanCode}-year-${taxYear || 'none'}`;
+      taxArrearKey > 0
+        ? `key-${taxArrearKey}`
+        : `loan-${loanCode}-year-${taxYear || 'none'}-memo-${taxMemoDate || 'none'}-upd-${userUpdatedDate || 'none'}-i-${index}`;
 
     return {
       stableRowId,
@@ -795,14 +841,12 @@ export class TaxArrearsCaptureComponent implements OnInit {
       loanCode,
       loanName: this.pickString(raw, 'description', 'Description') || '—',
       loanAliasName: this.pickString(raw, 'loanAliasName', 'LoanAliasName') || '—',
-      taxMemoDate: this.toDateInputValue(
-        this.pickString(raw, 'taxMemoDate', 'TaxMemoDate') || null,
-      ),
+      taxMemoDate: this.toDateInputValue(taxMemoDate || null),
       taxArrears: this.pickNullableNumber(raw, 'taxArrears', 'TaxArrears'),
       taxYear,
       notes: this.pickString(raw, 'notes', 'Notes'),
       userUpdatedBy: this.pickString(raw, 'userUpdatedBy', 'UserUpdatedBy') || '',
-      userUpdatedDate: this.pickString(raw, 'userUpdatedDate', 'UserUpdatedDate'),
+      userUpdatedDate,
     };
   }
 

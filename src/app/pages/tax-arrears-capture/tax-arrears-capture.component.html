@@ -241,47 +241,64 @@
       </div>
 
       <div class="ta-dialog-body">
-        <div class="form-field">
-          <label for="newLoanAlias">Loan Alias</label>
-          <select
-            id="newLoanAlias"
-            class="modal-field-control"
-            [value]="newRecord().loanAliasId ?? ''"
-            (change)="updateNewRecordAlias($any($event.target).value)"
-          >
-            <option value="">Select loan alias</option>
-            @for (alias of aliasOptions(); track alias.loanAliasId) {
-              <option [value]="alias.loanAliasId">{{ alias.loanAliasName }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="form-field">
-          <label for="newLoan">Loan</label>
-          <select
-            id="newLoan"
-            class="modal-field-control"
-            [value]="newRecord().loanCode ?? ''"
-            (change)="updateNewRecordLoan($any($event.target).value)"
-            [disabled]="!newRecord().loanAliasId"
-          >
-            <option value="">Select loan</option>
-            @for (loan of modalLoanOptions(); track loan.loanCode) {
-              <option [value]="loan.loanCode">{{ loan.loanCode }} — {{ loan.loanName }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="form-grid">
-          <div class="form-field">
-            <label>Loan Code</label>
-            <div class="readonly-field">{{ modalLoanPreview().loanCode }}</div>
+        @if (dialogMode() === 'duplicate') {
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Loan Alias</label>
+              <div class="readonly-field">{{ modalAliasPreview() }}</div>
+            </div>
+            <div class="form-field">
+              <label>Loan Code</label>
+              <div class="readonly-field">{{ modalLoanPreview().loanCode }}</div>
+            </div>
+            <div class="form-field">
+              <label>Loan Name</label>
+              <div class="readonly-field">{{ modalLoanPreview().loanName }}</div>
+            </div>
           </div>
+        } @else {
           <div class="form-field">
-            <label>Loan Name</label>
-            <div class="readonly-field">{{ modalLoanPreview().loanName }}</div>
+            <label for="newLoanAlias">Loan Alias</label>
+            <select
+              id="newLoanAlias"
+              class="modal-field-control"
+              [value]="newRecord().loanAliasId ?? ''"
+              (change)="updateNewRecordAlias($any($event.target).value)"
+            >
+              <option value="">Select loan alias</option>
+              @for (alias of aliasOptions(); track alias.loanAliasId) {
+                <option [value]="alias.loanAliasId">{{ alias.loanAliasName }}</option>
+              }
+            </select>
           </div>
-        </div>
+
+          <div class="form-field">
+            <label for="newLoan">Loan</label>
+            <select
+              id="newLoan"
+              class="modal-field-control"
+              [value]="newRecord().loanCode ?? ''"
+              (change)="updateNewRecordLoan($any($event.target).value)"
+              [disabled]="!newRecord().loanAliasId"
+            >
+              <option value="">Select loan</option>
+              @for (loan of modalLoanOptions(); track loan.loanCode) {
+                <option [value]="loan.loanCode">{{ loan.loanCode }} — {{ loan.loanName }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Loan Code</label>
+              <div class="readonly-field">{{ modalLoanPreview().loanCode }}</div>
+            </div>
+            <div class="form-field">
+              <label>Loan Name</label>
+              <div class="readonly-field">{{ modalLoanPreview().loanName }}</div>
+            </div>
+          </div>
+        }
 
         <div class="form-grid">
           <div class="form-field">
@@ -299,11 +316,13 @@
             <select
               id="newTaxYear"
               class="modal-field-control"
-              [value]="newRecord().taxYear"
               (change)="updateNewRecordField('taxYear', $any($event.target).value)"
             >
+              @if (!newRecord().taxYear.trim()) {
+                <option value="" selected>—</option>
+              }
               @for (year of taxYearOptions(); track year) {
-                <option [value]="year">{{ year }}</option>
+                <option [value]="year" [selected]="newRecord().taxYear === year">{{ year }}</option>
               }
             </select>
           </div>
