@@ -1,13 +1,16 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NgSelectComponent } from '@ng-select/ng-select';
+import { NgFooterTemplateDirective, NgSelectComponent } from '@ng-select/ng-select';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
-import { InvestorAlias, InvestorApiService } from '../../core/services/investor-api.service';
+import {
+  InvestorApiService,
+  InvestorDto,
+} from '../../core/services/investor-api.service';
 import { LoanAliasOptionDto, LoansApiService } from '../../core/services/loans-api.service';
 import {
   NonKsServicedLoanDto,
@@ -30,6 +33,7 @@ type NonKsLoanRow = {
   servicerId: string;
   description: string;
   investor: string;
+  investorCode: string;
   dateOfDefault: string;
   maturityDate: string;
   interestOffDate: string;
@@ -134,7 +138,8 @@ const NON_KS_TABLE_COLUMNS: NonKsTableColumn[] = [
   { key: 'loanCode', label: 'Loan Code' },
   { key: 'servicerId', label: 'Servicer ID' },
   { key: 'description', label: 'Loan Name' },
-  { key: 'investor', label: 'Investor Alias' },
+  { key: 'investor', label: 'Investor Name' },
+  { key: 'investorCode', label: 'Investor Code' },
   { key: 'dateOfDefault', label: 'Default Date' },
   { key: 'maturityDate', label: 'Maturity' },
   { key: 'interestOffDate', label: 'Interest Off' },
@@ -160,7 +165,7 @@ const NON_KS_TABLE_COLUMNS: NonKsTableColumn[] = [
 @Component({
   selector: 'app-non-ks-serviced-loans',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectComponent],
+  imports: [CommonModule, FormsModule, NgSelectComponent, NgFooterTemplateDirective],
   templateUrl: './non-ks-serviced-loans.component.html',
   styleUrl: './non-ks-serviced-loans.component.css',
 })
@@ -175,7 +180,11 @@ export class NonKsServicedLoansComponent implements OnInit {
   readonly rows = signal<NonKsLoanRow[]>([]);
   readonly originalRowState = signal<Record<string, RowSnapshot>>({});
   readonly loanAliasOptions = signal<LoanAliasOptionDto[]>([]);
-  readonly investorAliasOptions = signal<InvestorAlias[]>([]);
+  readonly investorOptions = signal<InvestorDto[]>([]);
+  readonly showInvestorDialog = signal(false);
+  readonly investorDialogName = signal('');
+  readonly investorDialogError = signal('');
+  readonly isCreatingInvestor = signal(false);
   readonly selectedLoanKeys = signal<string[]>([]);
 
   readonly statusMessage = signal('');
@@ -187,7 +196,7 @@ export class NonKsServicedLoansComponent implements OnInit {
   readonly sortColumn = signal<NonKsColumnKey | null>(null);
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
 
-  private pendingExtLoanCode = signal('NONKS-1');
+  private pendingExtLoanCode = signal('NKSLn-1');
 
   readonly showEntryDialog = signal(false);
   readonly dialogMode = signal<DialogMode>('create');
@@ -211,6 +220,41 @@ export class NonKsServicedLoansComponent implements OnInit {
         return 'Non-KS Loan';
     }
   });
+
+  readonly investorSelectItems = computed(() =>
+    this.investorOptions()
+      .map((investor) => ({
+        value: investor.investorCode,
+        label: this.formatInvestorSelectLabel(investor),
+      }))
+      .filter((item) => !!item.value)
+      .sort((left, right) =>
+        left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }),
+      ),
+  );
+
+  /** Investor Alias from Investor Alias Assignment for the selected investor (read-only). */
+  dialogInvestorAliasDisplay(): string {
+    const draft = this.dialogDraft();
+    if (!draft) {
+      return '—';
+    }
+    const investor = this.findInvestorOption(draft.investorCode, draft.investor);
+    const alias = investor?.investorAliasName?.trim();
+    if (alias) {
+      return alias;
+    }
+    return '—';
+  }
+
+  /** ng-select model: only bind when the code exists in the investor list (avoids "." / blank mismatch). */
+  dialogInvestorSelectValue(): string | null {
+    const draft = this.dialogDraft();
+    if (!draft?.investorCode.trim()) {
+      return null;
+    }
+    return this.isKnownInvestorCode(draft.investorCode) ? draft.investorCode.trim() : null;
+  }
 
   ngOnInit(): void {
     this.loadGrid();
@@ -381,6 +425,135 @@ export class NonKsServicedLoansComponent implements OnInit {
     this.dialogDraft.set(null);
     this.dialogFieldText.set({});
     this.dialogError.set('');
+  }
+
+  updateDialogInvestor(investorCode: string | null): void {
+    const draft = this.dialogDraft();
+    if (!draft) {
+      return;
+    }
+    const code = investorCode?.trim() || '';
+    const investor = code ? this.findInvestorOption(code, '') : undefined;
+    this.dialogDraft.set({
+      ...draft,
+      investorCode: investor?.investorCode?.trim() || '',
+      investor: investor?.investorName?.trim() || '',
+    });
+    this.dialogError.set('');
+  }
+
+  private formatInvestorSelectLabel(investor: InvestorDto): string {
+    const name = investor.investorName?.trim() || '';
+    const code = investor.investorCode?.trim() || '';
+    if (name && code) {
+      return `${name} (${code})`;
+    }
+    return name || code;
+  }
+
+  private isKnownInvestorCode(investorCode: string): boolean {
+    const code = investorCode.trim().toLowerCase();
+    if (!code) {
+      return false;
+    }
+    return this.investorOptions().some(
+      (option) => option.investorCode.trim().toLowerCase() === code,
+    );
+  }
+
+  private findInvestorOption(investorCode: string, investorName: string): InvestorDto | undefined {
+    const code = investorCode.trim().toLowerCase();
+    if (code) {
+      const byCode = this.investorOptions().find(
+        (option) => option.investorCode.trim().toLowerCase() === code,
+      );
+      if (byCode) {
+        return byCode;
+      }
+    }
+
+    const hints = [investorName, investorCode]
+      .map((value) => value.trim().toLowerCase())
+      .filter((value, index, all) => !!value && all.indexOf(value) === index);
+
+    for (const hint of hints) {
+      const byName = this.investorOptions().find(
+        (option) => option.investorName.trim().toLowerCase() === hint,
+      );
+      if (byName) {
+        return byName;
+      }
+
+      const byAlias = this.investorOptions().find(
+        (option) => (option.investorAliasName ?? '').trim().toLowerCase() === hint,
+      );
+      if (byAlias) {
+        return byAlias;
+      }
+    }
+
+    return undefined;
+  }
+
+  openInvestorDialog(): void {
+    this.investorDialogName.set('');
+    this.investorDialogError.set('');
+    this.showInvestorDialog.set(true);
+  }
+
+  closeInvestorDialog(): void {
+    this.showInvestorDialog.set(false);
+    this.investorDialogName.set('');
+    this.investorDialogError.set('');
+  }
+
+  createInvestorFromDialog(): void {
+    const name = this.investorDialogName().trim();
+    if (!name || this.isCreatingInvestor()) {
+      return;
+    }
+
+    const createdBy = this.currentAppUser.getUpdatedBy();
+    if (!createdBy) {
+      this.investorDialogError.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
+    const duplicate = this.investorOptions().find(
+      (investor) => investor.investorName.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicate) {
+      this.investorDialogError.set('An investor with this name already exists.');
+      return;
+    }
+
+    this.isCreatingInvestor.set(true);
+    this.investorDialogError.set('');
+
+    this.investorApi.createInvestor({ investorName: name, createdBy }).subscribe({
+      next: (created) => {
+        const record: InvestorDto = {
+          ...created,
+          investorCode: String(created.investorCode ?? '').trim(),
+          investorName: String(created.investorName ?? name).trim(),
+        };
+        this.investorOptions.set(
+          [...this.investorOptions(), record].sort((a, b) =>
+            a.investorName.localeCompare(b.investorName, undefined, { sensitivity: 'base' }),
+          ),
+        );
+        this.isCreatingInvestor.set(false);
+        this.closeInvestorDialog();
+        this.updateDialogInvestor(record.investorCode);
+        this.statusMessage.set(
+          `Investor "${record.investorName}" created (${record.investorCode}). Assign an Investor Alias on Investor Alias Assignment if needed.`,
+        );
+      },
+      error: () => {
+        this.investorDialogError.set('Failed to create investor. Please try again.');
+        this.isCreatingInvestor.set(false);
+      },
+    });
   }
 
   saveEntryDialog(): void {
@@ -685,23 +858,13 @@ export class NonKsServicedLoansComponent implements OnInit {
       records: this.api.getAll().pipe(catchError((error) => {
         throw error;
       })),
-      lookups: this.api.getLookups().pipe(catchError(() => of({ nextExtLoanCode: 'NONKS-1' }))),
+      lookups: this.api.getLookups().pipe(catchError(() => of({ nextExtLoanCode: 'NKSLn-1' }))),
       loanAliases: this.loansApi.getLookups().pipe(
         catchError(() => of({ loanAliases: [] as LoanAliasOptionDto[] })),
       ),
-      investorAliases: this.investorApi.getAllAliases().pipe(catchError(() => of([]))),
+      investors: this.investorApi.getInvestors().pipe(catchError(() => of([] as InvestorDto[]))),
     }).subscribe({
-      next: ({ records, lookups, loanAliases, investorAliases }) => {
-        const normalized = this.mergeSavedRecords(this.normalizeRecords(records), justSaved);
-        const mapped = normalized.map((r) => this.mapRow(r));
-        this.rows.set(mapped);
-        if (preservePage != null) {
-          this.currentPage.set(Math.min(preservePage, Math.max(1, Math.ceil(mapped.length / this.pageSize()) || 1)));
-        } else {
-          this.currentPage.set(1);
-        }
-        this.snapshotOriginalState();
-
+      next: ({ records, lookups, loanAliases, investors }) => {
         this.loanAliasOptions.set(
           (loanAliases.loanAliases ?? [])
             .map((alias) => ({
@@ -712,23 +875,41 @@ export class NonKsServicedLoansComponent implements OnInit {
             .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
         );
 
-        this.investorAliasOptions.set(
-          investorAliases
-            .map((alias) => ({
-              investorAliasId: Number(alias.investorAliasId ?? 0),
-              investorAliasName: String(alias.investorAliasName ?? '').trim(),
-              createdBy: alias.createdBy ?? '',
-              createdDtm: alias.createdDtm ?? null,
-              updatedBy: alias.updatedBy ?? '',
-              updatedDtm: alias.updatedDtm ?? null,
+        this.investorOptions.set(
+          investors
+            .map((investor) => ({
+              ...investor,
+              investorCode: String(investor.investorCode ?? '').trim(),
+              investorName: String(investor.investorName ?? '').trim(),
+              investorAliasName: String(investor.investorAliasName ?? '').trim(),
             }))
-            .filter((alias) => alias.investorAliasName)
-            .sort((a, b) => a.investorAliasName.localeCompare(b.investorAliasName)),
+            .filter((investor) => investor.investorCode || investor.investorName)
+            .sort((a, b) =>
+              a.investorName.localeCompare(b.investorName, undefined, { sensitivity: 'base' }),
+            ),
         );
+
+        const normalized = this.mergeSavedRecords(this.normalizeRecords(records), justSaved);
+        const mapped = normalized.map((record) => {
+          const row = this.mapRow(record);
+          const resolved = this.resolveInvestorFields(row.investorCode, row.investor);
+          return {
+            ...row,
+            investor: resolved.investorName,
+            investorCode: resolved.investorCode,
+          };
+        });
+        this.rows.set(mapped);
+        if (preservePage != null) {
+          this.currentPage.set(Math.min(preservePage, Math.max(1, Math.ceil(mapped.length / this.pageSize()) || 1)));
+        } else {
+          this.currentPage.set(1);
+        }
+        this.snapshotOriginalState();
 
         const apiNext =
           this.pickString(lookups as Record<string, unknown>, 'nextExtLoanCode', 'NextExtLoanCode') ||
-          'NONKS-1';
+          'NKSLn-1';
         this.syncPendingExtLoanCode(apiNext);
 
         this.isLoadingGrid.set(false);
@@ -753,6 +934,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       servicerId: '',
       description: '',
       investor: '',
+      investorCode: '',
       dateOfDefault: '',
       maturityDate: '',
       interestOffDate: '',
@@ -804,9 +986,12 @@ export class NonKsServicedLoansComponent implements OnInit {
   private rowToDialogDraft(row: NonKsLoanRow): DialogDraft {
     const original = this.originalRowState()[this.rowTrackId(row)];
     const loanCode = row.loanCode.trim();
+    const resolved = this.resolveInvestorFields(row.investorCode, row.investor);
     return {
       ...this.rowSnapshot(row),
       loanCode,
+      investor: resolved.investorName,
+      investorCode: resolved.investorCode,
       stableRowKey: row.stableRowKey,
       nonKsServicedLoanKey: row.nonKsServicedLoanKey,
       clientRowId: row.clientRowId,
@@ -817,14 +1002,43 @@ export class NonKsServicedLoansComponent implements OnInit {
 
   private rowToDuplicateDialogDraft(row: NonKsLoanRow): DialogDraft {
     const loanCode = row.loanCode.trim();
+    const resolved = this.resolveInvestorFields(row.investorCode, row.investor);
     return {
       ...this.rowSnapshot(row),
       loanCode,
+      investor: resolved.investorName,
+      investorCode: resolved.investorCode,
       stableRowKey: '',
       nonKsServicedLoanKey: '',
       clientRowId: 0,
       originalAsAtDate: '',
       lockedLoanCode: loanCode || null,
+    };
+  }
+
+  private resolveInvestorFields(
+    investorCode: string,
+    investorName: string,
+  ): { investorCode: string; investorName: string } {
+    const rawCode = investorCode.trim();
+    const rawName = investorName.trim();
+
+    // Legacy rows often stored the alias (e.g. "Baden Park") in investor_code.
+    // Only keep it as a code when it matches the investor list.
+    const investor =
+      this.findInvestorOption(rawCode, rawName) ??
+      (!this.isKnownInvestorCode(rawCode) ? this.findInvestorOption('', rawCode) : undefined);
+
+    if (investor) {
+      return {
+        investorCode: investor.investorCode.trim(),
+        investorName: investor.investorName.trim() || rawName,
+      };
+    }
+
+    return {
+      investorCode: this.isKnownInvestorCode(rawCode) ? rawCode : '',
+      investorName: rawName || (!this.isKnownInvestorCode(rawCode) ? rawCode : ''),
     };
   }
 
@@ -840,6 +1054,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       servicerId: draft.servicerId,
       description: draft.description,
       investor: draft.investor,
+      investorCode: draft.investorCode,
       dateOfDefault: draft.dateOfDefault,
       maturityDate: draft.maturityDate,
       interestOffDate: draft.interestOffDate,
@@ -919,7 +1134,7 @@ export class NonKsServicedLoansComponent implements OnInit {
             const loanCode = draft.loanCode.trim();
             if (loanCode) {
               this.pendingExtLoanCode.set(
-                `NONKS-${this.parseExtLoanCodeNumber(loanCode) + 1}`,
+                `NKSLn-${this.parseExtLoanCodeNumber(loanCode) + 1}`,
               );
             }
           }
@@ -993,7 +1208,8 @@ export class NonKsServicedLoansComponent implements OnInit {
     reuseLoanCode: boolean,
   ): NonKsServicedLoanPayload {
     const loanAlias = this.nullIfEmpty(draft.loanName);
-    const investorAlias = this.nullIfEmpty(draft.investor);
+    const investorName = this.nullIfEmpty(draft.investor);
+    const investorCode = this.nullIfEmpty(draft.investorCode);
     const loanCode = this.nullIfEmpty(draft.lockedLoanCode ?? draft.loanCode);
     return {
       loanAliasName: loanAlias,
@@ -1004,8 +1220,9 @@ export class NonKsServicedLoansComponent implements OnInit {
       extLoanCode: reuseLoanCode ? loanCode : null,
       servicerId: this.nullIfEmpty(draft.servicerId),
       description: this.nullIfEmpty(draft.description),
-      investorAliasName: investorAlias,
-      investor: investorAlias,
+      investorAliasName: investorName,
+      investor: investorName,
+      investorCode,
       dateOfDefault: this.nullIfEmpty(draft.dateOfDefault),
       maturityDate: this.nullIfEmpty(draft.maturityDate),
       interestOffDate: this.nullIfEmpty(draft.interestOffDate),
@@ -1080,11 +1297,14 @@ export class NonKsServicedLoansComponent implements OnInit {
       description: this.pickString(raw, 'description', 'Description', 'loanDescription', 'LoanDescription'),
       investor: this.pickString(
         raw,
-        'investorAliasName',
-        'InvestorAliasName',
         'investor',
         'Investor',
+        'investorAliasName',
+        'InvestorAliasName',
+        'investorName',
+        'InvestorName',
       ),
+      investorCode: this.pickString(raw, 'investorCode', 'InvestorCode'),
       dateOfDefault: this.toDateInputValue(
         this.pickString(raw, 'dateOfDefault', 'DateOfDefault') || null,
       ),
@@ -1171,6 +1391,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       servicerId,
       description,
       investor,
+      investorCode,
       dateOfDefault,
       maturityDate,
       interestOffDate,
@@ -1197,6 +1418,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       servicerId,
       description,
       investor,
+      investorCode,
       dateOfDefault,
       maturityDate,
       interestOffDate,
@@ -1236,11 +1458,11 @@ export class NonKsServicedLoansComponent implements OnInit {
         nextNumber = rowNumber + 1;
       }
     }
-    this.pendingExtLoanCode.set(`NONKS-${nextNumber}`);
+    this.pendingExtLoanCode.set(`NKSLn-${nextNumber}`);
   }
 
   private parseExtLoanCodeNumber(code: string): number {
-    const match = /^NONKS-(\d+)$/i.exec(code?.trim() ?? '');
+    const match = /^(?:NKSLn|NONKS)-(\d+)$/i.exec(code?.trim() ?? '');
     return match ? Number.parseInt(match[1], 10) : 0;
   }
 

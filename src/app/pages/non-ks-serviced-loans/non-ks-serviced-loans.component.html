@@ -93,6 +93,7 @@
             <td>{{ formatTextDisplay(row.servicerId) }}</td>
             <td>{{ formatTextDisplay(row.description) }}</td>
             <td>{{ formatTextDisplay(row.investor) }}</td>
+            <td>{{ formatTextDisplay(row.investorCode) }}</td>
             <td>{{ formatDateDisplay(row.dateOfDefault) }}</td>
             <td>{{ formatDateDisplay(row.maturityDate) }}</td>
             <td>{{ formatDateDisplay(row.interestOffDate) }}</td>
@@ -116,7 +117,7 @@
           </tr>
         } @empty {
           <tr>
-            <td colspan="27" class="empty-row">
+            <td [attr.colspan]="tableColumns.length + 1" class="empty-row">
               @if (selectedLoanKeys().length) {
                 No records match the selected loan filters.
               } @else {
@@ -224,55 +225,137 @@
               </div>
               <div class="dlg-field">
                 <label class="dlg-label" for="dlg-servicer-id">Servicer ID</label>
-                <input
-                  id="dlg-servicer-id"
-                  type="text"
-                  class="cell-input"
-                  [value]="draft.servicerId"
-                  (input)="updateDialogTextField('servicerId', $any($event.target).value)"
-                  placeholder="Servicer"
-                />
+                @if (dialogMode() === 'duplicate') {
+                  <input
+                    id="dlg-servicer-id"
+                    type="text"
+                    class="cell-input dlg-readonly"
+                    [value]="draft.servicerId || '—'"
+                    readonly
+                    tabindex="-1"
+                    aria-readonly="true"
+                  />
+                  <p class="dlg-field-note">
+                    Copied from the selected row. To change it, update the original row or add a new row.
+                  </p>
+                } @else {
+                  <input
+                    id="dlg-servicer-id"
+                    type="text"
+                    class="cell-input"
+                    [value]="draft.servicerId"
+                    (input)="updateDialogTextField('servicerId', $any($event.target).value)"
+                    placeholder="Servicer"
+                  />
+                }
               </div>
+              @if (dialogMode() === 'update' || dialogMode() === 'duplicate') {
+                <div class="dlg-field">
+                  <label class="dlg-label" for="dlg-loan-alias">Loan Alias</label>
+                  <input
+                    id="dlg-loan-alias"
+                    type="text"
+                    class="cell-input dlg-readonly wide"
+                    [value]="draft.loanName || '—'"
+                    readonly
+                    tabindex="-1"
+                    aria-readonly="true"
+                  />
+                  <p class="dlg-field-note">
+                    @if (dialogMode() === 'duplicate') {
+                      Copied from the selected row (Loan Alias Assignment). To change it, update the original row or add a new row.
+                    } @else {
+                      Assigned on Loan Alias Assignment; not editable here.
+                    }
+                  </p>
+                </div>
+              }
               <div class="dlg-field">
-                <label class="dlg-label" for="dlg-loan-alias">Loan Alias</label>
-                <select
-                  id="dlg-loan-alias"
-                  class="cell-input wide"
-                  [ngModel]="draft.loanName"
-                  (ngModelChange)="updateDialogTextField('loanName', $event)"
+                <label class="dlg-label" for="dlg-description">Loan Name</label>
+                @if (dialogMode() === 'duplicate') {
+                  <input
+                    id="dlg-description"
+                    type="text"
+                    class="cell-input dlg-readonly wide"
+                    [value]="draft.description || '—'"
+                    readonly
+                    tabindex="-1"
+                    aria-readonly="true"
+                  />
+                  <p class="dlg-field-note">
+                    Copied from the selected row. To change it, update the original row or add a new row.
+                  </p>
+                } @else {
+                  <input
+                    id="dlg-description"
+                    type="text"
+                    class="cell-input wide"
+                    [value]="draft.description"
+                    (input)="updateDialogTextField('description', $any($event.target).value)"
+                    placeholder="Loan name"
+                  />
+                }
+              </div>
+              @if (dialogMode() === 'update' || dialogMode() === 'duplicate') {
+                <div class="dlg-field">
+                  <label class="dlg-label" for="dlg-investor-alias">Investor Alias</label>
+                  <input
+                    id="dlg-investor-alias"
+                    type="text"
+                    class="cell-input dlg-readonly wide"
+                    [value]="dialogInvestorAliasDisplay()"
+                    readonly
+                    tabindex="-1"
+                    aria-readonly="true"
+                  />
+                  <p class="dlg-field-note">
+                    @if (dialogMode() === 'duplicate') {
+                      Copied from the selected row (Investor Alias Assignment). Not editable when duplicating.
+                    } @else {
+                      Assigned on Investor Alias Assignment; not editable here.
+                    }
+                  </p>
+                </div>
+              }
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-investor-name">Investor Name</label>
+                <ng-select
+                  #investorSelect
+                  id="dlg-investor-name"
+                  class="ks-ng-select"
+                  appendTo="body"
+                  [items]="investorSelectItems()"
+                  bindLabel="label"
+                  bindValue="value"
+                  [searchable]="true"
+                  [clearable]="true"
+                  placeholder="— Select investor —"
+                  [ngModel]="dialogInvestorSelectValue()"
+                  (ngModelChange)="updateDialogInvestor($event)"
                   [ngModelOptions]="{ standalone: true }"
                 >
-                  <option value="">— Select —</option>
-                  @for (alias of loanAliasOptions(); track alias.loanAliasId) {
-                    <option [value]="alias.loanAliasName">{{ alias.loanAliasName }}</option>
-                  }
-                </select>
+                  <ng-template ng-footer-tmp>
+                    <button
+                      type="button"
+                      class="alias-add-btn"
+                      (click)="investorSelect.close(); openInvestorDialog()"
+                    >
+                      + Add New Investor
+                    </button>
+                  </ng-template>
+                </ng-select>
               </div>
               <div class="dlg-field">
-                <label class="dlg-label" for="dlg-description">Loan Name / Description</label>
+                <label class="dlg-label" for="dlg-investor-code">Investor Code</label>
                 <input
-                  id="dlg-description"
+                  id="dlg-investor-code"
                   type="text"
-                  class="cell-input wide"
-                  [value]="draft.description"
-                  (input)="updateDialogTextField('description', $any($event.target).value)"
-                  placeholder="Loan name"
+                  class="cell-input dlg-readonly"
+                  [value]="draft.investorCode || '—'"
+                  readonly
+                  tabindex="-1"
+                  aria-readonly="true"
                 />
-              </div>
-              <div class="dlg-field">
-                <label class="dlg-label" for="dlg-investor">Investor Alias</label>
-                <select
-                  id="dlg-investor"
-                  class="cell-input"
-                  [ngModel]="draft.investor"
-                  (ngModelChange)="updateDialogTextField('investor', $event)"
-                  [ngModelOptions]="{ standalone: true }"
-                >
-                  <option value="">— Select —</option>
-                  @for (alias of investorAliasOptions(); track alias.investorAliasId) {
-                    <option [value]="alias.investorAliasName">{{ alias.investorAliasName }}</option>
-                  }
-                </select>
               </div>
               <div class="dlg-field-row">
                 <div class="dlg-field">
@@ -549,6 +632,60 @@
         </button>
         <button type="button" class="ks-btn ks-btn--accent" (click)="saveEntryDialog()" [disabled]="isSaving()">
           @if (isSaving()) { Saving… } @else { Save Changes }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showInvestorDialog()) {
+  <div class="non-ks-dialog-overlay" (click)="closeInvestorDialog()" role="presentation">
+    <div
+      class="non-ks-dialog non-ks-dialog--compact"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dlg-add-investor-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="non-ks-dialog-header">
+        <h2 id="dlg-add-investor-title">Add New Investor</h2>
+        <button type="button" class="dlg-close" (click)="closeInvestorDialog()" aria-label="Close">×</button>
+      </div>
+      <div class="non-ks-dialog-body">
+        <p class="dlg-hint">
+          Creates a new investor with an auto-generated code (NKSInv-#). Assign an Investor Alias later on
+          Investor Alias Assignment.
+        </p>
+        <div class="dlg-field">
+          <label class="dlg-label" for="dlg-new-investor-name">
+            Investor Name <span class="dlg-required">*</span>
+          </label>
+          <input
+            id="dlg-new-investor-name"
+            type="text"
+            class="cell-input wide"
+            placeholder="Enter investor name"
+            [value]="investorDialogName()"
+            (input)="investorDialogName.set($any($event.target).value)"
+            (keyup.enter)="createInvestorFromDialog()"
+            autofocus
+          />
+        </div>
+        @if (investorDialogError()) {
+          <p class="dlg-error">{{ investorDialogError() }}</p>
+        }
+      </div>
+      <div class="non-ks-dialog-footer">
+        <button type="button" class="ks-btn" (click)="closeInvestorDialog()" [disabled]="isCreatingInvestor()">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="ks-btn ks-btn--accent"
+          (click)="createInvestorFromDialog()"
+          [disabled]="!investorDialogName().trim() || isCreatingInvestor()"
+        >
+          @if (isCreatingInvestor()) { Creating… } @else { Create }
         </button>
       </div>
     </div>

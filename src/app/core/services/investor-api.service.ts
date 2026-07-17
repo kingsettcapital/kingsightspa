@@ -57,6 +57,11 @@ export type InvestorAliasUpdateRequest = {
   updatedBy: string;
 };
 
+export type InvestorCreateRequest = {
+  investorName: string;
+  createdBy: string;
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -74,6 +79,10 @@ export class InvestorApiService {
 
   getInvestors() {
     return this.http.get<InvestorDto[]>(this.investorsUrl);
+  }
+
+  createInvestor(payload: InvestorCreateRequest) {
+    return this.http.post<InvestorDto>(this.investorsUrl, payload);
   }
 
   updateInvestorAliasesBulk(request: InvestorBulkUpdateRequest) {

@@ -284,6 +284,39 @@
   color: #b42318;
 }
 
+.dlg-hint {
+  margin: 0 0 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #6b7280;
+}
+
+.dlg-required {
+  color: #b42318;
+}
+
+.alias-add-btn {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #1d4ed8;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.alias-add-btn:hover {
+  background: #eff6ff;
+}
+
+.non-ks-dialog--compact {
+  max-width: 28rem;
+}
+
 .non-ks-dialog-footer {
   display: flex;
   justify-content: flex-end;
@@ -327,6 +360,26 @@ select.cell-input {
 
 .cell-input.wide {
   min-width: 0;
+}
+
+.non-ks-dialog .dlg-field > .ng-select.ks-ng-select {
+  width: 100%;
+  display: block;
+}
+
+.non-ks-dialog .dlg-field > .ng-select.ks-ng-select .ng-select-container {
+  min-height: 2.25rem;
+  height: auto;
+  border-radius: 4px;
+  border-color: #d1d5db;
+  font-size: 0.82rem;
+}
+
+.non-ks-dialog .dlg-field > .ng-select.ks-ng-select .ng-value,
+.non-ks-dialog .dlg-field > .ng-select.ks-ng-select .ng-value-label {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
 }
 
 .cell-input.dlg-readonly {

@@ -16,6 +16,7 @@ export type NonKsServicedLoanDto = {
   description?: string | null;
   investorAliasName?: string | null;
   investor?: string | null;
+  investorCode?: string | null;
   dateOfDefault?: string | null;
   maturityDate?: string | null;
   interestOffDate?: string | null;
