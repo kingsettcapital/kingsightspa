@@ -100,6 +100,8 @@ export class LoanAliasAssignmentComponent implements OnInit {
   readonly isCreatingAlias = signal(false);
   private readonly aliasDialogRowCode = signal<string | null>(null);
   readonly aliasDialogEditKey = signal<number | null>(null);
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   readonly aliasSelectItems = computed(() =>
     this.aliasOptions()
@@ -174,17 +176,19 @@ export class LoanAliasAssignmentComponent implements OnInit {
       });
     }
 
-    if (selectedCodes.length > 0) {
-      const selectedCodeSet = new Set(selectedCodes);
-      rows = rows.filter((row) => selectedCodeSet.has(row.loanCode));
-    }
-
+    // Global search (Yardi + Non-KS): filter the grid by typed term, not only the dropdown.
     rows = filterRowsByTableSearch(
       rows,
       keyword,
       this.tableColumns,
       (row, key) => this.getCellDisplayValue(row, key),
     );
+
+    // Optional pin: further restrict to selected loan codes when chips are present.
+    if (selectedCodes.length > 0) {
+      const selectedCodeSet = new Set(selectedCodes);
+      rows = rows.filter((row) => selectedCodeSet.has(row.loanCode));
+    }
 
     const activeSort = this.sortColumn();
     if (activeSort) {
@@ -250,11 +254,24 @@ export class LoanAliasAssignmentComponent implements OnInit {
     this.clearMessages();
   }
 
+  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
+  onLoanSearch(event: { term: string } | string | null): void {
+    const term = typeof event === 'string' ? event : (event?.term ?? '');
+    if (!term.trim() && this.suppressEmptySearchClear) {
+      return;
+    }
+    this.updateSearch(term);
+  }
+
   updateSelectedLoans(values: string[] | null): void {
-    this.searchText.set('');
+    // ng-select clears its search input after select and emits an empty search — ignore that once.
+    this.suppressEmptySearchClear = true;
     this.selectedLoanCodes.set(values ?? []);
     this.currentPage.set(1);
     this.clearMessages();
+    queueMicrotask(() => {
+      this.suppressEmptySearchClear = false;
+    });
   }
 
   updateSelectedStatuses(statuses: string[] | null): void {
