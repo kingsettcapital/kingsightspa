@@ -3,7 +3,9 @@
     <div class="ks-fp__title-row">
       <div class="ks-page__heading">
         <h1 class="ks-page__title">Investor Alias Assignment</h1>
-        <p class="ks-page__subtitle">Search investors and assign alias names from the master list</p>
+        <p class="ks-page__subtitle">
+          Search Yardi and Non-KS investors, then assign alias names from the master list
+        </p>
       </div>
 
       <div class="ks-fp__filters-compact">
@@ -23,13 +25,15 @@
             placeholder="Search investors..."
             [ngModel]="selectedInvestorCodes()"
             (ngModelChange)="updateSelectedInvestors($event)"
+            (search)="onInvestorSearch($event)"
+            (clear)="updateSearch('')"
           ></ng-select>
 
           <button
             type="button"
             class="ks-fp__clear-selection"
             (click)="clearSelection()"
-            [disabled]="!selectedInvestorCodes().length"
+            [disabled]="!selectedInvestorCodes().length && !searchText().trim()"
           >
             Clear Selection
           </button>

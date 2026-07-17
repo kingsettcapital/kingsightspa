@@ -34,6 +34,7 @@ type NonKsLoanRow = {
   description: string;
   investor: string;
   investorCode: string;
+  investorAlias: string;
   dateOfDefault: string;
   maturityDate: string;
   interestOffDate: string;
@@ -58,7 +59,12 @@ type NonKsLoanRow = {
 
 type RowSnapshot = Omit<
   NonKsLoanRow,
-  'stableRowKey' | 'nonKsServicedLoanKey' | 'clientRowId' | 'userUpdatedBy' | 'userUpdatedDate'
+  | 'stableRowKey'
+  | 'nonKsServicedLoanKey'
+  | 'clientRowId'
+  | 'userUpdatedBy'
+  | 'userUpdatedDate'
+  | 'investorAlias'
 >;
 
 type DialogMode = 'create' | 'update' | 'duplicate';
@@ -122,6 +128,7 @@ const DIALOG_CURRENCY_FIELDS = new Set<keyof RowSnapshot>([
 
 type NonKsColumnKey =
   | keyof RowSnapshot
+  | 'investorAlias'
   | 'userUpdatedBy'
   | 'userUpdatedDate';
 
@@ -139,6 +146,7 @@ const NON_KS_TABLE_COLUMNS: NonKsTableColumn[] = [
   { key: 'servicerId', label: 'Servicer ID' },
   { key: 'description', label: 'Loan Name' },
   { key: 'investor', label: 'Investor Name' },
+  { key: 'investorAlias', label: 'Investor Alias' },
   { key: 'investorCode', label: 'Investor Code' },
   { key: 'dateOfDefault', label: 'Default Date' },
   { key: 'maturityDate', label: 'Maturity' },
@@ -897,6 +905,7 @@ export class NonKsServicedLoansComponent implements OnInit {
             ...row,
             investor: resolved.investorName,
             investorCode: resolved.investorCode,
+            investorAlias: resolved.investorAlias,
           };
         });
         this.rows.set(mapped);
@@ -935,6 +944,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       description: '',
       investor: '',
       investorCode: '',
+      investorAlias: '',
       dateOfDefault: '',
       maturityDate: '',
       interestOffDate: '',
@@ -1019,7 +1029,7 @@ export class NonKsServicedLoansComponent implements OnInit {
   private resolveInvestorFields(
     investorCode: string,
     investorName: string,
-  ): { investorCode: string; investorName: string } {
+  ): { investorCode: string; investorName: string; investorAlias: string } {
     const rawCode = investorCode.trim();
     const rawName = investorName.trim();
 
@@ -1033,12 +1043,14 @@ export class NonKsServicedLoansComponent implements OnInit {
       return {
         investorCode: investor.investorCode.trim(),
         investorName: investor.investorName.trim() || rawName,
+        investorAlias: (investor.investorAliasName ?? '').trim(),
       };
     }
 
     return {
       investorCode: this.isKnownInvestorCode(rawCode) ? rawCode : '',
       investorName: rawName || (!this.isKnownInvestorCode(rawCode) ? rawCode : ''),
+      investorAlias: '',
     };
   }
 
@@ -1055,6 +1067,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       description: draft.description,
       investor: draft.investor,
       investorCode: draft.investorCode,
+      investorAlias: this.resolveInvestorFields(draft.investorCode, draft.investor).investorAlias,
       dateOfDefault: draft.dateOfDefault,
       maturityDate: draft.maturityDate,
       interestOffDate: draft.interestOffDate,
@@ -1305,6 +1318,7 @@ export class NonKsServicedLoansComponent implements OnInit {
         'InvestorName',
       ),
       investorCode: this.pickString(raw, 'investorCode', 'InvestorCode'),
+      investorAlias: '',
       dateOfDefault: this.toDateInputValue(
         this.pickString(raw, 'dateOfDefault', 'DateOfDefault') || null,
       ),
@@ -1523,6 +1537,10 @@ export class NonKsServicedLoansComponent implements OnInit {
         return (left[column] ?? 0) - (right[column] ?? 0);
       case 'loanCode':
         return this.compareLoanCodes(left.loanCode, right.loanCode);
+      case 'investorAlias':
+        return left.investorAlias.localeCompare(right.investorAlias, undefined, {
+          sensitivity: 'base',
+        });
       default:
         return left[column].localeCompare(right[column], undefined, { sensitivity: 'base' });
     }

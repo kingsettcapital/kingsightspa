@@ -83,6 +83,8 @@ export class InvestorComponent implements OnInit {
   readonly isCreatingAlias = signal(false);
   private readonly aliasDialogRowCode = signal<string | null>(null);
   readonly aliasDialogEditKey = signal<number | null>(null);
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   readonly aliasSelectItems = computed(() =>
     this.aliasOptions()
@@ -143,17 +145,18 @@ export class InvestorComponent implements OnInit {
 
     let rows = this.rows();
 
-    if (selectedCodes.length > 0) {
-      const selectedCodeSet = new Set(selectedCodes);
-      rows = rows.filter((row) => selectedCodeSet.has(row.investorCode));
-    }
-
+    // Global search (Yardi + Non-KS): filter the grid by typed term, not only the dropdown.
     rows = filterRowsByTableSearch(
       rows,
       keyword,
       this.tableColumns,
       (row, key) => this.getCellDisplayValue(row, key),
     );
+
+    if (selectedCodes.length > 0) {
+      const selectedCodeSet = new Set(selectedCodes);
+      rows = rows.filter((row) => selectedCodeSet.has(row.investorCode));
+    }
 
     const activeSort = this.sortColumn();
     if (activeSort) {
@@ -219,11 +222,23 @@ export class InvestorComponent implements OnInit {
     this.clearMessages();
   }
 
+  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
+  onInvestorSearch(event: { term: string } | string | null): void {
+    const term = typeof event === 'string' ? event : (event?.term ?? '');
+    if (!term.trim() && this.suppressEmptySearchClear) {
+      return;
+    }
+    this.updateSearch(term);
+  }
+
   updateSelectedInvestors(values: string[] | null): void {
-    this.searchText.set('');
+    this.suppressEmptySearchClear = true;
     this.selectedInvestorCodes.set(values ?? []);
     this.currentPage.set(1);
     this.clearMessages();
+    queueMicrotask(() => {
+      this.suppressEmptySearchClear = false;
+    });
   }
 
   toggleSort(column: InvestorAssignmentColumnKey): void {
