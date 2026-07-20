@@ -108,8 +108,9 @@
                 type="text"
                 inputmode="decimal"
                 class="value-input value-input--numeric"
-                [value]="formatSecurityValueInput(row.securityValue)"
-                (input)="updateSecurityValueInput(row.loanAliasId, $any($event.target).value)"
+                [value]="fieldInputDisplay(row.loanAliasId, 'securityValue', row.securityValue)"
+                (input)="onFieldInput(row.loanAliasId, 'securityValue', $any($event.target).value)"
+                (blur)="commitField(row.loanAliasId, 'securityValue', $any($event.target))"
                 placeholder="$0"
               />
             </td>
@@ -118,8 +119,9 @@
                 type="text"
                 inputmode="numeric"
                 class="value-input value-input--numeric"
-                [value]="formatIntegerDisplay(row.units)"
-                (input)="updateNumericField(row.loanAliasId, 'units', $any($event.target).value)"
+                [value]="fieldInputDisplay(row.loanAliasId, 'units', row.units)"
+                (input)="onFieldInput(row.loanAliasId, 'units', $any($event.target).value)"
+                (blur)="commitField(row.loanAliasId, 'units', $any($event.target))"
                 placeholder="0"
               />
             </td>
@@ -128,8 +130,9 @@
                 type="text"
                 inputmode="decimal"
                 class="value-input value-input--numeric"
-                [value]="formatDecimalDisplay(row.squareFeet)"
-                (input)="updateNumericField(row.loanAliasId, 'squareFeet', $any($event.target).value)"
+                [value]="fieldInputDisplay(row.loanAliasId, 'squareFeet', row.squareFeet)"
+                (input)="onFieldInput(row.loanAliasId, 'squareFeet', $any($event.target).value)"
+                (blur)="commitField(row.loanAliasId, 'squareFeet', $any($event.target))"
                 placeholder="0"
               />
             </td>
@@ -138,8 +141,9 @@
                 type="text"
                 inputmode="decimal"
                 class="value-input value-input--numeric"
-                [value]="formatDecimalDisplay(row.acres)"
-                (input)="updateNumericField(row.loanAliasId, 'acres', $any($event.target).value)"
+                [value]="fieldInputDisplay(row.loanAliasId, 'acres', row.acres)"
+                (input)="onFieldInput(row.loanAliasId, 'acres', $any($event.target).value)"
+                (blur)="commitField(row.loanAliasId, 'acres', $any($event.target))"
                 placeholder="0"
               />
             </td>

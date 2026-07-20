@@ -32,7 +32,8 @@ export class CmhcUploadComponent implements OnInit {
   readonly history = signal<CmhcUploadHistoryRecord[]>([]);
   readonly selectedFile = signal<File | null>(null);
   readonly isDragOver = signal(false);
-  readonly isLoadingHistory = signal(false);
+  /** Start true so first paint shows loading — avoids empty → loading → data flicker. */
+  readonly isLoadingHistory = signal(true);
   readonly isUploading = signal(false);
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
@@ -171,6 +172,10 @@ export class CmhcUploadComponent implements OnInit {
       minute: '2-digit',
       hour12: false,
     });
+  }
+
+  historyRowTrackId(row: CmhcUploadHistoryRecord): string {
+    return `${row.fileId}|${row.uploadedDate}|${row.filename}`;
   }
 
   formatFileTypeLabel(value: string | null | undefined, filename?: string): string {

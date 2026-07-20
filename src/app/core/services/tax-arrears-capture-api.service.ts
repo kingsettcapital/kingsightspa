@@ -27,6 +27,8 @@ export type TaxArrearsCaptureUpdatePayload = {
   taxArrearKey: number;
   loanCode: string;
   originalTaxYear: string | null;
+  originalTaxMemoDate: string | null;
+  originalNotes: string | null;
   taxMemoDate: string | null;
   taxArrears: number | null;
   taxYear: string | null;

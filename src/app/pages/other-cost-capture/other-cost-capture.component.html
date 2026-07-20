@@ -106,8 +106,9 @@
                 type="text"
                 inputmode="decimal"
                 class="cost-input cost-input--numeric"
-                [value]="formatCurrencyInput(row.outstandingInvoices)"
+                [value]="currencyInputDisplay(row.loanCode, 'outstandingInvoices', row.outstandingInvoices)"
                 (input)="updateCostField(row.loanCode, 'outstandingInvoices', $any($event.target).value)"
+                (blur)="commitCostField(row.loanCode, 'outstandingInvoices', $any($event.target))"
                 placeholder="$0"
               />
             </td>
@@ -116,8 +117,9 @@
                 type="text"
                 inputmode="decimal"
                 class="cost-input cost-input--numeric"
-                [value]="formatCurrencyInput(row.estRealizationCosts)"
+                [value]="currencyInputDisplay(row.loanCode, 'estRealizationCosts', row.estRealizationCosts)"
                 (input)="updateCostField(row.loanCode, 'estRealizationCosts', $any($event.target).value)"
+                (blur)="commitCostField(row.loanCode, 'estRealizationCosts', $any($event.target))"
                 placeholder="$0"
               />
             </td>
@@ -126,8 +128,9 @@
                 type="text"
                 inputmode="decimal"
                 class="cost-input cost-input--numeric"
-                [value]="formatCurrencyInput(row.costToComplete)"
+                [value]="currencyInputDisplay(row.loanCode, 'costToComplete', row.costToComplete)"
                 (input)="updateCostField(row.loanCode, 'costToComplete', $any($event.target).value)"
+                (blur)="commitCostField(row.loanCode, 'costToComplete', $any($event.target))"
                 placeholder="$0"
               />
             </td>

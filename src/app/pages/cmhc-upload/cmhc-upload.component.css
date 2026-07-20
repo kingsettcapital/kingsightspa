@@ -86,6 +86,8 @@
   display: flex;
   justify-content: center;
   gap: 0.65rem;
+  /* Reserve action-row space so Clear/Upload appearing doesn't shove the history grid. */
+  min-height: 2.5rem;
 }
 
 .file-upload-message {
@@ -102,31 +104,47 @@
   margin-top: 1rem;
 }
 
+/* Keep history chrome size stable while rows swap in after load. */
+.file-upload-history__wrap {
+  min-height: 14rem;
+}
+
 .file-upload-history__table {
-  min-width: 40rem;
+  min-width: 48rem;
   table-layout: fixed;
   width: 100%;
 }
 
-/* Column widths */
-.fu-col--filename {
-  width: auto;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+/* Fixed column shares — set on col elements so widths don't reflow when data arrives. */
+.file-upload-history__table col.fu-col--filename {
+  width: 42%;
 }
 
-.fu-col--filetype {
-  width: 9rem;
+.file-upload-history__table col.fu-col--filetype {
+  width: 14%;
 }
 
-.fu-col--asof {
-  width: 6.5rem;
+.file-upload-history__table col.fu-col--asof {
+  width: 10%;
 }
 
-.fu-col--uploaded-by,
-.fu-col--uploaded-date {
-  width: 8.5rem;
+.file-upload-history__table col.fu-col--uploaded-by {
+  width: 17%;
+}
+
+.file-upload-history__table col.fu-col--uploaded-date {
+  width: 17%;
+}
+
+.file-upload-history .ks-fp__table td.fu-col--filename {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-upload-history .ks-fp__table td.fu-col--filetype,
+.file-upload-history .ks-fp__table td.fu-col--asof {
+  white-space: nowrap;
 }
 
 /* Smaller, lighter audit-style columns */
@@ -134,8 +152,9 @@
 .file-upload-history .ks-fp__table td.fu-col--uploaded-date {
   font-size: 0.75rem;
   color: var(--ks-color-text-muted);
-  white-space: normal;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .file-upload-history .ks-fp__table th.fu-col--uploaded-by,
@@ -153,14 +172,19 @@
   letter-spacing: normal;
   padding: 0.7rem 1rem;
   border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
 }
 
 .file-upload-history .ks-fp__table tbody td {
   padding: 0.7rem 1rem;
   font-size: 0.875rem;
   border-bottom: 1px solid #f3f4f6;
+  height: 2.75rem;
+  vertical-align: middle;
 }
 
-.hidden-column {
-  display: none;
+.file-upload-history .ks-fp__table tbody td.empty-row {
+  height: 11rem;
+  text-align: center;
+  color: var(--ks-color-text-muted);
 }

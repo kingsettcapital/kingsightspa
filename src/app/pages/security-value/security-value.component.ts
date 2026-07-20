@@ -8,6 +8,11 @@ import { catchError } from 'rxjs/operators';
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import {
+  formatCurrencyDisplay,
+  parseCurrencyInput,
+  parseNumericInput,
+} from '../../core/utils/mortgage-currency-input.util';
+import {
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
@@ -101,6 +106,8 @@ export class SecurityValueComponent implements OnInit {
 
   readonly aliasOptions = signal<AliasOption[]>([]);
   readonly rows = signal<SecurityValueRow[]>([]);
+  /** Raw in-progress text for numeric/currency inputs (avoids reformat-on-keystroke). */
+  readonly fieldText = signal<Record<string, string>>({});
   readonly originalRowState = signal<Record<number, EditableValues>>({});
 
   ngOnInit(): void {
@@ -378,15 +385,7 @@ export class SecurityValueComponent implements OnInit {
   }
 
   formatSecurityValueInput(value: number | null): string {
-    if (value == null || !Number.isFinite(value)) {
-      return '';
-    }
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+    return formatCurrencyDisplay(value, 0);
   }
 
   formatIntegerDisplay(value: number | null): string {
@@ -407,8 +406,51 @@ export class SecurityValueComponent implements OnInit {
     }).format(value);
   }
 
+  fieldInputDisplay(
+    loanAliasId: number,
+    field: keyof EditableValues,
+    value: number | null,
+  ): string {
+    const key = `${loanAliasId}|${field}`;
+    const pending = this.fieldText()[key];
+    if (pending !== undefined) {
+      return pending;
+    }
+    if (field === 'securityValue') {
+      return formatCurrencyDisplay(value, 0);
+    }
+    if (field === 'units') {
+      return this.formatIntegerDisplay(value);
+    }
+    return this.formatDecimalDisplay(value);
+  }
+
+  onFieldInput(loanAliasId: number, field: keyof EditableValues, rawValue: string): void {
+    const key = `${loanAliasId}|${field}`;
+    this.fieldText.update((current) => ({ ...current, [key]: rawValue }));
+    this.clearMessages();
+  }
+
+  commitField(loanAliasId: number, field: keyof EditableValues, input: HTMLInputElement): void {
+    const key = `${loanAliasId}|${field}`;
+    const raw = this.fieldText()[key] ?? input.value;
+    const parsed =
+      field === 'securityValue'
+        ? parseCurrencyInput(raw)
+        : field === 'units'
+          ? parseNumericInput(raw, false)
+          : parseNumericInput(raw, true);
+    this.updateField(loanAliasId, field, parsed);
+    this.fieldText.update((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+    input.value = this.fieldInputDisplay(loanAliasId, field, parsed);
+  }
+
   updateSecurityValueInput(loanAliasId: number, rawValue: string): void {
-    this.updateField(loanAliasId, 'securityValue', this.parseCurrencyInput(rawValue));
+    this.onFieldInput(loanAliasId, 'securityValue', rawValue);
   }
 
   updateNumericField(
@@ -416,7 +458,7 @@ export class SecurityValueComponent implements OnInit {
     field: 'units' | 'squareFeet' | 'acres',
     rawValue: string,
   ): void {
-    this.updateField(loanAliasId, field, this.parseNumericInput(rawValue));
+    this.onFieldInput(loanAliasId, field, rawValue);
   }
 
   saveChanges(): void {
@@ -581,6 +623,7 @@ export class SecurityValueComponent implements OnInit {
             .filter((row) => row.loanAliasId > 0);
 
           this.rows.set(mappedRows);
+          this.fieldText.set({});
           this.currentPage.set(1);
           this.snapshotOriginalState();
           this.statusMessage.set('');
@@ -695,15 +738,6 @@ export class SecurityValueComponent implements OnInit {
     return String(value);
   }
 
-  private parseCurrencyInput(value: string): number | null {
-    const trimmed = value.replace(/[$,\s]/g, '').trim();
-    if (!trimmed) {
-      return null;
-    }
-    const parsed = Number(trimmed);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
   private snapshotOriginalState(): void {
     const snapshot: Record<number, EditableValues> = {};
     for (const row of this.rows()) {
@@ -732,15 +766,6 @@ export class SecurityValueComponent implements OnInit {
 
   private numbersEqual(a: number | null, b: number | null): boolean {
     return a === b || (a == null && b == null);
-  }
-
-  private parseNumericInput(value: string): number | null {
-    const trimmed = value.replace(/,/g, '').trim();
-    if (!trimmed) {
-      return null;
-    }
-    const parsed = Number(trimmed);
-    return Number.isFinite(parsed) ? parsed : null;
   }
 
   private toNumber(value: unknown): number | null {

@@ -96,7 +96,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (row of paginatedRows(); track rowTrackId(row)) {
+        @for (row of paginatedRows(); track row.stableRowId) {
           <tr [class.row-selected]="isRowSelected(row)">
             <td class="select-col">
               <input
@@ -125,8 +125,9 @@
                 type="text"
                 inputmode="decimal"
                 class="value-input"
-                [value]="formatTaxArrearsInput(row.taxArrears)"
-                (input)="updateTaxArrears(rowTrackId(row), $any($event.target).value)"
+                [value]="currencyInputDisplay(rowTrackId(row), row.taxArrears)"
+                (input)="onTaxArrearsInput(rowTrackId(row), $any($event.target).value)"
+                (blur)="commitTaxArrears(rowTrackId(row), $any($event.target))"
                 placeholder="$0.00"
               />
             </td>
@@ -274,18 +275,24 @@
 
           <div class="form-field">
             <label for="newLoan">Loan</label>
-            <select
+            <ng-select
               id="newLoan"
-              class="modal-field-control"
-              [value]="newRecord().loanCode ?? ''"
-              (change)="updateNewRecordLoan($any($event.target).value)"
+              class="ks-ng-select ta-loan-select"
+              [items]="modalLoanOptions()"
+              bindLabel="label"
+              bindValue="loanCode"
+              [clearable]="true"
+              [searchable]="true"
               [disabled]="!newRecord().loanAliasId"
-            >
-              <option value="">Select loan</option>
-              @for (loan of modalLoanOptions(); track loan.loanCode) {
-                <option [value]="loan.loanCode">{{ loan.loanCode }} — {{ loan.loanName }}</option>
-              }
-            </select>
+              [ngModel]="newRecord().loanCode"
+              (ngModelChange)="updateNewRecordLoan($event ?? '')"
+              [placeholder]="newRecord().loanAliasId ? 'Select loan' : 'Select loan alias first'"
+            ></ng-select>
+            @if (newRecord().loanAliasId && modalLoanOptions().length === 0) {
+              <p class="field-hint">
+                No loans are assigned to this alias. Assign loans on Loan Alias Assignment, then try again.
+              </p>
+            }
           </div>
 
           <div class="form-grid">
@@ -318,13 +325,18 @@
               class="modal-field-control"
               (change)="updateNewRecordField('taxYear', $any($event.target).value)"
             >
-              @if (!newRecord().taxYear.trim()) {
-                <option value="" selected>—</option>
-              }
-              @for (year of taxYearOptions(); track year) {
+              <option value="" [selected]="!newRecord().taxYear.trim()">—</option>
+              @for (year of modalTaxYearOptions(); track year) {
                 <option [value]="year" [selected]="newRecord().taxYear === year">{{ year }}</option>
               }
             </select>
+            <p class="field-hint">
+              @if (dialogMode() === 'duplicate') {
+                Pick a tax year not already used for this loan (source year was cleared).
+              } @else {
+                Each loan can have only one tax arrears row per tax year.
+              }
+            </p>
           </div>
         </div>
 

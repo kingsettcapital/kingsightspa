@@ -124,7 +124,8 @@ tr.row-selected {
   background: #ffffff;
   border-radius: 10px;
   box-shadow: 0 20px 60px rgb(0 0 0 / 0.18);
-  overflow: hidden;
+  /* Allow the loan ng-select panel to open without clipping. */
+  overflow: visible;
 }
 
 .ta-dialog-header {
@@ -167,6 +168,12 @@ tr.row-selected {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  min-width: 0;
+}
+
+.form-field {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .form-field label {
@@ -179,6 +186,7 @@ tr.row-selected {
 
 .modal-field-control {
   width: 100%;
+  max-width: 100%;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   padding: 0.45rem 0.55rem;
@@ -186,6 +194,13 @@ tr.row-selected {
   box-sizing: border-box;
   height: 2.25rem;
   background: #ffffff;
+}
+
+select.modal-field-control {
+  /* Prevent long <option> labels from expanding the closed control past the dialog. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .modal-field-control.currency-input {
@@ -196,6 +211,39 @@ textarea.modal-field-control {
   height: auto;
   min-height: 4.5rem;
   resize: vertical;
+}
+
+.ta-loan-select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+
+:host ::ng-deep .ta-loan-select .ng-select-container {
+  min-height: 2.25rem;
+}
+
+:host ::ng-deep .ta-loan-select .ng-value,
+:host ::ng-deep .ta-loan-select .ng-value-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Keep open list the same width as the control; truncate long loan names. */
+:host ::ng-deep .ta-loan-select .ng-dropdown-panel {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+:host ::ng-deep .ta-loan-select .ng-dropdown-panel .ng-option,
+:host ::ng-deep .ta-loan-select .ng-dropdown-panel .ng-option-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .readonly-field {
@@ -213,6 +261,13 @@ textarea.modal-field-control {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
+}
+
+.field-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: #6b7280;
 }
 
 .dialog-error {

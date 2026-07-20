@@ -8,6 +8,10 @@ import { catchError } from 'rxjs/operators';
 import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import {
+  formatCurrencyDisplay,
+  parseCurrencyInput,
+} from '../../core/utils/mortgage-currency-input.util';
+import {
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
@@ -138,6 +142,9 @@ export class TaxArrearsCaptureComponent implements OnInit {
   readonly newRecord = signal<NewRecordForm>(this.emptyNewRecord());
   readonly currentPage = signal(1);
   readonly pageSize = signal(this.defaultPageSize);
+  /** Raw in-progress text for currency inputs (avoids reformat-on-keystroke). */
+  readonly currencyFieldText = signal<Record<string, string>>({});
+  private nextLocalRowSeq = 0;
 
   ngOnInit(): void {
     this.loadFilters();
@@ -217,20 +224,36 @@ export class TaxArrearsCaptureComponent implements OnInit {
       return [];
     }
 
-    const aliasName = alias.loanAliasName.trim().toLowerCase();
+    const aliasName = this.normalizeAliasName(alias.loanAliasName);
     return this.allLoans()
       .filter((loan) => {
         const keyMatch = Number(loan.loanAliasKey ?? 0) === aliasId;
-        const nameMatch = (loan.loanAliasName?.trim().toLowerCase() ?? '') === aliasName;
+        const nameMatch =
+          aliasName.length > 0 &&
+          this.normalizeAliasName(loan.loanAliasName ?? '') === aliasName;
         return keyMatch || nameMatch;
       })
-      .map((loan) => ({
-        loanCode: loan.loanCode?.trim() || '',
-        loanName: loan.loanDesc?.trim() || '—',
-        loanKey: Number(loan.loanKey) > 0 ? Number(loan.loanKey) : 0,
-      }))
+      .map((loan) => {
+        const loanCode = loan.loanCode?.trim() || '';
+        const loanName = loan.loanDesc?.trim() || '—';
+        return {
+          loanCode,
+          loanName,
+          loanKey: Number(loan.loanKey) > 0 ? Number(loan.loanKey) : 0,
+          loanAliasKey: Number(loan.loanAliasKey ?? 0),
+          loanAliasName: loan.loanAliasName?.trim() || '',
+          label: `${loanCode} — ${loanName}`,
+        };
+      })
       .filter((loan) => loan.loanCode.length > 0)
       .sort((left, right) => left.loanCode.localeCompare(right.loanCode));
+  });
+
+  /** Tax years still available for the loan selected in the Add/Duplicate dialog. */
+  readonly modalTaxYearOptions = computed(() => {
+    const loanCode = this.newRecord().loanCode?.trim() ?? '';
+    const usedYears = this.taxYearsUsedByLoan(loanCode);
+    return this.taxYearOptions().filter((year) => !usedYears.has(year));
   });
 
   readonly modalLoanPreview = computed(() => {
@@ -344,6 +367,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
   );
 
   rowTrackId(row: TaxArrearRow): string {
+    // Never fall back to loan/year alone — duplicates would share identity and patch together.
     return row.stableRowId;
   }
 
@@ -430,24 +454,54 @@ export class TaxArrearsCaptureComponent implements OnInit {
     this.patchRow(rowId, { taxMemoDate: value.trim() });
   }
 
-  updateTaxArrears(rowId: string, value: string): void {
-    this.patchRow(rowId, { taxArrears: this.parseCurrencyInput(value) });
+  currencyInputDisplay(rowId: string, value: number | null): string {
+    const pending = this.currencyFieldText()[rowId];
+    if (pending !== undefined) {
+      return pending;
+    }
+    return formatCurrencyDisplay(value, 2);
+  }
+
+  onTaxArrearsInput(rowId: string, rawValue: string): void {
+    this.currencyFieldText.update((current) => ({ ...current, [rowId]: rawValue }));
+    this.clearMessages();
+  }
+
+  commitTaxArrears(rowId: string, input: HTMLInputElement): void {
+    const raw = this.currencyFieldText()[rowId] ?? input.value;
+    const parsed = parseCurrencyInput(raw);
+    this.patchRow(rowId, { taxArrears: parsed });
+    this.currencyFieldText.update((current) => {
+      const next = { ...current };
+      delete next[rowId];
+      return next;
+    });
+    input.value = formatCurrencyDisplay(parsed, 2);
   }
 
   formatTaxArrearsInput(value: number | null): string {
-    if (value == null || !Number.isFinite(value)) {
-      return '';
-    }
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
+    return formatCurrencyDisplay(value, 2);
   }
 
   updateTaxYear(rowId: string, value: string): void {
-    this.patchRow(rowId, { taxYear: value.trim() });
+    const nextYear = value.trim();
+    const current = this.rows().find((row) => this.rowTrackId(row) === rowId);
+    if (current && nextYear) {
+      const conflict = this.rows().some(
+        (row) =>
+          this.rowTrackId(row) !== rowId &&
+          row.loanCode.trim() === current.loanCode.trim() &&
+          row.taxYear.trim() === nextYear,
+      );
+      if (conflict) {
+        this.errorMessage.set(
+          `Tax year ${nextYear} already exists for loan ${current.loanCode}. Each loan can have only one row per tax year.`,
+        );
+        this.statusMessage.set('');
+        return;
+      }
+    }
+    this.patchRow(rowId, { taxYear: nextYear });
   }
 
   updateNotes(rowId: string, value: string): void {
@@ -468,7 +522,10 @@ export class TaxArrearsCaptureComponent implements OnInit {
     }
 
     this.dialogMode.set('duplicate');
-    this.newRecord.set(this.rowToNewRecordForm(row));
+    const form = this.rowToNewRecordForm(row);
+    // Tax year must be unique per loan — do not copy the source year.
+    form.taxYear = '';
+    this.newRecord.set(form);
     this.dialogError.set('');
     this.showAddDialog.set(true);
   }
@@ -543,12 +600,55 @@ export class TaxArrearsCaptureComponent implements OnInit {
   updateNewRecordLoan(value: string): void {
     const loanCode = value?.trim() || null;
     const loan = this.modalLoanOptions().find((option) => option.loanCode === loanCode);
+    const nextYear = this.newRecord().taxYear.trim();
+    const yearStillAvailable =
+      !loanCode || !nextYear || !this.taxYearsUsedByLoan(loanCode).has(nextYear);
     this.newRecord.set({
       ...this.newRecord(),
       loanCode,
       loanName: loan?.loanName ?? '',
+      taxYear: yearStillAvailable ? this.newRecord().taxYear : '',
     });
     this.dialogError.set('');
+  }
+
+  private normalizeAliasName(value: string | null | undefined): string {
+    return (value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+  }
+
+  private taxYearsUsedByLoan(loanCode: string): Set<string> {
+    const code = loanCode.trim();
+    const used = new Set<string>();
+    if (!code) {
+      return used;
+    }
+    for (const row of this.rows()) {
+      if (row.loanCode.trim() !== code) {
+        continue;
+      }
+      const year = row.taxYear.trim();
+      if (year) {
+        used.add(year);
+      }
+    }
+    return used;
+  }
+
+  private findDuplicateLoanTaxYearError(rows: TaxArrearRow[]): string | null {
+    const seen = new Map<string, string>();
+    for (const row of rows) {
+      const loanCode = row.loanCode.trim();
+      const taxYear = row.taxYear.trim();
+      if (!loanCode || !taxYear) {
+        continue;
+      }
+      const key = `${loanCode.toLowerCase()}|${taxYear}`;
+      if (seen.has(key)) {
+        return `Loan ${loanCode} has more than one row for tax year ${taxYear}. Each loan can have only one row per tax year — change one of them before saving.`;
+      }
+      seen.set(key, this.rowTrackId(row));
+    }
+    return null;
   }
 
   updateNewRecordField(field: keyof NewRecordForm, value: string): void {
@@ -561,12 +661,23 @@ export class TaxArrearsCaptureComponent implements OnInit {
       return;
     }
     const form = this.newRecord();
+    if (!form.loanAliasId) {
+      this.dialogError.set('Select a loan alias.');
+      return;
+    }
     if (!form.loanCode) {
       this.dialogError.set('Select a loan for the new record.');
       return;
     }
     if (!form.taxYear.trim()) {
       this.dialogError.set('Tax year is required.');
+      return;
+    }
+
+    if (this.taxYearsUsedByLoan(form.loanCode).has(form.taxYear.trim())) {
+      this.dialogError.set(
+        `Tax year ${form.taxYear.trim()} already exists for loan ${form.loanCode}. Choose a different tax year.`,
+      );
       return;
     }
 
@@ -584,7 +695,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
         (Number(fallbackLoan?.loanKey) > 0 ? Number(fallbackLoan?.loanKey) : 0),
       loanCode: form.loanCode,
       taxMemoDate: form.taxMemoDate.trim() || null,
-      taxArrears: this.parseCurrencyInput(form.taxArrears),
+      taxArrears: parseCurrencyInput(form.taxArrears),
       taxYear: form.taxYear.trim() || null,
       notes: form.notes.trim() || null,
       userUpdatedBy,
@@ -631,6 +742,13 @@ export class TaxArrearsCaptureComponent implements OnInit {
       return;
     }
 
+    const uniquenessError = this.findDuplicateLoanTaxYearError(this.rows());
+    if (uniquenessError) {
+      this.errorMessage.set(uniquenessError);
+      this.statusMessage.set('');
+      return;
+    }
+
     const request: TaxArrearsCaptureBulkUpdateRequest = {
       taxArrears: changedRows.map((row) => {
         const original = this.originalRowState()[this.rowTrackId(row)];
@@ -638,6 +756,8 @@ export class TaxArrearsCaptureComponent implements OnInit {
           taxArrearKey: row.taxArrearKey,
           loanCode: row.loanCode,
           originalTaxYear: original?.taxYear ?? row.taxYear,
+          originalTaxMemoDate: original?.taxMemoDate?.trim() || null,
+          originalNotes: original?.notes ?? row.notes,
           taxMemoDate: row.taxMemoDate.trim() || null,
           taxArrears: row.taxArrears,
           taxYear: row.taxYear.trim() || null,
@@ -756,6 +876,9 @@ export class TaxArrearsCaptureComponent implements OnInit {
   }
 
   private patchRow(rowId: string, patch: Partial<TaxArrearRow>): void {
+    if (!rowId) {
+      return;
+    }
     this.rows.set(
       this.rows().map((row) => (this.rowTrackId(row) === rowId ? { ...row, ...patch } : row)),
     );
@@ -807,6 +930,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
       next: (records) => {
         const mapped = records.map((record, index) => this.mapRow(record, index));
         this.rows.set(mapped);
+        this.currencyFieldText.set({});
         this.mergeTaxYearsFromRows(mapped);
         this.selectedRowTrackId.set(null);
         this.currentPage.set(1);
@@ -829,10 +953,8 @@ export class TaxArrearsCaptureComponent implements OnInit {
     const taxYear = this.pickString(raw, 'taxYear', 'TaxYear');
     const taxMemoDate = this.pickString(raw, 'taxMemoDate', 'TaxMemoDate');
     const userUpdatedDate = this.pickString(raw, 'userUpdatedDate', 'UserUpdatedDate');
-    const stableRowId =
-      taxArrearKey > 0
-        ? `key-${taxArrearKey}`
-        : `loan-${loanCode}-year-${taxYear || 'none'}-memo-${taxMemoDate || 'none'}-upd-${userUpdatedDate || 'none'}-i-${index}`;
+    // UUID-only track id: loan code / tax year / even taxArrearKey can collide for duplicates.
+    const stableRowId = `ta-${crypto.randomUUID()}-i${index}-s${++this.nextLocalRowSeq}`;
 
     return {
       stableRowId,
@@ -956,15 +1078,6 @@ export class TaxArrearsCaptureComponent implements OnInit {
     }
     const parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
-  }
-
-  private parseCurrencyInput(value: string): number | null {
-    const trimmed = value.replace(/[$,\s]/g, '').trim();
-    if (!trimmed) {
-      return null;
-    }
-    const parsed = Number(trimmed);
-    return Number.isFinite(parsed) ? parsed : null;
   }
 
   private pickNumber(record: Record<string, unknown>, ...keys: string[]): number {

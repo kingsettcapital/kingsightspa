@@ -8,6 +8,10 @@ import { catchError } from 'rxjs/operators';
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import {
+  formatCurrencyDisplay,
+  parseCurrencyInput,
+} from '../../core/utils/mortgage-currency-input.util';
+import {
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
@@ -97,6 +101,8 @@ export class OtherCostCaptureComponent implements OnInit {
 
   readonly rows = signal<OtherCostRow[]>([]);
   readonly originalRowState = signal<Record<string, EditableCosts>>({});
+  /** Raw in-progress text for currency inputs (avoids reformat-on-keystroke). */
+  readonly currencyFieldText = signal<Record<string, string>>({});
 
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
@@ -284,23 +290,38 @@ export class OtherCostCaptureComponent implements OnInit {
   }
 
   updateCostField(loanCode: string, field: keyof EditableCosts, rawValue: string): void {
-    const parsed = this.parseCurrencyInput(rawValue);
+    const key = `${loanCode}|${field}`;
+    this.currencyFieldText.update((current) => ({ ...current, [key]: rawValue }));
+    this.clearMessages();
+  }
+
+  currencyInputDisplay(loanCode: string, field: keyof EditableCosts, value: number | null): string {
+    const key = `${loanCode}|${field}`;
+    const pending = this.currencyFieldText()[key];
+    if (pending !== undefined) {
+      return pending;
+    }
+    return formatCurrencyDisplay(value, 0);
+  }
+
+  commitCostField(loanCode: string, field: keyof EditableCosts, input: HTMLInputElement): void {
+    const key = `${loanCode}|${field}`;
+    const raw = this.currencyFieldText()[key] ?? input.value;
+    const parsed = parseCurrencyInput(raw);
     this.rows.set(
       this.rows().map((row) => (row.loanCode === loanCode ? { ...row, [field]: parsed } : row)),
     );
+    this.currencyFieldText.update((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+    input.value = formatCurrencyDisplay(parsed, 0);
     this.clearMessages();
   }
 
   formatCurrencyInput(value: number | null): string {
-    if (value == null || !Number.isFinite(value)) {
-      return '';
-    }
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+    return formatCurrencyDisplay(value, 0);
   }
 
   formatModifiedDate(value: string): string {
@@ -474,6 +495,7 @@ export class OtherCostCaptureComponent implements OnInit {
       next: (records) => {
         const mapped = records.map((record) => this.mapRow(record));
         this.rows.set(mapped);
+        this.currencyFieldText.set({});
         this.currentPage.set(1);
         this.snapshotOriginalState();
         this.isLoadingGrid.set(false);
@@ -560,15 +582,6 @@ export class OtherCostCaptureComponent implements OnInit {
 
   private numbersEqual(a: number | null, b: number | null): boolean {
     return a === b || (a == null && b == null);
-  }
-
-  private parseCurrencyInput(value: string): number | null {
-    const trimmed = value.replace(/[$,\s]/g, '').trim();
-    if (!trimmed) {
-      return null;
-    }
-    const parsed = Number(trimmed);
-    return Number.isFinite(parsed) ? parsed : null;
   }
 
   private toNumber(value: unknown): number | null {
