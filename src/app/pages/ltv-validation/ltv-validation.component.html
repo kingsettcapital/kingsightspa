@@ -11,27 +11,31 @@
 
       <div class="ks-fp__filters-compact">
         <div class="ks-fp__search-block">
-          <label class="ks-fp__filter-label" for="ltvLoanAliasSearch">Search Loans</label>
+          <label class="ks-fp__filter-label" for="ltvLoanSearch">Search Loans</label>
           <ng-select
-            id="ltvLoanAliasSearch"
+            id="ltvLoanSearch"
             class="ks-ng-select"
             appendTo="body"
-            [items]="aliasSelectOptions()"
+            [items]="loanSelectOptions()"
             bindLabel="label"
             bindValue="value"
             [multiple]="true"
             [searchable]="true"
             [closeOnSelect]="false"
             [clearable]="true"
-            placeholder="Search loan aliases..."
-            [ngModel]="selectedLoanAliasIds()"
-            (ngModelChange)="updateSelectedAliases($event)"
+            placeholder="Search loan code or name..."
+            [ngModel]="selectedLoanCodes()"
+            (ngModelChange)="updateSelectedLoans($event)"
+            (search)="onLoanSearch($event)"
+            (clear)="updateSearch('')"
           ></ng-select>
           <button
             type="button"
             class="ks-fp__clear-selection"
             (click)="clearSelection()"
-            [disabled]="!selectedLoanAliasIds().length && !selectedStatuses().length"
+            [disabled]="
+              !selectedLoanCodes().length && !selectedLoanAliasIds().length && !selectedStatuses().length && !searchText().trim()
+            "
           >
             Clear Selection
           </button>
@@ -148,7 +152,7 @@
                       [ngModel]="formatPercent(row.ltv)"
                       (ngModelChange)="updateLtv(row, $event)"
                       [ngModelOptions]="{ standalone: true }"
-                      placeholder="0"
+                      placeholder="—"
                       [attr.aria-label]="'Current LTV for ' + row.loanCode"
                     />
                     <span class="ltv-suffix">%</span>

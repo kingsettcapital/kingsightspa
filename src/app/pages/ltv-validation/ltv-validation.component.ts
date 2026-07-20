@@ -139,6 +139,8 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
   readonly searchText = signal('');
   readonly selectedLoanAliasIds = signal<number[]>([]);
+  /** Client-side loan filter for Search Loans (code / name). */
+  readonly selectedLoanCodes = signal<string[]>([]);
   readonly selectedStatuses = signal<string[]>([]);
   readonly sortColumn = signal<LtvColumnKey | null>(null);
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
@@ -180,28 +182,37 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     return this.aliasOptions().filter((a) => ids.has(a.loanAliasId));
   });
 
-  readonly aliasSelectOptions = computed(() =>
-    this.aliasOptions().map((a) => ({
-      label: a.loanAliasName,
-      value: a.loanAliasId,
-    })),
-  );
+  /** Search Loans dropdown — loan code + name from loaded grid (aliases are often blank). */
+  readonly loanSelectOptions = computed(() => {
+    const seen = new Set<string>();
+    const options: { label: string; value: string }[] = [];
+    for (const row of this.rows()) {
+      const code = row.loanCode?.trim() ?? '';
+      if (!code || seen.has(code)) {
+        continue;
+      }
+      seen.add(code);
+      const name = row.loanName?.trim() || '—';
+      const alias = row.loanAliasName?.trim();
+      const aliasPart = alias && alias !== '-' ? ` · ${alias}` : '';
+      options.push({
+        label: `${code} — ${name}${aliasPart}`,
+        value: code,
+      });
+    }
+    return options.sort((a, b) => a.value.localeCompare(b.value));
+  });
 
   readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
 
-  readonly searchedAliasOptions = computed(() => {
-    const keyword = this.searchText().trim().toLowerCase();
-    if (!keyword) {
-      return [];
-    }
-    const selectedIds = new Set(this.selectedLoanAliasIds());
-    return this.aliasOptions().filter(
-      (a) => !selectedIds.has(a.loanAliasId) && a.loanAliasName.toLowerCase().includes(keyword),
-    );
-  });
-
   readonly filteredRows = computed(() => {
     let rows = this.rows();
+
+    const selectedCodes = this.selectedLoanCodes();
+    if (selectedCodes.length > 0) {
+      const codeSet = new Set(selectedCodes);
+      rows = rows.filter((row) => codeSet.has(row.loanCode));
+    }
 
     rows = filterRowsByTableSearch(
       rows,
@@ -228,7 +239,8 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       isLoading: this.isLoadingGrid() || this.isLoadingFilters(),
       totalRows: this.rows().length,
       visibleRows: this.filteredRows().length,
-      hasClientFilter: this.searchText().trim().length > 0,
+      hasClientFilter:
+        this.searchText().trim().length > 0 || this.selectedLoanCodes().length > 0,
       emptyMessage: 'No loans returned for the selected filters.',
     }),
   );
@@ -281,9 +293,22 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     this.clearMessages();
   }
 
+  /** Live typeahead — filter the grid as the user types (e.g. "win" → Windsor). */
+  onLoanSearch(event: { term: string }): void {
+    this.updateSearch(event?.term ?? '');
+  }
+
+  updateSelectedLoans(codes: string[] | null): void {
+    this.selectedLoanCodes.set(codes ?? []);
+    this.searchText.set('');
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
   updateSelectedAliases(ids: number[] | null): void {
     this.selectedLoanAliasIds.set(ids ?? []);
     this.searchText.set('');
+    this.selectedLoanCodes.set([]);
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
@@ -298,6 +323,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
 
   clearSelection(): void {
     this.searchText.set('');
+    this.selectedLoanCodes.set([]);
     this.selectedLoanAliasIds.set([]);
     this.selectedStatuses.set([]);
     this.currentPage.set(1);
@@ -661,17 +687,26 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     return `${value}%`;
   }
 
+  /**
+   * Frontend-only: Current LTV − Prior LTV (no DB column).
+   * Missing Prior is treated as 0 so change still shows when Current is set.
+   */
   computeLtvChange(row: LtvValidationRow): number | null {
-    if (row.ltv == null || row.priorLtv == null) {
+    if (row.ltv == null || !Number.isFinite(row.ltv)) {
       return null;
     }
-    return Math.round((row.ltv - row.priorLtv) * 100) / 100;
+    const prior =
+      row.priorLtv != null && Number.isFinite(row.priorLtv) ? row.priorLtv : 0;
+    return Math.round((row.ltv - prior) * 100) / 100;
   }
 
   formatLtvChange(row: LtvValidationRow): string {
     const change = this.computeLtvChange(row);
     if (change == null) {
       return '-';
+    }
+    if (change === 0) {
+      return '0%';
     }
     const prefix = change > 0 ? '+' : '';
     return `${prefix}${change}%`;
