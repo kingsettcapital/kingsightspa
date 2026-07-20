@@ -72,7 +72,7 @@ function buildLoanRankingExportFilename(extension: 'xlsx' | 'pdf'): string {
 }
 
 /** Set to true to load and save via local mock data instead of GET /api/Loans. */
-const USE_LOANS_RANKING_EXAMPLE_DATA = true;
+const USE_LOANS_RANKING_EXAMPLE_DATA = false;
 
 /** Sentinel value for the "+ Add new" option in the loan alias dropdown. */
 export const LOAN_ALIAS_ADD_NEW_VALUE = '__add_new_loan_alias__';

@@ -5,6 +5,7 @@ import {
 } from '@azure/msal-browser';
 
 import { environment } from '../../../environments/environment';
+import { normalizeApiBaseUrl } from './api.config';
 
 const isIE =
   window.navigator.userAgent.indexOf('MSIE') > -1 ||
@@ -15,7 +16,7 @@ export const msalConfig: Configuration = {
     clientId: environment.azureConfig.clientId,
     authority: environment.azureConfig.authority,
     redirectUri: environment.azureConfig.redirectURL,
-    postLogoutRedirectUri: environment.azureConfig.postLogoutRedirectUri,
+    // postLogoutRedirectUri: environment.azureConfig.postLogoutRedirectUri,
     navigateToLoginRequestUrl: false,
   },
   cache: {
@@ -55,7 +56,7 @@ export const loginRequest = {
 
 export const protectedResources = {
   loginApi: {
-    endpoint: environment.apiUrl,
+    endpoint: normalizeApiBaseUrl(environment.apiUrl),
     scopes: [environment.azureConfig.scopes],
   },
 };

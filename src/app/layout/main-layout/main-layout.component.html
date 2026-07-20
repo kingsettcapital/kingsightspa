@@ -1,5 +1,5 @@
-<div class="ks-app-shell">
-  @if (isMobileNavOpen()) {
+<div class="ks-app-shell" [class.ks-app-shell--no-sidebar]="hideAppSidebar()">
+  @if (isMobileNavOpen() && !hideAppSidebar()) {
     <button
       type="button"
       class="ks-sidebar-backdrop"
@@ -8,6 +8,7 @@
     ></button>
   }
 
+  @if (!hideAppSidebar()) {
   <aside
     class="ks-sidebar"
     [class.ks-sidebar--collapsed]="!isSidebarExpanded()"
@@ -37,16 +38,16 @@
         class="ks-sidebar__link"
       >
         <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
-        <span class="ks-sidebar__link-label">Dashboard</span>
+        <span class="ks-sidebar__link-label">Home</span>
       </a>
       <a
-        routerLink="/capital-dashboard/investor"
+        routerLink="/capital-dashboard"
         routerLinkActive="ks-sidebar__link--active"
         [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
         class="ks-sidebar__link"
       >
         <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
-        <span class="ks-sidebar__link-label">Capital Dashboard</span>
+        <span class="ks-sidebar__link-label">Capital</span>
       </a>
 
       <div
@@ -60,7 +61,7 @@
           (click)="toggleDropdown('Loans')"
         >
           <lucide-icon [img]="landmarkIcon" color="currentColor" [size]="22"></lucide-icon>
-          <span class="ks-sidebar__link-label">Loans Alias</span>
+          <span class="ks-sidebar__link-label">MORTGAGE</span>
           @if (isSidebarExpanded()) {
             <lucide-icon
               class="ks-sidebar__chevron"
@@ -75,55 +76,105 @@
         @if (isSidebarExpanded() && openDropdown() === 'Loans') {
           <div class="ks-sidebar__subnav">
             <a
-              routerLink="/mortgage/ranking"
+              routerLink="/mortgage/management-summary"
               routerLinkActive="ks-sidebar__sublink--active"
               class="ks-sidebar__sublink"
-            >Ranking</a>
+            >Management Summary</a>
+            <a
+              routerLink="/mortgage/loan-alias-assignment"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Loan Alias Assignment</a>
+            <a
+              routerLink="/mortgage/investor-alias-assignment"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Investor Alias Assignment</a>
             <a
               routerLink="/mortgage/loans-ranking"
               routerLinkActive="ks-sidebar__sublink--active"
               class="ks-sidebar__sublink"
-            >Loans &amp; Ranking</a>
-            <a
-              routerLink="/mortgage/investor-alias"
-              routerLinkActive="ks-sidebar__sublink--active"
-              class="ks-sidebar__sublink"
-            >Investor Alias</a>
+            >Loan Attribute Assignment</a>
             <a
               routerLink="/mortgage/security-value"
               routerLinkActive="ks-sidebar__sublink--active"
               class="ks-sidebar__sublink"
-            >Security Value</a>
+            >Loan Exposure Markers</a>
             <a
-              routerLink="/mortgage/other-cost"
-              routerLinkActive="ks-sidebar__sublink--active"
-              class="ks-sidebar__sublink"
-            >Other Cost</a>
-            <a
-              routerLink="/mortgage/default-date"
+              routerLink="/mortgage/default-date-capture"
               routerLinkActive="ks-sidebar__sublink--active"
               class="ks-sidebar__sublink"
             >Default Date</a>
+            <a
+              routerLink="/mortgage/other-cost-capture"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Other Cost Capture</a>
             <a
               routerLink="/mortgage/default-subjective-analytics"
               routerLinkActive="ks-sidebar__sublink--active"
               class="ks-sidebar__sublink"
             >Default Subjective Analytics</a>
             <a
-              routerLink="/mortgage/tax-arrears"
+              routerLink="/mortgage/tax-arrears-capture"
               routerLinkActive="ks-sidebar__sublink--active"
               class="ks-sidebar__sublink"
             >Tax Arrears</a>
+            <a
+              routerLink="/mortgage/non-ks-serviced-loans"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Non-KS Serviced Loans</a>
             <a
               routerLink="/mortgage/ltv-validation"
               routerLinkActive="ks-sidebar__sublink--active"
               class="ks-sidebar__sublink"
             >LTV Validation</a>
+            <a
+              routerLink="/mortgage/cmhc-upload"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >File Upload</a>
+            <a
+              routerLink="/mortgage/notifications"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink ks-sidebar__sublink--notifications"
+            >
+              <span class="ks-sidebar__sublink-label">Notifications</span>
+              @if (unreadNotificationCount() > 0) {
+                <span
+                  class="ks-sidebar__notification-badge"
+                  [attr.aria-label]="unreadNotificationCount() + ' unread notifications'"
+                >
+                  {{ unreadNotificationCount() > 99 ? '99+' : unreadNotificationCount() }}
+                </span>
+              }
+            </a>
           </div>
         }
       </div>
 
-      <div
+      <a
+        routerLink="/data-explorer"
+        routerLinkActive="ks-sidebar__link--active"
+        class="ks-sidebar__link"
+      >
+        <lucide-icon [img]="databaseIcon" color="currentColor" [size]="22"></lucide-icon>
+        <span class="ks-sidebar__link-label">Data Explorer</span>
+      </a>
+
+      @if (currentUser().role === 'Administrator') {
+        <a
+          routerLink="/admin/user-management"
+          routerLinkActive="ks-sidebar__link--active"
+          class="ks-sidebar__link"
+        >
+          <lucide-icon [img]="userIcon" color="currentColor" [size]="22"></lucide-icon>
+          <span class="ks-sidebar__link-label">User Management</span>
+        </a>
+      }
+
+      <!-- <div
         class="ks-sidebar__group"
         [class.ks-sidebar__group--expanded]="openDropdown() === 'Stats'"
       >
@@ -165,7 +216,7 @@
             >Investor</a>
           </div>
         }
-      </div>
+      </div> -->
     </nav>
 
     <div class="ks-sidebar__footer">
@@ -189,6 +240,7 @@
       </button>
     </div>
   </aside>
+  }
 
   <div class="ks-app-main">
     <header class="ks-header">

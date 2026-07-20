@@ -1,255 +1,274 @@
-<div
-  class="master-detail"
-  [class.master-detail--detail-open]="selectedPropertyKey() != null || detailLoading()"
->
-  <aside class="master-detail__list">
-    <div class="ks-assets-search">
-      <mat-form-field
-        appearance="outline"
-        class="ks-assets-search__field"
-        subscriptSizing="dynamic"
-      >
-        <mat-icon matPrefix class="ks-assets-search__icon" aria-hidden="true">search</mat-icon>
-        <input
-          matInput
-          class="ks-assets-search__input"
-          type="search"
-          [ngModel]="searchQuery()"
-          (ngModelChange)="searchQuery.set($event)"
-          placeholder="Search assets..."
-          aria-label="Search assets"
-        />
-      </mat-form-field>
-    </div>
+<div style="overflow-y: auto; height: 100vh; scrollbar-width: thin;">
 
-    @if (listLoading()) {
-      <div class="list-state">
-        <app-portal-spinner [size]="32" />
-      </div>
-    } @else if (listError()) {
-      <div class="list-state list-state--error">{{ listError() }}</div>
-    } @else {
-      <div
-        #listScrollContainer
-        class="list-table-wrap"
-        appListInfiniteScroll
-        (scrolledToEnd)="loadMore()"
-      >
-        <table mat-table [dataSource]="assets()" class="list-table">
-          <ng-container matColumnDef="asset">
-            <th mat-header-cell *matHeaderCellDef class="list-table__header-cell">Asset</th>
-            <td mat-cell *matCellDef="let row">
-              <div class="list-table__primary">
-                <div>
-                  <div class="list-table__primary-text">{{ propertyListName(row) }}</div>
-                  <div class="list-table__secondary">{{ propertyListSubtitle(row) }}</div>
-                </div>
-              </div>
-            </td>
-          </ng-container>
-          <ng-container matColumnDef="value">
-            <th mat-header-cell *matHeaderCellDef class="align-right list-table__header-cell">Value</th>
-            <td mat-cell *matCellDef="let row" class="align-right">
-              <div [class.ks-currency--negative]="row.currentValue < 0">
-                {{ row.currentValue | ksCurrency }}
-              </div>
-              @if (row.yieldPercent != null && row.yieldPercent > 0) {
-                <div class="list-table__secondary return-positive">
-                  {{ formatPercent(row.yieldPercent) }} yield
-                </div>
-              }
-            </td>
-          </ng-container>
-          <tr mat-header-row *matHeaderRowDef="listColumns"></tr>
-          <tr
-            mat-row
-            *matRowDef="let row; columns: listColumns"
-            [attr.data-list-key]="row.propertyKey"
-            (click)="selectAsset(row)"
-            [class.selected-row]="selectedPropertyKey() === row.propertyKey"
-          ></tr>
-        </table>
 
-        @if (listLoadingMore()) {
-          <div class="list-load-more">
-            <app-portal-spinner [size]="24" />
-          </div>
-        }
+  <div class="sticky-remove" style="position: sticky; top: 0; z-index: 5;">
 
-        @if (assets().length === 0) {
-          <div class="list-state">No assets found.</div>
-        } @else {
-          <!-- <div class="list-footer">Showing {{ assets().length }} of {{ totalCount() }} assets</div> -->
-        }
-      </div>
-    }
-  </aside>
-
-  <section class="master-detail__panel">
-    @if (detailLoading()) {
-      <div class="detail-card master-detail__empty">
-        <app-portal-spinner [size]="40" />
-      </div>
-    } @else if (detailError()) {
-      <div class="detail-card master-detail__empty">
-        <mat-icon>error_outline</mat-icon>
-        <h3>{{ detailError() }}</h3>
-      </div>
-    } @else if (selectedAsset(); as asset) {
-      <button type="button" class="master-detail__back" (click)="clearSelection()">
-        <mat-icon>arrow_back</mat-icon>
-        <span>Back to list</span>
-      </button>
-
-      <div class="detail-card">
-        <div class="detail-card__header">
-          <div class="detail-card__title-row">
-            <div class="detail-card__hero" aria-hidden="true">
-              <mat-icon>{{ assetIcon(assetIconType()) }}</mat-icon>
-            </div>
-            <div class="detail-card__title-block">
-              <h2>{{ assetDisplayName() }}</h2>
-              @if (propertyDetailLocation(asset); as location) {
-                <p class="detail-card__subtitle">{{ location }}</p>
-              }
-              <div class="detail-card__chips">
-                <mat-chip-set>
-                  @if (summaryDisplay('assetType'); as assetType) {
-                    @if (assetType !== '—') {
-                      <mat-chip class="portal-chip portal-chip--outlined">{{ assetType }}</mat-chip>
-                    }
-                  }
-                  @if (summaryDisplay('status'); as status) {
-                    @if (status !== '—') {
-                      <mat-chip
-                        class="portal-chip"
-                        [class.portal-chip--success]="status === 'Performing' || status === 'Active'"
-                        [class.portal-chip--warning]="status === 'Under Review' || status === 'In Progress'"
-                      >
-                        {{ status }}
-                      </mat-chip>
-                    }
-                  }
-                </mat-chip-set>
-              </div>
-            </div>
-          </div>
-
-          <div class="detail-card__metrics">
-            <div>
-              <div class="detail-card__metric-label">Current Value</div>
-              <div class="detail-card__metric-value">{{ summaryMoney('currentValue') }}</div>
-            </div>
-            <div>
-              <div class="detail-card__metric-label">Yield</div>
-              <div class="detail-card__metric-value">{{ yieldDisplay() }}</div>
-            </div>
-            <div>
-              <div class="detail-card__metric-label">Acquisition Date</div>
-              <div class="detail-card__metric-value">{{ acquisitionDateDisplay() }}</div>
-            </div>
-            <div>
-              <div class="detail-card__metric-label">Investments</div>
-              <div class="detail-card__metric-value">{{ summaryNumber('investments') }}</div>
-            </div>
-          </div>
+    <section class="cdt-assets" aria-label="Assets">
+      <header class="cdt-assets__header">
+        <div class="cdt-assets__heading">
+          <h1 class="cdt-assets__title">Assets</h1>
+          <p class="cdt-assets__subtitle">{{ subtitleText() }}</p>
         </div>
 
-        <mat-tab-group
-          [(selectedIndex)]="activeTabIndex"
-          class="detail-tabs"
-          mat-stretch-tabs="false"
-          mat-align-tabs="start"
-        >
-          <mat-tab label="Overview">
-            <div class="detail-card__body">
-              <div class="detail-scroll-x">
-                <app-overview-section-cards [cards]="overviewCards()" />
-              </div>
-            </div>
-          </mat-tab>
+        <div class="cdt-assets__actions">
+          <button type="button" class="cdt-btn cdt-btn--filters" [class.cdt-btn--filters-active]="filtersPanelVisible()"
+            (click)="toggleFiltersPanel()" [attr.aria-expanded]="filtersPanelVisible()">
+            <mat-icon aria-hidden="true">filter_alt</mat-icon>
+            Filters
+            @if (activeFilterCount() > 0) {
+            <span class="cdt-btn__badge">{{ activeFilterCount() }}</span>
+            }
+          </button>
 
-          <mat-tab [label]="'Associated Investments (' + summaryNumber('investments') + ')'">
-            <div class="detail-card__body detail-card__body--table">
-              <div class="detail-table-wrap">
-                <table
-                  mat-table
-                  [dataSource]="assetInvestments()"
-                  class="detail-table"
-                  aria-label="Asset investments"
-                >
-                  <ng-container matColumnDef="name">
-                    <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Investment Name</th>
-                    <td mat-cell *matCellDef="let row">
-                      <div class="detail-table__name-cell link-cell" (click)="goToInvestment(row.fundKey, row.fundName)">
-                        <div class="detail-table__primary">{{ row.fundName }}</div>
-                        @if (row.fundStrategy) {
-                          <div class="detail-table__secondary">{{ row.fundStrategy }}</div>
-                        }
-                      </div>
-                    </td>
-                  </ng-container>
-                  <ng-container matColumnDef="type">
-                    <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Type</th>
-                    <td mat-cell *matCellDef="let row">{{ row.fundType || '—' }}</td>
-                  </ng-container>
-                  <ng-container matColumnDef="strategy">
-                    <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Strategy</th>
-                    <td mat-cell *matCellDef="let row">{{ row.fundStrategy || '—' }}</td>
-                  </ng-container>
-                  <ng-container matColumnDef="status">
-                    <th mat-header-cell *matHeaderCellDef class="inner-table-header-cell">Status</th>
-                    <td mat-cell *matCellDef="let row">
-                      <app-detail-status-badge [status]="row.status" />
-                    </td>
-                  </ng-container>
-                  <ng-container matColumnDef="value">
-                    <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Total Value</th>
-                    <td mat-cell *matCellDef="let row" class="align-right">
-                      <span [class.ks-currency--negative]="row.totalValue < 0">
-                        {{ row.totalValue | ksCurrency }}
-                      </span>
-                    </td>
-                  </ng-container>
-                  <ng-container matColumnDef="return">
-                    <th mat-header-cell *matHeaderCellDef class="align-right inner-table-header-cell">Return</th>
-                    <td
-                      mat-cell
-                      *matCellDef="let row"
-                      class="align-right"
-                      [class.return-positive]="(row.totalReturnPercent ?? 0) > 0"
-                      [class.return-negative]="(row.totalReturnPercent ?? 0) <= 0"
-                    >
-                      @if (row.totalReturnPercent != null) {
-                        {{ formatPercent(row.totalReturnPercent, true) }}
-                      } @else {
-                        —
-                      }
-                    </td>
-                  </ng-container>
-                  <tr
-                    mat-header-row
-                    *matHeaderRowDef="['name', 'type', 'strategy', 'status', 'value', 'return']"
-                  ></tr>
-                  <tr
-                    mat-row
-                    *matRowDef="let row; columns: ['name', 'type', 'strategy', 'status', 'value', 'return']"
-                  ></tr>
-                </table>
-                @if (assetInvestments().length === 0) {
-                  <div class="list-state">No associated investments.</div>
+          <button type="button" class="cdt-btn cdt-btn--download" (click)="downloadTable()">
+            <span class="cdt-btn__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M12 15V3" />
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <path d="m7 10 5 5 5-5" />
+              </svg>
+            </span>
+            Download
+          </button>
+        </div>
+      </header>
+
+      <div class="cdt-kpi-row cdt-assets__kpi-row">
+        <article class="cdt-kpi cdt-kpi--navy">
+          <p class="cdt-kpi__label">Total GLA</p>
+          <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().totalGla, true) }}</p>
+          <p class="cdt-kpi__hint">Gross leasable area</p>
+        </article>
+        <article class="cdt-kpi cdt-kpi--blue">
+          <p class="cdt-kpi__label">Active Properties</p>
+          <p class="cdt-kpi__value">{{ kpiCards().activeProperties }}</p>
+          <p class="cdt-kpi__hint">of {{ kpiCards().totalProperties }} total</p>
+        </article>
+        <article class="cdt-kpi cdt-kpi--gold">
+          <p class="cdt-kpi__label">Total Committed Area</p>
+          <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().totalCommittedArea, true) }}</p>
+          <p class="cdt-kpi__hint">Leased / occupied</p>
+        </article>
+        <article class="cdt-kpi cdt-kpi--slate">
+          <p class="cdt-kpi__label">Total Vacant Area</p>
+          <p class="cdt-kpi__value">{{ formatSquareFeet(kpiCards().totalVacantArea, true) }}</p>
+          <p class="cdt-kpi__hint">Available for lease</p>
+        </article>
+      </div>
+
+      @if (filtersPanelVisible()) {
+      <div class="cdt-filters-panel">
+        <div class="cdt-filters-bar">
+          <label class="cdt-filters-bar__field cdt-filters-bar__field--search">
+            <span class="cdt-filters-bar__label">SEARCH</span>
+            <div class="cdt-filters-bar__search">
+              <mat-icon aria-hidden="true">search</mat-icon>
+              <input type="search" placeholder="Property name, city..." [ngModel]="tableSearch()"
+                (ngModelChange)="tableSearch.set($event)" aria-label="Search properties" />
+            </div>
+          </label>
+
+          <label class="cdt-filters-bar__field">
+            <span class="cdt-filters-bar__label">ASSET TYPE</span>
+            <div class="cdt-filters-bar__select">
+              <select [ngModel]="assetTypeFilter()" (ngModelChange)="assetTypeFilter.set($event); currentPage.set(1)"
+                aria-label="Asset type">
+                <option value="all">All Types</option>
+                @for (option of assetTypeOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
                 }
-              </div>
+              </select>
+              <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
             </div>
-          </mat-tab>
-        </mat-tab-group>
-      </div>
-    } @else {
-      <div class="detail-card master-detail__empty">
-        <mat-icon>category</mat-icon>
-        <h3>Select an asset to view details</h3>
-      </div>
-    }
-  </section>
-</div>
+          </label>
 
+          <label class="cdt-filters-bar__field">
+            <span class="cdt-filters-bar__label">INVESTMENT TYPE</span>
+            <div class="cdt-filters-bar__select">
+              <select [ngModel]="investmentTypeFilter()"
+                (ngModelChange)="investmentTypeFilter.set($event); currentPage.set(1)" aria-label="Investment type">
+                <option value="all">All Investment Types</option>
+                @for (option of investmentTypeOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+              <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+            </div>
+          </label>
+
+          <label class="cdt-filters-bar__field">
+            <span class="cdt-filters-bar__label">GEOGRAPHY</span>
+            <div class="cdt-filters-bar__select">
+              <select [ngModel]="geographyFilter()" (ngModelChange)="geographyFilter.set($event); currentPage.set(1)"
+                aria-label="Geography">
+                <option value="all">All Geographies</option>
+                @for (option of geographyOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+              <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+            </div>
+          </label>
+
+          <label class="cdt-filters-bar__field">
+            <span class="cdt-filters-bar__label">STATUS</span>
+            <div class="cdt-filters-bar__select">
+              <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event); currentPage.set(1)"
+                aria-label="Status">
+                <option value="all">All Statuses</option>
+                @for (option of statusOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+              <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+            </div>
+          </label>
+
+          @if (activeFilterCount() > 0) {
+          <button type="button" class="cdt-filters-bar__clear" (click)="clearAllFilters()">
+            <mat-icon aria-hidden="true">close</mat-icon>
+            Clear all
+          </button>
+          }
+        </div>
+      </div>
+      }
+
+    </section>
+  </div>
+
+  <section class="cdt-assets" aria-label="Assets">
+    <div class="cdt-table-card" [class.cdt-table-card--empty]="listLoading() || listError()">
+      @if (listLoading()) {
+      <div class="cdt-table-card__state cdt-table-card__loading" role="status" aria-live="polite">
+        <div class="cdt-table-card__spinner" aria-hidden="true"></div>
+        <p class="cdt-table-card__state-title">Loading assets</p>
+        <p class="cdt-table-card__state-message">Fetching the latest property data…</p>
+      </div>
+      } @else if (listError()) {
+      <div class="cdt-table-card__state cdt-table-card__error" role="alert">
+        <mat-icon class="cdt-table-card__state-icon" aria-hidden="true">error_outline</mat-icon>
+        <p class="cdt-table-card__state-title">Unable to load assets</p>
+        <p class="cdt-table-card__state-message">Please check your connection and try again.</p>
+        <button type="button" class="cdt-table-card__retry" (click)="retryLoad()">
+          Try again
+        </button>
+      </div>
+      } @else {
+      <div class="cdt-table-card__body">
+        <div class="cdt-table-wrap">
+          <table class="cdt-table">
+            <thead>
+              <tr>
+                <th>Property<br>Name</th>
+                <!-- <th>Geography</th> -->
+                <th class="cdt-table__asset-type">Asset<br>Type</th>
+                <th>Investment<br>Type</th>
+                <th>Development<br>Type</th>
+                <th class="cdt-table__num">GLA (sf)</th>
+                <th class="cdt-table__num">Committed<br>(sf)</th>
+                <th class="cdt-table__num">Vacant (sf)</th>
+                <th>Status</th>
+                <th class="cdt-table__chevron-col" aria-hidden="true"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows(); track row.propertyKey) {
+              <tr class="cdt-table__row cdt-table__row--clickable" (click)="openAsset(row)">
+                <td>
+                  <div class="cdt-property-cell">
+                    <!-- <span class="cdt-property-cell__icon"
+                      [style.background-color]="'hsl(' + row.avatarHue + ' 58% 88%)'"
+                      [style.color]="'hsl(' + row.avatarHue + ' 48% 34%)'">
+                      {{ row.initials }}
+                    </span> -->
+                    <span>
+                      <span class="cdt-property-cell__name">{{ row.name }}</span>
+                      <span class="cdt-property-cell__code">{{ row.geography }}</span>
+                    </span>
+                  </div>
+                </td>
+                <!-- <td>{{ row.geography }}</td> -->
+                <td class="cdt-table__asset-type">
+                  <span class="cdt-asset-type__label">{{ row.assetType }}</span>
+                </td>
+                <td>{{ row.investmentType }}</td>
+                <td>{{ row.developmentType }}</td>
+                <td class="cdt-table__num">
+                  <span class="cdt-commitment-cell">
+                    <span class="cdt-commitment-cell__amount">{{ formatAreaNumber(row.glaSf) }}</span>
+                    <span class="cdt-commitment-cell__bar" aria-hidden="true">
+                      <span class="cdt-commitment-cell__bar-fill cdt-commitment-cell__bar-fill--asset"
+                        [style.width.%]="clampBarFillPercent(row.occupiedPercent)"
+                        [style.background-color]="assetTypeColor(row.assetTypeHue)"></span>
+                    </span>
+                    <span class="cdt-commitment-cell__meta">
+                      {{ formatOccupiedPercent(row.occupiedPercent) }}
+                    </span>
+                  </span>
+                </td>
+                <td class="cdt-table__num cdt-table__num--positive">
+                  {{ formatAreaNumber(row.committedSf) }}
+                </td>
+                <td class="cdt-table__num cdt-table__num--warning">
+                  {{ formatAreaNumber(row.vacantSf) }}
+                </td>
+                <td>
+                  <span [class]="statusChipClass(row.status)">
+                    {{ row.status }}
+                  </span>
+                </td>
+                <td class="cdt-table__chevron-col">
+                  <mat-icon aria-hidden="true">chevron_right</mat-icon>
+                </td>
+              </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="cdt-table__total-row">
+                <td colspan="5">TOTAL · {{ totalCount() }} PROPERTIES</td>
+                <td class="cdt-table__num">{{ formatAreaNumber(pageTotals().glaSf) }}</td>
+                <td class="cdt-table__num cdt-table__num--positive">
+                  {{ formatAreaNumber(pageTotals().committedSf) }}
+                </td>
+                <td class="cdt-table__num cdt-table__num--warning">
+                  {{ formatAreaNumber(pageTotals().vacantSf) }}
+                </td>
+                <td aria-hidden="true"></td>
+                <td class="cdt-table__chevron-col" aria-hidden="true"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <footer class="cdt-pagination">
+          <p class="cdt-pagination__summary">
+            Showing
+            <strong>{{ showingFrom() }}-{{ showingTo() }}</strong>
+            of
+            <strong>{{ totalCount() }}</strong>
+          </p>
+          <nav class="cdt-pagination__nav" aria-label="Assets pagination">
+            <button type="button" class="cdt-pagination__arrow" [disabled]="currentPage() <= 1"
+              (click)="goToPage(currentPage() - 1)" aria-label="Previous page">
+              <mat-icon aria-hidden="true">chevron_left</mat-icon>
+            </button>
+            @for (page of pageNumbers(); track page) {
+            <button type="button" class="cdt-pagination__page"
+              [class.cdt-pagination__page--active]="page === currentPage()" (click)="goToPage(page)">
+              {{ page }}
+            </button>
+            }
+            <button type="button" class="cdt-pagination__arrow" [disabled]="currentPage() >= totalPages()"
+              (click)="goToPage(currentPage() + 1)" aria-label="Next page">
+              <mat-icon aria-hidden="true">chevron_right</mat-icon>
+            </button>
+          </nav>
+        </footer>
+      </div>
+      }
+    </div>
+  </section>
+
+</div>

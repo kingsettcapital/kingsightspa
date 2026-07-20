@@ -1,0 +1,106 @@
+/* Page-specific styles — shared layout via .ks-fp in theme/_form-page.scss */
+
+.result-code {
+  display: inline-block;
+  min-width: 7rem;
+  color: #111827;
+  font-weight: 700;
+}
+
+.hidden-column {
+  display: none;
+}
+
+.read-only-cell {
+  color: #374151;
+  font-weight: 600;
+}
+
+.ranking-input,
+.note-input,
+.dummy-link-select,
+.alias-select {
+  width: 100%;
+  min-width: 6rem;
+  border: 1px solid #d1d5db;
+  height: 2rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.9rem;
+  background: #ffffff;
+}
+
+.ranking-input {
+  max-width: 4.5rem;
+  text-align: right;
+}
+
+.dummy-link-select,
+.alias-select {
+  min-width: 8rem;
+}
+
+.checkbox-cell {
+  text-align: center;
+}
+
+.late-interest-checkbox {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.date-cell {
+  white-space: nowrap;
+  color: #374151;
+}
+
+.la-th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.la-th-sort:hover {
+  color: #1d4ed8;
+}
+
+.la-th-sort__icon {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.btn-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.25rem;
+  padding: 0 1rem;
+  border: 1px solid var(--ks-color-navy);
+  background: var(--ks-color-surface);
+  color: var(--ks-color-navy);
+  font-size: var(--ks-font-size-sm);
+  font-weight: var(--ks-font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.status {
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+  color: #065f46;
+}
+
+@media (max-width: 960px) {
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

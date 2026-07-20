@@ -1,0 +1,83 @@
+.cdt-dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.cdt-dashboard-header__heading {
+  min-width: 0;
+}
+
+.cdt-dashboard-header__title {
+  margin: 0;
+  font-family: var(--cdt-font-sans);
+  font-size: 1.25rem;
+  font-weight: 400;
+  // color: var(--cdt-title-color);
+  color: #003666;
+  line-height: 1.2;
+
+}
+
+.cdt-dashboard-header__subtitle {
+  margin: 0.25rem 0 0;
+  font-family: var(--cdt-font-sans);
+  font-size: 0.75rem;
+  color: var(--cdt-subtitle-color);
+  line-height: 1.4;
+}
+
+.cdt-dashboard-header__manage {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--ks-color-gold);
+  border-radius: var(--cdt-radius-control);
+  background: var(--ks-color-gold);
+  color: var(--ks-color-black);
+  font-family: var(--cdt-font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  .mat-icon {
+    width: 1rem;
+    height: 1rem;
+    font-size: 1rem;
+    color: inherit;
+  }
+
+  &:hover:not(:disabled) {
+    background: #f0c04a;
+    border-color: #f0c04a;
+    color: var(--ks-color-black);
+  }
+
+  // &:focus-visible {
+  //   outline: 2px solid var(--ks-color-gold);
+  //   outline-offset: 2px;
+  // }
+
+  // &--active {
+  //   background: color-mix(in srgb, var(--ks-color-gold) 88%, var(--ks-color-black));
+  //   border-color: color-mix(in srgb, var(--ks-color-gold) 88%, var(--ks-color-black));
+  //   color: var(--ks-color-black);
+  //   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+  // }
+
+  // &--active:hover:not(:disabled) {
+  //   background: color-mix(in srgb, var(--ks-color-gold) 82%, var(--ks-color-black));
+  //   border-color: color-mix(in srgb, var(--ks-color-gold) 82%, var(--ks-color-black));
+  //   color: var(--ks-color-black);
+  // }
+}

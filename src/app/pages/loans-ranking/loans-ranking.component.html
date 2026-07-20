@@ -1,0 +1,203 @@
+<section class="ks-fp loan-ranking-page">
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">Loan Attribute Assignment</h1>
+        <p class="ks-page__subtitle">Update Loan Ranking, Dummy Loan Links and Late Interest Eligibility</p>
+      </div>
+
+      <div class="ks-fp__filters-compact">
+        <div class="ks-fp__search-block">
+          <label class="ks-fp__filter-label" for="loanSearch">Search Loans</label>
+          <ng-select
+            id="loanSearch"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="loanSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Search loans..."
+            [ngModel]="selectedLoanCodes()"
+            (ngModelChange)="updateSelectedLoans($event)"
+          ></ng-select>
+
+          <button
+            type="button"
+            class="ks-fp__clear-selection"
+            (click)="clearSelection()"
+            [disabled]="!selectedLoanCodes().length && !selectedStatuses().length"
+          >
+            Clear Selection
+          </button>
+        </div>
+
+        <div class="ks-fp__status-block">
+          <label class="ks-fp__filter-label" for="loanRankingStatus">Status</label>
+          <ng-select
+            id="loanRankingStatus"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="statusSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Select status..."
+            [ngModel]="selectedStatuses()"
+            (ngModelChange)="updateSelectedStatuses($event)"
+          ></ng-select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <p class="meta-message">Loading loans...</p>
+  }
+  @if (errorMessage() && !isSaving()) {
+    <p class="error-message">{{ errorMessage() }}</p>
+  }
+  @if (!isLoading() && statusMessage() && !isSaving()) {
+    <p class="status">{{ statusMessage() }}</p>
+  } @else if (!isLoading() && gridLoadMessage()) {
+    <p class="meta-message">{{ gridLoadMessage() }}</p>
+  }
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="hidden-column">Loan Key</th>
+          @for (column of tableColumns; track column.key) {
+            <th [class.audit-col]="column.audit">
+              <button
+                type="button"
+                class="la-th-sort"
+                (click)="toggleSort(column.key)"
+                [attr.aria-label]="'Sort by ' + column.label"
+              >
+                <span>{{ column.label }}</span>
+                <span class="la-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+              </button>
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of paginatedRows(); track row.loanCode) {
+          <tr>
+            <td class="hidden-column">{{ row.loanKey }}</td>
+            <td>{{ row.loanCode }}</td>
+            <td>{{ row.loanDescription }}</td>
+            <td>{{ row.loanAliasName }}</td>
+            <td>{{ row.investorAliasName }}</td>
+            <td>
+              <input
+                type="text"
+                inputmode="numeric"
+                class="ranking-input"
+                [value]="row.ranking > 0 ? row.ranking : ''"
+                (input)="updateRanking(row.loanCode, $any($event.target).value)"
+                placeholder="0"
+              />
+            </td>
+            <td>
+              <select
+                class="dummy-link-select"
+                [ngModel]="row.dummyLoanLink"
+                (ngModelChange)="updateDummyLoanLink(row.loanCode, $event)"
+                [ngModelOptions]="{ standalone: true }"
+              >
+                <option value="">— None —</option>
+                @for (code of loanCodeOptions(); track code) {
+                  <option [value]="code">{{ code }}</option>
+                }
+              </select>
+            </td>
+            <td class="checkbox-cell">
+              <input
+                type="checkbox"
+                class="late-interest-checkbox"
+                [checked]="row.lateInterestApplicable"
+                (change)="updateLateInterestApplicable(row.loanCode, $any($event.target).checked)"
+                [attr.aria-label]="'Late interest applicable for ' + row.loanCode"
+              />
+            </td>
+            <td>
+              <input
+                type="text"
+                class="note-input"
+                [value]="row.lateInterestOffNote"
+                (input)="updateLateInterestOffNote(row.loanCode, $any($event.target).value)"
+                placeholder="Enter note"
+              />
+            </td>
+            <td class="audit-col date-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="audit-col date-cell">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="11" class="empty-row">
+              @if (isLoading()) {
+                Loading loans...
+              } @else if (selectedLoanCodes().length || searchText().trim()) {
+                No loans match the selected loan filters.
+              } @else {
+                No loans match the current filters.
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <div class="pagination-left">
+      <label for="pageSize">Rows per page</label>
+      <select
+        id="pageSize"
+        class="page-size-select"
+        [value]="pageSize()"
+        (change)="updatePageSize($any($event.target).value)"
+      >
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+    </div>
+    <div class="pagination-right">
+      <span class="page-range">{{ pageRangeLabel() }}</span>
+      <button type="button" class="pager-btn" (click)="goToPreviousPage()" [disabled]="currentPage() <= 1">
+        Prev
+      </button>
+      <span class="page-index">Page {{ currentPage() }} / {{ totalPages() }}</span>
+      <button
+        type="button"
+        class="pager-btn"
+        (click)="goToNextPage()"
+        [disabled]="currentPage() >= totalPages()"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving()">
+      @if (isSaving()) { Saving… } @else { Save Changes }
+    </button>
+  </div>
+
+  @if (statusMessage()) {
+    <p class="status">{{ statusMessage() }}</p>
+  }
+</section>

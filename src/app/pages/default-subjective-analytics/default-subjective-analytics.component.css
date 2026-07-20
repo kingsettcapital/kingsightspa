@@ -1,0 +1,145 @@
+/* Page-specific styles — shared layout via .ks-fp in theme/_form-page.scss */
+
+.subjective-page .table-wrap table {
+  table-layout: fixed;
+  min-width: 82rem;
+}
+
+/* Enlarged identity columns */
+.dsa-col--name {
+  width: 17%;
+  min-width: 11rem;
+}
+
+.dsa-col--alias {
+  width: 13%;
+  min-width: 8.5rem;
+}
+
+.dsa-col--default-status,
+.dsa-col--exit-plan {
+  width: 11%;
+}
+
+.dsa-col--maturity-detail {
+  width: 14%;
+}
+
+/* Compact but readable columns */
+.subjective-page .table-wrap .dsa-col--code {
+  width: 6.5%;
+  min-width: 5.75rem;
+  white-space: nowrap;
+}
+
+.subjective-page .table-wrap .dsa-col--maturity {
+  width: 7%;
+  min-width: 7rem;
+  white-space: nowrap;
+}
+
+.subjective-page .table-wrap .dsa-col--exit-date {
+  width: 9%;
+  min-width: 9.75rem;
+}
+
+.subjective-page .table-wrap .dsa-col--audit-by.audit-col,
+.subjective-page .table-wrap thead th.dsa-col--audit-by {
+  width: 8.25rem;
+  max-width: 9.5rem;
+  min-width: 7.75rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.subjective-page .table-wrap .dsa-col--audit-date.audit-col,
+.subjective-page .table-wrap thead th.dsa-col--audit-date {
+  width: 8.5rem;
+  max-width: 9.5rem;
+  min-width: 8rem;
+  white-space: nowrap;
+}
+
+.subjective-page .table-wrap thead th.dsa-col--code,
+.subjective-page .table-wrap thead th.dsa-col--maturity,
+.subjective-page .table-wrap thead th.dsa-col--exit-date {
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.dsa-col--name,
+.dsa-col--alias {
+  word-break: break-word;
+}
+
+.grid-loading {
+  margin: 0 0 0.75rem;
+}
+
+.hidden-column {
+  display: none;
+}
+
+.date-readonly {
+  white-space: nowrap;
+  color: #374151;
+}
+
+.select-input,
+.date-input,
+.text-input {
+  border: 1px solid #d1d5db;
+  height: 2rem;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.88rem;
+  max-width: 100%;
+}
+
+.date-input {
+  min-width: 0;
+  width: 100%;
+  background: #ffffff;
+}
+
+.select-input {
+  min-width: 0;
+  width: 100%;
+}
+
+.text-input {
+  min-width: 0;
+  width: 100%;
+}
+
+.dsa-th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dsa-th-sort:hover {
+  color: #1d4ed8;
+}
+
+.dsa-th-sort__icon {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.status-message {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: #065f46;
+}
+
+.banner-error {
+  margin-bottom: 0.75rem;
+}

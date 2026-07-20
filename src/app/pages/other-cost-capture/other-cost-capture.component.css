@@ -1,0 +1,70 @@
+/* Page-specific styles — shared layout via .ks-fp in theme/_form-page.scss */
+
+.grid-loading {
+  margin: 0 0 0.75rem;
+}
+
+.hidden-column {
+  display: none;
+}
+
+.numeric-col {
+  min-width: 9rem;
+  text-align: right;
+}
+
+.cost-input {
+  width: 100%;
+  min-width: 7rem;
+  border: 1px solid #d1d5db;
+  height: 2rem;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.88rem;
+  background: #ffffff;
+}
+
+.cost-input--numeric {
+  text-align: right;
+}
+
+.date-cell {
+  white-space: nowrap;
+  color: #374151;
+}
+
+.occ-th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.occ-th-sort--numeric {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.occ-th-sort:hover {
+  color: #1d4ed8;
+}
+
+.occ-th-sort__icon {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.status-message {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: #065f46;
+}
+
+.banner-error {
+  margin-bottom: 0.75rem;
+}

@@ -1,0 +1,382 @@
+<section class="ks-fp tax-arrears-page">
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">Capture Tax Arrears from Quarter Tax Memo</h1>
+        <p class="ks-page__subtitle">
+          Enter Annual Tax Arrears outstanding per Loan as reported on each Quarterly Tax Memo by Adding a
+          New Record to the Table.
+        </p>
+      </div>
+
+      <div class="ks-fp__filters-compact">
+        <div class="ks-fp__search-block">
+          <label class="ks-fp__filter-label" for="taxArrearsLoanSearch">Search Loans</label>
+          <ng-select
+            id="taxArrearsLoanSearch"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="aliasSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Search loans..."
+            [ngModel]="selectedLoanCodes()"
+            (ngModelChange)="updateSelectedAliases($event)"
+          ></ng-select>
+          <button
+            type="button"
+            class="ks-fp__clear-selection"
+            (click)="clearSelection()"
+            [disabled]="!selectedLoanCodes().length && !selectedStatuses().length"
+          >
+            Clear Selection
+          </button>
+        </div>
+
+        <div class="ks-fp__status-block">
+          <label class="ks-fp__filter-label" for="taxArrearsStatus">Status</label>
+          <ng-select
+            id="taxArrearsStatus"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="statusSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Select status..."
+            [ngModel]="selectedStatuses()"
+            (ngModelChange)="updateSelectedStatuses($event)"
+          ></ng-select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @if (isLoadingFilters()) {
+    <p class="meta-message">Loading filters...</p>
+  }
+  @if (errorMessage() && !isSaving() && !showAddDialog()) {
+    <p class="error-message banner-error">{{ errorMessage() }}</p>
+  }
+  @if (isLoadingGrid()) {
+    <p class="meta-message grid-loading">Loading tax arrears records...</p>
+  } @else if (statusMessage() && !errorMessage()) {
+    <p class="status-message">{{ statusMessage() }}</p>
+  } @else if (gridLoadMessage() && !errorMessage()) {
+    <p class="status-message">{{ gridLoadMessage() }}</p>
+  }
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="select-col" aria-label="Select row"></th>
+          <th class="hidden-column">Tax Arrear Key</th>
+          <th class="hidden-column">Loan Key</th>
+          @for (column of tableColumns; track column.key) {
+            <th [class.numeric-col]="column.numeric" [class.audit-col]="column.audit">
+              <button
+                type="button"
+                class="ta-th-sort"
+                (click)="toggleSort(column.key)"
+                [attr.aria-label]="'Sort by ' + column.label"
+              >
+                <span>{{ column.label }}</span>
+                <span class="ta-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+              </button>
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of paginatedRows(); track row.stableRowId) {
+          <tr [class.row-selected]="isRowSelected(row)">
+            <td class="select-col">
+              <input
+                type="checkbox"
+                class="row-select-checkbox"
+                [checked]="isRowSelected(row)"
+                (change)="toggleRowSelection(row)"
+                [attr.aria-label]="'Select row ' + row.loanCode"
+              />
+            </td>
+            <td class="hidden-column">{{ row.taxArrearKey }}</td>
+            <td class="hidden-column">{{ row.loanKey }}</td>
+            <td>{{ row.loanCode }}</td>
+            <td>{{ row.loanName }}</td>
+            <td>{{ row.loanAliasName }}</td>
+            <td>
+              <input
+                type="date"
+                class="date-input"
+                [value]="row.taxMemoDate"
+                (input)="updateTaxMemoDate(rowTrackId(row), $any($event.target).value)"
+              />
+            </td>
+            <td class="numeric-col">
+              <input
+                type="text"
+                inputmode="decimal"
+                class="value-input"
+                [value]="currencyInputDisplay(rowTrackId(row), row.taxArrears)"
+                (input)="onTaxArrearsInput(rowTrackId(row), $any($event.target).value)"
+                (blur)="commitTaxArrears(rowTrackId(row), $any($event.target))"
+                placeholder="$0.00"
+              />
+            </td>
+            <td>
+              <select
+                class="select-input"
+                (change)="updateTaxYear(rowTrackId(row), $any($event.target).value)"
+              >
+                <option value="" [selected]="!row.taxYear">—</option>
+                @for (year of taxYearOptions(); track year) {
+                  <option [value]="year" [selected]="row.taxYear === year">{{ year }}</option>
+                }
+              </select>
+            </td>
+            <td>
+              <input
+                type="text"
+                class="text-input"
+                [value]="row.notes"
+                (input)="updateNotes(rowTrackId(row), $any($event.target).value)"
+                placeholder="Notes"
+              />
+            </td>
+            <td class="date-readonly audit-col updated-by-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="date-readonly audit-col">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="12" class="empty-row">
+              @if (isLoadingGrid() || isLoadingFilters()) {
+                Loading tax arrears records...
+              } @else {
+                No tax arrears records match the current filters.
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <div class="pagination-left">
+      <label for="taxArrearsPageSize">Rows per page</label>
+      <select
+        id="taxArrearsPageSize"
+        class="page-size-select"
+        [value]="pageSize()"
+        (change)="updatePageSize($any($event.target).value)"
+      >
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+    </div>
+    <div class="pagination-right">
+      <span class="page-range">{{ pageRangeLabel() }}</span>
+      <button type="button" class="pager-btn" (click)="goToPreviousPage()" [disabled]="currentPage() <= 1">
+        Prev
+      </button>
+      <span class="page-index">Page {{ currentPage() }} / {{ totalPages() }}</span>
+      <button
+        type="button"
+        class="pager-btn"
+        (click)="goToNextPage()"
+        [disabled]="currentPage() >= totalPages()"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="openAddDialog()">Add New Row</button>
+    <button
+      type="button"
+      class="ks-btn ks-btn--accent"
+      (click)="openDuplicateDialog()"
+      [disabled]="!hasSelectedRow()"
+    >
+      Duplicate Row
+    </button>
+    <button
+      type="button"
+      class="ks-btn ks-btn--accent"
+      (click)="saveChanges()"
+      [disabled]="isSaving() || !rows().length"
+    >
+      @if (isSaving()) { Saving… } @else { Save Changes }
+    </button>
+  </div>
+
+  <p class="footnote">
+    Information provided in this table is stored in the data warehouse and used in calculations and loan reporting.
+  </p>
+</section>
+
+@if (showAddDialog()) {
+  <div class="ta-overlay" (click)="closeAddDialog()" role="presentation">
+    <div
+      class="ta-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dlg-add-tax-arrears-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="ta-dialog-header">
+        <h2 id="dlg-add-tax-arrears-title">{{ dialogTitle() }}</h2>
+        <button type="button" class="dlg-close" (click)="closeAddDialog()" aria-label="Close">×</button>
+      </div>
+
+      <div class="ta-dialog-body">
+        @if (dialogMode() === 'duplicate') {
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Loan Alias</label>
+              <div class="readonly-field">{{ modalAliasPreview() }}</div>
+            </div>
+            <div class="form-field">
+              <label>Loan Code</label>
+              <div class="readonly-field">{{ modalLoanPreview().loanCode }}</div>
+            </div>
+            <div class="form-field">
+              <label>Loan Name</label>
+              <div class="readonly-field">{{ modalLoanPreview().loanName }}</div>
+            </div>
+          </div>
+        } @else {
+          <div class="form-field">
+            <label for="newLoanAlias">Loan Alias</label>
+            <select
+              id="newLoanAlias"
+              class="modal-field-control"
+              [value]="newRecord().loanAliasId ?? ''"
+              (change)="updateNewRecordAlias($any($event.target).value)"
+            >
+              <option value="">Select loan alias</option>
+              @for (alias of aliasOptions(); track alias.loanAliasId) {
+                <option [value]="alias.loanAliasId">{{ alias.loanAliasName }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="newLoan">Loan</label>
+            <ng-select
+              id="newLoan"
+              class="ks-ng-select ta-loan-select"
+              [items]="modalLoanOptions()"
+              bindLabel="label"
+              bindValue="loanCode"
+              [clearable]="true"
+              [searchable]="true"
+              [disabled]="!newRecord().loanAliasId"
+              [ngModel]="newRecord().loanCode"
+              (ngModelChange)="updateNewRecordLoan($event ?? '')"
+              [placeholder]="newRecord().loanAliasId ? 'Select loan' : 'Select loan alias first'"
+            ></ng-select>
+            @if (newRecord().loanAliasId && modalLoanOptions().length === 0) {
+              <p class="field-hint">
+                No loans are assigned to this alias. Assign loans on Loan Alias Assignment, then try again.
+              </p>
+            }
+          </div>
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Loan Code</label>
+              <div class="readonly-field">{{ modalLoanPreview().loanCode }}</div>
+            </div>
+            <div class="form-field">
+              <label>Loan Name</label>
+              <div class="readonly-field">{{ modalLoanPreview().loanName }}</div>
+            </div>
+          </div>
+        }
+
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="newTaxMemoDate">Tax Memo Date</label>
+            <input
+              id="newTaxMemoDate"
+              type="date"
+              class="modal-field-control"
+              [value]="newRecord().taxMemoDate"
+              (input)="updateNewRecordField('taxMemoDate', $any($event.target).value)"
+            />
+          </div>
+          <div class="form-field">
+            <label for="newTaxYear">Tax Year</label>
+            <select
+              id="newTaxYear"
+              class="modal-field-control"
+              (change)="updateNewRecordField('taxYear', $any($event.target).value)"
+            >
+              <option value="" [selected]="!newRecord().taxYear.trim()">—</option>
+              @for (year of modalTaxYearOptions(); track year) {
+                <option [value]="year" [selected]="newRecord().taxYear === year">{{ year }}</option>
+              }
+            </select>
+            <p class="field-hint">
+              @if (dialogMode() === 'duplicate') {
+                Pick a tax year not already used for this loan (source year was cleared).
+              } @else {
+                Each loan can have only one tax arrears row per tax year.
+              }
+            </p>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="newTaxArrears">Tax Arrears</label>
+          <input
+            id="newTaxArrears"
+            type="text"
+            inputmode="decimal"
+            class="modal-field-control currency-input"
+            [value]="newRecord().taxArrears"
+            (input)="updateNewRecordField('taxArrears', $any($event.target).value)"
+            placeholder="$0.00"
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="newNotes">Notes</label>
+          <textarea
+            id="newNotes"
+            class="modal-field-control"
+            [value]="newRecord().notes"
+            (input)="updateNewRecordField('notes', $any($event.target).value)"
+            placeholder="Optional notes"
+          ></textarea>
+        </div>
+
+        @if (dialogError()) {
+          <p class="dialog-error">{{ dialogError() }}</p>
+        }
+      </div>
+
+      <div class="ta-dialog-footer">
+        <button type="button" class="ks-btn ks-btn--accent" (click)="closeAddDialog()" [disabled]="isCreating()">
+          Cancel
+        </button>
+        <button type="button" class="ks-btn ks-btn--accent" (click)="createRecord()" [disabled]="isCreating()">
+          @if (isCreating()) { Saving… } @else { Save Row }
+        </button>
+      </div>
+    </div>
+  </div>
+}

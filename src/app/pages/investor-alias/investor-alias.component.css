@@ -1,0 +1,432 @@
+/* ── Page shell (see .ks-fp in theme) ─────────────────────────────────────── */
+
+.ia-subtitle {
+  max-width: 52rem;
+  line-height: 1.55;
+}
+
+.ia-subtitle__link {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.ia-subtitle__link:hover {
+  color: #1d4ed8;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+.ia-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Search */
+.ia-search-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  max-width: 26rem;
+}
+
+.ia-search-icon {
+  position: absolute;
+  left: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  display: flex;
+  pointer-events: none;
+}
+
+.ia-search-input {
+  width: 100%;
+  height: 2.25rem;
+  padding: 0 0.75rem 0 2.15rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #111827;
+  background: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.ia-search-input::placeholder {
+  color: #9ca3af;
+}
+
+.ia-search-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.12);
+}
+
+/* ── Shared button styles ────────────────────────────────────────────────── */
+.ks-btn.btn-danger,
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  height: 2.25rem;
+  padding: 0 1rem;
+  background: #dc2626;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.btn-danger:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ── Status / error messages (see .ks-fp in theme) ───────────────────────── */
+
+/* ── Loading ─────────────────────────────────────────────────────────────── */
+.ia-loading {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* ── Table wrapper ───────────────────────────────────────────────────────── */
+.ia-table-wrap {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+  overflow-x: auto;
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+.ia-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 52rem;
+  font-size: 0.875rem;
+}
+
+.ia-table thead {
+  background: #f3f4f6;
+}
+
+.ia-table thead th {
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.ia-table thead th.col-actions {
+  text-align: right;
+}
+
+.ia-th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ia-th-sort:hover {
+  color: #1d4ed8;
+}
+
+.ia-th-sort__icon {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.ia-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.1s;
+}
+
+.ia-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.ia-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.ia-table tbody td {
+  padding: 0.7rem 1rem;
+  color: #111827;
+  vertical-align: middle;
+}
+
+.ia-table .col-id {
+  color: #6b7280;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ia-table .col-name {
+  font-weight: 500;
+}
+
+.ia-table .col-actions {
+  text-align: right;
+}
+
+.td-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #9ca3af;
+}
+
+/* ── Row action buttons ──────────────────────────────────────────────────── */
+.row-actions {
+  display: inline-flex;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 5px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  color: #374151;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.btn-icon:hover {
+  border-color: #d1d5db;
+  background: #f3f4f6;
+}
+
+.btn-icon--delete:hover {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ── Pagination ──────────────────────────────────────────────────────────── */
+.ia-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.ia-page-range {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.ia-page-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.pager-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 2rem;
+  min-width: 2rem;
+  padding: 0 0.55rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.pager-btn:hover:not(:disabled):not(.pager-btn--active) {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.pager-btn--active {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.pager-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Modal overlay ───────────────────────────────────────────────────────── */
+.ia-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+/* ── Dialog card ─────────────────────────────────────────────────────────── */
+.ia-dialog {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.18);
+  width: 100%;
+  max-width: 30rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: dlg-in 0.18s ease-out;
+}
+
+.ia-dialog--sm {
+  max-width: 24rem;
+}
+
+@keyframes dlg-in {
+  from { opacity: 0; transform: translateY(-10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.ia-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.15rem 1.35rem 0.85rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.ia-dialog-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.dlg-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.dlg-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.ia-dialog-body {
+  padding: 1.25rem 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dlg-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.1rem;
+}
+
+.dlg-input {
+  width: 100%;
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #111827;
+  background: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.dlg-input::placeholder {
+  color: #9ca3af;
+}
+
+.dlg-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.12);
+}
+
+.dlg-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #dc2626;
+}
+
+.dlg-confirm-text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.55;
+}
+
+.ia-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.85rem 1.35rem 1.15rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .ia-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ia-search-wrap {
+    max-width: 100%;
+  }
+
+  .ia-toolbar .ks-btn {
+    justify-content: center;
+  }
+
+  .ia-pagination {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

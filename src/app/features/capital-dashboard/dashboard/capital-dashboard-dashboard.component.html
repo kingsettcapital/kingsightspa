@@ -1,0 +1,87 @@
+<section class="cdt-dashboard" aria-label="Dashboard">
+  <app-dashboard-header [lastUpdated]="dashboardLastUpdated()" />
+
+  <!-- @if (managePanelOpen()) {
+    <app-manage-widgets-panel
+      id="cdt-manage-widgets-panel"
+      [widgets]="availableWidgets()"
+      [selectedIds]="selectedWidgetIds()"
+      [maxSelection]="maxWidgets"
+      (selectionChange)="updateSelectedWidgets($event)"
+    />
+  } -->
+
+  @if (widgetsError()) {
+    <p class="cdt-dashboard__error" role="alert">{{ widgetsError() }}</p>
+  }
+
+  @if (widgetsLoading()) {
+    <div class="cdt-dashboard__loading" role="status" aria-live="polite">
+      <div class="cdt-dashboard__spinner" aria-hidden="true"></div>
+      <p class="cdt-dashboard__loading-title">Loading dashboard</p>
+      <p class="cdt-dashboard__loading-message">Fetching widget data…</p>
+    </div>
+  } @else if (visibleWidgetIds().length) {
+    <div class="cdt-dashboard__widgets">
+      @for (widgetId of visibleWidgetIds(); track widgetId) {
+        <div class="cdt-dashboard__widget" [class]="widgetCssClass(widgetId)">
+          <app-dashboard-widget-shell>
+            @switch (widgetId) {
+              @case ('portfolio-value') {
+                <app-portfolio-value-widget [metric]="portfolioValueMetric()" />
+              }
+              @case ('ytd-returns') {
+                <app-ytd-returns-widget [metric]="ytdReturnsMetric()" />
+              }
+              @case ('total-aum') {
+                <app-dashboard-metric-widget
+                  label="Total AUM"
+                  [value]="totalAumMetric()?.value ?? '—'"
+                  [change]="totalAumMetric()?.change ?? ''"
+                  [changePositive]="totalAumMetric()?.changePositive ?? true"
+                  [hint]="totalAumMetric()?.hint ?? 'Assets Under Management'"
+                  variant="blue-light"
+                />
+              }
+              @case ('investor-count') {
+                <app-dashboard-metric-widget
+                  label="Total Investors"
+                  [value]="investorCountMetric()?.value ?? '—'"
+                  [change]="investorCountMetric()?.change ?? ''"
+                  [changePositive]="investorCountMetric()?.changePositive ?? true"
+                  [hint]="investorCountMetric()?.hint ?? 'Active LPs'"
+                  variant="slate"
+                />
+              }
+              @case ('asset-count') {
+                <app-total-assets-widget [metric]="assetCountMetric()" />
+              }
+              @case ('performance-chart') {
+                <app-portfolio-performance-chart [chartData]="widgetData()?.performanceChart ?? null" />
+              }
+              @case ('asset-allocation') {
+                <app-asset-allocation-chart [chartData]="widgetData()?.assetAllocation ?? null" />
+              }
+              @case ('fund-returns') {
+                <app-quarterly-returns-chart [chartData]="widgetData()?.fundReturns ?? null" />
+              }
+              @case ('investor-growth') {
+                <app-investor-growth-chart [chartData]="widgetData()?.investorGrowth ?? null" />
+              }
+              @case ('geographic-distribution') {
+                <app-geographic-distribution-chart
+                  [chartData]="widgetData()?.geographicDistribution ?? null"
+                />
+              }
+            }
+          </app-dashboard-widget-shell>
+        </div>
+      }
+    </div>
+  }
+
+  <div class="cdt-dashboard__tables">
+    <app-active-funds-table />
+    <!-- <app-active-assets-table /> -->
+  </div>
+</section>

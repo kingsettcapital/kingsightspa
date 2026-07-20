@@ -1,0 +1,1351 @@
+@let current = block();
+
+@if (isDocumentsVariant() && current.kind === 'document-list') {
+  <section
+    class="inv-detail-documents"
+    [attr.aria-labelledby]="'inv-detail-block-' + current.id"
+  >
+    <div class="inv-detail-documents__card" [id]="'inv-detail-block-body-' + current.id">
+      <header class="inv-detail-block__header inv-detail-documents__header">
+        <div class="inv-detail-block__heading">
+          <h2 class="inv-detail-block__title" [id]="'inv-detail-block-' + current.id">
+            {{ current.title }}
+          </h2>
+          @if (current.subtitle) {
+            <p class="inv-detail-block__subtitle">{{ current.subtitle }}</p>
+          }
+        </div>
+        @if (current.collapsible) {
+          <button
+            type="button"
+            class="inv-detail-block__toggle"
+            (click)="toggleExpanded()"
+            [attr.aria-expanded]="isExpanded()"
+            [attr.aria-controls]="'inv-detail-block-body-' + current.id"
+          >
+            <mat-icon aria-hidden="true">{{ isExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        }
+      </header>
+
+      @if (isExpanded()) {
+      <div class="inv-detail-documents__toolbar-row">
+        <div class="inv-detail-documents__toolbar-main">
+          <label class="inv-detail-block__search inv-detail-block__search--pill inv-detail-block__search--documents">
+            <mat-icon aria-hidden="true">search</mat-icon>
+            <input
+              type="search"
+              placeholder="Search documents..."
+              [ngModel]="searchQuery()"
+              (ngModelChange)="searchQuery.set($event)"
+              aria-label="Search documents"
+            />
+          </label>
+          <button
+            type="button"
+            class="cdt-btn cdt-btn--filters inv-detail-block__filter-btn"
+            [class.cdt-btn--filters-active]="documentsFiltersActive()"
+            (click)="toggleFiltersPanel()"
+            [attr.aria-expanded]="filtersPanelVisible()"
+          >
+            <mat-icon aria-hidden="true">filter_alt</mat-icon>
+            <span>Filter</span>
+            @if (documentActiveFilterCount() > 0) {
+              <span class="cdt-btn__badge">{{ documentActiveFilterCount() }}</span>
+            }
+          </button>
+        </div>
+        <span class="inv-detail-block__count">{{ filteredDocuments().length }} documents</span>
+      </div>
+
+      @if (filtersPanelVisible()) {
+        <div class="inv-detail-documents__filters">
+          <div class="cdt-filters-panel">
+            <div class="cdt-filters-bar">
+              <label class="cdt-filters-bar__field">
+                <span class="cdt-filters-bar__label">DOCUMENT TYPE</span>
+                <div class="cdt-filters-bar__select">
+                  <select
+                    [ngModel]="documentTypeFilter()"
+                    (ngModelChange)="documentTypeFilter.set($event)"
+                    aria-label="Document type"
+                  >
+                    @for (option of documentTypeOptions; track option) {
+                      <option [value]="option === 'All Types' ? 'all' : option">{{ option }}</option>
+                    }
+                  </select>
+                  <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+                </div>
+              </label>
+              @if (documentActiveFilterCount() > 0) {
+                <button
+                  type="button"
+                  class="cdt-filters-bar__clear"
+                  (click)="clearDocumentFilters()"
+                >
+                  × Clear
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <ul class="inv-detail-block__documents">
+        @for (doc of filteredDocuments(); track doc.name) {
+          <li class="inv-detail-block__document">
+            <span class="inv-detail-block__document-icon" aria-hidden="true">
+              <mat-icon>description</mat-icon>
+            </span>
+            <div class="inv-detail-block__document-body">
+              <p class="inv-detail-block__document-name">{{ doc.name }}</p>
+              <p class="inv-detail-block__document-meta">
+                {{ doc.category }} · {{ doc.date }} · {{ doc.size }}
+              </p>
+            </div>
+            <button type="button" class="inv-detail-block__document-download" aria-label="Download document">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 15V3" />
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <path d="m7 10 5 5 5-5" />
+              </svg>
+            </button>
+          </li>
+        }
+      </ul>
+      }
+    </div>
+  </section>
+} @else {
+  <section
+    class="inv-detail-block"
+    [class.inv-detail-block--investments]="isInvestmentsVariant()"
+    [class.inv-detail-block--fund-holdings]="isFundHoldingsVariant()"
+    [class.inv-detail-block--underlying-investments]="isUnderlyingInvestmentsVariant()"
+    [class.inv-detail-block--communications]="isCommunicationsVariant()"
+    [class.inv-detail-block--asset-transactions]="isAssetTransactionsVariant()"
+    [class.inv-detail-block--performance]="isPerformanceKpiRow()"
+    [class.inv-detail-block--esg]="isEsgBlock()"
+    [class.inv-detail-block--debt]="isDebtBlock()"
+    [class.inv-detail-block--leasing]="isLeasingBlock()"
+    [class.inv-detail-block--risk]="isRiskBlock()"
+    [class.inv-detail-block--entity-overview]="isEntityOverviewBlock()"
+    [class.inv-detail-block--capital-account]="isCapitalAccountBlock()"
+    [class.inv-detail-block--transactions]="isTransactionHubBlock()"
+    [class.inv-detail-block--fund-transactions]="isFundTransactionHubBlock()"
+    [attr.aria-labelledby]="'inv-detail-block-' + current.id"
+  >
+    <header
+      class="inv-detail-block__header"
+      [class.inv-detail-block__header--investments]="isInvestmentsVariant()"
+      [class.inv-detail-block__header--fund-holdings]="isFundHoldingsTableVariant()"
+      [class.inv-detail-block__header--entity-overview]="isEntityOverviewBlock()"
+      [class.inv-detail-block__header--transactions]="isTransactionHubBlock()"
+      [class.inv-detail-block__header--stacked]="isTransactionHubBlock()"
+    >
+      <div class="inv-detail-block__header-top">
+        <div class="inv-detail-block__heading">
+          <h2 class="inv-detail-block__title" [id]="'inv-detail-block-' + current.id">
+            {{ current.title }}
+          </h2>
+          @if (current.kind === 'table' && current.subtitle) {
+            <p class="inv-detail-block__subtitle">
+              {{ current.subtitle }}
+              @if (current.subtitleAccent) {
+                <span class="inv-detail-block__subtitle-accent">{{ current.subtitleAccent }}</span>
+              }
+            </p>
+          }
+        </div>
+
+        <div class="inv-detail-block__header-actions">
+        @if (current.kind === 'transaction-hub') {
+          <div class="inv-detail-transactions__toolbar-group">
+            <div class="cdt-toggle cdt-toggle--compact" role="group" aria-label="Transaction period">
+              <button
+                type="button"
+                class="cdt-toggle__btn"
+                [class.cdt-toggle__btn--active]="hubTimeframe() === 'ltd'"
+                (click)="hubTimeframeChange.emit('ltd')"
+              >
+                ITD
+              </button>
+              <button
+                type="button"
+                class="cdt-toggle__btn"
+                [class.cdt-toggle__btn--active]="hubTimeframe() === 'quarterly'"
+                (click)="hubTimeframeChange.emit('quarterly')"
+              >
+                Quarterly
+              </button>
+              @if (hubShowDailyTimeframe()) {
+                <button
+                  type="button"
+                  class="cdt-toggle__btn"
+                  [class.cdt-toggle__btn--active]="hubTimeframe() === 'daily'"
+                  (click)="hubTimeframeChange.emit('daily')"
+                >
+                  Daily
+                </button>
+              }
+            </div>
+
+            @if (hubTimeframe() === 'quarterly') {
+              <div class="inv-detail-transactions__quarter-toolbar">
+                <mat-icon class="inv-detail-transactions__quarter-calendar" aria-hidden="true">calendar_today</mat-icon>
+                <div class="inv-detail-transactions__quarter-segments" role="group" aria-label="Quarter">
+                  <button
+                    type="button"
+                    class="inv-detail-transactions__quarter-segment"
+                    [class.inv-detail-transactions__quarter-segment--active]="hubQuarterScope() === 'all'"
+                    (click)="hubQuarterScopeChange.emit('all')"
+                  >
+                    All
+                  </button>
+                  @for (option of hubAvailableQuarters(); track option) {
+                    <button
+                      type="button"
+                      class="inv-detail-transactions__quarter-segment"
+                      [class.inv-detail-transactions__quarter-segment--active]="hubQuarterScope() === option"
+                      (click)="hubQuarterScopeChange.emit(option)"
+                    >
+                      Q{{ option }}
+                    </button>
+                  }
+                </div>
+                <label class="inv-detail-transactions__year-select">
+                  <select [ngModel]="hubYear()" (ngModelChange)="hubYearChange.emit(+$event)" aria-label="Year">
+                    @for (option of hubAvailableYears(); track option) {
+                      <option [ngValue]="option">{{ option }}</option>
+                    }
+                  </select>
+                  <mat-icon class="inv-detail-transactions__year-chevron" aria-hidden="true">expand_more</mat-icon>
+                </label>
+              </div>
+            }
+          </div>
+
+          <label class="inv-detail-block__search inv-detail-block__search--pill inv-detail-block__search--white">
+            <mat-icon aria-hidden="true">search</mat-icon>
+            <input
+              type="search"
+              placeholder="Search..."
+              [ngModel]="searchQuery()"
+              (ngModelChange)="onTransactionSearchInput($event)"
+              aria-label="Search transactions"
+            />
+          </label>
+          <button
+            type="button"
+            class="cdt-btn cdt-btn--filters inv-detail-block__filter-btn"
+            [class.cdt-btn--filters-active]="hubFiltersActive()"
+            (click)="toggleHubFiltersPanel()"
+            [attr.aria-expanded]="hubFiltersPanelVisible()"
+          >
+            <mat-icon aria-hidden="true">filter_alt</mat-icon>
+            <span>Filter</span>
+            @if (hubActiveFilterCount() > 0) {
+              <span class="cdt-btn__badge">{{ hubActiveFilterCount() }}</span>
+            }
+          </button>
+        }
+        @if (current.kind === 'table' && current.showToolbar) {
+          <label class="inv-detail-block__search inv-detail-block__search--pill inv-detail-block__search--white">
+            <mat-icon aria-hidden="true">search</mat-icon>
+            <input
+              type="search"
+              placeholder="Search..."
+              [ngModel]="searchQuery()"
+              (ngModelChange)="onTransactionSearchInput($event)"
+              aria-label="Search table"
+            />
+          </label>
+        }
+        @if (current.collapsible) {
+          <button
+            type="button"
+            class="inv-detail-block__toggle"
+            (click)="toggleExpanded()"
+            [attr.aria-expanded]="isExpanded()"
+            [attr.aria-controls]="'inv-detail-block-body-' + current.id"
+          >
+            <mat-icon aria-hidden="true">{{ isExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        }
+        </div>
+      </div>
+
+      @if (current.kind === 'transaction-hub') {
+        <div class="inv-detail-transactions__header-meta">
+          <p class="inv-detail-transactions__period inv-detail-transactions__period--header">
+            Period:
+            <span class="inv-detail-transactions__period-badge">{{ current.periodSummary }}</span>
+            <span class="inv-detail-transactions__meta-sep">·</span>
+            {{ current.recordCount }} records
+          </p>
+        </div>
+      }
+    </header>
+
+    @if (isExpanded()) {
+      <div class="inv-detail-block__body" [id]="'inv-detail-block-body-' + current.id">
+        @switch (current.kind) {
+          @case ('transaction-hub') {
+            <div class="inv-detail-transactions">
+              @if (hubFiltersPanelVisible()) {
+                <div class="inv-detail-transactions__filters">
+                  <div class="cdt-filters-panel">
+                    <div class="cdt-filters-bar">
+                      <label class="cdt-filters-bar__field">
+                        <span class="cdt-filters-bar__label">{{
+                          current.id === 'fund-transactions' ? 'INVESTOR NAME' : 'FUND NAME'
+                        }}</span>
+                        <div class="cdt-filters-bar__select">
+                          <select
+                            [ngModel]="hubFundFilterDraft()"
+                            (ngModelChange)="hubFundFilterDraft.set($event)"
+                            [attr.aria-label]="current.id === 'fund-transactions' ? 'Investor NAME' : 'Fund NAME'"
+                          >
+                            <option value="all">{{
+                              current.id === 'fund-transactions' ? 'All Investors' : 'All Funds'
+                            }}</option>
+                            @for (option of current.fundCodeOptions; track option.value) {
+                              <option [value]="option.value">{{ option.label }}</option>
+                            }
+                          </select>
+                          <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+                        </div>
+                      </label>
+                      <button type="button" class="cdt-filters-bar__apply" (click)="applyHubFilters()">
+                        Apply
+                      </button>
+                      @if (hubDraftFilterCount() > 0 || hubActiveFilterCount() > 0) {
+                        <button type="button" class="cdt-filters-bar__clear" (click)="clearHubFilters()">
+                          × Clear
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <div class="inv-detail-transactions__layout">
+                <nav class="inv-detail-transactions__categories" aria-label="Transaction categories">
+                  @for (category of current.categories; track category.id) {
+                    <button
+                      type="button"
+                      class="inv-detail-transactions__category"
+                      [class.inv-detail-transactions__category--active]="category.id === current.activeCategoryId"
+                      (click)="transactionHubCategoryChange.emit(category.id)"
+                    >
+                      <span>{{ category.label }}</span>
+                      <span class="inv-detail-transactions__category-count">{{ category.count }}</span>
+                    </button>
+                  }
+                </nav>
+
+                <div class="inv-detail-transactions__table-panel">
+                  @if (current.subtitle) {
+                    <p class="inv-detail-transactions__category-subtitle">
+                      {{ current.subtitle }}
+                      @if (current.subtitleAccent) {
+                        <span class="inv-detail-block__subtitle-accent">{{ current.subtitleAccent }}</span>
+                      }
+                    </p>
+                  }
+                  <div
+                    class="inv-detail-table-wrap inv-detail-table-wrap--transactions"
+                    [class.inv-detail-table-wrap--net-assets]="current.activeCategoryId === 'net-assets'"
+                    [class.inv-detail-table-wrap--loading]="tableLoading()"
+                  >
+                    @if (tableLoading()) {
+                      <div class="inv-detail-block__fund-holdings-overlay" role="status" aria-live="polite">
+                        <div class="inv-detail-table__spinner" aria-hidden="true"></div>
+                        <p>{{ transactionHubLoadingMessage() }}</p>
+                      </div>
+                    }
+                    @if (!tableLoading() && !current.rows.length) {
+                      <div class="inv-detail-block__fund-holdings-empty" role="status">
+                        <mat-icon aria-hidden="true">receipt_long</mat-icon>
+                        <p>{{ emptyStateMessage() }}</p>
+                      </div>
+                    } @else {
+                    <table class="inv-detail-table inv-detail-table--data-grid inv-detail-table--transactions">
+                      <thead>
+                        <tr>
+                          @for (column of current.columns; track column.key) {
+                            <th [class]="transactionHeadCellClass(column)">
+                              @if (column.sortBy) {
+                                <button
+                                  type="button"
+                                  class="inv-detail-table__sort"
+                                  [class.inv-detail-table__sort--active]="isSortActive(column)"
+                                  [class.inv-detail-table__sort--right]="column.align === 'right'"
+                                  [class.inv-detail-table__sort--center]="column.align === 'center'"
+                                  (click)="toggleSort(column)"
+                                >
+                                  <span class="inv-detail-table__sort-label">{{ column.label }}</span>
+                                  @if (sortIcon(column); as icon) {
+                                    <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+                                  }
+                                </button>
+                              } @else {
+                                {{ column.label }}
+                              }
+                            </th>
+                          }
+                        </tr>
+                      </thead>
+                      <tbody>
+                          @for (row of current.rows; track $index) {
+                            <tr>
+                              @for (column of current.columns; track column.key) {
+                                <td [class]="cellClass(column, row)">
+                                  @switch (column.type) {
+                                    @case ('amount') {
+                                      @if (hubShowAmount(cellValue(row, column.key))) {
+                                        {{ displayAmountValue(cellValue(row, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                                      } @else {
+                                        <span class="inv-detail-table__empty">—</span>
+                                      }
+                                    }
+                                    @case ('number') {
+                                      {{ formatNumber(cellValue(row, column.key)) }}
+                                    }
+                                    @case ('percent') {
+                                      {{ formatPercent(cellValue(row, column.key)) }}
+                                    }
+                                    @case ('transaction-fund') {
+                                      <span class="inv-detail-table__transaction-fund">
+                                        <span class="inv-detail-table__transaction-fund-code">{{
+                                          cellValue(row, column.key) ?? '—'
+                                        }}</span>
+                                        @if (cellValue(row, 'fundName'); as fundName) {
+                                          <span class="inv-detail-table__transaction-fund-name">{{ fundName }}</span>
+                                        }
+                                      </span>
+                                    }
+                                    @case ('transaction-investor') {
+                                      <span class="cdt-fund-cell">
+                                        <span>
+                                          <span class="cdt-fund-cell__name">{{
+                                            cellValue(row, column.key) ?? '—'
+                                          }}</span>
+                                          @let investorType = cellValue(row, 'type');
+                                          @if (investorType && investorType !== '—') {
+                                            <span class="cdt-fund-cell__type">{{ investorType }}</span>
+                                          }
+                                        </span>
+                                      </span>
+                                    }
+                                    @case ('transaction-type') {
+                                      @if (transactionTypeClass(cellValue(row, column.key))) {
+                                        <span [class]="transactionTypeClass(cellValue(row, column.key))">
+                                          {{ cellValue(row, column.key) }}
+                                        </span>
+                                      } @else {
+                                        <span class="inv-detail-table__empty">—</span>
+                                      }
+                                    }
+                                    @default {
+                                      {{ cellValue(row, column.key) ?? '—' }}
+                                    }
+                                  }
+                                </td>
+                              }
+                            </tr>
+                          }
+                      </tbody>
+                      @if (current.totals && current.rows.length) {
+                        <tfoot>
+                          <tr class="inv-detail-table__total-row">
+                            @for (column of current.columns; track column.key) {
+                              <td [class]="cellClass(column, current.totals)">
+                                @switch (column.type) {
+                                  @case ('amount') {
+                                    @if (showAmount(cellValue(current.totals, column.key))) {
+                                      {{ amountValue(cellValue(current.totals, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                                    } @else {
+                                      <span class="inv-detail-table__empty">—</span>
+                                    }
+                                  }
+                                  @case ('number') {
+                                    {{ formatNumber(cellValue(current.totals, column.key)) }}
+                                  }
+                                  @case ('percent') {
+                                    {{ formatPercent(cellValue(current.totals, column.key)) }}
+                                  }
+                                  @case ('transaction-fund') {
+                                    {{ cellValue(current.totals, column.key) ?? '—' }}
+                                  }
+                                  @case ('transaction-investor') {
+                                    {{ cellValue(current.totals, column.key) ?? '—' }}
+                                  }
+                                  @default {
+                                    {{ cellValue(current.totals, column.key) ?? '—' }}
+                                  }
+                                }
+                              </td>
+                            }
+                          </tr>
+                        </tfoot>
+                      }
+                    </table>
+                    }
+                  </div>
+                  @if (current.pagination) {
+                    <footer class="inv-detail-transactions__pagination">
+                      <p class="inv-detail-block__table-summary">{{ transactionHubSummary() }}</p>
+                      <nav class="inv-detail-block__pagination" aria-label="Transactions pagination">
+                        <button
+                          type="button"
+                          class="inv-detail-block__page-btn"
+                          [disabled]="!current.pagination.hasPreviousPage || tableLoading()"
+                          (click)="transactionHubPageChange.emit(current.pagination.page - 1)"
+                          aria-label="Previous page"
+                        >
+                          <mat-icon aria-hidden="true">chevron_left</mat-icon>
+                        </button>
+                        @for (page of transactionHubPageNumbers(); track page) {
+                          <button
+                            type="button"
+                            class="inv-detail-block__page-btn"
+                            [class.inv-detail-block__page-btn--active]="page === current.pagination.page"
+                            [disabled]="tableLoading()"
+                            (click)="transactionHubPageChange.emit(page)"
+                          >
+                            {{ page }}
+                          </button>
+                        }
+                        <button
+                          type="button"
+                          class="inv-detail-block__page-btn"
+                          [disabled]="!current.pagination.hasNextPage || tableLoading()"
+                          (click)="transactionHubPageChange.emit(current.pagination.page + 1)"
+                          aria-label="Next page"
+                        >
+                          <mat-icon aria-hidden="true">chevron_right</mat-icon>
+                        </button>
+                      </nav>
+                    </footer>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+
+          @case ('table') {
+            @if (isFundHoldingsVariant()) {
+              <div class="inv-detail-block__fund-holdings-panel">
+                <div
+                  class="inv-detail-table-wrap inv-detail-table-wrap--fund-holdings"
+                  [class.inv-detail-table-wrap--loading]="tableLoading()"
+                >
+                  @if (tableLoading() && !filteredTableRows().length) {
+                    <div
+                      class="inv-detail-block__fund-holdings-empty inv-detail-block__fund-holdings-loading"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      <div class="inv-detail-table__spinner" aria-hidden="true"></div>
+                      <p>{{ pagedTableLoadingMessage() }}</p>
+                    </div>
+                  } @else if (!tableLoading() && !filteredTableRows().length) {
+                    <div class="inv-detail-block__fund-holdings-empty" role="status">
+                      <mat-icon aria-hidden="true">inventory_2</mat-icon>
+                      <p>{{ emptyStateMessage() }}</p>
+                    </div>
+                  } @else {
+                    @if (tableLoading()) {
+                      <div class="inv-detail-block__fund-holdings-overlay" role="status" aria-live="polite">
+                        <div class="inv-detail-table__spinner" aria-hidden="true"></div>
+                        <p>{{ pagedTableLoadingMessage() }}</p>
+                      </div>
+                    }
+                    <table class="cdt-table inv-detail-block__fund-holdings-grid">
+                      <thead>
+                        <tr>
+                          @for (column of current.columns; track column.key) {
+                            <th [class]="fundHoldingsHeadClass(column)">
+                              @if (column.sortBy) {
+                                <button
+                                  type="button"
+                                  class="cdt-table__sort"
+                                  [class.cdt-table__sort--active]="isSortActive(column)"
+                                  [class.cdt-table__sort--right]="column.align === 'right'"
+                                  (click)="toggleSort(column); $event.stopPropagation()"
+                                >
+                                  <span class="cdt-table__sort-label">{{ column.label }}</span>
+                                  @if (sortIcon(column); as icon) {
+                                    <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+                                  }
+                                </button>
+                              } @else {
+                                {{ column.label }}
+                              }
+                            </th>
+                          }
+                          @if (fundHoldingsShowsRowDrillDown()) {
+                            <th class="cdt-table__chevron-col" aria-hidden="true"></th>
+                          }
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of filteredTableRows(); track $index) {
+                          <tr
+                            class="cdt-table__row"
+                            [class.cdt-table__row--clickable]="canDrillDownFundHoldingsRow(row)"
+                            (click)="canDrillDownFundHoldingsRow(row) && onFundExposureRowClick(row, $index)"
+                          >
+                            @for (column of current.columns; track column.key) {
+                              @if (column.type === 'amount') {
+                                <td [class]="fundHoldingsNumClass(column)">
+                                  @if (showAmount(cellValue(row, column.key))) {
+                                    {{ displayAmountValue(cellValue(row, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                                  } @else {
+                                    <span class="cdt-table__muted">—</span>
+                                  }
+                                </td>
+                              } @else if (column.key === 'fund') {
+                                <td>
+                                  <span class="cdt-fund-cell__name">{{ cellValue(row, column.key) ?? '—' }}</span>
+                                  @if (row['fundType']; as fundType) {
+                                    <span class="cdt-fund-cell__type">{{ fundType }}</span>
+                                  }
+                                </td>
+                              } @else {
+                                <td>{{ cellValue(row, column.key) ?? '—' }}</td>
+                              }
+                            }
+                            @if (fundHoldingsShowsRowDrillDown()) {
+                              <td class="cdt-table__chevron-col">
+                                @if (canDrillDownFundHoldingsRow(row)) {
+                                  <mat-icon aria-hidden="true">chevron_right</mat-icon>
+                                }
+                              </td>
+                            }
+                          </tr>
+                        }
+                      </tbody>
+                      @if (current.totals && filteredTableRows().length) {
+                        <tfoot>
+                          <tr class="cdt-table__total-row">
+                            @for (column of current.columns; track column.key) {
+                              @if (column.type === 'amount') {
+                                <td [class]="fundHoldingsNumClass(column)">
+                                  @if (showAmount(cellValue(current.totals, column.key))) {
+                                    {{ amountValue(cellValue(current.totals, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                                  } @else {
+                                    <span class="cdt-table__muted">—</span>
+                                  }
+                                </td>
+                              } @else if ($first) {
+                                <td>{{ cellValue(current.totals, column.key) ?? 'Total' }}</td>
+                              } @else {
+                                <td>{{ cellValue(current.totals, column.key) ?? '—' }}</td>
+                              }
+                            }
+                            @if (fundHoldingsShowsRowDrillDown()) {
+                              <td class="cdt-table__chevron-col" aria-hidden="true"></td>
+                            }
+                          </tr>
+                        </tfoot>
+                      }
+                    </table>
+                  }
+                </div>
+              </div>
+            } @else if (isUnderlyingInvestmentsVariant()) {
+              <div class="inv-detail-block__fund-holdings-panel">
+                <div
+                  class="inv-detail-table-wrap inv-detail-table-wrap--fund-holdings"
+                  [class.inv-detail-table-wrap--loading]="tableLoading()"
+                >
+                  @if (tableLoading() && !filteredTableRows().length) {
+                    <div
+                      class="inv-detail-block__fund-holdings-empty inv-detail-block__fund-holdings-loading"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      <div class="inv-detail-table__spinner" aria-hidden="true"></div>
+                      <p>{{ pagedTableLoadingMessage() }}</p>
+                    </div>
+                  } @else if (!tableLoading() && !filteredTableRows().length) {
+                    <div class="inv-detail-block__fund-holdings-empty" role="status">
+                      <mat-icon aria-hidden="true">inventory_2</mat-icon>
+                      <p>{{ emptyStateMessage() }}</p>
+                    </div>
+                  } @else {
+                    @if (tableLoading()) {
+                      <div class="inv-detail-block__fund-holdings-overlay" role="status" aria-live="polite">
+                        <div class="inv-detail-table__spinner" aria-hidden="true"></div>
+                        <p>{{ pagedTableLoadingMessage() }}</p>
+                      </div>
+                    }
+                    <table
+                      class="inv-detail-table inv-detail-table--data-grid inv-detail-table--underlying-investments"
+                    >
+                      <thead>
+                        <tr>
+                          @for (column of current.columns; track column.key) {
+                            <th [class]="transactionHeadCellClass(column)">
+                              @if (column.sortBy) {
+                                <button
+                                  type="button"
+                                  class="inv-detail-table__sort"
+                                  [class.inv-detail-table__sort--active]="isSortActive(column)"
+                                  [class.inv-detail-table__sort--right]="column.align === 'right'"
+                                  [class.inv-detail-table__sort--center]="column.align === 'center'"
+                                  (click)="toggleSort(column)"
+                                >
+                                  <span class="inv-detail-table__sort-label">{{ column.label }}</span>
+                                  @if (sortIcon(column); as icon) {
+                                    <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+                                  }
+                                </button>
+                              } @else {
+                                {{ column.label }}
+                              }
+                            </th>
+                          }
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of filteredTableRows(); track $index) {
+                          <tr>
+                            @for (column of current.columns; track column.key) {
+                              <td [class]="cellClass(column, row)">
+                                @switch (column.type) {
+                                  @case ('amount') {
+                                    @if (showAmount(cellValue(row, column.key))) {
+                                      <span [class]="amountCellClass(column)">
+                                        {{ displayAmountValue(cellValue(row, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                                      </span>
+                                    } @else {
+                                      <span class="inv-detail-table__empty">—</span>
+                                    }
+                                  }
+                                  @case ('number') {
+                                    {{ formatNumber(cellValue(row, column.key)) }}
+                                  }
+                                  @case ('percent') {
+                                    {{ formatPercent(cellValue(row, column.key)) }}
+                                  }
+                                  @case ('status') {
+                                    <span [class]="statusClass(cellValue(row, column.key))">{{ cellValue(row, column.key) ?? '—' }}</span>
+                                  }
+                                  @default {
+                                    {{ cellValue(row, column.key) ?? '—' }}
+                                  }
+                                }
+                              </td>
+                            }
+                          </tr>
+                        }
+                      </tbody>
+                      @if (current.totals && filteredTableRows().length) {
+                        <tfoot>
+                          <tr class="inv-detail-table__total-row">
+                            @for (column of current.columns; track column.key) {
+                              <td [class]="cellClass(column, current.totals)">
+                                @switch (column.type) {
+                                  @case ('amount') {
+                                    @if (showAmount(cellValue(current.totals, column.key))) {
+                                      <span [class]="amountCellClass(column)">
+                                        {{ amountValue(cellValue(current.totals, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                                      </span>
+                                    } @else {
+                                      <span class="inv-detail-table__empty">—</span>
+                                    }
+                                  }
+                                  @case ('number') {
+                                    {{ formatNumber(cellValue(current.totals, column.key)) }}
+                                  }
+                                  @case ('percent') {
+                                    {{ formatPercent(cellValue(current.totals, column.key)) }}
+                                  }
+                                  @default {
+                                    {{ cellValue(current.totals, column.key) ?? '—' }}
+                                  }
+                                }
+                              </td>
+                            }
+                          </tr>
+                        </tfoot>
+                      }
+                    </table>
+                  }
+                </div>
+                @if (current.pagination) {
+                  <footer class="inv-detail-block__table-footer inv-detail-block__table-footer--fund-holdings">
+                    <p class="inv-detail-block__table-summary">{{ pagedTableSummary() }}</p>
+                    <nav class="inv-detail-block__pagination" aria-label="Asset holdings pagination">
+                      <button
+                        type="button"
+                        class="inv-detail-block__page-btn"
+                        [disabled]="!current.pagination.hasPreviousPage || tableLoading()"
+                        (click)="onPagedTablePageChange(current.pagination.page - 1)"
+                        aria-label="Previous page"
+                      >
+                        <mat-icon aria-hidden="true">chevron_left</mat-icon>
+                      </button>
+                      @for (page of pagedTablePageNumbers(); track page) {
+                        <button
+                          type="button"
+                          class="inv-detail-block__page-btn"
+                          [class.inv-detail-block__page-btn--active]="page === current.pagination.page"
+                          [disabled]="tableLoading()"
+                          (click)="onPagedTablePageChange(page)"
+                        >
+                          {{ page }}
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        class="inv-detail-block__page-btn"
+                        [disabled]="!current.pagination.hasNextPage || tableLoading()"
+                        (click)="onPagedTablePageChange(current.pagination.page + 1)"
+                        aria-label="Next page"
+                      >
+                        <mat-icon aria-hidden="true">chevron_right</mat-icon>
+                      </button>
+                    </nav>
+                  </footer>
+                }
+              </div>
+            } @else {
+            <div
+              class="inv-detail-table-wrap"
+              [class.inv-detail-table-wrap--investments]="current.variant === 'investments'"
+            >
+              <table
+                class="inv-detail-table inv-detail-table--data-grid"
+                [class.inv-detail-table--investments]="current.variant === 'investments'"
+              >
+                <thead>
+                  <tr>
+                    @for (column of current.columns; track column.key) {
+                      <th [class]="transactionHeadCellClass(column)">
+                        @if (column.sortBy) {
+                          <button
+                            type="button"
+                            class="inv-detail-table__sort"
+                            [class.inv-detail-table__sort--active]="isSortActive(column)"
+                            [class.inv-detail-table__sort--right]="column.align === 'right'"
+                                  [class.inv-detail-table__sort--center]="column.align === 'center'"
+                            (click)="toggleSort(column)"
+                          >
+                            <span class="inv-detail-table__sort-label">{{ column.label }}</span>
+                            @if (sortIcon(column); as icon) {
+                              <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+                            }
+                          </button>
+                        } @else {
+                          {{ column.label }}
+                        }
+                      </th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @if (tableLoading()) {
+                    <tr class="inv-detail-table__status-row">
+                      <td [attr.colspan]="current.columns.length">
+                        <div class="inv-detail-table__status" role="status">
+                          <div class="inv-detail-table__spinner" aria-hidden="true"></div>
+                          <p>Loading…</p>
+                        </div>
+                      </td>
+                    </tr>
+                  } @else if (!filteredTableRows().length) {
+                    <tr class="inv-detail-table__status-row">
+                      <td [attr.colspan]="current.columns.length">
+                        <div class="inv-detail-table__status inv-detail-table__status--empty" role="status">
+                          <p>{{ emptyStateMessage() }}</p>
+                        </div>
+                      </td>
+                    </tr>
+                  } @else {
+                    @for (row of filteredTableRows(); track $index) {
+                    <tr
+                      [class.inv-detail-table__row--clickable]="isFundExposureTable()"
+                      (click)="isFundExposureTable() && onFundExposureRowClick(row, $index)"
+                    >
+                      @for (column of current.columns; track column.key) {
+                        <td [class]="cellClass(column, row)">
+                          @switch (column.type) {
+                            @case ('amount') {
+                              @if (showAmount(cellValue(row, column.key))) {
+                                {{ displayAmountValue(cellValue(row, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                              } @else {
+                                <span class="inv-detail-table__empty">—</span>
+                              }
+                            }
+                            @case ('amount-fund') {
+                              <span class="inv-detail-table__amount-fund">
+                                <span [class]="assetAmountClass(row, 'amount')">
+                                  {{ formatAssetSignedAmount(cellValue(row, 'amount')) }}
+                                </span>
+                                <span class="inv-detail-table__fund-name">{{ cellValue(row, 'fund') ?? '—' }}</span>
+                              </span>
+                            }
+                            @case ('number') {
+                              {{ formatNumber(cellValue(row, column.key)) }}
+                            }
+                            @case ('percent') {
+                              {{ formatPercent(cellValue(row, column.key)) }}
+                            }
+                            @case ('transaction-type') {
+                              @if (transactionTypeClass(cellValue(row, column.key))) {
+                                <span [class]="transactionTypeClass(cellValue(row, column.key))">
+                                  {{ cellValue(row, column.key) }}
+                                </span>
+                              } @else {
+                                <span class="inv-detail-table__empty">—</span>
+                              }
+                            }
+                            @case ('date') {
+                              {{ cellValue(row, column.key) ?? '—' }}
+                            }
+                            @case ('status') {
+                              <span [class]="statusClass(cellValue(row, column.key))">{{ cellValue(row, column.key) ?? '—' }}</span>
+                            }
+                            @default {
+                              {{ cellValue(row, column.key) ?? '—' }}
+                            }
+                          }
+                        </td>
+                      }
+                    </tr>
+                    }
+                  }
+                </tbody>
+                @if (current.totals && !tableLoading() && filteredTableRows().length) {
+                  <tfoot>
+                    <tr class="inv-detail-table__total-row">
+                      @for (column of current.columns; track column.key) {
+                        <td [class]="cellClass(column, current.totals)">
+                          @switch (column.type) {
+                            @case ('amount') {
+                              @if (showAmount(cellValue(current.totals, column.key))) {
+                                {{ amountValue(cellValue(current.totals, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                              } @else {
+                                <span class="inv-detail-table__empty">—</span>
+                              }
+                            }
+                            @case ('number') {
+                              {{ formatNumber(cellValue(current.totals, column.key)) }}
+                            }
+                            @case ('percent') {
+                              {{ formatPercent(cellValue(current.totals, column.key)) }}
+                            }
+                            @default {
+                              {{ cellValue(current.totals, column.key) ?? '—' }}
+                            }
+                          }
+                        </td>
+                      }
+                    </tr>
+                  </tfoot>
+                }
+              </table>
+            </div>
+            }
+          }
+
+          @case ('entity-overview') {
+            <div
+              class="inv-detail-block__entity-overview"
+              [class.inv-detail-block__entity-overview--fund]="current.variant === 'fund'"
+              [class.inv-detail-block__entity-overview--investor]="current.variant === 'investor'"
+              [class.inv-detail-block__entity-overview--investor-highlights]="
+                current.variant === 'investor' && !!current.highlights
+              "
+              [class.inv-detail-block__entity-overview--profile]="
+                current.variant === 'fund' && !current.performanceMiniKpis?.length
+              "
+              [class.inv-detail-block__entity-overview--fund-expanded]="
+                current.variant === 'fund' && !!current.performanceMiniKpis?.length
+              "
+              [class.inv-detail-block__entity-overview--fund-layout-two-col]="
+                current.variant === 'fund' &&
+                !!current.performanceMiniKpis?.length &&
+                isFundOverviewTwoColumnLayout(current.columns)
+              "
+            >
+              @if (current.variant === 'investor' && current.highlights; as highlights) {
+                <div class="inv-detail-block__overview-highlights">
+                  <div class="inv-detail-block__overview-highlights-row">
+                    @for (metric of highlights.topRow; track metric.label) {
+                      <article
+                        class="inv-detail-block__overview-highlight"
+                        [class.inv-detail-block__overview-highlight--contact]="!!metric.contactDetails"
+                      >
+                        <p class="inv-detail-block__overview-highlight-label">{{ metric.label }}</p>
+                        @if (metric.contactDetails; as contact) {
+                          <div class="inv-detail-block__overview-highlight-contact">
+                            @if (contact.name) {
+                              <p [class]="overviewHighlightValueClass(metric)">{{ contact.name }}</p>
+                            }
+                            @if (contact.email) {
+                              <p class="inv-detail-block__overview-highlight-contact-line">{{ contact.email }}</p>
+                            }
+                            @if (contact.address) {
+                              <p
+                                class="inv-detail-block__overview-highlight-contact-line inv-detail-block__overview-highlight-contact-line--address"
+                              >
+                                {{ contact.address }}
+                              </p>
+                            }
+                          </div>
+                        } @else {
+                        <div class="inv-detail-block__overview-highlight-value-row">
+                          <p
+                            [class]="overviewHighlightValueClass(metric)"
+                            [class.inv-detail-block__overview-highlight-value--multiline]="metric.multiline"
+                          >
+                            {{ metric.value }}
+                          </p>
+                          @if (metric.inlineHint) {
+                            <span [class]="overviewHighlightInlineHintClass(metric)">{{ metric.inlineHint }}</span>
+                          }
+                        </div>
+                        @if (metric.subtext) {
+                          <p [class]="overviewHighlightSubtextClass(metric)">{{ metric.subtext }}</p>
+                        }
+                        }
+                      </article>
+                    }
+                  </div>
+
+                  @if (highlights.bottomRow.length) {
+                  <div class="inv-detail-block__overview-highlights-row inv-detail-block__overview-highlights-row--bottom">
+                    @for (metric of highlights.bottomRow; track metric.label) {
+                      <article
+                        class="inv-detail-block__overview-highlight"
+                        [class.inv-detail-block__overview-highlight--separated]="!!metric.gridColumn && metric.gridColumn > 1"
+                        [style.grid-column]="metric.gridColumn"
+                      >
+                        <p class="inv-detail-block__overview-highlight-label">{{ metric.label }}</p>
+                        <div class="inv-detail-block__overview-highlight-value-row">
+                          <p
+                            [class]="overviewHighlightValueClass(metric)"
+                            [class.inv-detail-block__overview-highlight-value--multiline]="metric.multiline"
+                          >
+                            {{ metric.value }}
+                          </p>
+                          @if (metric.inlineHint) {
+                            <span [class]="overviewHighlightInlineHintClass(metric)">{{ metric.inlineHint }}</span>
+                          }
+                        </div>
+                        @if (metric.subtext) {
+                          <p [class]="overviewHighlightSubtextClass(metric)">{{ metric.subtext }}</p>
+                        }
+                      </article>
+                    }
+                  </div>
+                  }
+                </div>
+              } @else {
+              <div class="inv-detail-block__entity-overview-grid">
+                @for (column of current.columns; track column.title ?? $index) {
+                  @if (isEntityOverviewColumnVisible(current.variant, column.title)) {
+                  <div class="inv-detail-block__field-column">
+                    @if (column.title) {
+                      <h3 class="inv-detail-block__field-column-title">{{ column.title }}</h3>
+                    }
+                    <dl class="inv-detail-block__fields">
+                      @for (field of column.fields; track field.label) {
+                        <div class="inv-detail-block__field">
+                          <dt class="inv-detail-block__field-label">{{ field.label }}</dt>
+                          <dd
+                            [class]="fieldToneClass(field.tone)"
+                            [class.inv-detail-block__field-value--multiline]="field.multiline"
+                          >{{ field.value }}</dd>
+                        </div>
+                      }
+                    </dl>
+                  </div>
+                  }
+                }
+
+                @if (current.variant === 'investor' && current.fundMembership) {
+                  <div class="inv-detail-block__field-column inv-detail-block__fund-membership">
+                    <h3 class="inv-detail-block__field-column-title">Fund Membership</h3>
+                    <div class="inv-detail-block__fund-count">
+                      <span class="inv-detail-block__fund-count-value">{{ current.fundMembership.count }}</span>
+                      <span class="inv-detail-block__fund-count-label">
+                        active fund{{ current.fundMembership.count === 1 ? '' : 's' }}
+                      </span>
+                    </div>
+                    <div class="inv-detail-block__fund-list-columns">
+                      @for (column of fundMembershipFundColumns(current.fundMembership); track $index) {
+                        <ul class="inv-detail-block__fund-list">
+                          @for (fund of column; track fund.fundKey) {
+                            <li>
+                              <span class="inv-detail-block__fund-name">{{ fund.name }}</span>
+                            </li>
+                          }
+                        </ul>
+                      }
+                    </div>
+                    @if (current.fundMembership.moreCount > 0) {
+                      <p class="inv-detail-block__fund-more">+{{ current.fundMembership.moreCount }} more funds</p>
+                    }
+                  </div>
+                }
+
+                @if (current.variant === 'fund' && current.performanceMiniKpis?.length) {
+                  <div class="inv-detail-block__field-column inv-detail-block__performance-snapshot">
+                    <!-- <h3 class="inv-detail-block__field-column-title">Performance Snapshot</h3> -->
+                    <div class="inv-detail-block__overview-mini-kpis">
+                      @for (card of current.performanceMiniKpis; track card.label) {
+                        <article class="inv-detail-block__overview-mini-kpi">
+                          <p class="inv-detail-block__overview-mini-kpi-label">{{ card.label }}</p>
+                          <p class="inv-detail-block__overview-mini-kpi-value">{{ card.value }}</p>
+                        </article>
+                      }
+                    </div>
+                    @if (current.deploymentBar; as inlineDeploymentBar) {
+                      @if (current.deploymentBarPlacement === 'performance-column') {
+                      <div class="inv-detail-block__deployment inv-detail-block__deployment--inline">
+                        <div class="inv-detail-block__deployment-head">
+                          <span class="inv-detail-block__deployment-label">{{ inlineDeploymentBar.label }}</span>
+                          <span class="inv-detail-block__deployment-pct">{{ inlineDeploymentBar.percent.toFixed(1) }}%</span>
+                        </div>
+                        <div class="inv-detail-block__deployment-track" aria-hidden="true">
+                          <span
+                            class="inv-detail-block__deployment-fill"
+                            [style.width.%]="inlineDeploymentBar.percent"
+                          ></span>
+                        </div>
+                        <div class="inv-detail-block__deployment-meta">
+                          <span>{{ inlineDeploymentBar.leftLabel }}</span>
+                          <span>{{ inlineDeploymentBar.rightLabel }}</span>
+                        </div>
+                      </div>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+              }
+
+              @if (current.deploymentBar; as deploymentBar) {
+                @if (current.deploymentBarPlacement !== 'performance-column' && current.variant !== 'investor') {
+                <div class="inv-detail-block__deployment inv-detail-block__deployment--full">
+                  <div class="inv-detail-block__deployment-head">
+                    <span class="inv-detail-block__deployment-label">{{ deploymentBar.label }}</span>
+                    <span class="inv-detail-block__deployment-pct">{{ deploymentBar.percent.toFixed(1) }}% deployed</span>
+                  </div>
+                  <div class="inv-detail-block__deployment-track" aria-hidden="true">
+                    <span
+                      class="inv-detail-block__deployment-fill"
+                      [style.width.%]="deploymentBar.percent"
+                    ></span>
+                  </div>
+                  <div class="inv-detail-block__deployment-meta">
+                    <span>{{ deploymentBar.leftLabel }}</span>
+                    <span>{{ deploymentBar.rightLabel }}</span>
+                  </div>
+                </div>
+                }
+              }
+            </div>
+          }
+
+          @case ('field-grid') {
+            @if (isPairedFieldGrid()) {
+              <div class="inv-detail-block__field-grid inv-detail-block__field-grid--paired-rows">
+                @for (row of pairedFieldRows(current); track $index) {
+                  <div class="inv-detail-block__field-pair-row">
+                    @for (field of row; track field.label) {
+                      <div class="inv-detail-block__field">
+                        <dt class="inv-detail-block__field-label">{{ field.label }}</dt>
+                        <dd [class]="fieldToneClass(field.tone)">{{ field.value }}</dd>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            } @else {
+            <div class="inv-detail-block__field-grid">
+              @for (column of current.columns; track column.title ?? $index) {
+                <div class="inv-detail-block__field-column">
+                  @if (column.title) {
+                    <h3 class="inv-detail-block__field-column-title">{{ column.title }}</h3>
+                  }
+                  <dl class="inv-detail-block__fields">
+                    @for (field of column.fields; track field.label) {
+                      <div class="inv-detail-block__field">
+                        <dt class="inv-detail-block__field-label">{{ field.label }}</dt>
+                        <dd [class]="fieldToneClass(field.tone)">{{ field.value }}</dd>
+                      </div>
+                    }
+                  </dl>
+                </div>
+              }
+            </div>
+            }
+            @if (current.occupancyFooter) {
+              <div class="inv-detail-block__occupancy">
+                <div class="inv-detail-block__occupancy-head">
+                  <span class="inv-detail-block__occupancy-label">{{ current.occupancyFooter.label }}</span>
+                  <span class="inv-detail-block__occupancy-pct">{{ current.occupancyFooter.percent.toFixed(1) }}%</span>
+                </div>
+                <div class="inv-detail-block__occupancy-track" aria-hidden="true">
+                  <span
+                    class="inv-detail-block__occupancy-fill"
+                    [style.width.%]="current.occupancyFooter.percent"
+                  ></span>
+                </div>
+                <div class="inv-detail-block__occupancy-meta">
+                  <span>{{ current.occupancyFooter.committedLabel }}</span>
+                  <span>{{ current.occupancyFooter.vacantLabel }}</span>
+                </div>
+              </div>
+            }
+          }
+
+          @case ('kpi-row') {
+            @if (current.display === 'performance') {
+              <div class="inv-detail-block__perf-row">
+                @for (card of current.cards; track card.label) {
+                  <article class="inv-detail-block__perf-card">
+                    <p class="inv-detail-block__perf-label">{{ card.label }}</p>
+                    <p class="inv-detail-block__perf-value">{{ card.value }}</p>
+                    @if (card.hint) {
+                      <p class="inv-detail-block__perf-hint">{{ card.hint }}</p>
+                    }
+                  </article>
+                }
+              </div>
+            } @else {
+              <div class="inv-detail-block__kpi-row">
+                @for (card of current.cards; track card.label) {
+                  <article [class]="kpiVariantClass(card.variant)">
+                    <p class="inv-detail-block__kpi-label">{{ card.label }}</p>
+                    <p class="inv-detail-block__kpi-value">{{ card.value }}</p>
+                  </article>
+                }
+              </div>
+            }
+          }
+
+          @case ('esg-metrics') {
+            <div class="inv-detail-block__esg-grid">
+              @for (card of current.cards; track card.label) {
+                <article class="inv-detail-block__esg-card">
+                  <p class="inv-detail-block__esg-label">{{ card.label }}</p>
+                  <p class="inv-detail-block__esg-value">{{ card.value }}</p>
+                  <p class="inv-detail-block__esg-hint">{{ card.hint }}</p>
+                </article>
+              }
+            </div>
+          }
+
+          @case ('debt-financing') {
+            <div class="inv-detail-block__debt">
+              <dl class="inv-detail-block__debt-metrics">
+                @for (metric of current.metrics; track metric.label) {
+                  <div class="inv-detail-block__debt-metric">
+                    <dt class="inv-detail-block__debt-metric-label">{{ metric.label }}</dt>
+                    <dd class="inv-detail-block__debt-metric-value">{{ metric.value }}</dd>
+                  </div>
+                }
+              </dl>
+              <div class="inv-detail-block__maturity">
+                <h3 class="inv-detail-block__maturity-title">Maturity Schedule</h3>
+                <ul class="inv-detail-block__maturity-bars">
+                  @for (bar of current.maturitySchedule; track bar.label) {
+                    <li class="inv-detail-block__maturity-row">
+                      <span class="inv-detail-block__maturity-label">{{ bar.label }}</span>
+                      <div class="inv-detail-block__maturity-track" aria-hidden="true">
+                        <span
+                          class="inv-detail-block__maturity-fill"
+                          [style.width.%]="bar.percent"
+                        ></span>
+                      </div>
+                      <span class="inv-detail-block__maturity-pct">{{ bar.percent }}%</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            </div>
+          }
+
+          @case ('leasing-summary') {
+            <div class="inv-detail-block__leasing">
+              <div class="inv-detail-block__leasing-metrics">
+                @for (group of current.metricGroups; track $index) {
+                  <div class="inv-detail-block__leasing-group">
+                    @for (metric of group; track metric.label + metric.value) {
+                      @if (metric.label) {
+                        <div class="inv-detail-block__leasing-metric">
+                          <span class="inv-detail-block__leasing-label">{{ metric.label }}</span>
+                          <span class="inv-detail-block__leasing-value">{{ metric.value }}</span>
+                        </div>
+                      } @else if (metric.hint) {
+                        <p class="inv-detail-block__leasing-hint">{{ metric.hint }}</p>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+              <div class="inv-detail-block__maturity inv-detail-block__maturity--leasing">
+                @if (current.leaseExpirySchedule.length) {
+                  <h3 class="inv-detail-block__maturity-title">Lease Expiry Schedule</h3>
+                  <ul class="inv-detail-block__maturity-bars">
+                    @for (bar of current.leaseExpirySchedule; track bar.label) {
+                      <li class="inv-detail-block__maturity-row">
+                        <span class="inv-detail-block__maturity-label">{{ bar.label }}</span>
+                        <div class="inv-detail-block__maturity-track" aria-hidden="true">
+                          <span
+                            class="inv-detail-block__maturity-fill"
+                            [style.width.%]="bar.percent"
+                          ></span>
+                        </div>
+                        <span class="inv-detail-block__maturity-pct">{{ bar.percent }}%</span>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+            </div>
+          }
+
+          @case ('risk-insurance') {
+            <div class="inv-detail-block__risk">
+              <div class="inv-detail-block__risk-column inv-detail-block__risk-column--coverage">
+                <h3 class="inv-detail-block__risk-column-title">{{ current.coverageTitle }}</h3>
+                <dl class="inv-detail-block__risk-list">
+                  @for (item of current.coverage; track item.label) {
+                    <div class="inv-detail-block__risk-item inv-detail-block__risk-item--stacked">
+                      <dt>{{ item.label }}</dt>
+                      <dd>{{ item.value }}</dd>
+                    </div>
+                  }
+                </dl>
+              </div>
+              <div class="inv-detail-block__risk-column inv-detail-block__risk-column--flags">
+                <h3 class="inv-detail-block__risk-column-title">{{ current.riskTitle }}</h3>
+                @if (current.banner) {
+                  <p [class]="bannerClass(current.banner.tone)">{{ current.banner.message }}</p>
+                }
+                <dl class="inv-detail-block__risk-list">
+                  @for (flag of current.riskFlags; track flag.label) {
+                    <div class="inv-detail-block__risk-item">
+                      <dt>{{ flag.label }}</dt>
+                      <dd [class]="riskFlagClass(flag.tone)">{{ flag.value }}</dd>
+                    </div>
+                  }
+                </dl>
+              </div>
+            </div>
+          }
+
+        }
+      </div>
+    }
+  </section>
+}

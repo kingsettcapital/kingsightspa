@@ -1,0 +1,202 @@
+<section class="ks-fp other-cost-page">
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">Other Cost Capture</h1>
+        <p class="ks-page__subtitle">
+          Select a loan alias and status, then enter outstanding invoices, est realization costs, and cost
+          to complete.
+        </p>
+      </div>
+
+      <div class="ks-fp__filters-compact">
+        <div class="ks-fp__search-block">
+          <label class="ks-fp__filter-label" for="otherCostLoanAliasSearch">Search Loans</label>
+          <ng-select
+            id="otherCostLoanAliasSearch"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="aliasSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Search loan aliases..."
+            [ngModel]="selectedLoanAliasIds()"
+            (ngModelChange)="updateSelectedAliases($event)"
+          ></ng-select>
+          <button
+            type="button"
+            class="ks-fp__clear-selection"
+            (click)="clearSelection()"
+            [disabled]="!selectedLoanAliasIds().length && !selectedStatuses().length"
+          >
+            Clear Selection
+          </button>
+        </div>
+
+        <div class="ks-fp__status-block">
+          <label class="ks-fp__filter-label" for="otherCostStatus">Status</label>
+          <ng-select
+            id="otherCostStatus"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="statusSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Select status..."
+            [ngModel]="selectedStatuses()"
+            (ngModelChange)="updateSelectedStatuses($event)"
+          ></ng-select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @if (isLoadingFilters()) {
+    <p class="meta-message">Loading filters...</p>
+  }
+  @if (errorMessage() && !isSaving()) {
+    <p class="error-message banner-error">{{ errorMessage() }}</p>
+  }
+  @if (isLoadingGrid()) {
+    <p class="meta-message grid-loading">Loading loans...</p>
+  } @else if (statusMessage() && !errorMessage()) {
+    <p class="status-message">{{ statusMessage() }}</p>
+  } @else if (gridLoadMessage() && !errorMessage()) {
+    <p class="status-message">{{ gridLoadMessage() }}</p>
+  }
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="hidden-column">Loan Key</th>
+          @for (column of tableColumns; track column.key) {
+            <th [class.numeric-col]="column.numeric" [class.audit-col]="column.audit">
+              <button
+                type="button"
+                class="occ-th-sort"
+                [class.occ-th-sort--numeric]="column.numeric"
+                (click)="toggleSort(column.key)"
+                [attr.aria-label]="'Sort by ' + column.label"
+              >
+                <span>{{ column.label }}</span>
+                <span class="occ-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+              </button>
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of paginatedRows(); track row.loanCode) {
+          <tr>
+            <td class="hidden-column">{{ row.loanKey }}</td>
+            <td>{{ row.loanCode }}</td>
+            <td>{{ row.loanName }}</td>
+            <td>{{ row.loanAliasName }}</td>
+            <td class="numeric-col">
+              <input
+                type="text"
+                inputmode="decimal"
+                class="cost-input cost-input--numeric"
+                [value]="currencyInputDisplay(row.loanCode, 'outstandingInvoices', row.outstandingInvoices)"
+                (input)="updateCostField(row.loanCode, 'outstandingInvoices', $any($event.target).value)"
+                (blur)="commitCostField(row.loanCode, 'outstandingInvoices', $any($event.target))"
+                placeholder="$0"
+              />
+            </td>
+            <td class="numeric-col">
+              <input
+                type="text"
+                inputmode="decimal"
+                class="cost-input cost-input--numeric"
+                [value]="currencyInputDisplay(row.loanCode, 'estRealizationCosts', row.estRealizationCosts)"
+                (input)="updateCostField(row.loanCode, 'estRealizationCosts', $any($event.target).value)"
+                (blur)="commitCostField(row.loanCode, 'estRealizationCosts', $any($event.target))"
+                placeholder="$0"
+              />
+            </td>
+            <td class="numeric-col">
+              <input
+                type="text"
+                inputmode="decimal"
+                class="cost-input cost-input--numeric"
+                [value]="currencyInputDisplay(row.loanCode, 'costToComplete', row.costToComplete)"
+                (input)="updateCostField(row.loanCode, 'costToComplete', $any($event.target).value)"
+                (blur)="commitCostField(row.loanCode, 'costToComplete', $any($event.target))"
+                placeholder="$0"
+              />
+            </td>
+            <td class="date-cell audit-col updated-by-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="date-cell audit-col">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="9" class="empty-row">
+              @if (isLoadingGrid() || isLoadingFilters()) {
+                Loading loans...
+              } @else {
+                No loans match the current filters.
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <div class="pagination-left">
+      <label for="pageSize">Rows per page</label>
+      <select
+        id="pageSize"
+        class="page-size-select"
+        [value]="pageSize()"
+        (change)="updatePageSize($any($event.target).value)"
+      >
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+    </div>
+    <div class="pagination-right">
+      <span class="page-range">{{ pageRangeLabel() }}</span>
+      <button type="button" class="pager-btn" (click)="goToPreviousPage()" [disabled]="currentPage() <= 1">
+        Prev
+      </button>
+      <span class="page-index">Page {{ currentPage() }} / {{ totalPages() }}</span>
+      <button
+        type="button"
+        class="pager-btn"
+        (click)="goToNextPage()"
+        [disabled]="currentPage() >= totalPages()"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button
+      type="button"
+      class="ks-btn ks-btn--accent"
+      (click)="saveChanges()"
+      [disabled]="isSaving() || !rows().length"
+    >
+      @if (isSaving()) { Saving… } @else { Save Changes }
+    </button>
+  </div>
+
+  <p class="footnote">
+    Information provided in this table is stored in the data warehouse and used in calculations and loan reporting.
+  </p>
+</section>

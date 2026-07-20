@@ -9,7 +9,21 @@ export const CAPITAL_DASHBOARD_ROUTES: Routes = [
       import('./capital-dashboard/capital-dashboard.component').then((m) => m.CapitalDashboardComponent),
     providers: [...provideCapitalDashboardStore()],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'investor' },
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./dashboard/capital-dashboard-dashboard.component').then(
+            (m) => m.CapitalDashboardDashboardComponent,
+          ),
+      },
+      {
+        path: 'investor/:investorKey',
+        loadComponent: () =>
+          import('./investors/investor-detail/investor-detail.component').then(
+            (m) => m.InvestorDetailComponent,
+          ),
+      },
       {
         path: 'investor',
         loadComponent: () =>
@@ -18,11 +32,23 @@ export const CAPITAL_DASHBOARD_ROUTES: Routes = [
           ),
       },
       {
+        path: 'investment/:fundKey',
+        loadComponent: () =>
+          import('./investments/investment-detail/investment-detail.component').then(
+            (m) => m.InvestmentDetailComponent,
+          ),
+      },
+      {
         path: 'investment',
         loadComponent: () =>
           import('./investments/capital-dashboard-investments.component').then(
             (m) => m.CapitalDashboardInvestmentsComponent,
           ),
+      },
+      {
+        path: 'asset/:propertyKey',
+        loadComponent: () =>
+          import('./assets/asset-detail/asset-detail.component').then((m) => m.AssetDetailComponent),
       },
       {
         path: 'asset',

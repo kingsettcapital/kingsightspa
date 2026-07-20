@@ -1,0 +1,309 @@
+<section class="ks-fp la-page">
+
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">Loan Alias Management</h1>
+        <p class="ks-page__subtitle la-subtitle">
+          Create, View and Edit Loan Alias Master List.
+          For Deletion of a Loan Alias, please ensure there are no Loans assigned to the Loan Alias and send an email to
+          <a class="la-subtitle__link" href="mailto:ITSupport@KingSettCapital.com">ITSupport@KingSettCapital.com</a>
+          to request the deletion the Loan Alias.
+        </p>
+      </div>
+
+      <div class="ks-fp__filters-compact">
+        <div class="ks-fp__search-block">
+          <label class="ks-fp__filter-label" for="loanAliasSearch">Search</label>
+          <input
+            id="loanAliasSearch"
+            type="text"
+            class="ks-fp__search-input"
+            placeholder="Enter Search Value"
+            [value]="searchTerm()"
+            (input)="updateSearch($any($event.target).value)"
+            aria-label="Search loan aliases"
+          />
+
+          @if (searchTerm().trim() && aliasSuggestions().length > 0) {
+            <ul class="ks-fp__autocomplete">
+              @for (alias of aliasSuggestions(); track alias.loanAliasId) {
+                <li>
+                  <button type="button" (click)="selectAliasSuggestion(alias)">
+                    {{ alias.loanAliasName }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          <button
+            type="button"
+            class="ks-fp__clear-selection"
+            (click)="clearSelection()"
+            [disabled]="!searchTerm().trim().length"
+          >
+            Clear Selection
+          </button>
+        </div>
+
+        <button type="button" class="ks-btn ks-btn--accent" (click)="openCreateDialog()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add New Alias
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Status / error strip ──────────────────────────────────────────────── -->
+  @if (statusMessage()) {
+    <p class="la-status-msg">{{ statusMessage() }}</p>
+  }
+  @if (errorMessage() && !showCreateDialog() && !showEditDialog()) {
+    <p class="la-error-msg">{{ errorMessage() }}</p>
+  }
+
+  <!-- ── Loading ────────────────────────────────────────────────────────────── -->
+  @if (isLoading()) {
+    <div class="la-loading">Loading loan aliases…</div>
+  }
+
+  <!-- ── Table ─────────────────────────────────────────────────────────────── -->
+  @if (!isLoading()) {
+    <div class="la-table-wrap">
+      <table class="la-table">
+        <thead>
+          <tr>
+            @for (column of tableColumns; track column.key) {
+              <th
+                [class.audit-col]="
+                  column.key === 'updatedBy' ||
+                  column.key === 'updatedDtm' ||
+                  column.key === 'createdBy' ||
+                  column.key === 'createdDtm'
+                "
+              >
+                <button
+                  type="button"
+                  class="la-th-sort"
+                  (click)="toggleSort(column.key)"
+                  [attr.aria-label]="'Sort by ' + column.label"
+                >
+                  <span>{{ column.label }}</span>
+                  <span class="la-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+                </button>
+              </th>
+            }
+            <th class="col-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (alias of paginatedAliases(); track alias.loanAliasId) {
+            <tr>
+              <td class="col-id">{{ alias.loanAliasId }}</td>
+              <td class="col-name">{{ alias.loanAliasName }}</td>
+              <td class="audit-col">{{ displayUserName(alias.updatedBy) }}</td>
+              <td class="audit-col">{{ formatAuditDate(alias.updatedDtm) }}</td>
+              <td class="audit-col">{{ displayUserName(alias.createdBy) }}</td>
+              <td class="audit-col">{{ formatAuditDate(alias.createdDtm) }}</td>
+              <td class="col-actions">
+                <div class="row-actions">
+                  <button
+                    type="button"
+                    class="btn-icon btn-icon--edit"
+                    (click)="openEditDialog(alias)"
+                    title="Edit alias"
+                    aria-label="Edit {{ alias.loanAliasName }}"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                         stroke-linejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="td-empty">
+                @if (searchTerm()) {
+                  No loan aliases match your search.
+                } @else {
+                  No loan aliases found.
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Pagination ─────────────────────────────────────────────────────── -->
+    @if (totalPages() > 1 || filteredAliases().length > 0) {
+      <div class="la-pagination">
+        <div class="pagination-left">
+          <label for="pageSize">Rows per page</label>
+          <select
+            id="pageSize"
+            class="page-size-select"
+            [value]="pageSize()"
+            (change)="updatePageSize($any($event.target).value)"
+          >
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+
+        <div class="pagination-right">
+          <span class="la-page-range">{{ pageRangeLabel() }}</span>
+
+          <div class="la-page-controls">
+            <button
+              type="button"
+              class="pager-btn"
+              (click)="goToPreviousPage()"
+              [disabled]="currentPage() <= 1"
+              aria-label="Previous page"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+              Prev
+            </button>
+
+            @for (page of pageNumbers(); track page) {
+              <button
+                type="button"
+                class="pager-btn"
+                [class.pager-btn--active]="currentPage() === page"
+                (click)="goToPage(page)"
+              >{{ page }}</button>
+            }
+
+            <button
+              type="button"
+              class="pager-btn"
+              (click)="goToNextPage()"
+              [disabled]="currentPage() >= totalPages()"
+              aria-label="Next page"
+            >
+              Next
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  }
+
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CREATE DIALOG
+     ═══════════════════════════════════════════════════════════════════════ -->
+@if (showCreateDialog()) {
+  <div class="la-overlay" (click)="closeCreateDialog()" role="presentation">
+    <div class="la-dialog" role="dialog" aria-modal="true"
+         aria-labelledby="dlg-create-title" (click)="$event.stopPropagation()">
+
+      <div class="la-dialog-header">
+        <h2 id="dlg-create-title">Add New Loan Alias</h2>
+        <button type="button" class="dlg-close" (click)="closeCreateDialog()" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="la-dialog-body">
+        <div class="dlg-field">
+          <label class="dlg-label" for="create-name">Loan Alias Name <span class="dlg-required">*</span></label>
+          <input
+            id="create-name"
+            type="text"
+            class="dlg-input"
+            placeholder="Enter alias name"
+            [value]="formName()"
+            (input)="formName.set($any($event.target).value)"
+            autofocus
+          />
+        </div>
+        @if (errorMessage()) {
+          <p class="dlg-error">{{ errorMessage() }}</p>
+        }
+      </div>
+
+      <div class="la-dialog-footer">
+        <button type="button" class="ks-btn ks-btn--accent" (click)="closeCreateDialog()"
+                [disabled]="isSaving()">Cancel</button>
+        <button type="button" class="ks-btn ks-btn--accent" (click)="createAlias()"
+                [disabled]="!formName().trim() || isSaving()">
+          @if (isSaving()) { Creating… } @else { Create }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     EDIT DIALOG
+     ═══════════════════════════════════════════════════════════════════════ -->
+@if (showEditDialog()) {
+  <div class="la-overlay" (click)="closeEditDialog()" role="presentation">
+    <div class="la-dialog" role="dialog" aria-modal="true"
+         aria-labelledby="dlg-edit-title" (click)="$event.stopPropagation()">
+
+      <div class="la-dialog-header">
+        <h2 id="dlg-edit-title">Edit Loan Alias</h2>
+        <button type="button" class="dlg-close" (click)="closeEditDialog()" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="la-dialog-body">
+        <div class="dlg-field">
+          <label class="dlg-label" for="edit-name">Loan Alias Name <span class="dlg-required">*</span></label>
+          <input
+            id="edit-name"
+            type="text"
+            class="dlg-input"
+            placeholder="Enter alias name"
+            [value]="formName()"
+            (input)="formName.set($any($event.target).value)"
+            autofocus
+          />
+        </div>
+        @if (errorMessage()) {
+          <p class="dlg-error">{{ errorMessage() }}</p>
+        }
+      </div>
+
+      <div class="la-dialog-footer">
+        <button type="button" class="ks-btn ks-btn--accent" (click)="closeEditDialog()"
+                [disabled]="isSaving()">Cancel</button>
+        <button type="button" class="ks-btn ks-btn--accent" (click)="saveAlias()"
+                [disabled]="!formName().trim() || isSaving()">
+          @if (isSaving()) { Saving… } @else { Save Changes }
+        </button>
+      </div>
+    </div>
+  </div>
+}

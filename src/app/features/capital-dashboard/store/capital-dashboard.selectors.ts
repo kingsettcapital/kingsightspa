@@ -6,6 +6,9 @@ const { selectInvestors, selectFunds, selectAssets, selectActiveTab } = capitalD
 
 export const selectInvestorsList = createSelector(selectInvestors, (s) => s.list);
 export const selectInvestorsDetail = createSelector(selectInvestors, (s) => s.detail);
+export const selectInvestorsDetailSelectedKey = createSelector(selectInvestorsDetail, (d) => d.selectedKey);
+
+export { selectInvestors };
 
 export const selectFundsList = createSelector(selectFunds, (s) => s.list);
 export const selectFundsDetail = createSelector(selectFunds, (s) => s.detail);

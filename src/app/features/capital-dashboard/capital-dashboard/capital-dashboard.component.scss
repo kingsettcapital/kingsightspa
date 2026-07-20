@@ -1,10 +1,94 @@
 /* Capital Dashboard styles are scoped by `body[data-ks-capital-dashboard]` */
 
+@use '../shared/styles/capital-data-tool';
+@use '../shared/styles/capital-data-tool-chrome';
+@use '../shared/styles/capital-data-tool-investors';
+@use '../shared/styles/capital-data-tool-investor-detail';
+@use '../shared/styles/capital-data-tool-investment-detail';
+@use '../shared/styles/capital-data-tool-investments';
+@use '../shared/styles/capital-data-tool-assets';
+@use '../shared/styles/capital-data-tool-asset-detail';
+@use '../shared/styles/capital-data-tool-detail-responsive';
+@use '../shared/styles/capital-data-tool-dashboard';
+@use '../shared/styles/capital-data-tool-table-scroll';
+
 body[data-ks-capital-dashboard] {
   /* Capital Dashboard typography */
-  // font-family: var(--ks-font-family);
-  --ks-capital-dashboard-font-family: "Arial", sans-serif;
+  --ks-capital-dashboard-font-family: var(--cdt-font-sans);
   font-family: var(--ks-capital-dashboard-font-family);
+
+  .cdt-shell,
+  .cdt-investors,
+  .cdt-investments,
+  .cdt-assets,
+  .cdt-dashboard {
+    text-transform: none;
+
+    h1,
+    h2,
+    h3,
+    p,
+    button,
+    input,
+    select,
+    label,
+    span,
+    th,
+    td {
+      text-transform: none;
+    }
+
+    .cdt-kpi__label,
+    .cdt-dashboard-kpi__label,
+    .cdt-filters-bar__label,
+    .cdt-table thead th,
+    .cdt-table__total-row td {
+      text-transform: uppercase;
+    }
+
+    .cdt-kpi__label,
+    .cdt-kpi__value,
+    .cdt-kpi__hint,
+    .cdt-dashboard-kpi__label,
+    .cdt-dashboard-kpi__value,
+    .cdt-dashboard-kpi__hint {
+      color: #fff;
+    }
+
+    h1.cdt-investors__title,
+    h1.cdt-investments__title,
+    h1.cdt-dashboard-header__title {
+      // font-family: var(--cdt-font-amount);
+      font-family: var(--cdt-font-sans);
+      font-size: 1.25rem;
+      font-weight: 400;
+      // color: var(--cdt-title-color);
+      color: #003666;
+      letter-spacing: 0;
+      text-transform: none;
+      line-height: 1.2;
+    }
+
+    p.cdt-investors__subtitle,
+    p.cdt-investments__subtitle {
+      font-family: var(--cdt-font-sans);
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: var(--cdt-subtitle-color);
+      letter-spacing: 0;
+      text-transform: none;
+    }
+  }
+
+  app-capital-dashboard-investors,
+  app-capital-dashboard-investments,
+  app-capital-dashboard-assets,
+  app-capital-dashboard-dashboard {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+  }
   font-weight: var(--ks-font-weight-regular);
   color: var(--ks-color-text);
 
@@ -28,11 +112,18 @@ body[data-ks-capital-dashboard] {
   --portal-radius-md: 4px;
   --portal-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
   --portal-shadow-hover: 0 4px 12px rgba(25, 118, 210, 0.12);
-  --portal-row-selected: rgba(25, 118, 210, 0.08);
-  --portal-row-selected-border: #1976d2;
-  --portal-scrollbar-thumb: rgba(25, 118, 210, 0.35);
-  --portal-scrollbar-thumb-hover: rgba(25, 118, 210, 0.55);
-  --portal-scrollbar-track: rgba(0, 0, 0, 0.04);
+  --portal-row-selected: #e8e8e8;
+  --portal-row-selected-border: #5f687d;
+  --portal-scrollbar-thumb: #c1c1c1;
+  --portal-scrollbar-thumb-hover: #a8a8a8;
+  --portal-scrollbar-track: #f1f1f1;
+
+  /* Capital dashboard — table & interactive colors (module-scoped only) */
+  --ks-color-table-head-bg: #d3d3d3;
+  --ks-color-subheader-bg: #dddddd;
+  --ks-color-interactive-hover: #5f687d;
+  --ks-capital-load-more-bg: #888888;
+  --ks-capital-load-more-hover: #5f687d;
 }
 
 @mixin portal-scrollbar {
@@ -62,12 +153,42 @@ body[data-ks-capital-dashboard] {
 
 body[data-ks-capital-dashboard] {
   /* Chrome above master-detail (app header + page title + tab labels) */
-  --ks-capital-dashboard-chrome: calc(var(--ks-header-height, 4rem) + 7.5rem);
+  --ks-capital-dashboard-chrome: 3.75rem;
 
   app-capital-dashboard,
   app-capital-dashboard-investors,
   app-capital-dashboard-investments,
   app-capital-dashboard-assets,
+  app-capital-dashboard-dashboard,
+  app-investor-detail,
+  app-investment-detail,
+  app-asset-detail,
+  app-investor-detail-block,
+  app-investor-detail-sidebar,
+  app-investor-detail-table,
+  app-overview-section-cards,
+  app-dashboard-header,
+  app-dashboard-widget-card,
+  app-dashboard-widget-shell,
+  app-dashboard-metric-widget,
+  app-manage-widgets-panel,
+  app-active-funds-table,
+  app-active-assets-table,
+  app-total-assets-widget,
+  app-portfolio-value-widget,
+  app-ytd-returns-widget,
+  app-quarterly-returns-chart,
+  app-portfolio-performance-chart,
+  app-investor-growth-chart,
+  app-geographic-distribution-chart,
+  app-asset-allocation-chart,
+  app-detail-status-badge,
+  app-portal-spinner,
+  ks-search-field,
+  ks-progress-bar,
+  ks-segmented-control,
+  ks-badge,
+  ks-icon,
   .ks-capital-dashboard,
   .mat-mdc-tab-group,
   .mat-mdc-tab-nav-bar,
@@ -84,8 +205,8 @@ body[data-ks-capital-dashboard] {
   input,
   select,
   textarea {
-    // font-family: var(--ks-font-family);
     font-family: var(--ks-capital-dashboard-font-family);
+    font-weight: var(--ks-font-weight-regular);
   }
 
   /* Fill main content area without page scroll */
@@ -205,11 +326,8 @@ body[data-ks-capital-dashboard] {
 
   mat-tab-group.detail-tabs .mat-mdc-tab .mdc-tab__text-label {
     font-size: var(--ks-font-size-sm);
-    font-weight: var(--ks-font-weight-semibold);
+    font-weight: var(--ks-font-weight-bold);
     letter-spacing: 0.04em;
-    text-transform: uppercase;
-    font-weight: 500;
-    // font-size: 0.875rem;
     line-height: 1.25;
     text-transform: uppercase;
   }
@@ -223,6 +341,7 @@ body[data-ks-capital-dashboard] {
     --mat-tab-header-active-indicator-height: 2px;
     --mdc-tab-indicator-active-indicator-height: 2px;
     --mat-tab-active-indicator-height: 2px;
+    --mat-tab-header-label-text-weight: var(--ks-font-weight-bold);
   }
 
   mat-tab-group.detail-tabs .mat-mdc-tab.mdc-tab--active .mdc-tab-indicator__content--underline {
@@ -237,7 +356,8 @@ body[data-ks-capital-dashboard] {
   app-capital-dashboard-investors,
   app-capital-dashboard-investments,
   app-capital-dashboard-assets {
-    display: block;
+    display: flex;
+    flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
     height: 100%;
@@ -359,7 +479,7 @@ body[data-ks-capital-dashboard] {
   .ks-capital-dashboard__tabs.mat-mdc-tab-nav-bar .mat-mdc-tab-link:hover:not(.mdc-tab--active) {
     .ks-capital-dashboard__tab-text,
     .ks-tab-icon.mat-icon {
-      color: var(--ks-capital-tab-inactive);
+      color: var(--ks-color-interactive-hover);
     }
   }
 
@@ -373,7 +493,7 @@ body[data-ks-capital-dashboard] {
   .ks-capital-dashboard__tabs.mat-mdc-tab-nav-bar .mdc-tab-scroller,
   .ks-capital-dashboard__tabs.mat-mdc-tab-nav-bar .mdc-tab-scroller__scroll-area,
   .ks-capital-dashboard__tabs.mat-mdc-tab-nav-bar .mdc-tab-scroller__scroll-content {
-    background: #f5f5f5;
+    background: var(--ks-color-subheader-bg);
   }
 
   .ks-capital-dashboard__tabs.mat-mdc-tab-nav-bar {
@@ -534,12 +654,31 @@ body[data-ks-capital-dashboard] {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    background: #0f284a;
-    color: white;
+    background: var(--ks-capital-load-more-bg);
+    border: none;
+    color: #fff;
+  }
+
+  .list-load-more .ks-load-more:hover:not(:disabled) {
+    background: var(--ks-capital-load-more-hover);
   }
 
   .list-load-more .ks-load-more[disabled] {
     opacity: 0.75;
+  }
+
+  .tab-table-load-more .ks-load-more,
+  .tab-table-load-more .ks-load-more--compact {
+    background: var(--ks-capital-load-more-bg);
+    border-color: var(--ks-capital-load-more-bg);
+    color: #fff;
+  }
+
+  .tab-table-load-more .ks-load-more:hover:not(:disabled),
+  .tab-table-load-more .ks-load-more--compact:hover:not(:disabled) {
+    background: var(--ks-capital-load-more-hover);
+    border-color: var(--ks-capital-load-more-hover);
+    filter: none;
   }
   .master-detail__empty {
     flex: 1;
@@ -653,26 +792,32 @@ body[data-ks-capital-dashboard] {
     min-width: 0;
     width: 100%;
     box-sizing: border-box;
-    padding: 1.5rem;
+    padding: 0.6rem;
     background: var(--portal-paper);
   }
 
-  /* Horizontal overflow helper (used for overview cards on small widths) */
-  .detail-scroll-x {
+  /* Overview tab scroll area (vertical + horizontal when cards overflow). */
+  mat-tab-group.detail-tabs .detail-card__body:not(.detail-card__body--table) .detail-scroll-x {
+    flex: 1 1 auto;
+    min-height: 0;
     width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: auto;
     -webkit-overflow-scrolling: touch;
     @include portal-scrollbar;
   }
 
   .detail-card__body--table {
-    padding: 0;
+    padding: 0.6rem;
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
+  }
+
+  .detail-card__body--table .detail-table-wrap {
+    padding-left: 0;
+    padding-right: 0;
   }
 
   .detail-card__body--table > .list-state {
@@ -748,9 +893,7 @@ body[data-ks-capital-dashboard] {
     }
 
     .detail-card__body:not(.detail-card__body--table) {
-      overflow: auto;
-      -webkit-overflow-scrolling: touch;
-      @include portal-scrollbar;
+      overflow: hidden;
     }
   }
 
@@ -765,7 +908,7 @@ body[data-ks-capital-dashboard] {
 
   .detail-table .mat-mdc-header-row {
     height: auto;
-    background: var(--portal-paper);
+    background: var(--ks-color-table-head-bg);
     position: sticky;
     top: 0;
     z-index: 1;
@@ -773,14 +916,14 @@ body[data-ks-capital-dashboard] {
 
   .detail-table .mat-mdc-header-cell {
     padding: 0.875rem 1.25rem;
-    color: var(--portal-text-secondary);
+    color: var(--portal-text-primary);
     font-size: var(--ks-font-size-base);
     font-weight: var(--ks-font-weight-medium);
     letter-spacing: normal;
     text-transform: none;
     white-space: nowrap;
     border-bottom: 1px solid var(--portal-divider);
-    background: var(--portal-paper);
+    background: var(--ks-color-table-head-bg);
     box-sizing: border-box;
   }
 
@@ -802,6 +945,10 @@ body[data-ks-capital-dashboard] {
     box-sizing: border-box;
     border-bottom: 2px solid #d1d1d1;
   }
+
+  .detail-table .ks-currency--negative {
+    color: rgb(176, 8, 8);
+  }
   .detail-table .mat-mdc-cell div {
     align-items: start;
   }
@@ -811,8 +958,10 @@ body[data-ks-capital-dashboard] {
   }
 
   .detail-table .mat-mdc-header-cell.align-right,
-  .detail-table .mat-mdc-cell.align-right {
+  .detail-table .mat-mdc-cell.align-right,
+  .detail-table .mat-mdc-footer-cell.align-right {
     text-align: right;
+    justify-content: flex-end;
   }
 
   .detail-table .mat-mdc-header-cell.align-left,
@@ -913,7 +1062,7 @@ body[data-ks-capital-dashboard] {
   }
 
   .detail-table .link-cell:hover .detail-table__primary {
-    color: var(--portal-primary);
+    color: var(--ks-color-interactive-hover);
     text-decoration: underline;
   }
 
@@ -987,12 +1136,12 @@ body[data-ks-capital-dashboard] {
     top: 0;
     z-index: 3;
     height: auto;
-    background: var(--portal-paper);
+    background: var(--ks-color-table-head-bg);
   }
 
   .list-table .mat-mdc-header-cell {
-    background-color: var(--portal-paper);
-    color: var(--portal-text-secondary);
+    background-color: var(--ks-color-table-head-bg);
+    color: var(--portal-text-primary);
     font-size: var(--ks-font-size-sm);
     font-weight: var(--ks-font-weight-semibold);
     letter-spacing: 0.04em;
@@ -1042,11 +1191,22 @@ body[data-ks-capital-dashboard] {
 
   .list-table tr.selected-row {
     background: var(--portal-row-selected) !important;
-    box-shadow: inset 3px 0 0 var(--portal-row-selected-border);
   }
 
   .list-table tr.selected-row .mat-mdc-cell {
     background: var(--portal-row-selected);
+  }
+
+  .list-table tr.selected-row .mat-mdc-cell:first-child {
+    box-shadow: inset 3px 0 0 var(--portal-row-selected-border);
+  }
+
+  .list-table tr.selected-row:hover .mat-mdc-cell {
+    background: var(--portal-row-selected);
+  }
+
+  .list-table tr.selected-row:hover .mat-mdc-cell:first-child {
+    box-shadow: inset 3px 0 0 var(--portal-row-selected-border);
   }
 
   .list-table__primary {
@@ -1146,7 +1306,13 @@ body[data-ks-capital-dashboard] {
       --mat-chip-label-text-color: #ffffff;
     }
 
-    &:not(.portal-chip--outlined):not(.portal-chip--success):not(.portal-chip--warning) {
+    &.portal-chip--gold {
+      --mat-chip-outline-width: 0;
+      --mat-chip-elevated-container-color: var(--ks-color-gold);
+      --mat-chip-label-text-color: #ffffff;
+    }
+
+    &:not(.portal-chip--outlined):not(.portal-chip--success):not(.portal-chip--warning):not(.portal-chip--gold) {
       --mat-chip-outline-width: 0;
       --mat-chip-elevated-container-color: var(--portal-text-secondary);
       --mat-chip-label-text-color: #ffffff;
@@ -1239,6 +1405,23 @@ body[data-ks-capital-dashboard] {
     border-color: #4280d5;
     --mdc-outlined-button-outline-color: #4280d5;
     --mdc-outlined-button-label-text-color: #4280d5;
+  }
+
+  /* Interactive hover — capital dashboard only */
+  app-capital-dashboard a:hover,
+  app-capital-dashboard-investors a:hover,
+  app-capital-dashboard-investments a:hover,
+  app-capital-dashboard-assets a:hover {
+    color: var(--ks-color-interactive-hover);
+  }
+
+  .master-detail__back:hover {
+    color: var(--ks-color-interactive-hover);
+  }
+
+  .mat-mdc-outlined-button:not(:disabled):not(.tab-download):hover,
+  .mat-mdc-button:not(:disabled):hover {
+    color: var(--ks-color-interactive-hover);
   }
 }
 

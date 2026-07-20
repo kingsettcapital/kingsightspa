@@ -1,50 +1,87 @@
-@use '../shared/styles/list-search-field' as search;
-
-:host {
+.cdt-table-card--empty {
+  position: relative;
   display: block;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
+  min-height: 36rem;
 }
 
-@include search.ks-list-search-field('investments');
-
-.link-cell {
+.cdt-table-card__state {
+  position: absolute;
+  inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-}
-
-.detail-table__toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 0.75rem;
-  padding: 0.5rem 0;
+  padding: 2rem 1.5rem;
+  text-align: center;
 }
 
-.ks-investments-search--inline {
-  margin-bottom: 0;
-  width: min(340px, 100%);
+.cdt-table-card__spinner {
+  --ks-spinner-size: 2.75rem;
+  width: var(--ks-spinner-size);
+  height: var(--ks-spinner-size);
+  margin-bottom: 0.25rem;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 74, 153, 0.15);
+  border-top-color: #004a99;
+  animation: cdt-investments-state-spin 0.75s linear infinite;
+  flex-shrink: 0;
 }
 
-:host ::ng-deep .detail-table .mat-mdc-header-cell {
-  border-top: 1px solid var(--portal-divider);
+@keyframes cdt-investments-state-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-/* Capital dashboard list styles define `.list-table__secondary { color: ... }`.
-   Increase specificity so return colors always win. */
-.list-table__secondary.return-positive {
-  color: var(--portal-success);
+.cdt-table-card__state-icon {
+  width: 3rem;
+  height: 3rem;
+  font-size: 3rem;
+  margin-bottom: 0.125rem;
+  color: #dc2626;
+}
+
+.cdt-table-card__state-title {
+  margin: 0;
+  font-family: var(--cdt-font-sans);
+  font-size: 1.25rem;
   font-weight: 600;
+  color: #1a202c;
+  line-height: 1.35;
 }
 
-.list-table__secondary.return-negative {
-  color: var(--portal-error);
+.cdt-table-card__state-message {
+  margin: 0;
+  max-width: 24rem;
+  font-family: var(--cdt-font-sans);
+  font-size: 1rem;
+  font-weight: 400;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.cdt-table-card__error .cdt-table-card__state-title {
+  color: #991b1b;
+}
+
+.cdt-table-card__retry {
+  margin-top: 0.625rem;
+  padding: 0.5625rem 1.25rem;
+  border: 1px solid #004a99;
+  border-radius: 6px;
+  background: #004a99;
+  color: #fff;
+  font-family: var(--cdt-font-sans);
+  font-size: 0.875rem;
   font-weight: 600;
-}
+  line-height: 1.25;
+  cursor: pointer;
+  text-decoration: none;
 
-.list-table__secondary.return-neutral {
-  color: var(--portal-text-secondary);
-  font-weight: 500;
+  &:hover {
+    background: #003d80;
+    border-color: #003d80;
+    color: #fff;
+  }
 }

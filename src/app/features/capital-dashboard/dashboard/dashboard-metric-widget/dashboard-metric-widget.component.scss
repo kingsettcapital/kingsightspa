@@ -1,0 +1,17 @@
+@use '../shared/dashboard-kpi-widget';
+
+.cdt-dashboard-kpi--blue {
+  background: var(--cdt-blue-mid);
+}
+
+.cdt-dashboard-kpi--blue-light {
+  background: var(--cdt-blue-light);
+}
+
+.cdt-dashboard-kpi--slate {
+  background: var(--cdt-slate);
+}
+
+.cdt-dashboard-kpi__change--negative {
+  color: #fca5a5;
+}

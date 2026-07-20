@@ -1,0 +1,124 @@
+/* KingSight — Figma design tokens (Capital Dashboard) */
+
+body[data-ks-capital-dashboard] {
+  --cdt-font-sans: 'Open Sans', Arial, sans-serif;
+  --cdt-font-serif: 'Libre Baskerville', Georgia, serif;
+  --cdt-font-amount: 'Rufina', Georgia, serif;
+  /* Override global Arial stack within Capital Dashboard */
+  --ks-font-family: var(--cdt-font-sans);
+  --cdt-header-bg: #004a99;
+  --cdt-header-search-bg: rgba(255, 255, 255, 0.12);
+  --cdt-header-search-border: rgba(255, 255, 255, 0.28);
+  --cdt-gold: #c5a048;
+  --cdt-gold-card: #c9a44c;
+  --cdt-navy: #1a1f36;
+  --cdt-blue-mid: #004a99;
+  --cdt-blue-light: #1e73be;
+  --cdt-investor-kpi-navy: #0c274a;
+  --cdt-slate: #244b8f;
+  --cdt-metric-reserved: var(--ks-color-chart-blue-mid);
+  --cdt-metric-unfunded: var(--ks-color-blue-dark);
+  --cdt-metric-released: var(--ks-color-chart-green);
+  --cdt-filter-bg: #ffffff;
+  --cdt-page-bg: #f4f5f7;
+  --cdt-surface: #ffffff;
+  --cdt-border: #e2e8f0;
+  --cdt-text: #1a1a1a;
+  --cdt-text-muted: #64748b;
+  --cdt-text-subtle: #94a3b8;
+  --cdt-success: #16a34a;
+  --cdt-warning: #d97706;
+  --cdt-link: #0d6efd;
+  --cdt-radius: 8px;
+  --cdt-radius-control: 6px;
+  --cdt-radius-pill: 999px;
+  --cdt-title-color: #1a202c;
+  --cdt-control-border: #d8dee6;
+  --cdt-subtitle-color: #718096;
+  --cdt-table-scroll-height: 28rem;
+  --cdt-tab-table-body-max-height: calc(100dvh - 22rem);
+  --cdt-dashboard-table-body-max-height: 16rem;
+  --cdt-content-padding-x: 3rem;
+  --cdt-content-padding-y: 1.5rem;
+  --cdt-content-padding-bottom: 1.25rem;
+  --ks-capital-dashboard-font-family: var(--cdt-font-sans);
+  font-family: var(--cdt-font-sans);
+  font-weight: var(--ks-font-weight-regular);
+
+  app-capital-dashboard,
+  app-capital-dashboard-investors,
+  app-capital-dashboard-investments,
+  app-capital-dashboard-assets,
+  app-capital-dashboard-dashboard,
+  app-investor-detail,
+  app-investor-detail-block,
+  app-investor-detail-sidebar,
+  app-investor-detail-table,
+  app-overview-section-cards,
+  app-dashboard-header,
+  app-dashboard-widget-card,
+  app-dashboard-widget-shell,
+  app-dashboard-metric-widget,
+  app-manage-widgets-panel,
+  app-active-funds-table,
+  app-active-assets-table,
+  app-total-assets-widget,
+  app-portfolio-value-widget,
+  app-ytd-returns-widget,
+  app-quarterly-returns-chart,
+  app-portfolio-performance-chart,
+  app-investor-growth-chart,
+  app-geographic-distribution-chart,
+  app-asset-allocation-chart,
+  app-detail-status-badge,
+  app-portal-spinner,
+  ks-search-field,
+  ks-progress-bar,
+  ks-segmented-control,
+  ks-badge,
+  ks-icon {
+    font-family: var(--cdt-font-sans);
+    font-weight: var(--ks-font-weight-regular);
+  }
+
+  .cdt-investors,
+  .cdt-investments,
+  .cdt-assets,
+  .cdt-dashboard {
+    width: 100%;
+    padding: var(--cdt-content-padding-y) var(--cdt-content-padding-x) var(--cdt-content-padding-bottom);
+    box-sizing: border-box;
+  }
+
+  @media (min-width: 100rem) {
+    --cdt-content-padding-x: 4rem;
+  }
+
+  @media (max-width: 768px) {
+    --cdt-content-padding-x: 1rem;
+    --cdt-content-padding-y: 1rem;
+    --cdt-content-padding-bottom: 1rem;
+  }
+
+  /* Hide app chrome — Figma uses its own top bar */
+  .ks-header {
+    display: none;
+  }
+
+  .ks-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+    background: var(--cdt-page-bg);
+
+    > app-capital-dashboard {
+      display: flex;
+      flex: 1 1 0;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+  }
+}

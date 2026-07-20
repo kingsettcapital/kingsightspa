@@ -1,0 +1,118 @@
+.um-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(12, 39, 74, 0.45);
+}
+
+.um-modal {
+  width: min(100%, 32rem);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  border: 1px solid var(--ks-color-light-blue);
+  background: var(--ks-color-surface);
+  box-shadow: var(--ks-shadow-md);
+}
+
+.um-modal--narrow {
+  width: min(100%, 24rem);
+}
+
+.um-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--ks-color-light-blue);
+  background: var(--ks-color-pale-blue);
+}
+
+.um-modal__title {
+  margin: 0;
+  color: var(--ks-color-navy);
+  font-size: var(--ks-font-size-lg);
+  font-weight: var(--ks-font-weight-semibold);
+}
+
+.um-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ks-color-navy);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.um-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.um-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  padding-top: 0.25rem;
+}
+
+.um-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.um-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.um-field--checkbox {
+  margin-top: 0.25rem;
+}
+
+.um-field__readonly {
+  margin: 0;
+  color: var(--ks-color-navy);
+  font-size: var(--ks-font-size-base);
+  font-weight: var(--ks-font-weight-semibold);
+}
+
+.um-field__error {
+  margin: 0;
+  color: var(--ks-color-error, #b42318);
+  font-size: var(--ks-font-size-xs);
+}
+
+.um-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ks-color-text);
+  font-size: var(--ks-font-size-base);
+  cursor: pointer;
+}
+
+.um-checkbox input {
+  width: 1rem;
+  height: 1rem;
+}
+
+@media (max-width: 640px) {
+  .um-field-row {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,700 @@
+<div class="de-explorer">
+  <header class="de-explorer__topbar">
+    <a
+      class="de-explorer__home-link"
+      routerLink="/"
+      aria-label="Back to KingSight home"
+    >
+      <lucide-icon [img]="homeIcon" [size]="18" color="currentColor"></lucide-icon>
+    </a>
+
+    <h1 class="de-explorer__brand">Data Explorer</h1>
+
+    <span class="de-explorer__topbar-divider" aria-hidden="true"></span>
+
+    <div class="de-explorer__topbar-actions">
+      @if (hasQuery()) {
+        <div class="de-explorer__topbar-stats">
+          <span class="de-explorer__stat">{{ selectedFieldIds().length }} cols</span>
+          <span class="de-explorer__stat">{{ totalRecords() }} / {{ totalCount() || totalRecords() }} rows</span>
+        </div>
+
+        <span class="de-explorer__topbar-divider" aria-hidden="true"></span>
+      }
+
+      <div class="de-explorer__topbar-buttons">
+        @if (isEditingSavedQuery()) {
+          <span class="de-explorer__editing-chip" [title]="'Editing ' + editingSavedQuery()!.name">
+            <span class="de-explorer__editing-chip-prefix">Editing:</span>
+            <span class="de-explorer__editing-chip-name">{{ editingSavedQuery()!.name }}</span>
+          </span>
+          <span class="de-explorer__topbar-divider" aria-hidden="true"></span>
+        }
+
+        <button type="button" class="de-explorer__action-btn" (click)="resetQuery()">
+          <lucide-icon [img]="resetIcon" [size]="16" color="currentColor"></lucide-icon>
+          <span class="de-explorer__action-btn-label">Reset</span>
+        </button>
+
+        <button
+          type="button"
+          class="de-explorer__action-btn de-explorer__action-btn--saved"
+          [class.de-explorer__action-btn--saved-loading]="savedQueriesLoading()"
+          [disabled]="savedQueriesLoading()"
+          [attr.aria-busy]="savedQueriesLoading()"
+          [attr.aria-label]="savedQueriesLoading() ? 'Loading saved queries' : 'Saved queries'"
+          (click)="openSavedModal()"
+        >
+          <lucide-icon [img]="savedIcon" [size]="16" color="currentColor"></lucide-icon>
+          <span class="de-explorer__action-btn-label">Saved</span>
+          @if (savedQueriesLoading()) {
+            <span class="de-explorer__badge de-explorer__badge--count de-explorer__badge--loading" aria-hidden="true">
+              <span class="de-explorer__badge-spinner"></span>
+            </span>
+          } @else if (savedQueries().length > 0) {
+            <span class="de-explorer__badge de-explorer__badge--count">{{ savedQueries().length }}</span>
+          }
+        </button>
+
+        <button
+          type="button"
+          class="de-explorer__action-btn"
+          [class.de-explorer__action-btn--update]="isEditingSavedQuery()"
+          [disabled]="!hasQuery() || savedQueryActionLoading()"
+          (click)="openSaveModal()"
+        >
+          @if (isEditingSavedQuery()) {
+            <lucide-icon [img]="editIcon" [size]="16" color="currentColor"></lucide-icon>
+            <span class="de-explorer__action-btn-label">Update</span>
+          } @else {
+            <lucide-icon [img]="saveIcon" [size]="16" color="currentColor"></lucide-icon>
+            <span class="de-explorer__action-btn-label">Save</span>
+          }
+        </button>
+
+        <button
+          type="button"
+          class="de-explorer__action-btn de-explorer__action-btn--export"
+          [disabled]="!hasQuery() || totalRecords() === 0"
+          (click)="exportData()"
+        >
+          <lucide-icon [img]="exportIcon" [size]="16" color="currentColor"></lucide-icon>
+          <span class="de-explorer__action-btn-label">Export</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="de-explorer__toolbar">
+    <div class="de-explorer__toolbar-left">
+      <button
+        type="button"
+        class="de-explorer__toolbar-btn"
+        [class.de-explorer__toolbar-btn--active]="isColumnsPanelOpen()"
+        (click)="toggleColumnsPanel()"
+      >
+        <lucide-icon [img]="columnsIcon" [size]="14" color="currentColor"></lucide-icon>
+        <span class="de-explorer__toolbar-btn-label">Columns</span>
+      </button>
+
+      <div class="de-explorer__group-by">
+        <span class="de-explorer__group-by-label">Group by:</span>
+        <div class="de-explorer__dropdown">
+          <button
+            type="button"
+            class="de-explorer__dropdown-trigger"
+            [disabled]="!hasQuery()"
+            (click)="toggleGroupByDropdown()"
+          >
+            {{ groupByLabel() }}
+            <lucide-icon [img]="chevronDownIcon" [size]="12" color="currentColor"></lucide-icon>
+          </button>
+
+          @if (isGroupByOpen()) {
+            <ul class="de-explorer__dropdown-menu" role="listbox">
+              @for (option of groupByOptions(); track option.id ?? 'none') {
+                <li>
+                  <button
+                    type="button"
+                    class="de-explorer__dropdown-item"
+                    [class.de-explorer__dropdown-item--selected]="groupByFieldId() === option.id"
+                    (click)="selectGroupBy(option.id)"
+                  >
+                    {{ option.label }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+    </div>
+
+    <button
+      type="button"
+      class="de-explorer__toolbar-btn"
+      [class.de-explorer__toolbar-btn--active]="isFiltersPanelOpen()"
+      (click)="toggleFiltersPanel()"
+    >
+      <lucide-icon [img]="filtersIcon" [size]="14" color="currentColor"></lucide-icon>
+      <span class="de-explorer__toolbar-btn-label">Filters</span>
+      @if (filterCardsCount() > 0) {
+        <span class="de-explorer__badge de-explorer__badge--count">{{ filterCardsCount() }}</span>
+      }
+    </button>
+  </div>
+
+  <div class="de-explorer__workspace">
+    @if (isColumnsPanelOpen()) {
+      <aside class="de-explorer__panel de-explorer__panel--columns">
+        <header class="de-explorer__panel-header de-explorer__panel-header--columns">
+          <span class="de-explorer__panel-header-icon" aria-hidden="true">
+            <lucide-icon [img]="dataProductsIcon" [size]="18" color="currentColor"></lucide-icon>
+          </span>
+          <div>
+            <h2 class="de-explorer__panel-title">DATA PRODUCTS</h2>
+            <p class="de-explorer__panel-subtitle">Select columns to query</p>
+          </div>
+        </header>
+
+        <div class="de-explorer__product-select-wrap">
+          <label class="de-explorer__product-select-label" for="de-explorer-product">Data product</label>
+          <select
+            id="de-explorer-product"
+            class="de-explorer__product-select ks-select"
+            [disabled]="productsLoading() || productOptions().length === 0"
+            [ngModel]="selectedProduct()"
+            (ngModelChange)="onProductChange($event)"
+          >
+            @if (productsLoading()) {
+              <option value="">Loading products…</option>
+            } @else if (productOptions().length === 0) {
+              <option value="">No products available</option>
+            } @else {
+              @for (option of productOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            }
+          </select>
+        </div>
+
+        <div class="de-explorer__panel-search">
+          <lucide-icon [img]="searchIcon" [size]="14" color="currentColor"></lucide-icon>
+          <input
+            type="search"
+            class="de-explorer__search-input"
+            placeholder="Search columns..."
+            [ngModel]="columnSearch()"
+            (ngModelChange)="columnSearch.set($event)"
+          />
+        </div>
+
+        <p class="de-explorer__selection-count">
+          <strong>{{ selectedFieldIds().length }}</strong> columns selected
+        </p>
+
+        <div class="de-explorer__products">
+          @if (columnsLoading()) {
+            <div class="de-explorer__panel-skeleton" role="status" aria-live="polite" aria-label="Loading columns">
+              @for (group of skeletonPanelGroups; track group) {
+                <div class="de-explorer__skeleton-group">
+                  <span class="de-explorer__skeleton de-explorer__skeleton--product"></span>
+                  @for (field of skeletonPanelFields; track field) {
+                    <div class="de-explorer__skeleton-field">
+                      <span class="de-explorer__skeleton de-explorer__skeleton--checkbox"></span>
+                      <span
+                        class="de-explorer__skeleton de-explorer__skeleton--label"
+                        [style.width]="skeletonCellWidth(group, field)"
+                      ></span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          } @else if (columnsError()) {
+            <div class="de-explorer__panel-error" role="alert">
+              <p>{{ columnsError() }}</p>
+              <button type="button" class="de-explorer__retry-btn" (click)="reloadColumns()">
+                Retry
+              </button>
+            </div>
+          } @else {
+          @for (product of filteredFieldsForSearch(); track product.id) {
+            <div class="de-explorer__product">
+              <div class="de-explorer__product-row">
+                <button
+                  type="button"
+                  class="de-explorer__product-chevron"
+                  (click)="toggleProductExpanded(product.id)"
+                  [attr.aria-expanded]="isProductExpanded(product.id)"
+                  [attr.aria-label]="'Toggle ' + product.label"
+                >
+                  @if (isProductExpanded(product.id)) {
+                    <lucide-icon [img]="chevronDownIcon" [size]="14" color="currentColor"></lucide-icon>
+                  } @else {
+                    <lucide-icon [img]="chevronRightIcon" [size]="14" color="currentColor"></lucide-icon>
+                  }
+                </button>
+
+                <button
+                  type="button"
+                  class="de-explorer__product-main"
+                  (click)="toggleProductExpanded(product.id)"
+                >
+                  <span class="de-explorer__product-icon" aria-hidden="true">
+                    <lucide-icon
+                      [img]="getProductIcon(product.id)"
+                      [size]="15"
+                      color="currentColor"
+                    ></lucide-icon>
+                  </span>
+                  <span class="de-explorer__product-text">
+                    <span class="de-explorer__product-label">{{ product.label }}</span>
+                    <span class="de-explorer__product-desc">{{ product.description }}</span>
+                  </span>
+                </button>
+
+                <label
+                  class="de-explorer__product-checkbox"
+                  [class.de-explorer__product-checkbox--partial]="isProductPartiallySelected(product)"
+                  (click)="$event.stopPropagation()"
+                >
+                  <input
+                    type="checkbox"
+                    [checked]="isProductFullySelected(product)"
+                    (change)="toggleProductFields(product, $event)"
+                  />
+                  <span class="de-explorer__checkbox-ui" aria-hidden="true"></span>
+                </label>
+              </div>
+
+              @if (isProductExpanded(product.id)) {
+                <ul class="de-explorer__field-list">
+                  @for (field of product.fields; track field.id) {
+                    <li>
+                      <label
+                        class="de-explorer__field"
+                        [class.de-explorer__field--selected]="isFieldSelected(field.id)"
+                      >
+                        <input
+                          type="checkbox"
+                          class="de-explorer__field-input"
+                          [checked]="isFieldSelected(field.id)"
+                          (change)="toggleField(field.id)"
+                        />
+                        <span class="de-explorer__checkbox-ui de-explorer__checkbox-ui--field" aria-hidden="true"></span>
+                        <span class="de-explorer__field-label">{{ field.label }}</span>
+                        <span
+                          class="de-explorer__type-badge de-explorer__type-badge--{{ getTypeBadgeClass(field.type) }}"
+                        >
+                          {{ getTypeBadge(field.type) }}
+                        </span>
+                      </label>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+          }
+        </div>
+      </aside>
+    }
+
+    <main class="de-explorer__main">
+      @if (!hasQuery()) {
+        <div class="de-explorer__empty">
+          <span class="de-explorer__empty-icon" aria-hidden="true">
+            <lucide-icon [img]="gridIcon" [size]="28" color="currentColor"></lucide-icon>
+          </span>
+          <h2 class="de-explorer__empty-title">Build Your Query</h2>
+          <p class="de-explorer__empty-text">
+            Select data products and columns from the left panel.
+          </p>
+
+          <!-- <div class="de-explorer__templates">
+            @for (template of quickStartTemplates; track template.id) {
+              <button
+                type="button"
+                class="de-explorer__template-card"
+                (click)="applyQuickStart(template)"
+              >
+                <span class="de-explorer__template-title">{{ template.title }}</span>
+                <span class="de-explorer__template-desc">{{ template.description }}</span>
+              </button>
+            }
+          </div>
+
+          <p class="de-explorer__empty-footer">
+            <span class="de-explorer__dot" aria-hidden="true"></span>
+            {{ totalAvailableRecords() }} records across {{ totalDataProducts() }} data products available
+          </p> -->
+        </div>
+      } @else {
+        <div class="de-explorer__table-wrap">
+          @if (dataError()) {
+            <div class="de-explorer__table-error" role="alert">
+              <p>{{ dataError() }}</p>
+            </div>
+          } @else {
+            <div class="de-explorer__table-card">
+              @if (dataLoading()) {
+                <div class="de-explorer__table-progress" aria-hidden="true">
+                  <span class="de-explorer__table-progress-bar"></span>
+                </div>
+              }
+
+              <div class="de-explorer__table-scroll">
+                <table class="de-explorer__table">
+                  <thead>
+                    <tr>
+                      <th class="de-explorer__th de-explorer__th--index">#</th>
+                      @for (field of displayColumns(); track field.id) {
+                        <th class="de-explorer__th de-explorer__th--{{ field.id }}">
+                          <button type="button" class="de-explorer__sort-btn" (click)="toggleSort(field.id)">
+                            {{ field.label }}
+                            <span
+                              class="de-explorer__sort-icon"
+                              [class.de-explorer__sort-icon--asc]="sortFieldId() === field.id && sortDirection() === 'asc'"
+                              [class.de-explorer__sort-icon--desc]="sortFieldId() === field.id && sortDirection() === 'desc'"
+                              aria-hidden="true"
+                            >
+                              <span class="de-explorer__sort-caret de-explorer__sort-caret--up"></span>
+                              <span class="de-explorer__sort-caret de-explorer__sort-caret--down"></span>
+                            </span>
+                          </button>
+                        </th>
+                      }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @if (dataLoading()) {
+                      @for (row of skeletonRowIndices(); track row) {
+                        <tr
+                          class="de-explorer__row de-explorer__row--skeleton"
+                          [class.de-explorer__row--alt]="row % 2 === 1"
+                        >
+                          <td class="de-explorer__td de-explorer__td--index">
+                            <span class="de-explorer__skeleton de-explorer__skeleton--index"></span>
+                          </td>
+                          @for (field of displayColumns(); track field.id; let col = $index) {
+                            <td class="de-explorer__td">
+                              <span
+                                class="de-explorer__skeleton"
+                                [style.width]="skeletonCellWidth(row, col)"
+                              ></span>
+                            </td>
+                          }
+                        </tr>
+                      }
+                    } @else if (showTableEmpty()) {
+                      <tr class="de-explorer__table-empty-row">
+                        <td [attr.colspan]="displayColumns().length + 1">
+                          <div class="de-explorer__table-empty">
+                            <lucide-icon [img]="searchIcon" [size]="28" color="currentColor"></lucide-icon>
+                            <p class="de-explorer__table-empty-title">No data found</p>
+                            @if (appliedFilterCount() > 0) {
+                              <p class="de-explorer__table-empty-hint">
+                                No rows match your filters. Try adjusting or clearing them.
+                              </p>
+                            } @else {
+                              <p class="de-explorer__table-empty-hint">
+                                No records are available for the selected columns.
+                              </p>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    } @else {
+                    @for (group of tableGroups(); track group.key) {
+                      @if (groupByFieldId()) {
+                        <tr class="de-explorer__group-row">
+                          <td [attr.colspan]="displayColumns().length + 1">
+                            <button
+                              type="button"
+                              class="de-explorer__group-toggle"
+                              (click)="toggleGroupExpanded(group.key)"
+                            >
+                              @if (group.expanded) {
+                                <lucide-icon [img]="chevronDownIcon" [size]="14" color="currentColor"></lucide-icon>
+                              } @else {
+                                <lucide-icon [img]="chevronRightIcon" [size]="14" color="currentColor"></lucide-icon>
+                              }
+                              <span>{{ group.label }} ({{ group.records.length }} records)</span>
+                            </button>
+                          </td>
+                        </tr>
+                      }
+
+                      @if (!groupByFieldId() || group.expanded) {
+                        @for (record of group.records; track getRowKey(record, $index); let idx = $index) {
+                          <tr
+                            class="de-explorer__row"
+                            [class.de-explorer__row--alt]="idx % 2 === 1"
+                          >
+                            <td class="de-explorer__td de-explorer__td--index">{{ rowNumber(idx) }}</td>
+                            @for (field of displayColumns(); track field.id) {
+                              <td class="de-explorer__td de-explorer__td--{{ field.id }}">
+                                @switch (field.type) {
+                                  @case ('currency') {
+                                    @if (getNumericCellValue(record, field); as amount) {
+                                      <span
+                                        class="de-explorer__currency-value"
+                                        [class.ks-currency--negative]="amount < 0"
+                                      >
+                                        {{ amount | ksCurrency }}
+                                      </span>
+                                    } @else {
+                                      —
+                                    }
+                                  }
+                                  @case ('percent') {
+                                    @if (getNumericCellValue(record, field); as pct) {
+                                      <span class="de-explorer__percent-value">{{ formatPercentCell(pct) }}</span>
+                                    } @else {
+                                      —
+                                    }
+                                  }
+                                  @default {
+                                    {{ formatValue(record, field) }}
+                                  }
+                                }
+                              </td>
+                            }
+                          </tr>
+                        }
+                      }
+                    }
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              @if (hasQuery() && !dataLoading() && !dataError()) {
+                <footer class="de-explorer__pagination">
+                  <p class="de-explorer__pagination-summary">
+                    @if (showTableEmpty() && appliedFilterCount() > 0) {
+                      Showing
+                      <strong>0</strong>
+                      matching rows of
+                      <strong>{{ totalCount() }}</strong>
+                    } @else {
+                      Showing
+                      <strong>{{ showingFrom() }}-{{ showingTo() }}</strong>
+                      of
+                      <strong>{{ totalCount() }}</strong>
+                    }
+                  </p>
+                  <div class="de-explorer__pagination-controls">
+                    <div class="de-explorer__page-size" aria-label="Rows per page">
+                      <span class="de-explorer__page-size-label">Rows</span>
+                      @for (size of pageSizeOptions; track size) {
+                        <button
+                          type="button"
+                          class="de-explorer__pagination-page"
+                          [class.de-explorer__pagination-page--active]="pageSize() === size"
+                          [disabled]="dataLoading()"
+                          (click)="setPageSize(size)"
+                        >
+                          {{ size }}
+                        </button>
+                      }
+                    </div>
+                    <nav class="de-explorer__pagination-nav" aria-label="Data table pagination">
+                    <button
+                      type="button"
+                      class="de-explorer__pagination-arrow"
+                      [disabled]="currentPage() <= 1 || dataLoading()"
+                      (click)="goToPage(currentPage() - 1)"
+                      aria-label="Previous page"
+                    >
+                      <lucide-icon [img]="chevronLeftIcon" [size]="16" color="currentColor"></lucide-icon>
+                    </button>
+                    @for (page of pageNumbers(); track page) {
+                      <button
+                        type="button"
+                        class="de-explorer__pagination-page"
+                        [class.de-explorer__pagination-page--active]="page === currentPage()"
+                        [disabled]="dataLoading()"
+                        (click)="goToPage(page)"
+                      >
+                        {{ page }}
+                      </button>
+                    }
+                    <button
+                      type="button"
+                      class="de-explorer__pagination-arrow"
+                      [disabled]="currentPage() >= totalPages() || dataLoading()"
+                      (click)="goToPage(currentPage() + 1)"
+                      aria-label="Next page"
+                    >
+                      <lucide-icon [img]="chevronRightIcon" [size]="16" color="currentColor"></lucide-icon>
+                    </button>
+                  </nav>
+                  </div>
+                </footer>
+              }
+            </div>
+          }
+        </div>
+      }
+    </main>
+
+    @if (isFiltersPanelOpen()) {
+      <aside class="de-explorer__panel de-explorer__panel--filters">
+        <header class="de-explorer__panel-header de-explorer__panel-header--filters">
+          <span class="de-explorer__panel-header-icon" aria-hidden="true">
+            <lucide-icon [img]="filtersIcon" [size]="18" color="currentColor"></lucide-icon>
+          </span>
+          <div class="de-explorer__panel-header-content">
+            <div class="de-explorer__panel-header-row">
+              <h2 class="de-explorer__panel-title">FILTERS</h2>
+              @if (filterCardsCount() > 0) {
+                <span class="de-explorer__panel-badge">{{ filterCardsCount() }}</span>
+              }
+            </div>
+            <p class="de-explorer__panel-subtitle">Apply conditions to refine data</p>
+          </div>
+        </header>
+
+        @if (hasQuery()) {
+          <div class="de-explorer__filters-toolbar">
+            <button type="button" class="de-explorer__add-filter-btn" (click)="addFilter()">
+              + Add Filter
+            </button>
+            @if (filters().length > 0) {
+              <button type="button" class="de-explorer__clear-btn" (click)="clearFilters()">
+                Clear all
+              </button>
+            }
+          </div>
+        }
+
+        <div
+          class="de-explorer__filters-body"
+          [class.de-explorer__filters-body--empty]="hasQuery() && filters().length === 0"
+        >
+          @if (!hasQuery()) {
+            <div class="de-explorer__filters-empty de-explorer__filters-empty--no-query">
+              <lucide-icon [img]="filtersIcon" [size]="32" color="currentColor"></lucide-icon>
+              <p>Select columns first to apply filters</p>
+            </div>
+          } @else {
+            @if (filters().length > 1) {
+              <div class="de-explorer__logic-toggle">
+                <button
+                  type="button"
+                  class="de-explorer__logic-btn"
+                  [class.de-explorer__logic-btn--active]="filterLogic() === 'and'"
+                  (click)="setFilterLogic('and')"
+                >
+                  AND
+                </button>
+                <button
+                  type="button"
+                  class="de-explorer__logic-btn"
+                  [class.de-explorer__logic-btn--active]="filterLogic() === 'or'"
+                  (click)="setFilterLogic('or')"
+                >
+                  OR
+                </button>
+              </div>
+            }
+
+            @if (filters().length === 0) {
+              <div class="de-explorer__filters-empty">
+                <span class="de-explorer__filters-empty-icon" aria-hidden="true">
+                  <span class="de-explorer__filters-empty-plus">+</span>
+                </span>
+                <p class="de-explorer__filters-empty-title">No filters applied</p>
+                <p class="de-explorer__filters-empty-hint">Click "Add Filter" to start</p>
+              </div>
+            }
+
+            @for (filter of filters(); track filter.id; let idx = $index) {
+              @if (idx > 0) {
+                <div class="de-explorer__filter-divider">{{ filterLogic().toUpperCase() }}</div>
+              }
+
+              <div class="de-explorer__filter-card">
+                <label class="de-explorer__filter-label" [for]="'col-' + filter.id">Column</label>
+                <select
+                  [id]="'col-' + filter.id"
+                  class="ks-select de-explorer__filter-select"
+                  [ngModel]="filter.fieldId"
+                  (ngModelChange)="updateFilter(filter.id, { fieldId: $event })"
+                >
+                  @for (product of selectedFieldsByProduct(); track product.id) {
+                    <optgroup [label]="product.label">
+                      @for (field of product.fields; track field.id) {
+                        <option [value]="field.id">{{ field.label }}</option>
+                      }
+                    </optgroup>
+                  }
+                </select>
+
+                <label class="de-explorer__filter-label" [for]="'op-' + filter.id">Condition</label>
+                <select
+                  [id]="'op-' + filter.id"
+                  class="ks-select de-explorer__filter-select"
+                  [ngModel]="filter.operator"
+                  (ngModelChange)="updateFilterOperator(filter.id, $event)"
+                >
+                  @for (op of filterOperators; track op.value) {
+                    <option [value]="op.value">{{ op.label }}</option>
+                  }
+                </select>
+
+                <label class="de-explorer__filter-label" [for]="'val-' + filter.id">Value</label>
+                <input
+                  [id]="'val-' + filter.id"
+                  type="text"
+                  class="ks-input de-explorer__filter-input"
+                  placeholder="Value..."
+                  [ngModel]="filter.value"
+                  (ngModelChange)="updateFilter(filter.id, { value: $event })"
+                />
+
+                <button
+                  type="button"
+                  class="de-explorer__remove-filter"
+                  (click)="removeFilter(filter.id)"
+                >
+                  <lucide-icon [img]="trashIcon" [size]="14" color="currentColor"></lucide-icon>
+                  Remove filter
+                </button>
+              </div>
+            }
+          }
+        </div>
+
+        <footer class="de-explorer__filters-footer">
+          {{ appliedFilterLabel() }}
+        </footer>
+      </aside>
+    }
+  </div>
+</div>
+
+<app-save-query-modal
+  [isOpen]="isSaveModalOpen()"
+  [mode]="saveModalMode()"
+  [initialName]="editingSavedQuery()?.name ?? ''"
+  [initialDescription]="editingSavedQuery()?.description ?? ''"
+  [saving]="savedQueryActionLoading()"
+  (closed)="closeSaveModal()"
+  (submitted)="onSaveModalSubmit($event)"
+/>
+
+<app-saved-queries-modal
+  [isOpen]="isSavedModalOpen()"
+  [queries]="savedQueries()"
+  [loading]="savedQueriesLoading()"
+  [actionLoading]="savedQueryActionLoading()"
+  [loadingQuery]="loadingSavedQuery()"
+  [error]="savedQueriesError()"
+  (closed)="closeSavedModal()"
+  (querySelected)="loadSavedQuery($event)"
+  (queryEdit)="editSavedQuery($event)"
+  (queryDeleted)="onDeleteSavedQuery($event)"
+/>

@@ -1,159 +1,142 @@
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { delay, map, Observable, of } from 'rxjs';
+import { map, Observable, of } from 'rxjs';
 
-import { LOANS_RANKING_EXAMPLE_DATA } from '../constants/loans-ranking-example.data';
-import {
-  LoansApiCallOptions,
-  LoansPagedApiResponse,
-} from '../interfaces/loans-api.interfaces';
-import { LoanApiRecord } from '../interfaces/loan.interfaces';
-import {
-  AssignLoansToAliasPayload,
-  LoanTableQuery,
-  LoanTableResult,
-  UnassignedLoanOption,
-} from '../interfaces/loan-table.interfaces';
+import { APP_API_CONFIG } from '../constants/api.config';
+import { LoansApiCallOptions } from '../interfaces/loans-api.interfaces';
+import { LoanTableQuery, LoanTableResult } from '../interfaces/loan-table.interfaces';
 import { mapApiLoanToRow } from '../utils/loan-ranking.mapper';
-import { isUnassignedLoanAlias } from '../utils/loan-alias.util';
-import { ApiService } from './api.service';
-import {
-  applyClientTableTransforms,
-  buildLoansApiQueryParams,
-  mapLoansPagedResponse,
-  resolveServerFiltersFromQuery,
-} from './loans-api-query.util';
-import { queryLoansExampleData } from './loans-table-query.util';
+import { queryLoanRankingRows, queryLoansExampleData } from './loans-table-query.util';
 
-/** Default when a call does not pass `useExampleData` (e.g. Loan Alias page). */
-const USE_LOANS_EXAMPLE_DATA_DEFAULT = false;
+/** Mirrors GET /api/Loans — aligned with InvestorDto (loanDesc ↔ investorName). */
+export type LoanDto = {
+  loanKey: number;
+  loanCode: string;
+  loanDesc?: string | null;
+  loanAliasKey?: number | null;
+  loanAliasName?: string | null;
+  investorName?: string | null;
+  investorAliasName?: string | null;
+  loanRanking?: number | null;
+  dummyLoanLink?: string | null;
+  isLoanInterestApplicable?: boolean | null;
+  lateInterestOffNote?: string | null;
+  userUpdatedBy?: string | null;
+  userUpdatedDate?: string | null;
+};
+
+export type LoanAttributeUpdatePayload = {
+  loanKey: number;
+  loanCode: string;
+  loanAliasKey: number;
+  loanRanking?: number | null;
+  dummyLoanLink?: string | null;
+  isLoanInterestApplicable?: boolean | null;
+  lateInterestOffNote?: string | null;
+  userUpdatedBy: string;
+};
+
+export type LoanBulkUpdateRequest = {
+  loans: LoanAttributeUpdatePayload[];
+};
+
+/** From GET /api/Loans/lookups — loan_alias_master dropdown options. */
+export type LoanAliasOptionDto = {
+  loanAliasId: number;
+  loanAliasName: string;
+};
+
+export type LoanLookupsDto = {
+  loanAliases: LoanAliasOptionDto[];
+};
+
+/** @deprecated Prefer LoanDto for typed loan responses. */
+export type LoanApiRecord = Record<string, string | number | boolean | null | undefined>;
 
 @Injectable({
   providedIn: 'root',
 })
 export class LoansApiService {
-  private readonly api = inject(ApiService);
+  private readonly http = inject(HttpClient);
+  private readonly apiConfig = inject(APP_API_CONFIG);
 
-  getLoansTable(query: LoanTableQuery, options?: LoansApiCallOptions): Observable<LoanTableResult> {
-    if (this.useExampleData(options)) {
-      return of(queryLoansExampleData(query)).pipe(delay(400));
+  private get loansUrl(): string {
+    return `${this.apiConfig.baseUrl}/api/Loans`;
+  }
+
+  getLoans() {
+    return this.http.get<LoanDto[]>(this.loansUrl);
+  }
+
+  getLookups() {
+    return this.http.get<LoanLookupsDto>(`${this.loansUrl}/lookups`);
+  }
+
+  getLoansTable(query: LoanTableQuery, options: LoansApiCallOptions = {}): Observable<LoanTableResult> {
+    if (options.useExampleData) {
+      return of(queryLoansExampleData(query));
     }
 
-    const resolvedQuery = resolveServerFiltersFromQuery(query);
-    const params = buildLoansApiQueryParams(resolvedQuery);
-
-    return this.api.get<LoansPagedApiResponse>('api/Loans', params).pipe(
-      map((response) => {
-        const mapped = mapLoansPagedResponse(response);
-        return {
-          ...mapped,
-          rows: applyClientTableTransforms(mapped.rows, query),
-        };
+    return this.getLoans().pipe(
+      map((loans) => {
+        const rows = loans.map((loan, index) =>
+          mapApiLoanToRow(
+            {
+              loanKey: loan.loanKey,
+              LoanKey: loan.loanKey,
+              loanCode: loan.loanCode,
+              LoanCode: loan.loanCode,
+              loanDesc: loan.loanDesc,
+              LoanDesc: loan.loanDesc,
+              loanAliasName: loan.loanAliasName,
+              LoanAliasName: loan.loanAliasName,
+              investorName: loan.investorName,
+              InvestorName: loan.investorName,
+              investorAliasName: loan.investorAliasName,
+              InvestorAliasName: loan.investorAliasName,
+              loanRanking: loan.loanRanking,
+              LoanRanking: loan.loanRanking,
+              dummyLoanLink: loan.dummyLoanLink,
+              DummyLoanLink: loan.dummyLoanLink,
+              isLoanInterestApplicable: loan.isLoanInterestApplicable,
+              IsLoanInterestApplicable: loan.isLoanInterestApplicable,
+              lateInterestOffNote: loan.lateInterestOffNote,
+              LateInterestOffNote: loan.lateInterestOffNote,
+              userUpdatedBy: loan.userUpdatedBy,
+              UserUpdatedBy: loan.userUpdatedBy,
+              userUpdatedDate: loan.userUpdatedDate,
+              UserUpdatedDate: loan.userUpdatedDate,
+            },
+            index,
+          ),
+        );
+        return queryLoanRankingRows(rows, query);
       }),
     );
   }
 
-  getLoans(options?: LoansApiCallOptions): Observable<LoanApiRecord[]> {
-    if (this.useExampleData(options)) {
-      return of([...LOANS_RANKING_EXAMPLE_DATA]).pipe(delay(600));
-    }
-    return this.api
-      .get<LoansPagedApiResponse>('api/Loans', { page: 1, pageSize: 500 })
-      .pipe(map((response) => response.items ?? response.Items ?? []));
+  updateLoanAttributesBulk(request: LoanBulkUpdateRequest) {
+    return this.http.put<void>(this.loansUrl, { loans: request.loans });
   }
 
-  createLoan(payload: LoanApiRecord, options?: LoansApiCallOptions): Observable<LoanApiRecord> {
-    if (this.useExampleData(options)) {
-      return of({ ...payload }).pipe(delay(400));
-    }
-    return this.api.post<LoanApiRecord>('api/Loans', payload);
+  /** @deprecated Use updateLoanAttributesBulk. */
+  updateLoanAliasesBulk(request: LoanBulkUpdateRequest) {
+    return this.updateLoanAttributesBulk(request);
   }
 
-  updateLoan(
-    loanKey: string | number,
-    payload: LoanApiRecord,
-    options?: LoansApiCallOptions,
-  ): Observable<LoanApiRecord> {
-    if (this.useExampleData(options)) {
-      return of({ loanKey: String(loanKey), ...payload }).pipe(delay(400));
-    }
-    return this.api.put<LoanApiRecord>(
-      `api/Loans/${encodeURIComponent(String(loanKey))}`,
+  /** @deprecated API has no per-loan PUT; use updateLoanAliasesBulk. */
+  updateLoan(loanKey: string | number, payload: LoanApiRecord) {
+    return this.http.put<void>(
+      `${this.loansUrl}/${encodeURIComponent(String(loanKey))}`,
       payload,
     );
   }
 
+  createLoan(payload: LoanApiRecord) {
+    return this.http.post<LoanApiRecord>(this.loansUrl, payload);
+  }
+
   deleteLoan(loanId: string | number) {
-    return this.api.delete<void>(`api/Loans/${loanId}`);
-  }
-
-  createLoanAlias(
-    aliasName: string,
-    options?: LoansApiCallOptions,
-  ): Observable<{ aliasName: string }> {
-    const trimmed = aliasName.trim();
-    if (this.useExampleData(options)) {
-      return of({ aliasName: trimmed }).pipe(delay(300));
-    }
-    return this.api.post<{ aliasName: string }>('api/LoanAliases', { aliasName: trimmed });
-  }
-
-  getUnassignedLoans(options?: LoansApiCallOptions): Observable<UnassignedLoanOption[]> {
-    if (this.useExampleData(options)) {
-      const unassigned = LOANS_RANKING_EXAMPLE_DATA.map((record, index) =>
-        mapApiLoanToRow(record, index),
-      )
-        .filter((row) => isUnassignedLoanAlias(row.loanAlias))
-        .map((row) => ({
-          loanKey: row.loanKey,
-          loanId: row.loanId,
-          loanDescription: row.loanDescription,
-        }));
-      return of(unassigned).pipe(delay(400));
-    }
-
-    return this.getLoansTable(
-      { page: 1, pageSize: 500, sorting: [{ id: 'loanDescription', desc: false }] },
-      options,
-    ).pipe(
-      map((result) =>
-        result.rows
-          .filter((row) => isUnassignedLoanAlias(row.loanAlias))
-          .map((row) => ({
-            loanKey: row.loanKey,
-            loanId: row.loanId,
-            loanDescription: row.loanDescription,
-          })),
-      ),
-    );
-  }
-
-  assignLoansToAlias(
-    payload: AssignLoansToAliasPayload,
-    options?: LoansApiCallOptions,
-  ): Observable<void> {
-    if (this.useExampleData(options)) {
-      for (const loanKey of payload.loanKeys) {
-        const record = LOANS_RANKING_EXAMPLE_DATA.find(
-          (item) => String(item['LoanKey'] ?? '') === loanKey,
-        );
-        if (!record) {
-          continue;
-        }
-        record['LoanAliasName'] = payload.aliasName;
-        const existingOptions = String(record['LoanAliasOptions'] ?? '')
-          .split(',')
-          .map((value) => value.trim())
-          .filter(Boolean);
-        if (!existingOptions.includes(payload.aliasName)) {
-          record['LoanAliasOptions'] = [...existingOptions, payload.aliasName].join(',');
-        }
-      }
-      return of(undefined).pipe(delay(400));
-    }
-    return this.api.post<void>('api/LoanAliases/assign', payload);
-  }
-
-  private useExampleData(options?: LoansApiCallOptions): boolean {
-    return options?.useExampleData ?? USE_LOANS_EXAMPLE_DATA_DEFAULT;
+    return this.http.delete<void>(`${this.loansUrl}/${loanId}`);
   }
 }

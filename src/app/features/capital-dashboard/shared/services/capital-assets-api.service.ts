@@ -4,10 +4,12 @@ import { forkJoin, map, Observable, of, switchMap } from 'rxjs';
 import { ApiService } from '../../../../core/services/api.service';
 import { LIST_PAGE_SIZE } from '../list-pagination.constants';
 import {
+  AssetsFilterOptionsDto,
+  AssetsPagedResult,
   AssetsQueryParams,
-  PagedResult,
+  AssetFundHoldingDto,
   PropertyDetailDto,
-  PropertyInvestmentDto,
+  PropertyLeasingSummaryDto,
   PropertyListItemDto,
 } from '../models/api.models';
 import { CapitalFundsApiService } from './capital-funds-api.service';
@@ -17,8 +19,12 @@ export class CapitalAssetsApiService {
   private readonly api = inject(ApiService);
   private readonly fundsApi = inject(CapitalFundsApiService);
 
-  getAssets(params: AssetsQueryParams = {}): Observable<PagedResult<PropertyListItemDto>> {
-    return this.api.get<PagedResult<PropertyListItemDto>>('api/Assets', params as any);
+  getAssets(params: AssetsQueryParams = {}): Observable<AssetsPagedResult> {
+    return this.api.get<AssetsPagedResult>('api/Assets', params as any);
+  }
+
+  getFilterOptions(): Observable<AssetsFilterOptionsDto> {
+    return this.api.get<AssetsFilterOptionsDto>('api/Assets/filter-options');
   }
 
   getAllAssets(params: AssetsQueryParams = {}): Observable<PropertyListItemDto[]> {
@@ -27,7 +33,7 @@ export class CapitalAssetsApiService {
       switchMap((first) => {
         const items = [...(first.items ?? [])];
         if (!first.hasNextPage) return of(items);
-        const pages: Observable<PagedResult<PropertyListItemDto>>[] = [];
+        const pages: Observable<AssetsPagedResult>[] = [];
         for (let page = 2; page <= first.totalPages; page++) {
           pages.push(this.getAssets({ ...params, page, pageSize }));
         }
@@ -37,12 +43,15 @@ export class CapitalAssetsApiService {
   }
 
   getAsset(propertyKey: number): Observable<PropertyDetailDto> {
-    // Kingsight API is expected to match portal DTO shape.
     return this.api.get<PropertyDetailDto>(`api/Assets/${propertyKey}`);
   }
 
-  getAssetInvestments(propertyKey: number): Observable<PropertyInvestmentDto[]> {
-    return this.api.get<PropertyInvestmentDto[]>(`api/Assets/${propertyKey}/investments`);
+  getAssetLeasingSummary(propertyKey: number): Observable<PropertyLeasingSummaryDto> {
+    return this.api.get<PropertyLeasingSummaryDto>(`api/Assets/${propertyKey}/leasing-summary`);
+  }
+
+  getAssetFundHoldings(propertyKey: number): Observable<AssetFundHoldingDto[]> {
+    return this.api.get<AssetFundHoldingDto[]>(`api/Assets/${propertyKey}/fund-holdings`);
   }
 
   getAssetsForFundPage(
@@ -51,7 +60,7 @@ export class CapitalAssetsApiService {
     page: number,
     search: string | undefined,
     pageSize = LIST_PAGE_SIZE,
-  ): Observable<PagedResult<PropertyListItemDto>> {
+  ): Observable<AssetsPagedResult> {
     if (!fundCode?.trim()) {
       return of({
         items: [],
@@ -73,7 +82,7 @@ export class CapitalAssetsApiService {
     return forkJoin(uniqueKeys.map((fundKey) => this.fundsApi.getFund(fundKey))).pipe(
       switchMap((funds) => {
         const codes = [
-          ...new Set(funds.map((fund) => fund.summary.fundCode?.trim()).filter((c): c is string => !!c)),
+          ...new Set(funds.map((fund) => fund.summary?.fundCode?.trim()).filter((c): c is string => !!c)),
         ];
         if (codes.length === 0) return of([]);
         return forkJoin(codes.map((code) => this.getAllAssets({ search: code }))).pipe(

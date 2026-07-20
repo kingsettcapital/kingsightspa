@@ -3,6 +3,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter } from 'rxjs';
 import { UserRole } from '../../core/enums/user-role.enum';
 import { AuthService } from '../../core/services/auth.service';
+import { NotificationUnreadCountService } from '../../core/services/notification-unread-count.service';
 import {
   LucideAngularModule,
   LUCIDE_ICONS,
@@ -15,6 +16,7 @@ import {
   MessageSquare,
   User,
   ChevronDown,
+  Database,
   Landmark,
 } from 'lucide-angular';
 import { AIChatSidebarComponent } from '../../shared/components/ai-chat-sidebar/ai-chat-sidebar.component';
@@ -45,6 +47,7 @@ import { ToastContainerComponent } from '../../shared/components/toast/toast-con
         MessageSquare,
         User,
         ChevronDown,
+        Database,
         Landmark,
       }),
       multi: true,
@@ -55,23 +58,31 @@ import { ToastContainerComponent } from '../../shared/components/toast/toast-con
 export class MainLayoutComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly notificationUnreadCount = inject(NotificationUnreadCountService);
 
   isSidebarExpanded = signal(true);
   isMobileNavOpen = signal(false);
   isAIChatOpen = signal(false);
   openDropdown = signal<string | null>(null);
+  hideAppSidebar = signal(this.shouldHideAppChrome(this.router.url));
 
   ngOnInit(): void {
+    this.notificationUnreadCount.refresh();
     this.syncDropdownToRoute(this.router.url);
+    this.hideAppSidebar.set(this.shouldHideAppChrome(this.router.url));
 
     this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event) => {
         const navigation = event as NavigationEnd;
         this.syncDropdownToRoute(navigation.urlAfterRedirects);
+        this.hideAppSidebar.set(this.shouldHideAppChrome(navigation.urlAfterRedirects));
+        this.notificationUnreadCount.refresh();
         this.closeMobileNav();
       });
   }
+
+  readonly unreadNotificationCount = this.notificationUnreadCount.count;
 
   readonly currentUser = computed(() => {
     const user = this.authService.currentUser();
@@ -91,6 +102,7 @@ export class MainLayoutComponent implements OnInit {
   userIcon = User;
   chevronDownIcon = ChevronDown;
   landmarkIcon = Landmark;
+  databaseIcon = Database;
 
   toggleMobileNav(): void {
     this.isMobileNavOpen.update((v) => !v);
@@ -123,13 +135,20 @@ export class MainLayoutComponent implements OnInit {
     this.openDropdown.update((v) => (v === label ? null : label));
   }
 
+  private shouldHideAppChrome(url: string): boolean {
+    return url.startsWith('/capital-dashboard') || url.startsWith('/data-explorer');
+  }
+
   private syncDropdownToRoute(url: string): void {
-    if (url.startsWith('/mortgage')) {
+    const path = url.split('?')[0];
+
+    // Investor Alias Assignment lives under MORTGAGE nav but routes to capital-reporting.
+    if (path.startsWith('/mortgage') || path.startsWith('/capital-reporting/investor')) {
       this.openDropdown.set('Loans');
       return;
     }
 
-    if (url.startsWith('/capital-reporting')) {
+    if (path.startsWith('/capital-reporting')) {
       this.openDropdown.set('Stats');
     }
   }

@@ -1,0 +1,552 @@
+<section class="ms-dashboard">
+  <header class="ms-header">
+    <div class="ms-header__meta">AS OF {{ asOfDisplay() | uppercase }} | CONFIDENTIAL — INTERNAL USE ONLY</div>
+    <div class="ms-header__main">
+      <div>
+        <h1>Default Loan Portfolio</h1>
+        <p class="ms-header__subtitle">Management Summary — {{ reportPeriod() }}</p>
+      </div>
+      <div class="ms-header__actions">
+        <button type="button" class="ms-btn ms-btn--ghost">Print</button>
+        <button type="button" class="ms-btn ms-btn--ghost" (click)="toggleFilters()">Filters</button>
+        <button type="button" class="ms-btn ms-btn--primary">Export</button>
+        <span class="ms-header__brand">KingSett CAPITAL</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="ms-kpi-row">
+    <article class="ms-kpi-card">
+      <span class="ms-kpi-card__label">Number of Loans</span>
+      <strong class="ms-kpi-card__value">{{ kpis().numberOfLoans }}</strong>
+    </article>
+    <article class="ms-kpi-card">
+      <span class="ms-kpi-card__label">Total Outstanding Balance</span>
+      <strong class="ms-kpi-card__value">{{ formatMillions(kpis().totalOutstandingBalance) }}</strong>
+    </article>
+    <article class="ms-kpi-card">
+      <span class="ms-kpi-card__label">Average LTV</span>
+      <strong class="ms-kpi-card__value">{{ kpis().averageLtv ?? '—' }}%</strong>
+      <span class="ms-kpi-card__hint">
+        {{ kpis().averageLtvTrendLabel || '—' }}
+        @if (kpis().maxLtv) {
+          · Max: {{ kpis().maxLtv }}%
+        }
+      </span>
+    </article>
+    <article class="ms-kpi-card">
+      <span class="ms-kpi-card__label">% of Fundings</span>
+      <strong class="ms-kpi-card__value">{{ kpis().percentOfFundings ?? '—' }}%</strong>
+    </article>
+  </div>
+
+  <section class="ms-outstanding">
+    <h2>Outstanding Interest</h2>
+    <div class="ms-outstanding__grid">
+      <div class="ms-outstanding__group">
+        <h3>Loan Interest</h3>
+        <dl>
+          <div><dt>Interest Disbursed</dt><dd>{{ formatMillions(outstanding().interestDisbursed) }}</dd></div>
+          <div><dt>Interest Not Disbursed</dt><dd>{{ formatMillions(outstanding().interestNotDisbursed) }}</dd></div>
+          <div><dt>Total Outstanding Interest</dt><dd>{{ formatMillions(outstanding().totalOutstandingInterest) }}</dd></div>
+        </dl>
+      </div>
+      <div class="ms-outstanding__group">
+        <h3>Late Interest</h3>
+        <dl>
+          <div><dt>Total Late Interest</dt><dd>{{ formatMillions(outstanding().totalLateInterest) }}</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="ms-section">
+    <div class="ms-section__head">
+      <div>
+        <h2>Detailed Loan Summary</h2>
+        <p>{{ loanRows().length }} of {{ loanRows().length }} loan aliases — As of {{ filters().asOfDate | date: 'yyyy-MM-dd' }}</p>
+      </div>
+    </div>
+    <div class="ms-table-wrap">
+      <table class="ms-table ms-table--loan-summary">
+        <thead>
+          <tr>
+            <th>Loan Alias</th>
+            <th>Sponsor</th>
+            <th>Default</th>
+            <th>Maturity</th>
+            <th>Interest Status</th>
+            <th>Units</th>
+            <th>Exit</th>
+            <th class="num">Security</th>
+            <th class="num">Principal</th>
+            <th class="num">O/S Int</th>
+            <th class="num">Accrued</th>
+            <th class="num">Late Int</th>
+            <th class="num">Tax/Ins</th>
+            <th class="num">Int Adv</th>
+            <th class="num">Other</th>
+            <th class="num">Total Exposure</th>
+            <th class="num">LTV</th>
+            <th>Risk</th>
+            <th class="ms-table__chevron-col" aria-hidden="true"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of loanRows(); track row.loanAliasKey) {
+            <tr
+              class="ms-table__row ms-table__row--clickable"
+              (click)="openLoanDetail(row)"
+            >
+              <td>
+                <span class="ms-drill-cell__name">{{ row.loanAlias }}</span>
+              </td>
+              <td>{{ row.sponsor }}</td>
+              <td>{{ row.defaultDate | date: 'MMM d, y' }}</td>
+              <td>{{ row.maturityDate | date: 'MMM d, y' }}</td>
+              <td class="wrap">{{ row.interestStatus }}</td>
+              <td class="wrap">{{ row.units }}</td>
+              <td>{{ row.exit }}</td>
+              <td class="num">{{ row.security | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.principal | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.osInt | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.accrued | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.lateInt | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.taxIns | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.intAdv | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.other | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.totalExposure | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.ltv }}%</td>
+              <td><span [class]="riskClass(row.risk)">{{ row.risk }}</span></td>
+              <td class="ms-table__chevron-col">
+                <mat-icon aria-hidden="true">chevron_right</mat-icon>
+              </td>
+            </tr>
+          }
+          <tr class="ms-table__total">
+            <td colspan="7">TOTAL</td>
+            <td class="num">{{ loanTotals().security | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().principal | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().osInt | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().accrued | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().lateInt | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().taxIns | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().intAdv | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().other | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().totalExposure | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().ltv != null ? (loanTotals().ltv | number: '1.0-0') + '%' : '—' }}</td>
+            <td></td>
+            <td class="ms-table__chevron-col" aria-hidden="true"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="ms-analytics-row">
+    <article class="ms-chart-card">
+      <header class="ms-chart-card__head">
+        <h2>LTV Risk Distribution</h2>
+        <p>Exposure by risk band</p>
+      </header>
+      <div #ltvRiskContainer class="ms-chart">
+        <canvas #ltvRiskCanvas aria-label="LTV risk distribution chart"></canvas>
+      </div>
+      <table class="ms-mini-table">
+        <thead>
+          <tr>
+            <th>Risk Band</th>
+            <th class="num">Loans</th>
+            <th class="num">Exposure</th>
+            <th class="num">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (band of ltvRiskBands(); track band.label) {
+            <tr>
+              <td>{{ band.label }}</td>
+              <td class="num">{{ band.loans }}</td>
+              <td class="num">{{ formatMillions(band.value) }}</td>
+              <td class="num">{{ band.sharePercent }}%</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </article>
+
+    <article class="ms-chart-card">
+      <header class="ms-chart-card__head">
+        <h2>Top 5 Exposures</h2>
+        <p>Largest single positions · {{ top5PortfolioShare() | number: '1.1-1' }}% of portfolio</p>
+      </header>
+      <div #top5Container class="ms-chart ms-chart--bar">
+        <canvas #top5Canvas aria-label="Top 5 exposures bar chart"></canvas>
+      </div>
+    </article>
+
+    <article class="ms-chart-card">
+      <header class="ms-chart-card__head">
+        <h2>Exposure Breakdown</h2>
+        <p>{{ formatMillions(exposureBreakdownTotal()) }} total — component split</p>
+      </header>
+      <div #exposureBreakdownContainer class="ms-chart">
+        <canvas #exposureBreakdownCanvas aria-label="Exposure breakdown chart"></canvas>
+      </div>
+      <table class="ms-mini-table">
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th class="num">Amount</th>
+            <th class="num">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (slice of exposureBreakdown(); track slice.label) {
+            <tr>
+              <td>{{ slice.label }}</td>
+              <td class="num">{{ formatMillions(slice.value) }}</td>
+              <td class="num">{{ slice.sharePercent }}%</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </article>
+  </div>
+
+  <section class="ms-section">
+    <div class="ms-section__head">
+      <div>
+        <h2>Exposure Analysis</h2>
+        <p>Drilled by individual loan lines — exposure breakdown by investor</p>
+      </div>
+    </div>
+    <div class="ms-table-wrap">
+      <table class="ms-table ms-table--exposure-analysis">
+        <thead>
+          <tr>
+            <th>Loan Name</th>
+            <th>Sponsor</th>
+            <th class="num">External Balance</th>
+            <th class="num">RMF Balance</th>
+            <th class="num">MLP Balance</th>
+            <th class="num">Total KS Exposure</th>
+            <th class="num">Subordinate Exposure</th>
+            <th class="ms-table__chevron-col" aria-hidden="true"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of exposureAnalysis(); track row.loanAliasKey) {
+            <tr
+              class="ms-table__row ms-table__row--clickable"
+              (click)="openExposureAnalysisDetail(row)"
+            >
+              <td>
+                <span class="ms-drill-cell__name">{{ row.loanAlias }}</span>
+              </td>
+              <td>{{ row.sponsor }}</td>
+              <td class="num">{{ row.externalBalance | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.rmfBalance | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.mlpBalance | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.totalKsExposure | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.subordinateExposure | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="ms-table__chevron-col">
+                <mat-icon aria-hidden="true">chevron_right</mat-icon>
+              </td>
+            </tr>
+          }
+          <tr class="ms-table__total">
+            <td colspan="2">TOTAL</td>
+            <td class="num">{{ exposureAnalysisTotals().externalBalance | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ exposureAnalysisTotals().rmfBalance | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ exposureAnalysisTotals().mlpBalance | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ exposureAnalysisTotals().totalKsExposure | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ exposureAnalysisTotals().subordinateExposure | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="ms-table__chevron-col" aria-hidden="true"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="ms-analytics-row ms-analytics-row--bottom">
+    <article class="ms-chart-card">
+      <header class="ms-chart-card__head">
+        <h2>Capital Stack</h2>
+        <p>Exposure between External, RMF, MLP &amp; Subordinate</p>
+      </header>
+      <div #capitalStackContainer class="ms-chart">
+        <canvas #capitalStackCanvas aria-label="Capital stack breakdown chart"></canvas>
+      </div>
+      <table class="ms-mini-table">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th class="num">Exposure</th>
+            <th class="num">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (slice of capitalStack(); track slice.label) {
+            <tr>
+              <td>{{ slice.label }}</td>
+              <td class="num">{{ formatMillions(slice.value) }}</td>
+              <td class="num">{{ slice.sharePercent }}%</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </article>
+
+    <article class="ms-chart-card">
+      <header class="ms-chart-card__head">
+        <h2>Investor Summary</h2>
+        <p>Exposure by capital partner</p>
+      </header>
+      <div #investorContainer class="ms-chart">
+        <canvas #investorCanvas aria-label="Investor summary chart"></canvas>
+      </div>
+      <table class="ms-mini-table">
+        <thead>
+          <tr>
+            <th>Investor</th>
+            <th class="num">Loans</th>
+            <th class="num">Exposure</th>
+            <th class="num">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of investorSummary(); track row.investor) {
+            <tr>
+              <td>{{ row.investor }}</td>
+              <td class="num">{{ row.loans }}</td>
+              <td class="num">{{ formatMillions(row.exposure) }}</td>
+              <td class="num">{{ row.sharePercent }}%</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </article>
+
+    <article class="ms-chart-card">
+      <header class="ms-chart-card__head">
+        <h2>Sponsor Summary</h2>
+        <p>{{ sponsorSummary().length }} sponsors — concentration view</p>
+      </header>
+      <div #sponsorContainer class="ms-chart">
+        <canvas #sponsorCanvas aria-label="Sponsor summary chart"></canvas>
+      </div>
+      <div class="ms-mini-table-wrap">
+        <table class="ms-mini-table">
+          <thead>
+            <tr>
+              <th>Sponsor</th>
+              <th class="num">LTV</th>
+              <th class="num">Exposure</th>
+              <th class="num">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of sponsorSummary(); track row.sponsor) {
+              <tr>
+                <td>
+                  {{ row.sponsor }}
+                  @if (row.loanCount > 1) {
+                    <span class="ms-count-badge">{{ row.loanCount }}</span>
+                  }
+                </td>
+                <td class="num">
+                  @if (row.ltv != null) {
+                    <span [class]="sponsorLtvClass(row.ltv)">{{ row.ltv }}%</span>
+                  } @else {
+                    —
+                  }
+                </td>
+                <td class="num">{{ formatMillions(row.exposure) }}</td>
+                <td class="num">{{ row.sharePercent }}%</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </div>
+
+  <section class="ms-section ms-section--watchlist">
+    <div class="ms-watchlist-head">
+      <div>
+        <h2>CMHC Default Watchlist</h2>
+        <p>As at January 15, 2025 — {{ watchlistRows().length }} accounts under review</p>
+      </div>
+      <div class="ms-watchlist-badges">
+        <span class="ms-badge ms-badge--concern">{{ watchlistConcernCount() }} CONCERN</span>
+        <span class="ms-badge ms-badge--ok">{{ watchlistNoConcernCount() }} NO CONCERNS</span>
+      </div>
+    </div>
+    <div class="ms-table-wrap">
+      <table class="ms-table ms-table--watchlist">
+        <thead>
+          <tr>
+            <th>Loan ID</th>
+            <th>Investor</th>
+            <th>Sponsor</th>
+            <th>Property</th>
+            <th>Missed</th>
+            <th class="num">Principal</th>
+            <th class="num">O/S Interest</th>
+            <th>Tax Arrears</th>
+            <th>LTV</th>
+            <th>DSCR</th>
+            <th>Issue</th>
+            <th>Status Update</th>
+            <th>Conclusion</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of watchlistRows(); track row.loanId) {
+            <tr>
+              <td>{{ row.loanId }}</td>
+              <td>{{ row.investor }}</td>
+              <td>{{ row.sponsor }}</td>
+              <td class="wrap">{{ row.property }}</td>
+              <td>
+                @if (row.missed == null || row.missed <= 0) {
+                  <span class="ms-missed ms-missed--none">—</span>
+                } @else {
+                  <span [class]="missedClass(row.missed)">{{ row.missed }}</span>
+                }
+              </td>
+              <td class="num">{{ row.principal | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.osInterest | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="wrap">{{ row.taxArrears }}</td>
+              <td class="wrap">{{ row.ltv }}</td>
+              <td class="wrap">{{ row.dscr }}</td>
+              <td class="wrap">{{ row.issue }}</td>
+              <td class="wrap">{{ row.statusUpdate }}</td>
+              <td class="wrap">{{ row.conclusion }}</td>
+              <td><span [class]="watchlistStatusClass(row)">{{ row.status }}</span></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  @if (filtersOpen()) {
+    <div class="ms-filter-backdrop" (click)="closeFilters()"></div>
+    <aside class="ms-filter-panel" aria-label="Refine the loan summary">
+      <header class="ms-filter-panel__head">
+        <h2>Refine the loan summary</h2>
+        <button type="button" class="ms-filter-close" (click)="closeFilters()" aria-label="Close filters">×</button>
+      </header>
+
+      <label class="ms-filter-field">
+        <span>As Of Date</span>
+        <input
+          type="date"
+          [value]="filters().asOfDate"
+          (change)="updateFilterField('asOfDate', $any($event.target).value)"
+        />
+      </label>
+
+      <fieldset class="ms-filter-field">
+        <legend>Default Date</legend>
+        <div class="ms-filter-range">
+          <input
+            type="date"
+            [value]="filters().defaultDateFrom"
+            (change)="updateFilterField('defaultDateFrom', $any($event.target).value)"
+          />
+          <span>to</span>
+          <input
+            type="date"
+            [value]="filters().defaultDateTo"
+            (change)="updateFilterField('defaultDateTo', $any($event.target).value)"
+          />
+        </div>
+      </fieldset>
+
+      <fieldset class="ms-filter-field">
+        <legend>Maturity Date</legend>
+        <div class="ms-filter-range">
+          <input
+            type="date"
+            [value]="filters().maturityDateFrom"
+            (change)="updateFilterField('maturityDateFrom', $any($event.target).value)"
+          />
+          <span>to</span>
+          <input
+            type="date"
+            [value]="filters().maturityDateTo"
+            (change)="updateFilterField('maturityDateTo', $any($event.target).value)"
+          />
+        </div>
+      </fieldset>
+
+      <label class="ms-filter-field">
+        <span>Sponsor</span>
+        <select
+          [value]="filters().sponsor"
+          (change)="updateFilterField('sponsor', $any($event.target).value)"
+        >
+          @for (sponsor of sponsorOptions(); track sponsor) {
+            <option [value]="sponsor">{{ sponsor }}</option>
+          }
+        </select>
+      </label>
+
+      <fieldset class="ms-filter-field">
+        <legend>Investor Alias</legend>
+        <div class="ms-chip-group">
+          @for (alias of investorAliasOptions(); track alias) {
+            <button
+              type="button"
+              class="ms-chip"
+              [class.ms-chip--active]="isInvestorAliasSelected(alias)"
+              (click)="toggleInvestorAlias(alias)"
+            >
+              {{ alias }}
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <fieldset class="ms-filter-field">
+        <legend>Risk</legend>
+        <div class="ms-chip-group">
+          @for (risk of riskOptions; track risk) {
+            <button
+              type="button"
+              class="ms-chip"
+              [class.ms-chip--active]="isRiskSelected(risk)"
+              (click)="toggleRisk(risk)"
+            >
+              {{ risk }}
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <fieldset class="ms-filter-field">
+        <legend>Status</legend>
+        <div class="ms-chip-group">
+          @for (status of statusOptions; track status) {
+            <button
+              type="button"
+              class="ms-chip"
+              [class.ms-chip--active]="filters().status === status"
+              (click)="setStatus(status)"
+            >
+              {{ status }}
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <footer class="ms-filter-panel__foot">
+        <button type="button" class="ms-btn ms-btn--ghost" (click)="resetFilters()">Reset</button>
+        <button type="button" class="ms-btn ms-btn--primary" (click)="applyFilters()">Apply Filters</button>
+      </footer>
+    </aside>
+  }
+</section>

@@ -1,0 +1,285 @@
+/* Page-specific styles — shared layout via .ks-fp in theme/_form-page.scss */
+
+.select-col {
+  width: 2.5rem;
+  text-align: center;
+}
+
+.row-select-checkbox {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+tr.row-selected {
+  background: #fffbeb;
+}
+
+.tax-arrears-page .actions {
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.result-code {
+  display: inline-block;
+  min-width: 7rem;
+  color: #111827;
+  font-weight: 700;
+}
+
+.grid-loading {
+  margin: 0 0 0.75rem;
+}
+
+.hidden-column {
+  display: none;
+}
+
+.numeric-col {
+  text-align: right;
+}
+
+.date-readonly {
+  white-space: nowrap;
+  color: #374151;
+}
+
+.date-input,
+.select-input,
+.text-input,
+.value-input {
+  border: 1px solid #d1d5db;
+  height: 2rem;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.88rem;
+  max-width: 100%;
+  background: #ffffff;
+}
+
+.date-input {
+  min-width: 9.5rem;
+}
+
+.select-input {
+  min-width: 6.5rem;
+}
+
+.value-input {
+  min-width: 7.5rem;
+  text-align: right;
+}
+
+.text-input {
+  min-width: 10rem;
+  width: 100%;
+}
+
+.ta-th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ta-th-sort:hover {
+  color: #1d4ed8;
+}
+
+.ta-th-sort__icon {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.status-message {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: #065f46;
+}
+
+.banner-error {
+  margin-bottom: 0.75rem;
+}
+
+.ta-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1000;
+}
+
+.ta-dialog {
+  width: 100%;
+  max-width: 32rem;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.18);
+  /* Allow the loan ng-select panel to open without clipping. */
+  overflow: visible;
+}
+
+.ta-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.15rem 1.35rem 0.85rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.ta-dialog-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.dlg-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.dlg-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.ta-dialog-body {
+  padding: 1.25rem 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.form-field {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.modal-field-control {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.875rem;
+  box-sizing: border-box;
+  height: 2.25rem;
+  background: #ffffff;
+}
+
+select.modal-field-control {
+  /* Prevent long <option> labels from expanding the closed control past the dialog. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modal-field-control.currency-input {
+  text-align: right;
+}
+
+textarea.modal-field-control {
+  height: auto;
+  min-height: 4.5rem;
+  resize: vertical;
+}
+
+.ta-loan-select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+
+:host ::ng-deep .ta-loan-select .ng-select-container {
+  min-height: 2.25rem;
+}
+
+:host ::ng-deep .ta-loan-select .ng-value,
+:host ::ng-deep .ta-loan-select .ng-value-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Keep open list the same width as the control; truncate long loan names. */
+:host ::ng-deep .ta-loan-select .ng-dropdown-panel {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+:host ::ng-deep .ta-loan-select .ng-dropdown-panel .ng-option,
+:host ::ng-deep .ta-loan-select .ng-dropdown-panel .ng-option-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.readonly-field {
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.875rem;
+  border-radius: 6px;
+  min-height: 2.25rem;
+  box-sizing: border-box;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.field-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: #6b7280;
+}
+
+.dialog-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #dc2626;
+}
+
+.ta-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.85rem 1.35rem 1.15rem;
+  border-top: 1px solid #f3f4f6;
+}

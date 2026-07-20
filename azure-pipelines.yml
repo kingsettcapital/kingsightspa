@@ -1,4 +1,4 @@
-# Node.js with Angular 21
+# Node.js with Angular 21 — SPA artifact must include web.config at zip root for IIS deep links.
 trigger:
 - develop
 - staging
@@ -14,37 +14,46 @@ steps:
 
 - task: NodeTool@0
   inputs:
-    versionSpec: '24.x'          # Matches "node": "^24.15.0" in dependencies
+    versionSpec: '24.x'
   displayName: 'Install Node.js 24.x'
 
 - script: |
-    npm install -g npm@8.19.4    # Lock npm to match packageManager field
+    npm install -g npm@8.19.4
   displayName: 'Set npm version'
 
 - script: |
-    npm install                  # Installs Angular CLI locally (no global install needed)
+    npm install
   displayName: 'npm install'
 
-# Build step — swap -c flag per branch using a pipeline variable or conditions
 - script: |
-    npm run build:dev            # uses --configuration development
+    npm run build:dev
   displayName: 'Angular Build (development)'
   condition: eq(variables['Build.SourceBranchName'], 'develop')
 
 - script: |
-    npm run build:prod           # uses --configuration production
+    npm run build:prod
   displayName: 'Angular Build (production)'
   condition: eq(variables['Build.SourceBranchName'], 'main')
 
 - script: |
-    npm run build:dev            # staging uses dev config — adjust if you have a staging config
+    npm run build:dev
   displayName: 'Angular Build (staging)'
   condition: eq(variables['Build.SourceBranchName'], 'staging')
 
+- script: |
+    set -e
+    test -f dist/kingsight/web.config || (echo "ERROR: dist/kingsight/web.config missing — IIS deep links will 404." && exit 1)
+    test -f dist/kingsight/index.html || (echo "ERROR: dist/kingsight/index.html missing." && exit 1)
+    echo "SPA publish layout OK (web.config + index.html at artifact root):"
+    ls -la dist/kingsight | head -25
+  displayName: 'Verify SPA deploy artifacts (web.config + index.html)'
+  condition: or(eq(variables['Build.SourceBranchName'], 'develop'), eq(variables['Build.SourceBranchName'], 'staging'), eq(variables['Build.SourceBranchName'], 'main'))
+
 - task: ArchiveFiles@2
-  displayName: 'Archive dist folder'
+  displayName: 'Archive dist/kingsight (zip root = wwwroot)'
+  condition: or(eq(variables['Build.SourceBranchName'], 'develop'), eq(variables['Build.SourceBranchName'], 'staging'), eq(variables['Build.SourceBranchName'], 'main'))
   inputs:
-    rootFolderOrFile: 'dist/kingsight'   # Matches "name" in package.json
+    rootFolderOrFile: 'dist/kingsight'
     includeRootFolder: false
     archiveType: 'zip'
     archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
@@ -52,13 +61,9 @@ steps:
 
 - task: CopyPublishBuildArtifacts@1
   displayName: 'Publish Artifact: drop'
+  condition: or(eq(variables['Build.SourceBranchName'], 'develop'), eq(variables['Build.SourceBranchName'], 'staging'), eq(variables['Build.SourceBranchName'], 'main'))
   inputs:
-    CopyRoot: 'dist/kingsight'           # Matches "name" in package.json
+    CopyRoot: 'dist/kingsight'
     Contents: '**'
     ArtifactName: drop
     ArtifactType: Container
-
-- task: DownloadPipelineArtifact@2
-  displayName: 'Download Pipeline Artifact'
-  inputs:
-    targetPath: '$(Build.ArtifactStagingDirectory)/dist/kingsight'

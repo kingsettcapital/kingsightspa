@@ -19,20 +19,29 @@ export class ApiService {
     return headers;
   }
 
+  private buildUrl(path: string): string {
+    return `${this.base}/${path.replace(/^\/+/, '')}`;
+  }
+
+  private buildParams(params?: ApiQueryParams): HttpParams | undefined {
+    if (!params) {
+      return undefined;
+    }
+
+    return new HttpParams({
+      fromObject: Object.fromEntries(
+        Object.entries(params)
+          .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== '')
+          .map(([key, value]) => [key, String(value)]),
+      ),
+    });
+  }
+
   get<T>(
     path: string,
     params?: ApiQueryParams,
     extraHeaders?: HttpHeaders
   ): Observable<T> {
-    const httpParams = params
-      ? new HttpParams({
-          fromObject: Object.fromEntries(
-            Object.entries(params)
-              .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== '')
-              .map(([key, value]) => [key, String(value)])
-          ),
-        })
-      : undefined;
     const url = this.buildUrl(path);
     let headers = this.defaultHeaders();
 
@@ -45,7 +54,16 @@ export class ApiService {
       });
     }
 
-    return this.http.get<T>(url, { params: httpParams, headers });
+    return this.http.get<T>(url, { params: this.buildParams(params), headers });
+  }
+
+  getText(path: string, params?: ApiQueryParams): Observable<string> {
+    const url = this.buildUrl(path);
+    return this.http.get(url, {
+      params: this.buildParams(params),
+      headers: this.defaultHeaders(),
+      responseType: 'text',
+    });
   }
 
   post<T>(path: string, body: object | FormData): Observable<T> {
@@ -59,10 +77,22 @@ export class ApiService {
     return this.http.post<T>(url, body, { headers });
   }
 
+  postText(path: string, body: object): Observable<string> {
+    const url = this.buildUrl(path);
+    const headers = this.defaultHeaders().set('Content-Type', 'application/json');
+    return this.http.post(url, body, { headers, responseType: 'text' });
+  }
+
   put<T>(path: string, body: object): Observable<T> {
     const url = this.buildUrl(path);
     const headers = this.defaultHeaders().set('Content-Type', 'application/json');
     return this.http.put<T>(url, body, { headers });
+  }
+
+  putText(path: string, body: object): Observable<string> {
+    const url = this.buildUrl(path);
+    const headers = this.defaultHeaders().set('Content-Type', 'application/json');
+    return this.http.put(url, body, { headers, responseType: 'text' });
   }
 
   delete<T>(path: string): Observable<T> {
@@ -80,9 +110,5 @@ export class ApiService {
       responseType: 'blob',
       observe: 'response',
     });
-  }
-
-  private buildUrl(path: string): string {
-    return `${this.base}/${path.replace(/^\/+/, '')}`;
   }
 }

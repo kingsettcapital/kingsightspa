@@ -1,0 +1,59 @@
+.notifications-page__title-row {
+  align-items: flex-start;
+}
+
+.notifications-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.notifications-section {
+  margin-bottom: 1.5rem;
+}
+
+.notifications-section__title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0c274a;
+}
+
+.notifications-table .notice-cell {
+  min-width: 20rem;
+  max-width: 42rem;
+  white-space: normal;
+}
+
+.notifications-table--read tbody tr {
+  color: #6b7280;
+}
+
+.read-col {
+  width: 6.5rem;
+  text-align: center;
+}
+
+.read-checkbox {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.status-message {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: #065f46;
+}
+
+.error-message {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: #b91c1c;
+}
+
+.empty-row {
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+}

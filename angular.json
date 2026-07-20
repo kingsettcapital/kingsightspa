@@ -42,12 +42,21 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
+            "outputPath": {
+              "base": "dist/kingsight",
+              "browser": ""
+            },
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
             "assets": [
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "web.config",
+                "input": ".",
+                "output": "/"
               }
             ],
             "styles": [

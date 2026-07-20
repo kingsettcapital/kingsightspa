@@ -1,0 +1,190 @@
+.file-upload-panel {
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem 1.25rem;
+  border: 1px solid var(--ks-color-light-blue);
+  background: var(--ks-color-surface);
+  box-shadow: var(--ks-shadow-sm);
+}
+
+.file-upload-field--inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.file-upload-field__label {
+  margin-bottom: 0;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.file-upload-field__select {
+  width: auto;
+  min-width: 14rem;
+  max-width: 22rem;
+}
+
+.file-upload-field__date {
+  width: auto;
+  min-width: 10.5rem;
+  max-width: 12rem;
+}
+
+.file-upload-dropzone {
+  border: 2px dashed var(--ks-color-border-strong);
+  background: var(--ks-color-pale-blue);
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.file-upload-dropzone:hover,
+.file-upload-dropzone--active {
+  border-color: var(--ks-color-primary);
+  background: var(--ks-color-primary-subtle);
+  box-shadow: 0 0 0 2px var(--ks-color-focus-ring);
+}
+
+.file-upload-dropzone__input {
+  display: none;
+}
+
+.file-upload-dropzone__icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto 1rem;
+  color: var(--ks-color-navy);
+}
+
+.file-upload-dropzone__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.file-upload-dropzone__title {
+  margin: 0;
+  color: var(--ks-color-text-muted);
+  font-size: var(--ks-font-size-md);
+}
+
+.file-upload-dropzone__file {
+  margin: 0.65rem 0 0;
+  color: var(--ks-color-navy);
+  font-size: var(--ks-font-size-base);
+  font-weight: var(--ks-font-weight-semibold);
+}
+
+.file-upload-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.65rem;
+  /* Reserve action-row space so Clear/Upload appearing doesn't shove the history grid. */
+  min-height: 2.5rem;
+}
+
+.file-upload-message {
+  text-align: center;
+}
+
+.file-upload-message.error-message {
+  white-space: pre-line;
+  text-align: left;
+}
+
+.file-upload-history {
+  min-width: 0;
+  margin-top: 1rem;
+}
+
+/* Keep history chrome size stable while rows swap in after load. */
+.file-upload-history__wrap {
+  min-height: 14rem;
+}
+
+.file-upload-history__table {
+  min-width: 48rem;
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* Fixed column shares — set on col elements so widths don't reflow when data arrives. */
+.file-upload-history__table col.fu-col--filename {
+  width: 42%;
+}
+
+.file-upload-history__table col.fu-col--filetype {
+  width: 14%;
+}
+
+.file-upload-history__table col.fu-col--asof {
+  width: 10%;
+}
+
+.file-upload-history__table col.fu-col--uploaded-by {
+  width: 17%;
+}
+
+.file-upload-history__table col.fu-col--uploaded-date {
+  width: 17%;
+}
+
+.file-upload-history .ks-fp__table td.fu-col--filename {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-upload-history .ks-fp__table td.fu-col--filetype,
+.file-upload-history .ks-fp__table td.fu-col--asof {
+  white-space: nowrap;
+}
+
+/* Smaller, lighter audit-style columns */
+.file-upload-history .ks-fp__table td.fu-col--uploaded-by,
+.file-upload-history .ks-fp__table td.fu-col--uploaded-date {
+  font-size: 0.75rem;
+  color: var(--ks-color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-upload-history .ks-fp__table th.fu-col--uploaded-by,
+.file-upload-history .ks-fp__table th.fu-col--uploaded-date {
+  font-size: 0.75rem;
+}
+
+/* Ensure history grid matches other ks-fp tables (no legacy ks-table navy header) */
+.file-upload-history .ks-fp__table thead th {
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.file-upload-history .ks-fp__table tbody td {
+  padding: 0.7rem 1rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #f3f4f6;
+  height: 2.75rem;
+  vertical-align: middle;
+}
+
+.file-upload-history .ks-fp__table tbody td.empty-row {
+  height: 11rem;
+  text-align: center;
+  color: var(--ks-color-text-muted);
+}

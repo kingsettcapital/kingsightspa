@@ -1,0 +1,141 @@
+<section class="ks-fp file-upload-page">
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">File Upload</h1>
+        <p class="ks-page__subtitle">
+          Select File Type Being Loaded and Provide an As Of Date for the Document
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="file-upload-panel">
+    <div class="file-upload-field file-upload-field--inline">
+      <label class="ks-label file-upload-field__label" for="fileUploadType">File type</label>
+      <select
+        id="fileUploadType"
+        class="ks-select file-upload-field__select"
+        [ngModel]="selectedFileType()"
+        (ngModelChange)="onFileTypeChange($event)"
+        [disabled]="isUploading()"
+      >
+        @for (option of fileTypeOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+      <label class="ks-label file-upload-field__label" for="fileUploadAsOf">As of</label>
+      <input
+        id="fileUploadAsOf"
+        type="date"
+        class="ks-select file-upload-field__date"
+        [ngModel]="asOfDate()"
+        (ngModelChange)="onAsOfDateChange($event)"
+        [disabled]="isUploading()"
+      />
+    </div>
+
+    <div
+      class="file-upload-dropzone"
+      [class.file-upload-dropzone--active]="isDragOver()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
+      (click)="openFilePicker(fileInput)"
+      role="button"
+      tabindex="0"
+      (keydown.enter)="openFilePicker(fileInput)"
+      (keydown.space)="openFilePicker(fileInput); $event.preventDefault()"
+    >
+      <input
+        #fileInput
+        type="file"
+        class="file-upload-dropzone__input"
+        [accept]="activeFileTypeOption().accept"
+        (change)="onFileInputChange($event)"
+        (click)="$event.stopPropagation()"
+      />
+      <div class="file-upload-dropzone__icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64" focusable="false">
+          <path
+            d="M32 8c-8 0-14 6-14 14v4H14l10 12 10-12H24v-4c0-4.4 3.6-8 8-8s8 3.6 8 8v8h8V22c0-8-6-14-14-14z"
+            fill="currentColor"
+          />
+          <path d="M12 44h40v8H12z" fill="currentColor" opacity="0.85" />
+        </svg>
+      </div>
+      <p class="file-upload-dropzone__title">{{ activeFileTypeOption().dropZoneHint }}</p>
+      @if (selectedFile(); as file) {
+        <p class="file-upload-dropzone__file">{{ file.name }}</p>
+      }
+    </div>
+
+    <div class="file-upload-actions">
+      @if (selectedFile()) {
+        <button
+          type="button"
+          class="ks-btn ks-btn--outline"
+          (click)="clearSelectedFile()"
+          [disabled]="isUploading()"
+        >
+          Clear
+        </button>
+        <button type="button" class="ks-btn ks-btn--accent" (click)="uploadFile()" [disabled]="isUploading()">
+          @if (isUploading()) { Uploading… } @else { Upload File }
+        </button>
+      }
+    </div>
+
+    @if (statusMessage()) {
+      <p class="ks-message ks-message--info file-upload-message">{{ statusMessage() }}</p>
+    }
+    @if (errorMessage()) {
+      <p class="error-message file-upload-message">{{ errorMessage() }}</p>
+    }
+  </div>
+
+  <div class="file-upload-history">
+    <p class="table-title">Upload History</p>
+    <div class="ks-fp__table-wrap file-upload-history__wrap">
+      <table class="ks-fp__table file-upload-history__table">
+        <colgroup>
+          <col class="fu-col--filename" />
+          <col class="fu-col--filetype" />
+          <col class="fu-col--asof" />
+          <col class="fu-col--uploaded-by" />
+          <col class="fu-col--uploaded-date" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="fu-col--filename">File Name</th>
+            <th class="fu-col--filetype">File Type</th>
+            <th class="fu-col--asof">As Of</th>
+            <th class="fu-col--uploaded-by">Uploaded By</th>
+            <th class="fu-col--uploaded-date">Uploaded Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoadingHistory()) {
+            <tr>
+              <td colspan="5" class="empty-row">Loading upload history…</td>
+            </tr>
+          } @else if (history().length === 0) {
+            <tr>
+              <td colspan="5" class="empty-row">No files uploaded yet.</td>
+            </tr>
+          } @else {
+            @for (row of history(); track historyRowTrackId(row)) {
+              <tr>
+                <td class="fu-col--filename" [title]="row.filename">{{ row.filename }}</td>
+                <td class="fu-col--filetype">{{ formatFileTypeLabel(row.fileType, row.filename) }}</td>
+                <td class="fu-col--asof">{{ formatAsOfDateDisplay(row.asOfDate ?? '') }}</td>
+                <td class="fu-col--uploaded-by">{{ formatUploadedBy(row) }}</td>
+                <td class="fu-col--uploaded-date">{{ formatUploadedDate(row.uploadedDate) }}</td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

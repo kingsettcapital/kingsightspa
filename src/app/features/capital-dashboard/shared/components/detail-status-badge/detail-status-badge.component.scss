@@ -1,3 +1,9 @@
+:host {
+  display: inline-flex;
+  font-family: var(--cdt-font-sans);
+  font-weight: var(--ks-font-weight-regular);
+}
+
 .detail-status-badge {
   display: inline-flex;
   align-items: center;

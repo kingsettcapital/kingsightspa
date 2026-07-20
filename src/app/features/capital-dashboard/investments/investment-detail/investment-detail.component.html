@@ -1,0 +1,117 @@
+<section class="inv-detail" aria-label="Investment profile">
+  <aside class="inv-detail__sidebar">
+    <app-investor-detail-sidebar
+      [sections]="sidebarSections"
+      [activeSectionId]="activeSectionId()"
+      (sectionSelect)="scrollToSection($event)"
+    />
+  </aside>
+
+  <div #mainContent class="inv-detail__main">
+    <div #stickyChrome class="inv-detail__sticky-chrome">
+      <button type="button" class="inv-detail__back" (click)="backToList()">
+        <mat-icon aria-hidden="true">chevron_left</mat-icon>
+        {{ backLinkLabel() }}
+      </button>
+
+      <header class="inv-detail__header">
+        <div class="inv-detail__heading">
+          <div class="inv-detail__title-row">
+            <h1 class="inv-detail__title">{{ fundName() }}</h1>
+            <!-- @if (headerBadgeLabel()) {
+              <span class="inv-detail__chip inv-detail__chip--strategy">{{ headerBadgeLabel() }}</span>
+            } -->
+          </div>
+          <!-- <p class="inv-detail__subtitle">{{ subtitleText() }}</p> -->
+        </div>
+      </header>
+
+    <div class="inv-detail__kpi-row">
+      <article class="cdt-kpi cdt-kpi--navy">
+        <p class="cdt-kpi__label">Total Commitment</p>
+        <p class="cdt-kpi__value">{{ kpiCards().totalCommitment | ksCurrency: 'USD' : 2 : true }}</p>
+        <p class="cdt-kpi__hint"></p>
+      </article>
+      <article class="cdt-kpi cdt-kpi--blue">
+        <p class="cdt-kpi__label">Net Invested Capital</p>
+        <p class="cdt-kpi__value">{{ kpiCards().netInvestedCapital | ksCurrency: 'USD' : 2 : true }}</p>
+        <p class="cdt-kpi__hint">deployed</p>
+      </article>
+      <article class="cdt-kpi cdt-kpi--blue-light">
+        <p class="cdt-kpi__label">Net Distributed</p>
+        <p class="cdt-kpi__value">{{ kpiCards().netDistributed | ksCurrency: 'USD' : 2 : true }}</p>
+        <p class="cdt-kpi__hint"></p>
+      </article>
+      <article class="cdt-kpi cdt-kpi--metric-reserved">
+        <p class="cdt-kpi__label">Reserved</p>
+        <p class="cdt-kpi__value">
+          @if (kpiCards().reservedUncalled != null) {
+            {{ kpiCards().reservedUncalled | ksCurrency: 'USD' : 2 : true }}
+          } @else {
+            —
+          }
+        </p>
+        <p class="cdt-kpi__hint"></p>
+      </article>
+      <article class="cdt-kpi cdt-kpi--slate">
+        <p class="cdt-kpi__label">% Invested</p>
+        <p class="cdt-kpi__value">{{ formatInvestedPercent(kpiCards().investedPercent) }}</p>
+        <p class="cdt-kpi__hint">of commitment</p>
+      </article>
+      <article class="cdt-kpi cdt-kpi--navy">
+        <p class="cdt-kpi__label">TVPI</p>
+        <p class="cdt-kpi__value">{{ formatTvpi(kpiCards().tvpi) }}</p>
+        <p class="cdt-kpi__hint">Total value mult.</p>
+      </article>
+    </div>
+    </div>
+
+    @if (contentLoading()) {
+      <div class="inv-detail__state" role="status">
+        <div class="inv-detail__spinner" aria-hidden="true"></div>
+        <p>{{ contentLoadingMessage() }}</p>
+      </div>
+    } @else if (error()) {
+      <div class="inv-detail__state inv-detail__state--error" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <p>{{ error() }}</p>
+        <button type="button" class="inv-detail__retry" (click)="backToList()">Back to list</button>
+      </div>
+    } @else {
+      <div class="inv-detail__content">
+        @for (item of flatBlocks(); track item.block.id) {
+          <div
+            class="inv-detail__block-wrap"
+            [attr.id]="item.isSectionStart ? 'inv-section-' + item.sectionId : null"
+          >
+            <app-investor-detail-block
+              [block]="item.block"
+              [tableContextKey]="tableContextKey()"
+              [tableLoading]="tableLoadingForBlock(item.block)"
+              [tableSearchActive]="tableSearchActiveForBlock(item.block)"
+              [sortColumn]="tableSortColumnForBlock(item.block)"
+              [sortDir]="tableSortDirForBlock(item.block)"
+              [hubFundFilter]="transactionHubAppliedInvestorName()"
+              [hubQuarterScope]="quarterScope()"
+              [hubTimeframe]="timeframe()"
+              [hubQuarter]="quarter()"
+              [hubYear]="year()"
+              [hubAvailableQuarters]="availableQuarters()"
+              [hubAvailableYears]="availableYears()"
+              (transactionSearchChange)="onTransactionSearch($event)"
+              (transactionSortChange)="onTransactionSort($event)"
+              (transactionHubCategoryChange)="onTransactionHubCategoryChange($event)"
+              (transactionHubPageChange)="onTransactionHubPageChange($event)"
+              (hubFundFilterApply)="onTransactionHubFundFilterApply($event)"
+              (hubQuarterScopeChange)="setQuarterScope($event)"
+              (hubTimeframeChange)="setTransactionTimeframe($event)"
+              (hubQuarterChange)="setQuarter($event)"
+              (hubYearChange)="setYear($event)"
+              (underlyingInvestmentsPageChange)="onUnderlyingAssetsPageChange($event)"
+            />
+          </div>
+        }
+      </div>
+    }
+  </div>
+</section>
