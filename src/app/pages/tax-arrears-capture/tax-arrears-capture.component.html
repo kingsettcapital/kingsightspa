@@ -321,9 +321,9 @@
             />
             <p class="field-hint">
               @if (dialogMode() === 'duplicate') {
-                Pick a tax memo date not already used for this loan (source memo date was cleared). Same tax year is allowed.
+                Same tax memo date is allowed when the tax year is different (source year was cleared).
               } @else {
-                Each loan can have only one tax arrears row per tax memo date. Same tax year is allowed with different memo dates.
+                Unique per loan for each tax memo date + tax year pair. Same memo date can be reused with a different tax year.
               }
             </p>
           </div>
