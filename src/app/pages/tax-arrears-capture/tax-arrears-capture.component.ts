@@ -249,12 +249,8 @@ export class TaxArrearsCaptureComponent implements OnInit {
       .sort((left, right) => left.loanCode.localeCompare(right.loanCode));
   });
 
-  /** Tax years still available for the loan selected in the Add/Duplicate dialog. */
-  readonly modalTaxYearOptions = computed(() => {
-    const loanCode = this.newRecord().loanCode?.trim() ?? '';
-    const usedYears = this.taxYearsUsedByLoan(loanCode);
-    return this.taxYearOptions().filter((year) => !usedYears.has(year));
-  });
+  /** All tax years available in the Add/Duplicate dialog (same year allowed across memo dates). */
+  readonly modalTaxYearOptions = computed(() => this.taxYearOptions());
 
   readonly modalLoanPreview = computed(() => {
     const form = this.newRecord();
@@ -451,7 +447,24 @@ export class TaxArrearsCaptureComponent implements OnInit {
   }
 
   updateTaxMemoDate(rowId: string, value: string): void {
-    this.patchRow(rowId, { taxMemoDate: value.trim() });
+    const nextDate = value.trim();
+    const current = this.rows().find((row) => this.rowTrackId(row) === rowId);
+    if (current && nextDate) {
+      const conflict = this.rows().some(
+        (row) =>
+          this.rowTrackId(row) !== rowId &&
+          row.loanCode.trim() === current.loanCode.trim() &&
+          row.taxMemoDate.trim() === nextDate,
+      );
+      if (conflict) {
+        this.errorMessage.set(
+          `Tax memo date ${nextDate} already exists for loan ${current.loanCode}. Each loan can have only one row per tax memo date.`,
+        );
+        this.statusMessage.set('');
+        return;
+      }
+    }
+    this.patchRow(rowId, { taxMemoDate: nextDate });
   }
 
   currencyInputDisplay(rowId: string, value: number | null): string {
@@ -484,24 +497,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
   }
 
   updateTaxYear(rowId: string, value: string): void {
-    const nextYear = value.trim();
-    const current = this.rows().find((row) => this.rowTrackId(row) === rowId);
-    if (current && nextYear) {
-      const conflict = this.rows().some(
-        (row) =>
-          this.rowTrackId(row) !== rowId &&
-          row.loanCode.trim() === current.loanCode.trim() &&
-          row.taxYear.trim() === nextYear,
-      );
-      if (conflict) {
-        this.errorMessage.set(
-          `Tax year ${nextYear} already exists for loan ${current.loanCode}. Each loan can have only one row per tax year.`,
-        );
-        this.statusMessage.set('');
-        return;
-      }
-    }
-    this.patchRow(rowId, { taxYear: nextYear });
+    this.patchRow(rowId, { taxYear: value.trim() });
   }
 
   updateNotes(rowId: string, value: string): void {
@@ -523,8 +519,8 @@ export class TaxArrearsCaptureComponent implements OnInit {
 
     this.dialogMode.set('duplicate');
     const form = this.rowToNewRecordForm(row);
-    // Tax year must be unique per loan — do not copy the source year.
-    form.taxYear = '';
+    // Tax memo date must be unique per loan — do not copy the source memo date.
+    form.taxMemoDate = '';
     this.newRecord.set(form);
     this.dialogError.set('');
     this.showAddDialog.set(true);
@@ -600,14 +596,14 @@ export class TaxArrearsCaptureComponent implements OnInit {
   updateNewRecordLoan(value: string): void {
     const loanCode = value?.trim() || null;
     const loan = this.modalLoanOptions().find((option) => option.loanCode === loanCode);
-    const nextYear = this.newRecord().taxYear.trim();
-    const yearStillAvailable =
-      !loanCode || !nextYear || !this.taxYearsUsedByLoan(loanCode).has(nextYear);
+    const nextMemoDate = this.newRecord().taxMemoDate.trim();
+    const memoDateStillAvailable =
+      !loanCode || !nextMemoDate || !this.taxMemoDatesUsedByLoan(loanCode).has(nextMemoDate);
     this.newRecord.set({
       ...this.newRecord(),
       loanCode,
       loanName: loan?.loanName ?? '',
-      taxYear: yearStillAvailable ? this.newRecord().taxYear : '',
+      taxMemoDate: memoDateStillAvailable ? this.newRecord().taxMemoDate : '',
     });
     this.dialogError.set('');
   }
@@ -616,7 +612,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
     return (value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
   }
 
-  private taxYearsUsedByLoan(loanCode: string): Set<string> {
+  private taxMemoDatesUsedByLoan(loanCode: string): Set<string> {
     const code = loanCode.trim();
     const used = new Set<string>();
     if (!code) {
@@ -626,25 +622,25 @@ export class TaxArrearsCaptureComponent implements OnInit {
       if (row.loanCode.trim() !== code) {
         continue;
       }
-      const year = row.taxYear.trim();
-      if (year) {
-        used.add(year);
+      const memoDate = row.taxMemoDate.trim();
+      if (memoDate) {
+        used.add(memoDate);
       }
     }
     return used;
   }
 
-  private findDuplicateLoanTaxYearError(rows: TaxArrearRow[]): string | null {
+  private findDuplicateLoanTaxMemoDateError(rows: TaxArrearRow[]): string | null {
     const seen = new Map<string, string>();
     for (const row of rows) {
       const loanCode = row.loanCode.trim();
-      const taxYear = row.taxYear.trim();
-      if (!loanCode || !taxYear) {
+      const taxMemoDate = row.taxMemoDate.trim();
+      if (!loanCode || !taxMemoDate) {
         continue;
       }
-      const key = `${loanCode.toLowerCase()}|${taxYear}`;
+      const key = `${loanCode.toLowerCase()}|${taxMemoDate}`;
       if (seen.has(key)) {
-        return `Loan ${loanCode} has more than one row for tax year ${taxYear}. Each loan can have only one row per tax year — change one of them before saving.`;
+        return `Loan ${loanCode} has more than one row for tax memo date ${taxMemoDate}. Each loan can have only one row per tax memo date — change one of them before saving.`;
       }
       seen.set(key, this.rowTrackId(row));
     }
@@ -669,15 +665,20 @@ export class TaxArrearsCaptureComponent implements OnInit {
       this.dialogError.set('Select a loan for the new record.');
       return;
     }
-    if (!form.taxYear.trim()) {
-      this.dialogError.set('Tax year is required.');
+    if (!form.taxMemoDate.trim()) {
+      this.dialogError.set('Tax memo date is required.');
       return;
     }
 
-    if (this.taxYearsUsedByLoan(form.loanCode).has(form.taxYear.trim())) {
+    if (this.taxMemoDatesUsedByLoan(form.loanCode).has(form.taxMemoDate.trim())) {
       this.dialogError.set(
-        `Tax year ${form.taxYear.trim()} already exists for loan ${form.loanCode}. Choose a different tax year.`,
+        `Tax memo date ${form.taxMemoDate.trim()} already exists for loan ${form.loanCode}. Choose a different tax memo date.`,
       );
+      return;
+    }
+
+    if (!form.taxYear.trim()) {
+      this.dialogError.set('Tax year is required.');
       return;
     }
 
@@ -742,7 +743,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
       return;
     }
 
-    const uniquenessError = this.findDuplicateLoanTaxYearError(this.rows());
+    const uniquenessError = this.findDuplicateLoanTaxMemoDateError(this.rows());
     if (uniquenessError) {
       this.errorMessage.set(uniquenessError);
       this.statusMessage.set('');
@@ -953,7 +954,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
     const taxYear = this.pickString(raw, 'taxYear', 'TaxYear');
     const taxMemoDate = this.pickString(raw, 'taxMemoDate', 'TaxMemoDate');
     const userUpdatedDate = this.pickString(raw, 'userUpdatedDate', 'UserUpdatedDate');
-    // UUID-only track id: loan code / tax year / even taxArrearKey can collide for duplicates.
+    // UUID-only track id: loan code / tax year / tax memo date / taxArrearKey can collide for near-duplicates.
     const stableRowId = `ta-${crypto.randomUUID()}-i${index}-s${++this.nextLocalRowSeq}`;
 
     return {

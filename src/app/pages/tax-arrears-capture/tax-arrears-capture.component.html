@@ -317,6 +317,13 @@
               [value]="newRecord().taxMemoDate"
               (input)="updateNewRecordField('taxMemoDate', $any($event.target).value)"
             />
+            <p class="field-hint">
+              @if (dialogMode() === 'duplicate') {
+                Pick a tax memo date not already used for this loan (source memo date was cleared). Same tax year is allowed.
+              } @else {
+                Each loan can have only one tax arrears row per tax memo date. Same tax year is allowed with different memo dates.
+              }
+            </p>
           </div>
           <div class="form-field">
             <label for="newTaxYear">Tax Year</label>
@@ -330,13 +337,6 @@
                 <option [value]="year" [selected]="newRecord().taxYear === year">{{ year }}</option>
               }
             </select>
-            <p class="field-hint">
-              @if (dialogMode() === 'duplicate') {
-                Pick a tax year not already used for this loan (source year was cleared).
-              } @else {
-                Each loan can have only one tax arrears row per tax year.
-              }
-            </p>
           </div>
         </div>
 
