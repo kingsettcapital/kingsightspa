@@ -168,6 +168,8 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   readonly isConfirming = signal(false);
   readonly currentPage = signal(1);
   readonly pageSize = signal(this.defaultPageSize);
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   ngOnInit(): void {
     this.loadFilters();
@@ -293,16 +295,23 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     this.clearMessages();
   }
 
-  /** Live typeahead — filter the grid as the user types (e.g. "win" → Windsor). */
-  onLoanSearch(event: { term: string }): void {
-    this.updateSearch(event?.term ?? '');
+  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
+  onLoanSearch(event: { term: string } | string | null): void {
+    const term = typeof event === 'string' ? event : (event?.term ?? '');
+    if (!term.trim() && this.suppressEmptySearchClear) {
+      return;
+    }
+    this.updateSearch(term);
   }
 
   updateSelectedLoans(codes: string[] | null): void {
+    this.suppressEmptySearchClear = true;
     this.selectedLoanCodes.set(codes ?? []);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
+    queueMicrotask(() => {
+      this.suppressEmptySearchClear = false;
+    });
   }
 
   updateSelectedAliases(ids: number[] | null): void {

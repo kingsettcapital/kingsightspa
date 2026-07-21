@@ -116,6 +116,8 @@ export class LoansRankingComponent implements OnInit {
   readonly rows = signal<LoanAttributeRow[]>([]);
   readonly loanAliasOptions = signal<LoanAliasOptionDto[]>([]);
   readonly originalRowState = signal<Record<string, RowSnapshot>>({});
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   readonly loanSelectOptions = computed<LoanSelectOption[]>(() => {
     const seen = new Set<string>();
@@ -265,11 +267,23 @@ export class LoansRankingComponent implements OnInit {
     this.clearMessages();
   }
 
+  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
+  onLoanSearch(event: { term: string } | string | null): void {
+    const term = typeof event === 'string' ? event : (event?.term ?? '');
+    if (!term.trim() && this.suppressEmptySearchClear) {
+      return;
+    }
+    this.updateSearch(term);
+  }
+
   updateSelectedLoans(values: string[] | null): void {
-    this.searchText.set('');
+    this.suppressEmptySearchClear = true;
     this.selectedLoanCodes.set(values ?? []);
     this.currentPage.set(1);
     this.clearMessages();
+    queueMicrotask(() => {
+      this.suppressEmptySearchClear = false;
+    });
   }
 
   updateSelectedStatuses(statuses: string[] | null): void {
@@ -355,7 +369,6 @@ export class LoansRankingComponent implements OnInit {
     }
 
     this.selectedLoanCodes.set([...this.selectedLoanCodes(), row.loanCode]);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
   }

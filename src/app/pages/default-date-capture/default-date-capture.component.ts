@@ -90,6 +90,8 @@ export class DefaultDateCaptureComponent implements OnInit {
 
   readonly rows = signal<DefaultDateRow[]>([]);
   readonly originalRowState = signal<Record<string, string>>({});
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
@@ -206,12 +208,24 @@ export class DefaultDateCaptureComponent implements OnInit {
     this.clearMessages();
   }
 
+  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
+  onLoanSearch(event: { term: string } | string | null): void {
+    const term = typeof event === 'string' ? event : (event?.term ?? '');
+    if (!term.trim() && this.suppressEmptySearchClear) {
+      return;
+    }
+    this.updateSearch(term);
+  }
+
   updateSelectedAliases(names: string[] | null): void {
+    this.suppressEmptySearchClear = true;
     this.selectedAliasNames.set(names ?? []);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
+    queueMicrotask(() => {
+      this.suppressEmptySearchClear = false;
+    });
   }
 
   updateSelectedStatuses(statuses: string[] | null): void {
@@ -227,7 +241,6 @@ export class DefaultDateCaptureComponent implements OnInit {
       return;
     }
     this.selectedAliasNames.set([...this.selectedAliasNames(), name]);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
   }

@@ -26,12 +26,14 @@
             placeholder="Search loan aliases..."
             [ngModel]="selectedLoanAliasIds()"
             (ngModelChange)="updateSelectedAliases($event)"
+            (search)="onLoanSearch($event)"
+            (clear)="updateSearch('')"
           ></ng-select>
           <button
             type="button"
             class="ks-fp__clear-selection"
             (click)="clearSelection()"
-            [disabled]="!selectedLoanAliasIds().length && !selectedStatuses().length"
+            [disabled]="!selectedLoanAliasIds().length && !selectedStatuses().length && !searchText().trim()"
           >
             Clear Selection
           </button>

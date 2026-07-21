@@ -109,6 +109,8 @@ export class SecurityValueComponent implements OnInit {
   /** Raw in-progress text for numeric/currency inputs (avoids reformat-on-keystroke). */
   readonly fieldText = signal<Record<string, string>>({});
   readonly originalRowState = signal<Record<number, EditableValues>>({});
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   ngOnInit(): void {
     this.loadInitialData();
@@ -227,6 +229,15 @@ export class SecurityValueComponent implements OnInit {
     this.clearMessages();
   }
 
+  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
+  onLoanSearch(event: { term: string } | string | null): void {
+    const term = typeof event === 'string' ? event : (event?.term ?? '');
+    if (!term.trim() && this.suppressEmptySearchClear) {
+      return;
+    }
+    this.updateSearch(term);
+  }
+
   toggleSort(column: SecurityValueColumnKey): void {
     if (this.sortColumn() === column) {
       this.sortDirection.update((direction) => (direction === 'asc' ? 'desc' : 'asc'));
@@ -294,11 +305,14 @@ export class SecurityValueComponent implements OnInit {
   }
 
   updateSelectedAliases(ids: number[] | null): void {
+    this.suppressEmptySearchClear = true;
     this.selectedLoanAliasIds.set(ids ?? []);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGridData();
+    queueMicrotask(() => {
+      this.suppressEmptySearchClear = false;
+    });
   }
 
   updateSelectedStatuses(statuses: string[] | null): void {

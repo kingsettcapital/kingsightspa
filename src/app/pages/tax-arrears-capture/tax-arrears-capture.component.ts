@@ -128,6 +128,8 @@ export class TaxArrearsCaptureComponent implements OnInit {
 
   readonly rows = signal<TaxArrearRow[]>([]);
   readonly originalRowState = signal<Record<string, RowSnapshot>>({});
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
@@ -373,12 +375,24 @@ export class TaxArrearsCaptureComponent implements OnInit {
     this.clearMessages();
   }
 
+  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
+  onLoanSearch(event: { term: string } | string | null): void {
+    const term = typeof event === 'string' ? event : (event?.term ?? '');
+    if (!term.trim() && this.suppressEmptySearchClear) {
+      return;
+    }
+    this.updateSearch(term);
+  }
+
   updateSelectedAliases(codes: string[] | null): void {
+    this.suppressEmptySearchClear = true;
     this.selectedLoanCodes.set(codes ?? []);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
+    queueMicrotask(() => {
+      this.suppressEmptySearchClear = false;
+    });
   }
 
   updateSelectedStatuses(statuses: string[] | null): void {
@@ -393,7 +407,6 @@ export class TaxArrearsCaptureComponent implements OnInit {
       return;
     }
     this.selectedLoanCodes.set([...this.selectedLoanCodes(), row.loanCode]);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
   }

@@ -7,6 +7,7 @@ import { catchError } from 'rxjs/operators';
 
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
+import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import {
   InvestorApiService,
   InvestorDto,
@@ -194,6 +195,9 @@ export class NonKsServicedLoansComponent implements OnInit {
   readonly investorDialogError = signal('');
   readonly isCreatingInvestor = signal(false);
   readonly selectedLoanKeys = signal<string[]>([]);
+  readonly searchText = signal('');
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
@@ -297,6 +301,14 @@ export class NonKsServicedLoansComponent implements OnInit {
 
   readonly filteredRows = computed(() => {
     let rows = this.rows();
+    const keyword = this.searchText();
+
+    rows = filterRowsByTableSearch(
+      rows,
+      keyword,
+      this.tableColumns,
+      (row, key) => this.getCellDisplayValue(row, key),
+    );
 
     const selected = this.selectedLoanKeys();
     if (selected.length) {
@@ -327,7 +339,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       isLoading: this.isLoadingGrid(),
       totalRows: this.rows().length,
       visibleRows: this.filteredRows().length,
-      hasClientFilter: this.selectedLoanKeys().length > 0,
+      hasClientFilter: this.selectedLoanKeys().length > 0 || this.searchText().trim().length > 0,
       entitySingular: 'record',
       emptyMessage: 'No records yet. Use Add New Row to enter quarterly data.',
     }),
@@ -362,13 +374,33 @@ export class NonKsServicedLoansComponent implements OnInit {
     return `${start} - ${end} of ${total}`;
   });
 
-  updateSelectedLoans(values: string[] | null): void {
-    this.selectedLoanKeys.set(values ?? []);
+  updateSearch(value: string): void {
+    this.searchText.set(value);
     this.currentPage.set(1);
     this.clearMessages();
   }
 
+  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
+  onLoanSearch(event: { term: string } | string | null): void {
+    const term = typeof event === 'string' ? event : (event?.term ?? '');
+    if (!term.trim() && this.suppressEmptySearchClear) {
+      return;
+    }
+    this.updateSearch(term);
+  }
+
+  updateSelectedLoans(values: string[] | null): void {
+    this.suppressEmptySearchClear = true;
+    this.selectedLoanKeys.set(values ?? []);
+    this.currentPage.set(1);
+    this.clearMessages();
+    queueMicrotask(() => {
+      this.suppressEmptySearchClear = false;
+    });
+  }
+
   clearSelection(): void {
+    this.searchText.set('');
     this.selectedLoanKeys.set([]);
     this.currentPage.set(1);
     this.clearMessages();
@@ -1504,6 +1536,42 @@ export class NonKsServicedLoansComponent implements OnInit {
       }
     }
     return [];
+  }
+
+  private getCellDisplayValue(row: NonKsLoanRow, key: NonKsColumnKey): string {
+    switch (key) {
+      case 'userUpdatedBy':
+        return this.displayModifiedBy(row.userUpdatedBy);
+      case 'userUpdatedDate':
+        return this.formatModifiedDate(row.userUpdatedDate);
+      case 'asAtDate':
+      case 'dateOfDefault':
+      case 'maturityDate':
+      case 'interestOffDate':
+      case 'taxMemoDate':
+        return row[key]?.trim() || '';
+      case 'securityValue':
+      case 'principalBalance':
+      case 'outstandingInterest':
+      case 'accruedInterest':
+      case 'lateInterest':
+      case 'outstandingInvoices':
+      case 'estRealizationCosts':
+      case 'costToComplete':
+      case 'taxArrears':
+      case 'interestAdjustment':
+        return row[key] == null ? '' : this.formatCurrencyDisplay(row[key]);
+      case 'units':
+      case 'squareFeet':
+        return row[key] == null ? '' : String(row[key]);
+      case 'netAcres':
+      case 'interestRate':
+        return row[key] == null ? '' : String(row[key]);
+      case 'investorAlias':
+        return row.investorAlias?.trim() || '';
+      default:
+        return String(row[key] ?? '').trim();
+    }
   }
 
   private compareRows(left: NonKsLoanRow, right: NonKsLoanRow, column: NonKsColumnKey): number {
