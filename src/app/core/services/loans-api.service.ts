@@ -23,6 +23,7 @@ export type LoanDto = {
   lateInterestOffNote?: string | null;
   userUpdatedBy?: string | null;
   userUpdatedDate?: string | null;
+  isNonKs?: boolean | null;
 };
 
 export type LoanAttributeUpdatePayload = {
@@ -66,10 +67,15 @@ export class LoansApiService {
     return `${this.apiConfig.baseUrl}/api/Loans`;
   }
 
-  getLoans(auditProfile: 'loan_alias' | 'loan_attribute' = 'loan_alias') {
-    return this.http.get<LoanDto[]>(this.loansUrl, {
-      params: { auditProfile },
-    });
+  getLoans(
+    auditProfile: 'loan_alias' | 'loan_attribute' = 'loan_alias',
+    statuses: string[] = [],
+  ) {
+    const params: Record<string, string | string[]> = { auditProfile };
+    if (statuses.length > 0) {
+      params['statuses'] = statuses;
+    }
+    return this.http.get<LoanDto[]>(this.loansUrl, { params });
   }
 
   getLookups() {

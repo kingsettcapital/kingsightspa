@@ -18,6 +18,7 @@ import { APP_API_CONFIG } from '../../core/constants/api.config';
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import {
+  normalizeStatusOptions,
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
@@ -880,8 +881,8 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
             .filter((a) => a.loanAliasId > 0)
             .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
         );
-        this.statusOptions.set(this.normalizeStatusOptions(statuses));
-        this.selectedStatuses.set([]);
+
+        this.statusOptions.set(normalizeStatusOptions(statuses));
         this.isLoadingFilters.set(false);
 
         if (!this.aliasOptions().length) {
@@ -899,24 +900,14 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Selected aliases only; empty = all aliases (API skips alias filter). */
   private resolveLoanAliasIds(): number[] {
-    const selected = this.selectedLoanAliasIds();
-    if (selected.length > 0) {
-      return selected;
-    }
-    return this.aliasOptions().map((a) => a.loanAliasId).filter((id) => id > 0);
+    return this.selectedLoanAliasIds().filter((id) => id > 0);
   }
 
   private loadGrid(): void {
     const loanAliasIds = this.resolveLoanAliasIds();
     const statuses = this.selectedStatuses();
-
-    if (!loanAliasIds.length) {
-      this.rows.set([]);
-      this.originalRowState.set({});
-      this.statusMessage.set('No loan aliases available to load.');
-      return;
-    }
 
     this.isLoadingGrid.set(true);
     this.errorMessage.set('');
@@ -1227,19 +1218,6 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       }
     }
     return '';
-  }
-
-  private normalizeStatusOptions(statuses: unknown): LoanStatusFilterOption[] {
-    if (!Array.isArray(statuses) || !statuses.length) {
-      return [];
-    }
-    if (typeof statuses[0] === 'string') {
-      return (statuses as string[]).map((s) => ({ value: s, displayLabel: s }));
-    }
-    return (statuses as Record<string, unknown>[]).map((row) => ({
-      value: String(row['value'] ?? '').trim(),
-      displayLabel: String(row['displayLabel'] ?? row['value'] ?? '').trim(),
-    }));
   }
 
   private extractBackendError(

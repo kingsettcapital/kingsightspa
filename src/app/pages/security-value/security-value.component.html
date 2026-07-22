@@ -53,35 +53,16 @@
             type="button"
             class="ks-fp__clear-selection"
             (click)="clearSelection()"
-            [disabled]="!selectedLoanAliasIds().length && !selectedStatuses().length && !searchText().trim()"
+            [disabled]="!selectedLoanAliasIds().length && !searchText().trim()"
           >
             Clear Selection
           </button>
-        </div>
-
-        <div class="ks-fp__status-block">
-          <label class="ks-fp__filter-label" for="securityValueStatus">Status</label>
-          <ng-select
-            id="securityValueStatus"
-            class="ks-ng-select"
-            appendTo="body"
-            [items]="statusSelectOptions()"
-            bindLabel="label"
-            bindValue="value"
-            [multiple]="true"
-            [searchable]="true"
-            [closeOnSelect]="false"
-            [clearable]="true"
-            placeholder="Select status..."
-            [ngModel]="selectedStatuses()"
-            (ngModelChange)="updateSelectedStatuses($event)"
-          ></ng-select>
         </div>
       </div>
     </div>
   </div>
 
-  @if (isLoadingAliases() || isLoadingStatuses()) {
+  @if (isLoadingAliases()) {
     <p class="meta-message">Loading filters...</p>
   }
   @if (errorMessage() && !isSaving()) {
@@ -175,7 +156,7 @@
         } @empty {
           <tr>
             <td colspan="9" class="empty-row">
-              No security value rows returned. Check status filters or the LoanSecurityValue API.
+              No security value rows returned. Check the LoanSecurityValue API.
             </td>
           </tr>
         }

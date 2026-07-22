@@ -56,11 +56,13 @@ export class LtvValidationApiService {
   }
 
   getLoans(loanAliasIds: number[], statuses: string[]) {
-    let params = new HttpParams();
+    // Statuses first so long alias lists cannot push status params off truncated URLs.
+    let params = appendMortgageStatusParams(new HttpParams(), statuses);
     for (const id of loanAliasIds) {
-      params = params.append('loanAliasIds', String(id));
+      if (id > 0) {
+        params = params.append('loanAliasIds', String(id));
+      }
     }
-    params = appendMortgageStatusParams(params, statuses);
     return this.http.get<LtvValidationRowDto[] | Record<string, unknown>>(this.baseUrl, { params });
   }
 

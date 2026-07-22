@@ -33,6 +33,7 @@ type LoanRow = {
   loanAliasName: string;
   userUpdatedBy: string;
   userUpdatedDate: string;
+  isNonKs: boolean;
 };
 
 type LoanAssignmentColumnKey =
@@ -82,8 +83,6 @@ export class LoanAliasAssignmentComponent implements OnInit {
   readonly selectedLoanCodes = signal<string[]>([]);
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
   readonly selectedStatuses = signal<string[]>([]);
-  /** Alias names that match the selected Status filter (from LoanSecurityValue). */
-  readonly statusMatchingAliasNames = signal<Set<string> | null>(null);
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
   readonly isLoading = signal(false);
@@ -165,23 +164,10 @@ export class LoanAliasAssignmentComponent implements OnInit {
   });
 
   readonly filteredRows = computed(() => {
-    const statuses = this.selectedStatuses();
     const selectedCodes = this.selectedLoanCodes();
     const keyword = this.searchText();
-    const statusAliases = this.statusMatchingAliasNames();
 
     let rows = this.rows();
-
-    if (statuses.length > 0 && statusAliases) {
-      rows = rows.filter((row) => {
-        const alias = row.loanAliasName.trim().toLowerCase();
-        // Keep unassigned / empty-alias rows so they remain assignable.
-        if (!alias || alias === '—') {
-          return true;
-        }
-        return statusAliases.has(alias);
-      });
-    }
 
     // Global search (Yardi + Non-KS): filter the grid by typed term, not only the dropdown.
     rows = filterRowsByTableSearch(
@@ -301,7 +287,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
     this.selectedStatuses.set(statuses ?? []);
     this.currentPage.set(1);
     this.clearMessages();
-    this.refreshStatusMatchingAliases();
+    this.loadData();
   }
 
   toggleSort(column: LoanAssignmentColumnKey): void {
@@ -409,7 +395,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
     this.revertUnsavedAliasChanges();
     this.currentPage.set(1);
     this.clearMessages();
-    this.refreshStatusMatchingAliases();
+    this.loadData();
   }
 
   openAliasDialog(loanCode: string | null): void {
@@ -702,69 +688,45 @@ export class LoanAliasAssignmentComponent implements OnInit {
     this.errorMessage.set('');
     this.statusMessage.set('Loading loans...');
 
-    forkJoin({
-      loans: this.loansApi.getLoans('loan_alias'),
-      aliases: this.loanAliasApi.getAllAliases(),
-      statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
-    }).subscribe({
-      next: ({ loans, aliases, statuses }) => {
-        const normalizedAliases = this.normalizeAliases(aliases).filter((alias) =>
-          this.isMeaningfulAliasName(alias.loanAliasName),
-        );
-        const mappedRows = loans.map((record, index) =>
-          this.mapApiLoanToRow(record, index, normalizedAliases),
-        );
+    this.securityValueApi.getStatuses().pipe(catchError(() => of([]))).subscribe({
+      next: (statuses) => {
+        this.statusOptions.set(normalizeStatusOptions(statuses));
+        const selectedStatuses = this.selectedStatuses();
 
-        this.rows.set(mappedRows);
-        this.aliasOptions.set(normalizedAliases);
-        this.currentPage.set(1);
-        this.snapshotOriginalState();
+        forkJoin({
+          loans: this.loansApi.getLoans('loan_alias', selectedStatuses),
+          aliases: this.loanAliasApi.getAllAliases(),
+        }).subscribe({
+          next: ({ loans, aliases }) => {
+            const normalizedAliases = this.normalizeAliases(aliases).filter((alias) =>
+              this.isMeaningfulAliasName(alias.loanAliasName),
+            );
+            const mappedRows = loans.map((record, index) =>
+              this.mapApiLoanToRow(record, index, normalizedAliases),
+            );
 
-        const statusOptions = normalizeStatusOptions(statuses);
-        this.statusOptions.set(statusOptions);
-        this.refreshStatusMatchingAliases();
-
-        this.statusMessage.set('');
-        this.isLoading.set(false);
+            this.rows.set(mappedRows);
+            this.aliasOptions.set(normalizedAliases);
+            this.currentPage.set(1);
+            this.snapshotOriginalState();
+            this.statusMessage.set('');
+            this.isLoading.set(false);
+          },
+          error: () => {
+            this.rows.set([]);
+            this.aliasOptions.set([]);
+            this.statusMessage.set('');
+            this.errorMessage.set('Unable to load loans. Verify API availability and CORS.');
+            this.isLoading.set(false);
+          },
+        });
       },
       error: () => {
         this.rows.set([]);
         this.aliasOptions.set([]);
-        this.statusMatchingAliasNames.set(null);
         this.statusMessage.set('');
-        this.errorMessage.set('Unable to load loans. Verify API availability and CORS.');
+        this.errorMessage.set('Unable to load status options.');
         this.isLoading.set(false);
-      },
-    });
-  }
-
-  private refreshStatusMatchingAliases(): void {
-    const statuses = this.selectedStatuses();
-    if (!statuses.length) {
-      this.statusMatchingAliasNames.set(null);
-      return;
-    }
-
-    const aliasIds = this.aliasOptions()
-      .map((alias) => this.getAliasKey(alias))
-      .filter((id) => id > 0);
-
-    if (!aliasIds.length) {
-      this.statusMatchingAliasNames.set(null);
-      return;
-    }
-
-    this.securityValueApi.getSecurityValues(aliasIds, statuses).subscribe({
-      next: (rows) => {
-        const names = new Set(
-          rows
-            .map((row) => String(row.loanAliasName ?? '').trim().toLowerCase())
-            .filter((name) => name.length > 0),
-        );
-        this.statusMatchingAliasNames.set(names);
-      },
-      error: () => {
-        this.statusMatchingAliasNames.set(null);
       },
     });
   }
@@ -790,6 +752,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
       loanAliasName: hasMeaningfulAlias ? resolvedName : '',
       userUpdatedBy: record.userUpdatedBy?.trim() ?? '',
       userUpdatedDate: record.userUpdatedDate ?? '',
+      isNonKs: !!record.isNonKs,
     };
   }
 
