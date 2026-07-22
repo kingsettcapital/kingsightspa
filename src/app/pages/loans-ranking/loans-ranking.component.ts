@@ -369,6 +369,7 @@ export class LoansRankingComponent implements OnInit {
     }
 
     this.selectedLoanCodes.set([...this.selectedLoanCodes(), row.loanCode]);
+    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
   }
@@ -488,6 +489,7 @@ export class LoansRankingComponent implements OnInit {
 
     const request: LoanBulkUpdateRequest = {
       loans: rowsToSave.map((row) => this.buildUpdatePayload(row, userUpdatedBy)),
+      auditProfile: 'loan_attribute',
     };
 
     this.isSaving.set(true);
@@ -531,7 +533,7 @@ export class LoansRankingComponent implements OnInit {
     this.statusMessage.set('');
 
     forkJoin({
-      loans: this.loansApi.getLoans(),
+      loans: this.loansApi.getLoans('loan_attribute'),
       lookups: this.loansApi.getLookups().pipe(catchError(() => of(null))),
       statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
     }).subscribe({

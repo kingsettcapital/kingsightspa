@@ -38,6 +38,8 @@ export type LoanAttributeUpdatePayload = {
 
 export type LoanBulkUpdateRequest = {
   loans: LoanAttributeUpdatePayload[];
+  /** Screen audit columns: loan_alias | loan_attribute */
+  auditProfile?: 'loan_alias' | 'loan_attribute';
 };
 
 /** From GET /api/Loans/lookups — loan_alias_master dropdown options. */
@@ -64,8 +66,10 @@ export class LoansApiService {
     return `${this.apiConfig.baseUrl}/api/Loans`;
   }
 
-  getLoans() {
-    return this.http.get<LoanDto[]>(this.loansUrl);
+  getLoans(auditProfile: 'loan_alias' | 'loan_attribute' = 'loan_alias') {
+    return this.http.get<LoanDto[]>(this.loansUrl, {
+      params: { auditProfile },
+    });
   }
 
   getLookups() {
@@ -77,7 +81,7 @@ export class LoansApiService {
       return of(queryLoansExampleData(query));
     }
 
-    return this.getLoans().pipe(
+    return this.getLoans('loan_attribute').pipe(
       map((loans) => {
         const rows = loans.map((loan, index) =>
           mapApiLoanToRow(
@@ -116,12 +120,17 @@ export class LoansApiService {
   }
 
   updateLoanAttributesBulk(request: LoanBulkUpdateRequest) {
-    return this.http.put<void>(this.loansUrl, { loans: request.loans });
+    return this.http.put<void>(this.loansUrl, {
+      loans: request.loans,
+      auditProfile: request.auditProfile ?? 'loan_attribute',
+    });
   }
 
-  /** @deprecated Use updateLoanAttributesBulk. */
   updateLoanAliasesBulk(request: LoanBulkUpdateRequest) {
-    return this.updateLoanAttributesBulk(request);
+    return this.http.put<void>(this.loansUrl, {
+      loans: request.loans,
+      auditProfile: request.auditProfile ?? 'loan_alias',
+    });
   }
 
   /** @deprecated API has no per-loan PUT; use updateLoanAliasesBulk. */

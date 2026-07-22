@@ -184,25 +184,49 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     return this.aliasOptions().filter((a) => ids.has(a.loanAliasId));
   });
 
-  /** Search Loans dropdown — loan code + name from loaded grid (aliases are often blank). */
-  readonly loanSelectOptions = computed(() => {
+  /** Search Loans autocomplete — loan code + name from loaded grid (aliases are often blank). */
+  readonly searchedLoanOptions = computed(() => {
+    const keyword = this.searchText().trim();
+    if (!keyword) {
+      return [];
+    }
+
+    const selectedCodes = new Set(this.selectedLoanCodes());
     const seen = new Set<string>();
-    const options: { label: string; value: string }[] = [];
+    const matches: LtvValidationRow[] = [];
+
     for (const row of this.rows()) {
       const code = row.loanCode?.trim() ?? '';
-      if (!code || seen.has(code)) {
+      if (!code || selectedCodes.has(code) || seen.has(code)) {
         continue;
       }
-      seen.add(code);
-      const name = row.loanName?.trim() || '—';
-      const alias = row.loanAliasName?.trim();
-      const aliasPart = alias && alias !== '-' ? ` · ${alias}` : '';
-      options.push({
-        label: `${code} — ${name}${aliasPart}`,
-        value: code,
-      });
+      if (
+        filterRowsByTableSearch(
+          [row],
+          keyword,
+          this.tableColumns,
+          (candidate, key) => this.getCellDisplayValue(candidate, key),
+        ).length > 0
+      ) {
+        seen.add(code);
+        matches.push(row);
+      }
     }
-    return options.sort((a, b) => a.value.localeCompare(b.value));
+
+    return matches.sort((left, right) => left.loanCode.localeCompare(right.loanCode));
+  });
+
+  readonly selectedLoans = computed(() => {
+    const selectedCodes = new Set(this.selectedLoanCodes());
+    const seen = new Set<string>();
+    return this.rows().filter((row) => {
+      const code = row.loanCode?.trim() ?? '';
+      if (!code || !selectedCodes.has(code) || seen.has(code)) {
+        return false;
+      }
+      seen.add(code);
+      return true;
+    });
   });
 
   readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
@@ -338,6 +362,23 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
+  }
+
+  selectLoan(row: LtvValidationRow): void {
+    const code = row.loanCode?.trim() ?? '';
+    if (!code || this.selectedLoanCodes().includes(code)) {
+      return;
+    }
+    this.selectedLoanCodes.set([...this.selectedLoanCodes(), code]);
+    this.searchText.set('');
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  removeSelectedLoan(loanCode: string): void {
+    this.selectedLoanCodes.set(this.selectedLoanCodes().filter((code) => code !== loanCode));
+    this.currentPage.set(1);
+    this.clearMessages();
   }
 
   selectAlias(alias: AliasOption): void {

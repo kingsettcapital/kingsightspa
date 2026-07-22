@@ -75,6 +75,8 @@ export class LoanAliasAssignmentComponent implements OnInit {
   readonly tableColumns = LOAN_ASSIGNMENT_TABLE_COLUMNS;
 
   readonly searchText = signal('');
+  /** Controls autocomplete panel; independent of searchText so the grid can stay filtered after blur. */
+  readonly searchSuggestionsOpen = signal(false);
   readonly sortColumn = signal<LoanAssignmentColumnKey | null>(null);
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
   readonly selectedLoanCodes = signal<string[]>([]);
@@ -144,17 +146,22 @@ export class LoanAliasAssignmentComponent implements OnInit {
     }
 
     const selectedCodes = new Set(this.selectedLoanCodes());
-    return this.rows().filter((row) => {
+    const matches: LoanRow[] = [];
+    for (const row of this.rows()) {
       if (selectedCodes.has(row.loanCode)) {
-        return false;
+        continue;
       }
-      return filterRowsByTableSearch(
-        [row],
-        keyword,
-        this.tableColumns,
-        (candidate, key) => this.getCellDisplayValue(candidate, key),
-      ).length > 0;
-    });
+      const haystack =
+        `${row.loanCode} ${row.loanName} ${row.loanAliasName}`.toLowerCase();
+      if (!haystack.includes(keyword)) {
+        continue;
+      }
+      matches.push(row);
+      if (matches.length >= 20) {
+        break;
+      }
+    }
+    return matches;
   });
 
   readonly filteredRows = computed(() => {
@@ -250,8 +257,24 @@ export class LoanAliasAssignmentComponent implements OnInit {
 
   updateSearch(value: string): void {
     this.searchText.set(value);
+    this.searchSuggestionsOpen.set(value.trim().length > 0);
     this.currentPage.set(1);
     this.clearMessages();
+  }
+
+  openSearchSuggestions(): void {
+    if (this.searchText().trim()) {
+      this.searchSuggestionsOpen.set(true);
+    }
+  }
+
+  closeSearchSuggestions(): void {
+    this.searchSuggestionsOpen.set(false);
+  }
+
+  onSearchBlur(): void {
+    // Delay so suggestion mousedown can run before the panel unmounts.
+    window.setTimeout(() => this.closeSearchSuggestions(), 150);
   }
 
   /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
@@ -348,6 +371,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
 
     this.selectedLoanCodes.set([...this.selectedLoanCodes(), row.loanCode]);
     this.searchText.set('');
+    this.searchSuggestionsOpen.set(false);
     this.currentPage.set(1);
     this.clearMessages();
   }
@@ -379,6 +403,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
 
   clearSelection(): void {
     this.searchText.set('');
+    this.searchSuggestionsOpen.set(false);
     this.selectedLoanCodes.set([]);
     this.selectedStatuses.set([]);
     this.revertUnsavedAliasChanges();
@@ -635,6 +660,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
         loanAliasKey: row.loanAliasKey ?? 0,
         userUpdatedBy,
       })),
+      auditProfile: 'loan_alias',
     };
 
     this.isSaving.set(true);
@@ -677,7 +703,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
     this.statusMessage.set('Loading loans...');
 
     forkJoin({
-      loans: this.loansApi.getLoans(),
+      loans: this.loansApi.getLoans('loan_alias'),
       aliases: this.loanAliasApi.getAllAliases(),
       statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
     }).subscribe({

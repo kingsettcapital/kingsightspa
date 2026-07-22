@@ -255,10 +255,15 @@
 }
 
 /* Autocomplete suggestion list (under compact search input) */
+.ks-fp__search-field {
+  position: relative;
+  width: 100%;
+}
+
 .ks-fp__autocomplete,
 .ks-fp .search-results {
   list-style: none;
-  margin: 0.25rem 0 0;
+  margin: 0;
   padding: 0;
   border: 1px solid var(--ks-color-border);
   border-radius: 0;
@@ -267,9 +272,10 @@
   background: var(--ks-color-surface);
   box-shadow: 0 8px 20px rgba(12, 39, 74, 0.12);
   position: absolute;
+  top: calc(100% + 0.25rem);
   left: 0;
   right: 0;
-  z-index: 50;
+  z-index: 60;
 }
 
 .ks-fp__search-block {

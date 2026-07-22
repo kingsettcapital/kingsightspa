@@ -258,8 +258,10 @@ export class OtherCostCaptureComponent implements OnInit {
       return;
     }
     this.selectedLoanAliasIds.set([...this.selectedLoanAliasIds(), alias.loanAliasId]);
+    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
+    this.loadGrid();
   }
 
   removeSelectedAlias(loanAliasId: number): void {

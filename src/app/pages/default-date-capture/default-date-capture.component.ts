@@ -241,8 +241,10 @@ export class DefaultDateCaptureComponent implements OnInit {
       return;
     }
     this.selectedAliasNames.set([...this.selectedAliasNames(), name]);
+    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
+    this.loadGrid();
   }
 
   removeSelectedAlias(loanAliasName: string): void {

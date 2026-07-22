@@ -12,23 +12,43 @@
       <div class="ks-fp__filters-compact">
         <div class="ks-fp__search-block">
           <label class="ks-fp__filter-label" for="defaultSubjectiveLoanAliasSearch">Search Loans</label>
-          <ng-select
+          <input
             id="defaultSubjectiveLoanAliasSearch"
-            class="ks-ng-select"
-            appendTo="body"
-            [items]="aliasSelectOptions()"
-            bindLabel="label"
-            bindValue="value"
-            [multiple]="true"
-            [searchable]="true"
-            [closeOnSelect]="false"
-            [clearable]="true"
-            placeholder="Search loan aliases..."
-            [ngModel]="selectedAliasNames()"
-            (ngModelChange)="updateSelectedAliases($event)"
-            (search)="onLoanSearch($event)"
-            (clear)="updateSearch('')"
-          ></ng-select>
+            type="text"
+            class="ks-fp__search-input"
+            placeholder="Enter Search Value"
+            [value]="searchText()"
+            (input)="updateSearch($any($event.target).value)"
+            aria-label="Search loan aliases"
+          />
+
+          @if (searchText().trim() && searchedAliasOptions().length > 0) {
+            <ul class="ks-fp__autocomplete">
+              @for (alias of searchedAliasOptions().slice(0, 20); track alias.loanAliasId) {
+                <li>
+                  <button type="button" (click)="selectAlias(alias)">
+                    <span>{{ alias.loanAliasName }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (selectedAliases().length > 0) {
+            <div class="selected-alias-tags">
+              @for (selected of selectedAliases(); track selected.loanAliasId) {
+                <button
+                  type="button"
+                  class="alias-tag"
+                  (click)="removeSelectedAlias(selected.loanAliasName)"
+                >
+                  <span>{{ selected.loanAliasName }}</span>
+                  <span class="tag-close">×</span>
+                </button>
+              }
+            </div>
+          }
+
           <button
             type="button"
             class="ks-fp__clear-selection"

@@ -407,8 +407,10 @@ export class TaxArrearsCaptureComponent implements OnInit {
       return;
     }
     this.selectedLoanCodes.set([...this.selectedLoanCodes(), row.loanCode]);
+    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
+    this.loadGrid();
   }
 
   removeSelectedLoan(loanCode: string): void {

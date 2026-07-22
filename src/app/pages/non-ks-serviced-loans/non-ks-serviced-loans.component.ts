@@ -299,6 +299,38 @@ export class NonKsServicedLoansComponent implements OnInit {
       .sort((a, b) => a.label.localeCompare(b.label));
   });
 
+  readonly searchedLoanOptions = computed(() => {
+    const keyword = this.searchText().trim();
+    if (!keyword) {
+      return [];
+    }
+
+    const selected = new Set(this.selectedLoanKeys().map((key) => key.toLowerCase()));
+    return this.rows().filter((row) => {
+      const aliasKey = row.loanName.trim().toLowerCase();
+      const loanCodeKey = row.loanCode.trim() ? `id:${row.loanCode.trim().toLowerCase()}` : '';
+      if (
+        (aliasKey && selected.has(aliasKey)) ||
+        (loanCodeKey && selected.has(loanCodeKey))
+      ) {
+        return false;
+      }
+      return (
+        filterRowsByTableSearch(
+          [row],
+          keyword,
+          this.tableColumns,
+          (candidate, key) => this.getCellDisplayValue(candidate, key),
+        ).length > 0
+      );
+    });
+  });
+
+  readonly selectedLoans = computed(() => {
+    const selected = new Set(this.selectedLoanKeys().map((key) => key.toLowerCase()));
+    return this.loanSelectOptions().filter((option) => selected.has(option.value.toLowerCase()));
+  });
+
   readonly filteredRows = computed(() => {
     let rows = this.rows();
     const keyword = this.searchText();
@@ -380,23 +412,37 @@ export class NonKsServicedLoansComponent implements OnInit {
     this.clearMessages();
   }
 
-  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
-  onLoanSearch(event: { term: string } | string | null): void {
-    const term = typeof event === 'string' ? event : (event?.term ?? '');
-    if (!term.trim() && this.suppressEmptySearchClear) {
+  selectLoan(row: NonKsLoanRow): void {
+    const loanCode = row.loanCode.trim();
+    const alias = row.loanName.trim();
+    const key = loanCode
+      ? `id:${loanCode.toLowerCase()}`
+      : alias
+        ? alias.toLowerCase()
+        : '';
+    if (!key || this.selectedLoanKeys().some((selected) => selected.toLowerCase() === key)) {
       return;
     }
-    this.updateSearch(term);
+    // Prefer stable option values used by loanSelectOptions.
+    const optionValue = loanCode
+      ? `id:${loanCode.toLowerCase()}`
+      : alias.toLowerCase();
+    this.selectedLoanKeys.set([...this.selectedLoanKeys(), optionValue]);
+    this.searchText.set('');
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  removeSelectedLoan(value: string): void {
+    this.selectedLoanKeys.set(this.selectedLoanKeys().filter((key) => key !== value));
+    this.currentPage.set(1);
+    this.clearMessages();
   }
 
   updateSelectedLoans(values: string[] | null): void {
-    this.suppressEmptySearchClear = true;
     this.selectedLoanKeys.set(values ?? []);
     this.currentPage.set(1);
     this.clearMessages();
-    queueMicrotask(() => {
-      this.suppressEmptySearchClear = false;
-    });
   }
 
   clearSelection(): void {

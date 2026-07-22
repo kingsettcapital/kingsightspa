@@ -328,6 +328,7 @@ export class SecurityValueComponent implements OnInit {
     }
 
     this.updateSelectedAliases([...this.selectedLoanAliasIds(), alias.loanAliasId]);
+    this.searchText.set('');
   }
 
   removeSelectedAlias(loanAliasId: number): void {
