@@ -533,29 +533,14 @@ export class SecurityValueComponent implements OnInit {
     });
   }
 
-  /** Selected alias tags, or all aliases when none selected. */
+  /** Selected alias tags only; empty = all aliases (API skips the IN filter). */
   private resolveLoanAliasIds(): number[] {
-    const selected = this.selectedLoanAliasIds();
-    if (selected.length > 0) {
-      return selected;
-    }
-    return this.aliasOptions()
-      .map((alias) => alias.loanAliasId)
-      .filter((id) => id > 0);
+    return this.selectedLoanAliasIds().filter((id) => id > 0);
   }
 
   /** Tag selection reloads the grid; empty selection loads all aliases from the API. */
   private loadGridData(): void {
     const loanAliasIds = this.resolveLoanAliasIds();
-
-    if (!loanAliasIds.length) {
-      this.rows.set([]);
-      this.originalRowState.set({});
-      this.statusMessage.set('No loan aliases available to load.');
-      this.isLoadingGrid.set(false);
-      return;
-    }
-
 
     this.isLoadingGrid.set(true);
     this.errorMessage.set('');
