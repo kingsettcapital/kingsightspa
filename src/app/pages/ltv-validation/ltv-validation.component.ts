@@ -22,6 +22,10 @@ import {
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
+import {
+  CmhcUploadApiService,
+  CmhcUploadHistoryRecord,
+} from '../../core/services/cmhc-upload-api.service';
 import { LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
   LtvValidationApiService,
@@ -63,6 +67,13 @@ type RowSnapshot = {
   ltv: number | null;
   updateReasons: string[];
   updateComment: string;
+};
+
+/** Meta shown in the QR slide preview header (deck + as-of + loan). */
+type QrSlidePreviewMeta = {
+  loanName: string;
+  fileName: string;
+  asOfDate: string;
 };
 
 type LtvColumnKey =
@@ -128,16 +139,18 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
+  private readonly cmhcUploadApi = inject(CmhcUploadApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly apiConfig = inject(APP_API_CONFIG);
   private readonly defaultPageSize = 10;
 
-  readonly tableColumns = LTV_TABLE_COLUMNS;
   readonly updateReasonOptions = [...LTV_UPDATE_REASON_OPTIONS];
 
   readonly aliasOptions = signal<AliasOption[]>([]);
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
+  /** QR-slides upload history, newest first (source of Prior/Current As Of). */
+  readonly qrSlideUploads = signal<CmhcUploadHistoryRecord[]>([]);
   readonly searchText = signal('');
   readonly selectedLoanAliasIds = signal<number[]>([]);
   /** Client-side loan filter for Search Loans (code / name). */
@@ -150,6 +163,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   readonly originalRowState = signal<Record<string, RowSnapshot>>({});
   readonly selectedQrSlideUrl = signal<string | null>(null);
   readonly selectedQrSlideTitle = signal('');
+  readonly selectedQrSlideMeta = signal<QrSlidePreviewMeta | null>(null);
   readonly pdfPreviewBlobUrl = signal<SafeResourceUrl | null>(null);
   readonly previewMediaType = signal<'pdf' | 'image' | null>(null);
   readonly isLoadingPreview = signal(false);
@@ -180,6 +194,38 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     this.revokePreviewBlob();
   }
 
+  /**
+   * Current pack As Of = newest QR-slides upload (file being processed).
+   * Prior pack As Of = previous QR-slides upload (last confirmed / prior pack).
+   */
+  readonly currentLtvAsOfDisplay = computed(() =>
+    this.formatAsOfHeaderDate(this.qrSlideUploads()[0]?.asOfDate),
+  );
+
+  readonly priorLtvAsOfDisplay = computed(() =>
+    this.formatAsOfHeaderDate(this.qrSlideUploads()[1]?.asOfDate),
+  );
+
+  readonly tableColumns = computed<LtvTableColumn[]>(() => {
+    const priorAsOf = this.priorLtvAsOfDisplay();
+    const currentAsOf = this.currentLtvAsOfDisplay();
+    return LTV_TABLE_COLUMNS.map((column) => {
+      if (column.key === 'priorLtv') {
+        return {
+          ...column,
+          label: priorAsOf ? `Prior LTV ${priorAsOf}` : 'Prior LTV',
+        };
+      }
+      if (column.key === 'ltv') {
+        return {
+          ...column,
+          label: currentAsOf ? `Current LTV ${currentAsOf}` : 'Current LTV',
+        };
+      }
+      return column;
+    });
+  });
+
   readonly selectedAliases = computed(() => {
     const ids = new Set(this.selectedLoanAliasIds());
     return this.aliasOptions().filter((a) => ids.has(a.loanAliasId));
@@ -205,7 +251,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
         filterRowsByTableSearch(
           [row],
           keyword,
-          this.tableColumns,
+          this.tableColumns(),
           (candidate, key) => this.getCellDisplayValue(candidate, key),
         ).length > 0
       ) {
@@ -244,7 +290,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     rows = filterRowsByTableSearch(
       rows,
       this.searchText(),
-      this.tableColumns,
+      this.tableColumns(),
       (row, key) => this.getCellDisplayValue(row, key),
     );
 
@@ -463,8 +509,18 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     }
 
     const previewUrl = this.resolveQrSlidePreviewUrl(originalLink);
+    const loanName = row.loanName?.trim() || row.loanCode || '—';
+    const pack = this.resolveQrSlidePack(originalLink);
+    const fileName =
+      pack?.filename?.trim()
+      || this.extractQrSlideFileName(originalLink)
+      || row.qrSlideLabel
+      || '—';
+    const asOfDate = this.formatAsOfHeaderDate(pack?.asOfDate) || this.currentLtvAsOfDisplay() || '—';
+
     this.selectedQrSlideUrl.set(previewUrl);
-    this.selectedQrSlideTitle.set(row.loanName || row.qrSlideLabel || row.loanCode);
+    this.selectedQrSlideTitle.set(loanName);
+    this.selectedQrSlideMeta.set({ loanName, fileName, asOfDate });
     this.previewZoom.set(1);
     this.showPreviewModal.set(false);
     this.loadQrSlidePreview(previewUrl);
@@ -870,8 +926,9 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     forkJoin({
       aliases: this.loanAliasApi.getAll().pipe(catchError(() => of([]))),
       statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
+      uploads: this.cmhcUploadApi.getHistory().pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ aliases, statuses }) => {
+      next: ({ aliases, statuses, uploads }) => {
         this.aliasOptions.set(
           aliases
             .map((a) => ({
@@ -883,6 +940,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
         );
 
         this.statusOptions.set(normalizeStatusOptions(statuses));
+        this.qrSlideUploads.set(this.normalizeQrSlideUploads(uploads));
         this.isLoadingFilters.set(false);
 
         if (!this.aliasOptions().length) {
@@ -1121,6 +1179,108 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       return loanName.trim();
     }
     return loanCode.trim() || 'View QR Slide';
+  }
+
+  /** Newest QR-slides uploads first; drives Prior/Current LTV As Of headers. */
+  private normalizeQrSlideUploads(uploads: unknown): CmhcUploadHistoryRecord[] {
+    if (!Array.isArray(uploads) || !uploads.length) {
+      return [];
+    }
+
+    return (uploads as Record<string, unknown>[])
+      .map((row) => ({
+        fileId: Number(row['fileId'] ?? row['file_id'] ?? 0),
+        filename: String(row['filename'] ?? row['fileName'] ?? '').trim(),
+        fileType: String(row['fileType'] ?? row['file_type'] ?? '').trim().toLowerCase(),
+        uploadedDate: String(row['uploadedDate'] ?? row['uploaded_date'] ?? '').trim(),
+        uploadedBy: String(row['uploadedBy'] ?? row['uploaded_by'] ?? '').trim(),
+        asOfDate: String(row['asOfDate'] ?? row['as_of_date'] ?? '').trim() || null,
+      }))
+      .filter((row) => {
+        const type = row.fileType ?? '';
+        if (type === 'qr-slides' || type === 'qr_slides' || type.includes('qr')) {
+          return true;
+        }
+        // Legacy rows may lack file_type — treat PDF history as QR slides.
+        return !type && /\.pdf$/i.test(row.filename);
+      })
+      .sort((a, b) => {
+        const aTime = Date.parse(a.uploadedDate) || 0;
+        const bTime = Date.parse(b.uploadedDate) || 0;
+        return bTime - aTime;
+      });
+  }
+
+  /** Rajeev format: MM.DD.YY (e.g. 07.24.26). */
+  private formatAsOfHeaderDate(value: string | null | undefined): string {
+    if (!value?.trim()) {
+      return '';
+    }
+
+    const trimmed = value.trim();
+    const dateOnly = trimmed.length >= 10 ? trimmed.slice(0, 10) : trimmed;
+    const [year, month, day] = dateOnly.split('-');
+    if (year?.length === 4 && month && day) {
+      return `${month}.${day}.${year.slice(-2)}`;
+    }
+
+    const parsed = new Date(trimmed);
+    if (Number.isNaN(parsed.getTime())) {
+      return trimmed;
+    }
+
+    const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+    const dd = String(parsed.getDate()).padStart(2, '0');
+    const yy = String(parsed.getFullYear()).slice(-2);
+    return `${mm}.${dd}.${yy}`;
+  }
+
+  /**
+   * Match a slide link to its source QR pack (deck) from upload history.
+   * Falls back to the newest pack when no filename match is found.
+   */
+  private resolveQrSlidePack(link: string): CmhcUploadHistoryRecord | null {
+    const uploads = this.qrSlideUploads();
+    if (!uploads.length) {
+      return null;
+    }
+
+    const slideName = this.extractQrSlideFileName(link)?.toLowerCase() ?? '';
+    const linkLower = link.toLowerCase();
+
+    const matched = uploads.find((upload) => {
+      const packName = upload.filename?.trim().toLowerCase() ?? '';
+      if (!packName) {
+        return false;
+      }
+      if (slideName && (slideName === packName || slideName.includes(packName) || packName.includes(slideName))) {
+        return true;
+      }
+      return linkLower.includes(packName);
+    });
+
+    return matched ?? uploads[0] ?? null;
+  }
+
+  private extractQrSlideFileName(link: string): string {
+    if (!link?.trim()) {
+      return '';
+    }
+
+    try {
+      const decoded = decodeURIComponent(link.trim());
+      const withoutQuery = decoded.split('?')[0] ?? decoded;
+      const segments = withoutQuery.split(/[/\\]/).filter(Boolean);
+      for (let i = segments.length - 1; i >= 0; i -= 1) {
+        const segment = segments[i];
+        if (/\.(pdf|png|jpe?g)$/i.test(segment)) {
+          return segment;
+        }
+      }
+      return segments[segments.length - 1] ?? '';
+    } catch {
+      return link.trim();
+    }
   }
 
   private isFabricPortalUrl(url: string): boolean {

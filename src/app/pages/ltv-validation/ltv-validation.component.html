@@ -121,7 +121,7 @@
           <thead>
             <tr>
               <th class="hidden-column">Loan Key</th>
-              @for (column of tableColumns; track column.key) {
+              @for (column of tableColumns(); track column.key) {
                 <th [class]="columnClass(column.key)">
                   <button
                     type="button"
@@ -222,7 +222,7 @@
               </tr>
             } @empty {
               <tr>
-                <td [attr.colspan]="tableColumns.length + 1" class="empty-row">
+                <td [attr.colspan]="tableColumns().length + 1" class="empty-row">
                   No loans loaded for the selected filters.
                 </td>
               </tr>
@@ -250,7 +250,22 @@
           </button>
         </div>
         @if (!slidePaneCollapsed()) {
-          @if (selectedQrSlideTitle()) {
+          @if (selectedQrSlideMeta(); as meta) {
+            <div class="ltv-slide-pane__meta">
+              <p class="ltv-slide-pane__meta-row">
+                <span class="ltv-slide-pane__meta-label">Loan</span>
+                <span class="ltv-slide-pane__meta-value">{{ meta.loanName }}</span>
+              </p>
+              <p class="ltv-slide-pane__meta-row">
+                <span class="ltv-slide-pane__meta-label">QR Slide File</span>
+                <span class="ltv-slide-pane__meta-value" [title]="meta.fileName">{{ meta.fileName }}</span>
+              </p>
+              <p class="ltv-slide-pane__meta-row">
+                <span class="ltv-slide-pane__meta-label">As Of</span>
+                <span class="ltv-slide-pane__meta-value">{{ meta.asOfDate }}</span>
+              </p>
+            </div>
+          } @else if (selectedQrSlideTitle()) {
             <p class="ltv-slide-pane__title">{{ selectedQrSlideTitle() }}</p>
           }
           @if (pdfPreviewUrl() && !isLoadingPreview() && !previewError()) {
@@ -365,7 +380,16 @@
       (click)="$event.stopPropagation()"
     >
       <div class="ltv-preview-dialog__header">
-        <h2 id="ltv-preview-title">{{ selectedQrSlideTitle() || 'QR Slide Preview' }}</h2>
+        <div class="ltv-preview-dialog__heading">
+          <h2 id="ltv-preview-title">{{ selectedQrSlideMeta()?.loanName || selectedQrSlideTitle() || 'QR Slide Preview' }}</h2>
+          @if (selectedQrSlideMeta(); as meta) {
+            <p class="ltv-preview-dialog__meta">
+              <span>{{ meta.fileName }}</span>
+              <span aria-hidden="true">·</span>
+              <span>As Of {{ meta.asOfDate }}</span>
+            </p>
+          }
+        </div>
         <div class="ltv-preview-dialog__tools">
           @if (pdfPreviewUrl() && !isLoadingPreview() && !previewError()) {
             <button type="button" class="ltv-preview-zoom-btn" (click)="zoomOutPreview()" aria-label="Zoom out">
