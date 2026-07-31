@@ -11,26 +11,48 @@
       <div class="ks-fp__filters-compact">
         <div class="ks-fp__search-block">
           <label class="ks-fp__filter-label" for="nonKsLoanSearch">Search Loans</label>
-          <ng-select
+          <input
             id="nonKsLoanSearch"
-            class="ks-ng-select"
-            appendTo="body"
-            [items]="loanSelectOptions()"
-            bindLabel="label"
-            bindValue="value"
-            [multiple]="true"
-            [searchable]="true"
-            [closeOnSelect]="false"
-            [clearable]="true"
-            placeholder="Search loans..."
-            [ngModel]="selectedLoanKeys()"
-            (ngModelChange)="updateSelectedLoans($event)"
-          ></ng-select>
+            type="text"
+            class="ks-fp__search-input"
+            placeholder="Enter Search Value"
+            [value]="searchText()"
+            (input)="updateSearch($any($event.target).value)"
+            aria-label="Search loans"
+          />
+
+          @if (searchText().trim() && searchedLoanOptions().length > 0) {
+            <ul class="ks-fp__autocomplete">
+              @for (row of searchedLoanOptions().slice(0, 20); track rowTrackId(row)) {
+                <li>
+                  <button type="button" (click)="selectLoan(row)">
+                    <span>{{ row.loanCode || '—' }} — {{ row.loanName || row.description || '—' }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (selectedLoans().length > 0) {
+            <div class="selected-loan-tags">
+              @for (selected of selectedLoans(); track selected.value) {
+                <button
+                  type="button"
+                  class="loan-tag"
+                  (click)="removeSelectedLoan(selected.value)"
+                >
+                  <span>{{ selected.label }}</span>
+                  <span class="tag-close">×</span>
+                </button>
+              }
+            </div>
+          }
+
           <button
             type="button"
             class="ks-fp__clear-selection"
             (click)="clearSelection()"
-            [disabled]="!selectedLoanKeys().length"
+            [disabled]="!selectedLoanKeys().length && !searchText().trim()"
           >
             Clear Selection
           </button>

@@ -105,7 +105,6 @@ export class LoansRankingComponent implements OnInit {
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
   readonly selectedStatuses = signal<string[]>([]);
   /** Alias names that match the selected Status filter (from LoanSecurityValue). */
-  readonly statusMatchingAliasNames = signal<Set<string> | null>(null);
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
   readonly isLoading = signal(false);
@@ -116,6 +115,8 @@ export class LoansRankingComponent implements OnInit {
   readonly rows = signal<LoanAttributeRow[]>([]);
   readonly loanAliasOptions = signal<LoanAliasOptionDto[]>([]);
   readonly originalRowState = signal<Record<string, RowSnapshot>>({});
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   readonly loanSelectOptions = computed<LoanSelectOption[]>(() => {
     const seen = new Set<string>();
@@ -171,23 +172,10 @@ export class LoansRankingComponent implements OnInit {
   });
 
   readonly filteredRows = computed(() => {
-    const statuses = this.selectedStatuses();
     const selectedCodes = this.selectedLoanCodes();
     const keyword = this.searchText();
-    const statusAliases = this.statusMatchingAliasNames();
 
     let rows = this.rows();
-
-    if (statuses.length > 0 && statusAliases) {
-      rows = rows.filter((row) => {
-        const alias = row.loanAliasName.trim().toLowerCase();
-        // Keep unassigned / empty-alias rows so they remain assignable.
-        if (!alias || alias === '—') {
-          return true;
-        }
-        return statusAliases.has(alias);
-      });
-    }
 
     if (selectedCodes.length > 0) {
       const selectedCodeSet = new Set(selectedCodes);
@@ -265,18 +253,30 @@ export class LoansRankingComponent implements OnInit {
     this.clearMessages();
   }
 
+  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
+  onLoanSearch(event: { term: string } | string | null): void {
+    const term = typeof event === 'string' ? event : (event?.term ?? '');
+    if (!term.trim() && this.suppressEmptySearchClear) {
+      return;
+    }
+    this.updateSearch(term);
+  }
+
   updateSelectedLoans(values: string[] | null): void {
-    this.searchText.set('');
+    this.suppressEmptySearchClear = true;
     this.selectedLoanCodes.set(values ?? []);
     this.currentPage.set(1);
     this.clearMessages();
+    queueMicrotask(() => {
+      this.suppressEmptySearchClear = false;
+    });
   }
 
   updateSelectedStatuses(statuses: string[] | null): void {
     this.selectedStatuses.set(statuses ?? []);
     this.currentPage.set(1);
     this.clearMessages();
-    this.refreshStatusMatchingAliases();
+    this.loadLoans();
   }
 
   toggleSort(column: LoanAttributeColumnKey): void {
@@ -406,7 +406,7 @@ export class LoansRankingComponent implements OnInit {
     this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
-    this.refreshStatusMatchingAliases();
+    this.loadLoans();
   }
 
   goToPreviousPage(): void {
@@ -475,6 +475,7 @@ export class LoansRankingComponent implements OnInit {
 
     const request: LoanBulkUpdateRequest = {
       loans: rowsToSave.map((row) => this.buildUpdatePayload(row, userUpdatedBy)),
+      auditProfile: 'loan_attribute',
     };
 
     this.isSaving.set(true);
@@ -517,65 +518,40 @@ export class LoansRankingComponent implements OnInit {
     this.errorMessage.set('');
     this.statusMessage.set('');
 
-    forkJoin({
-      loans: this.loansApi.getLoans(),
-      lookups: this.loansApi.getLookups().pipe(catchError(() => of(null))),
-      statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
-    }).subscribe({
-      next: ({ loans, lookups, statuses }) => {
-        this.applyLoanAliasOptions(lookups);
-        const mappedRows = loans
-          .map((record, index) => this.mapApiLoanToRow(record, index))
-          .filter((row) => row.loanCode.length > 0);
+    this.securityValueApi.getStatuses().pipe(catchError(() => of([]))).subscribe({
+      next: (statuses) => {
+        this.statusOptions.set(normalizeStatusOptions(statuses));
+        const selectedStatuses = this.selectedStatuses();
 
-        this.rows.set(mappedRows);
-        this.currentPage.set(1);
-        this.snapshotOriginalState();
+        forkJoin({
+          loans: this.loansApi.getLoans('loan_attribute', selectedStatuses),
+          lookups: this.loansApi.getLookups().pipe(catchError(() => of(null))),
+        }).subscribe({
+          next: ({ loans, lookups }) => {
+            this.applyLoanAliasOptions(lookups);
+            const mappedRows = loans
+              .map((record, index) => this.mapApiLoanToRow(record, index))
+              .filter((row) => row.loanCode.length > 0);
 
-        const statusOptions = normalizeStatusOptions(statuses);
-        this.statusOptions.set(statusOptions);
-        this.refreshStatusMatchingAliases();
-
-        this.statusMessage.set('');
-        this.isLoading.set(false);
+            this.rows.set(mappedRows);
+            this.currentPage.set(1);
+            this.snapshotOriginalState();
+            this.statusMessage.set('');
+            this.isLoading.set(false);
+          },
+          error: () => {
+            this.rows.set([]);
+            this.statusMessage.set('');
+            this.errorMessage.set('Unable to fetch loans. Verify API availability and CORS.');
+            this.isLoading.set(false);
+          },
+        });
       },
       error: () => {
         this.rows.set([]);
-        this.statusMatchingAliasNames.set(null);
         this.statusMessage.set('');
-        this.errorMessage.set('Unable to fetch loans. Verify API availability and CORS.');
+        this.errorMessage.set('Unable to load status options.');
         this.isLoading.set(false);
-      },
-    });
-  }
-
-  private refreshStatusMatchingAliases(): void {
-    const statuses = this.selectedStatuses();
-    if (!statuses.length) {
-      this.statusMatchingAliasNames.set(null);
-      return;
-    }
-
-    const aliasIds = this.loanAliasOptions()
-      .map((alias) => alias.loanAliasId)
-      .filter((id) => id > 0);
-
-    if (!aliasIds.length) {
-      this.statusMatchingAliasNames.set(null);
-      return;
-    }
-
-    this.securityValueApi.getSecurityValues(aliasIds, statuses).subscribe({
-      next: (rows) => {
-        const names = new Set(
-          rows
-            .map((row) => String(row.loanAliasName ?? '').trim().toLowerCase())
-            .filter((name) => name.length > 0),
-        );
-        this.statusMatchingAliasNames.set(names);
-      },
-      error: () => {
-        this.statusMatchingAliasNames.set(null);
       },
     });
   }

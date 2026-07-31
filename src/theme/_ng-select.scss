@@ -22,7 +22,20 @@
 .ng-dropdown-panel {
   z-index: 1100;
   border-radius: var(--ks-radius-none);
-  border-color: var(--ks-color-border-strong);
+  border: 1px solid var(--ks-color-border-strong);
+  box-shadow: var(--ks-shadow-md, 0 8px 20px rgba(12, 39, 74, 0.12));
+  background: var(--ks-color-surface);
+}
+
+/*
+ * Panel gap / open-state typing fixes live in ng-select-overrides.css
+ * (imported after default.theme.css in styles.scss).
+ */
+
+/* Panel is separate from the control — do not flatten control corners into it. */
+.ng-select.ng-select-opened.ng-select-bottom > .ng-select-container,
+.ng-select.ng-select-opened.ng-select-top > .ng-select-container {
+  border-radius: var(--ks-radius-none) !important;
 }
 
 .ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-marked,

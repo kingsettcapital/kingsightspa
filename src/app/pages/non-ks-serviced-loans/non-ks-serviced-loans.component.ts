@@ -7,6 +7,7 @@ import { catchError } from 'rxjs/operators';
 
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
+import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import {
   InvestorApiService,
   InvestorDto,
@@ -194,6 +195,9 @@ export class NonKsServicedLoansComponent implements OnInit {
   readonly investorDialogError = signal('');
   readonly isCreatingInvestor = signal(false);
   readonly selectedLoanKeys = signal<string[]>([]);
+  readonly searchText = signal('');
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
@@ -295,8 +299,48 @@ export class NonKsServicedLoansComponent implements OnInit {
       .sort((a, b) => a.label.localeCompare(b.label));
   });
 
+  readonly searchedLoanOptions = computed(() => {
+    const keyword = this.searchText().trim();
+    if (!keyword) {
+      return [];
+    }
+
+    const selected = new Set(this.selectedLoanKeys().map((key) => key.toLowerCase()));
+    return this.rows().filter((row) => {
+      const aliasKey = row.loanName.trim().toLowerCase();
+      const loanCodeKey = row.loanCode.trim() ? `id:${row.loanCode.trim().toLowerCase()}` : '';
+      if (
+        (aliasKey && selected.has(aliasKey)) ||
+        (loanCodeKey && selected.has(loanCodeKey))
+      ) {
+        return false;
+      }
+      return (
+        filterRowsByTableSearch(
+          [row],
+          keyword,
+          this.tableColumns,
+          (candidate, key) => this.getCellDisplayValue(candidate, key),
+        ).length > 0
+      );
+    });
+  });
+
+  readonly selectedLoans = computed(() => {
+    const selected = new Set(this.selectedLoanKeys().map((key) => key.toLowerCase()));
+    return this.loanSelectOptions().filter((option) => selected.has(option.value.toLowerCase()));
+  });
+
   readonly filteredRows = computed(() => {
     let rows = this.rows();
+    const keyword = this.searchText();
+
+    rows = filterRowsByTableSearch(
+      rows,
+      keyword,
+      this.tableColumns,
+      (row, key) => this.getCellDisplayValue(row, key),
+    );
 
     const selected = this.selectedLoanKeys();
     if (selected.length) {
@@ -327,7 +371,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       isLoading: this.isLoadingGrid(),
       totalRows: this.rows().length,
       visibleRows: this.filteredRows().length,
-      hasClientFilter: this.selectedLoanKeys().length > 0,
+      hasClientFilter: this.selectedLoanKeys().length > 0 || this.searchText().trim().length > 0,
       entitySingular: 'record',
       emptyMessage: 'No records yet. Use Add New Row to enter quarterly data.',
     }),
@@ -362,6 +406,39 @@ export class NonKsServicedLoansComponent implements OnInit {
     return `${start} - ${end} of ${total}`;
   });
 
+  updateSearch(value: string): void {
+    this.searchText.set(value);
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  selectLoan(row: NonKsLoanRow): void {
+    const loanCode = row.loanCode.trim();
+    const alias = row.loanName.trim();
+    const key = loanCode
+      ? `id:${loanCode.toLowerCase()}`
+      : alias
+        ? alias.toLowerCase()
+        : '';
+    if (!key || this.selectedLoanKeys().some((selected) => selected.toLowerCase() === key)) {
+      return;
+    }
+    // Prefer stable option values used by loanSelectOptions.
+    const optionValue = loanCode
+      ? `id:${loanCode.toLowerCase()}`
+      : alias.toLowerCase();
+    this.selectedLoanKeys.set([...this.selectedLoanKeys(), optionValue]);
+    this.searchText.set('');
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  removeSelectedLoan(value: string): void {
+    this.selectedLoanKeys.set(this.selectedLoanKeys().filter((key) => key !== value));
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
   updateSelectedLoans(values: string[] | null): void {
     this.selectedLoanKeys.set(values ?? []);
     this.currentPage.set(1);
@@ -369,6 +446,7 @@ export class NonKsServicedLoansComponent implements OnInit {
   }
 
   clearSelection(): void {
+    this.searchText.set('');
     this.selectedLoanKeys.set([]);
     this.currentPage.set(1);
     this.clearMessages();
@@ -1504,6 +1582,42 @@ export class NonKsServicedLoansComponent implements OnInit {
       }
     }
     return [];
+  }
+
+  private getCellDisplayValue(row: NonKsLoanRow, key: NonKsColumnKey): string {
+    switch (key) {
+      case 'userUpdatedBy':
+        return this.displayModifiedBy(row.userUpdatedBy);
+      case 'userUpdatedDate':
+        return this.formatModifiedDate(row.userUpdatedDate);
+      case 'asAtDate':
+      case 'dateOfDefault':
+      case 'maturityDate':
+      case 'interestOffDate':
+      case 'taxMemoDate':
+        return row[key]?.trim() || '';
+      case 'securityValue':
+      case 'principalBalance':
+      case 'outstandingInterest':
+      case 'accruedInterest':
+      case 'lateInterest':
+      case 'outstandingInvoices':
+      case 'estRealizationCosts':
+      case 'costToComplete':
+      case 'taxArrears':
+      case 'interestAdjustment':
+        return row[key] == null ? '' : this.formatCurrencyDisplay(row[key]);
+      case 'units':
+      case 'squareFeet':
+        return row[key] == null ? '' : String(row[key]);
+      case 'netAcres':
+      case 'interestRate':
+        return row[key] == null ? '' : String(row[key]);
+      case 'investorAlias':
+        return row.investorAlias?.trim() || '';
+      default:
+        return String(row[key] ?? '').trim();
+    }
   }
 
   private compareRows(left: NonKsLoanRow, right: NonKsLoanRow, column: NonKsColumnKey): number {

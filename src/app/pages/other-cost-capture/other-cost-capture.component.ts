@@ -103,6 +103,8 @@ export class OtherCostCaptureComponent implements OnInit {
   readonly originalRowState = signal<Record<string, EditableCosts>>({});
   /** Raw in-progress text for currency inputs (avoids reformat-on-keystroke). */
   readonly currencyFieldText = signal<Record<string, string>>({});
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
@@ -224,12 +226,24 @@ export class OtherCostCaptureComponent implements OnInit {
     this.clearMessages();
   }
 
+  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
+  onLoanSearch(event: { term: string } | string | null): void {
+    const term = typeof event === 'string' ? event : (event?.term ?? '');
+    if (!term.trim() && this.suppressEmptySearchClear) {
+      return;
+    }
+    this.updateSearch(term);
+  }
+
   updateSelectedAliases(ids: number[] | null): void {
+    this.suppressEmptySearchClear = true;
     this.selectedLoanAliasIds.set(ids ?? []);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
+    queueMicrotask(() => {
+      this.suppressEmptySearchClear = false;
+    });
   }
 
   updateSelectedStatuses(statuses: string[] | null): void {
@@ -247,6 +261,7 @@ export class OtherCostCaptureComponent implements OnInit {
     this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
+    this.loadGrid();
   }
 
   removeSelectedAlias(loanAliasId: number): void {

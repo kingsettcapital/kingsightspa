@@ -11,23 +11,44 @@
       <div class="ks-fp__filters-compact">
         <div class="ks-fp__search-block">
           <label class="ks-fp__filter-label" for="investorSearch">Search Investors</label>
-          <ng-select
-            id="investorSearch"
-            class="ks-ng-select"
-            appendTo="body"
-            [items]="investorSelectOptions()"
-            bindLabel="label"
-            bindValue="value"
-            [multiple]="true"
-            [searchable]="true"
-            [closeOnSelect]="false"
-            [clearable]="true"
-            placeholder="Search investors..."
-            [ngModel]="selectedInvestorCodes()"
-            (ngModelChange)="updateSelectedInvestors($event)"
-            (search)="onInvestorSearch($event)"
-            (clear)="updateSearch('')"
-          ></ng-select>
+          <div class="ks-fp__search-field">
+            <input
+              id="investorSearch"
+              type="text"
+              class="ks-fp__search-input"
+              placeholder="Enter Search Value"
+              [value]="searchText()"
+              (input)="updateSearch($any($event.target).value)"
+              aria-label="Search investors"
+            />
+
+            @if (searchText().trim() && searchedInvestorOptions().length > 0) {
+              <ul class="ks-fp__autocomplete">
+                @for (row of searchedInvestorOptions().slice(0, 20); track row.investorCode) {
+                  <li>
+                    <button type="button" (mousedown)="selectInvestor(row); $event.preventDefault()">
+                      <span>{{ row.investorCode }} — {{ row.investorName }}</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+
+          @if (selectedInvestors().length > 0) {
+            <div class="selected-investor-tags">
+              @for (selected of selectedInvestors(); track selected.investorCode) {
+                <button
+                  type="button"
+                  class="investor-tag"
+                  (click)="removeSelectedInvestor(selected.investorCode)"
+                >
+                  <span>{{ selected.investorCode }} {{ selected.investorName }}</span>
+                  <span class="tag-close">×</span>
+                </button>
+              }
+            </div>
+          }
 
           <button
             type="button"

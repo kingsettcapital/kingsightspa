@@ -12,54 +12,57 @@
       <div class="ks-fp__filters-compact">
         <div class="ks-fp__search-block">
           <label class="ks-fp__filter-label" for="loanAliasSearch">Search Loans</label>
-          <ng-select
+          <input
             id="loanAliasSearch"
-            class="ks-ng-select"
-            appendTo="body"
-            [items]="aliasSelectOptions()"
-            bindLabel="label"
-            bindValue="value"
-            [multiple]="true"
-            [searchable]="true"
-            [closeOnSelect]="false"
-            [clearable]="true"
-            placeholder="Search loan aliases..."
-            [ngModel]="selectedLoanAliasIds()"
-            (ngModelChange)="updateSelectedAliases($event)"
-          ></ng-select>
+            type="text"
+            class="ks-fp__search-input"
+            placeholder="Enter Search Value"
+            [value]="searchText()"
+            (input)="updateSearch($any($event.target).value)"
+            aria-label="Search loan aliases"
+          />
+
+          @if (searchText().trim() && searchedAliasOptions().length > 0) {
+            <ul class="ks-fp__autocomplete">
+              @for (alias of searchedAliasOptions().slice(0, 20); track alias.loanAliasId) {
+                <li>
+                  <button type="button" (click)="selectAlias(alias)">
+                    <span>{{ alias.loanAliasName }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (selectedAliases().length > 0) {
+            <div class="selected-alias-tags">
+              @for (selected of selectedAliases(); track selected.loanAliasId) {
+                <button
+                  type="button"
+                  class="alias-tag"
+                  (click)="removeSelectedAlias(selected.loanAliasId)"
+                >
+                  <span>{{ selected.loanAliasName }}</span>
+                  <span class="tag-close">×</span>
+                </button>
+              }
+            </div>
+          }
+
           <button
             type="button"
             class="ks-fp__clear-selection"
             (click)="clearSelection()"
-            [disabled]="!selectedLoanAliasIds().length && !selectedStatuses().length"
+            [disabled]="!selectedLoanAliasIds().length && !searchText().trim()"
           >
             Clear Selection
           </button>
-        </div>
-
-        <div class="ks-fp__status-block">
-          <label class="ks-fp__filter-label" for="securityValueStatus">Status</label>
-          <ng-select
-            id="securityValueStatus"
-            class="ks-ng-select"
-            appendTo="body"
-            [items]="statusSelectOptions()"
-            bindLabel="label"
-            bindValue="value"
-            [multiple]="true"
-            [searchable]="true"
-            [closeOnSelect]="false"
-            [clearable]="true"
-            placeholder="Select status..."
-            [ngModel]="selectedStatuses()"
-            (ngModelChange)="updateSelectedStatuses($event)"
-          ></ng-select>
         </div>
       </div>
     </div>
   </div>
 
-  @if (isLoadingAliases() || isLoadingStatuses()) {
+  @if (isLoadingAliases()) {
     <p class="meta-message">Loading filters...</p>
   }
   @if (errorMessage() && !isSaving()) {
@@ -153,7 +156,7 @@
         } @empty {
           <tr>
             <td colspan="9" class="empty-row">
-              No security value rows returned. Check status filters or the LoanSecurityValue API.
+              No security value rows returned. Check the LoanSecurityValue API.
             </td>
           </tr>
         }

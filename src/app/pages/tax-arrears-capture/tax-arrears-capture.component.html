@@ -12,26 +12,48 @@
       <div class="ks-fp__filters-compact">
         <div class="ks-fp__search-block">
           <label class="ks-fp__filter-label" for="taxArrearsLoanSearch">Search Loans</label>
-          <ng-select
+          <input
             id="taxArrearsLoanSearch"
-            class="ks-ng-select"
-            appendTo="body"
-            [items]="aliasSelectOptions()"
-            bindLabel="label"
-            bindValue="value"
-            [multiple]="true"
-            [searchable]="true"
-            [closeOnSelect]="false"
-            [clearable]="true"
-            placeholder="Search loans..."
-            [ngModel]="selectedLoanCodes()"
-            (ngModelChange)="updateSelectedAliases($event)"
-          ></ng-select>
+            type="text"
+            class="ks-fp__search-input"
+            placeholder="Enter Search Value"
+            [value]="searchText()"
+            (input)="updateSearch($any($event.target).value)"
+            aria-label="Search loans"
+          />
+
+          @if (searchText().trim() && searchedLoanOptions().length > 0) {
+            <ul class="ks-fp__autocomplete">
+              @for (row of searchedLoanOptions().slice(0, 20); track row.loanCode) {
+                <li>
+                  <button type="button" (click)="selectLoan(row)">
+                    <span>{{ row.loanCode }} — {{ row.loanName }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (selectedLoans().length > 0) {
+            <div class="selected-loan-tags">
+              @for (selected of selectedLoans(); track selected.loanCode) {
+                <button
+                  type="button"
+                  class="loan-tag"
+                  (click)="removeSelectedLoan(selected.loanCode)"
+                >
+                  <span>{{ selected.loanCode }} {{ selected.loanName }}</span>
+                  <span class="tag-close">×</span>
+                </button>
+              }
+            </div>
+          }
+
           <button
             type="button"
             class="ks-fp__clear-selection"
             (click)="clearSelection()"
-            [disabled]="!selectedLoanCodes().length && !selectedStatuses().length"
+            [disabled]="!selectedLoanCodes().length && !selectedStatuses().length && !searchText().trim()"
           >
             Clear Selection
           </button>
@@ -317,6 +339,13 @@
               [value]="newRecord().taxMemoDate"
               (input)="updateNewRecordField('taxMemoDate', $any($event.target).value)"
             />
+            <p class="field-hint">
+              @if (dialogMode() === 'duplicate') {
+                Same tax memo date is allowed when the tax year is different (source year was cleared).
+              } @else {
+                Unique per loan for each tax memo date + tax year pair. Same memo date can be reused with a different tax year.
+              }
+            </p>
           </div>
           <div class="form-field">
             <label for="newTaxYear">Tax Year</label>
@@ -330,13 +359,6 @@
                 <option [value]="year" [selected]="newRecord().taxYear === year">{{ year }}</option>
               }
             </select>
-            <p class="field-hint">
-              @if (dialogMode() === 'duplicate') {
-                Pick a tax year not already used for this loan (source year was cleared).
-              } @else {
-                Each loan can have only one tax arrears row per tax year.
-              }
-            </p>
           </div>
         </div>
 

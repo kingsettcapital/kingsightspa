@@ -112,6 +112,37 @@
   line-height: 1.35;
 }
 
+.ltv-slide-pane__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0.4rem 0.75rem 0.15rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ltv-slide-pane__meta-row {
+  display: grid;
+  grid-template-columns: 5.75rem minmax(0, 1fr);
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.ltv-slide-pane__meta-label {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.ltv-slide-pane__meta-value {
+  color: #111827;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ltv-slide-pane__hint {
   margin: 0;
   padding: 0.2rem 0.75rem 0.35rem;
@@ -253,8 +284,8 @@
 .ltv-col--prior-ltv,
 .ltv-col--ltv,
 .ltv-col--ltv-change {
-  width: 4.5%;
-  max-width: 7ch;
+  width: 6%;
+  max-width: 10ch;
 }
 
 .ltv-col--reason {
@@ -435,7 +466,7 @@
 
 .ltv-preview-dialog__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
   padding: 0.85rem 1rem;
@@ -451,6 +482,29 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ltv-preview-dialog__heading {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.ltv-preview-dialog__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: #4b5563;
+  line-height: 1.35;
+}
+
+.ltv-preview-dialog__meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 28rem;
 }
 
 .ltv-preview-dialog__tools {

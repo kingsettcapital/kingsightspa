@@ -1,8 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { NgSelectComponent } from '@ng-select/ng-select';
-import { forkJoin, of } from 'rxjs';
+import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
@@ -12,16 +11,12 @@ import {
   parseCurrencyInput,
   parseNumericInput,
 } from '../../core/utils/mortgage-currency-input.util';
-import {
-  toStatusSelectOptions,
-} from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
   LoanSecurityValueApiService,
   LoanSecurityValueBulkUpdateRequest,
   LoanSecurityValueDto,
-  LoanStatusFilterOption,
 } from '../../core/services/loan-security-value-api.service';
 
 type AliasOption = {
@@ -76,7 +71,7 @@ const SECURITY_VALUE_TABLE_COLUMNS: SecurityValueTableColumn[] = [
 @Component({
   selector: 'app-security-value',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './security-value.component.html',
   styleUrl: './security-value.component.css',
 })
@@ -88,17 +83,13 @@ export class SecurityValueComponent implements OnInit {
 
   readonly tableColumns = SECURITY_VALUE_TABLE_COLUMNS;
 
-  readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
   readonly searchText = signal('');
   readonly sortColumn = signal<SecurityValueColumnKey | null>(null);
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
   readonly selectedLoanAliasIds = signal<number[]>([]);
-  /** status_key values sent as statuses= query params (e.g. "2", "(null)"). */
-  readonly selectedStatuses = signal<string[]>([]);
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
   readonly isLoadingAliases = signal(false);
-  readonly isLoadingStatuses = signal(false);
   readonly isLoadingGrid = signal(false);
   readonly isSaving = signal(false);
   readonly currentPage = signal(1);
@@ -109,13 +100,15 @@ export class SecurityValueComponent implements OnInit {
   /** Raw in-progress text for numeric/currency inputs (avoids reformat-on-keystroke). */
   readonly fieldText = signal<Record<string, string>>({});
   readonly originalRowState = signal<Record<number, EditableValues>>({});
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   ngOnInit(): void {
     this.loadInitialData();
   }
 
   readonly isLoading = computed(
-    () => this.isLoadingAliases() || this.isLoadingGrid() || this.isLoadingStatuses(),
+    () => this.isLoadingAliases() || this.isLoadingGrid(),
   );
 
   readonly selectedAliases = computed(() => {
@@ -130,7 +123,6 @@ export class SecurityValueComponent implements OnInit {
     })),
   );
 
-  readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
 
   readonly searchedAliasOptions = computed(() => {
     const keyword = this.searchText().trim().toLowerCase();
@@ -177,7 +169,7 @@ export class SecurityValueComponent implements OnInit {
 
   readonly gridLoadMessage = computed(() =>
     buildMortgageGridLoadMessage({
-      isLoading: this.isLoadingGrid() || this.isLoadingAliases() || this.isLoadingStatuses(),
+      isLoading: this.isLoadingGrid() || this.isLoadingAliases(),
       totalRows: this.rows().length,
       visibleRows: this.filteredRows().length,
       hasClientFilter:
@@ -225,6 +217,15 @@ export class SecurityValueComponent implements OnInit {
     this.searchText.set(value);
     this.currentPage.set(1);
     this.clearMessages();
+  }
+
+  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
+  onLoanSearch(event: { term: string } | string | null): void {
+    const term = typeof event === 'string' ? event : (event?.term ?? '');
+    if (!term.trim() && this.suppressEmptySearchClear) {
+      return;
+    }
+    this.updateSearch(term);
   }
 
   toggleSort(column: SecurityValueColumnKey): void {
@@ -294,19 +295,16 @@ export class SecurityValueComponent implements OnInit {
   }
 
   updateSelectedAliases(ids: number[] | null): void {
+    this.suppressEmptySearchClear = true;
     this.selectedLoanAliasIds.set(ids ?? []);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGridData();
+    queueMicrotask(() => {
+      this.suppressEmptySearchClear = false;
+    });
   }
 
-  updateSelectedStatuses(statuses: string[] | null): void {
-    this.selectedStatuses.set(statuses ?? []);
-    this.currentPage.set(1);
-    this.clearMessages();
-    this.loadGridData();
-  }
 
   selectAlias(alias: AliasOption): void {
     if (this.selectedLoanAliasIds().includes(alias.loanAliasId)) {
@@ -314,6 +312,7 @@ export class SecurityValueComponent implements OnInit {
     }
 
     this.updateSelectedAliases([...this.selectedLoanAliasIds(), alias.loanAliasId]);
+    this.searchText.set('');
   }
 
   removeSelectedAlias(loanAliasId: number): void {
@@ -322,17 +321,6 @@ export class SecurityValueComponent implements OnInit {
     );
   }
 
-  toggleStatus(status: string): void {
-    const current = this.selectedStatuses();
-    const next = current.includes(status)
-      ? current.filter((s) => s !== status)
-      : [...current, status];
-    this.updateSelectedStatuses(next);
-  }
-
-  isStatusSelected(status: string): boolean {
-    return this.selectedStatuses().includes(status);
-  }
 
   updateField(
     loanAliasId: number,
@@ -350,7 +338,6 @@ export class SecurityValueComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedLoanAliasIds.set([]);
-    this.selectedStatuses.set([]);
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGridData();
@@ -518,25 +505,11 @@ export class SecurityValueComponent implements OnInit {
   }
 
   private loadInitialData(): void {
-    this.isLoadingStatuses.set(true);
     this.isLoadingAliases.set(true);
     this.errorMessage.set('');
 
-    forkJoin({
-      statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
-      aliases: this.loanAliasApi.getAll().pipe(catchError(() => of([]))),
-    }).subscribe({
-      next: ({ statuses, aliases }) => {
-        const statusOptions = this.normalizeStatusOptions(statuses);
-        this.statusOptions.set(statusOptions);
-        this.isLoadingStatuses.set(false);
-
-        if (!statusOptions.length) {
-          this.errorMessage.set(
-            'No funding statuses returned. Add rows to mort.dim_status (is_current = 1) and restart the API.',
-          );
-        }
-
+    this.loanAliasApi.getAll().pipe(catchError(() => of([]))).subscribe({
+      next: (aliases) => {
         this.aliasOptions.set(
           aliases
             .map((record) => this.mapAliasOption(record))
@@ -553,68 +526,28 @@ export class SecurityValueComponent implements OnInit {
         this.loadGridData();
       },
       error: () => {
-        this.statusOptions.set([]);
-        this.selectedStatuses.set([]);
         this.aliasOptions.set([]);
-        this.isLoadingStatuses.set(false);
         this.isLoadingAliases.set(false);
         this.errorMessage.set('Unable to load Security Value page data. Verify API availability.');
       },
     });
   }
 
-  private normalizeStatusOptions(statuses: unknown): LoanStatusFilterOption[] {
-    if (!Array.isArray(statuses) || !statuses.length) {
-      return [];
-    }
-    if (typeof statuses[0] === 'string') {
-      return (statuses as string[])
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
-        .map((s) => ({ value: s, displayLabel: s }));
-    }
-    return (statuses as Record<string, unknown>[])
-      .map((row) => {
-        const value = String(row['value'] ?? row['statusKey'] ?? row['status_key'] ?? '').trim();
-        const displayLabel = String(
-          row['displayLabel'] ?? row['statusName'] ?? row['status_name'] ?? value,
-        ).trim();
-        return { value, displayLabel: displayLabel || value };
-      })
-      .filter((row) => row.value.length > 0 || row.displayLabel.length > 0);
-  }
-
-  /** Selected alias tags, or all aliases when none selected. */
+  /** Selected alias tags only; empty = all aliases (API skips the IN filter). */
   private resolveLoanAliasIds(): number[] {
-    const selected = this.selectedLoanAliasIds();
-    if (selected.length > 0) {
-      return selected;
-    }
-    return this.aliasOptions()
-      .map((alias) => alias.loanAliasId)
-      .filter((id) => id > 0);
+    return this.selectedLoanAliasIds().filter((id) => id > 0);
   }
 
   /** Tag selection reloads the grid; empty selection loads all aliases from the API. */
   private loadGridData(): void {
     const loanAliasIds = this.resolveLoanAliasIds();
 
-    if (!loanAliasIds.length) {
-      this.rows.set([]);
-      this.originalRowState.set({});
-      this.statusMessage.set('No loan aliases available to load.');
-      this.isLoadingGrid.set(false);
-      return;
-    }
-
-    const statuses = this.selectedStatuses();
-
     this.isLoadingGrid.set(true);
     this.errorMessage.set('');
     this.statusMessage.set('');
 
     this.securityValueApi
-      .getSecurityValues(loanAliasIds, statuses)
+      .getSecurityValues(loanAliasIds, [])
       .subscribe({
         next: (response) => {
           const records = this.normalizeSecurityValueRecords(response);
