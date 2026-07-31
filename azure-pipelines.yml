@@ -36,8 +36,8 @@ steps:
   condition: eq(variables['Build.SourceBranchName'], 'main')
 
 - script: |
-    npm run build:dev
-  displayName: 'Angular Build (staging)'
+    npm run build:uat
+  displayName: 'Angular Build (UAT / staging)'
   condition: eq(variables['Build.SourceBranchName'], 'staging')
 
 - script: |
