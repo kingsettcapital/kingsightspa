@@ -1,8 +1,11 @@
 import { Routes } from '@angular/router';
 
+import { managementSummaryGuard } from './management-summary.guard';
+
 export const MORTGAGE_ROUTES: Routes = [
   {
     path: 'management-summary',
+    canActivate: [managementSummaryGuard],
     loadComponent: () =>
       import('../../pages/management-summary/management-summary.component').then(
         (m) => m.ManagementSummaryComponent,
@@ -10,6 +13,7 @@ export const MORTGAGE_ROUTES: Routes = [
   },
   {
     path: 'management-summary/:loanAliasKey/loan-detail',
+    canActivate: [managementSummaryGuard],
     loadComponent: () =>
       import('../../pages/loan-detail-report/loan-detail-report.component').then(
         (m) => m.LoanDetailReportComponent,

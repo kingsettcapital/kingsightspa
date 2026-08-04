@@ -5,6 +5,7 @@ export const environment: Environment = {
   production: false,
   requireLogin: true,
   apiUrl: 'https://kingsightuatapi.kingsettcapital.com/',
+  managementSummaryEnabled: false, // staging deploys UAT — keep hidden
   azureConfig: {
     clientId: 'e32db1db-4cd9-4853-aa46-69cd1d63f8d7',
     authority: 'https://login.microsoftonline.com/f6d94abc-5472-43af-ab66-95726e5ab0cc',

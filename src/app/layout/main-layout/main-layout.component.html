@@ -75,11 +75,13 @@
 
         @if (isSidebarExpanded() && openDropdown() === 'Loans') {
           <div class="ks-sidebar__subnav">
-            <a
-              routerLink="/mortgage/management-summary"
-              routerLinkActive="ks-sidebar__sublink--active"
-              class="ks-sidebar__sublink"
-            >Management Summary</a>
+            @if (showManagementSummary()) {
+              <a
+                routerLink="/mortgage/management-summary"
+                routerLinkActive="ks-sidebar__sublink--active"
+                class="ks-sidebar__sublink"
+              >Management Summary</a>
+            }
             <a
               routerLink="/mortgage/loan-alias-assignment"
               routerLinkActive="ks-sidebar__sublink--active"
