@@ -18,4 +18,5 @@ export const MORTGAGE_NAV_ITEMS: MortgageNavItem[] = [
   { label: 'File Upload', path: 'cmhc-upload' },
 ];
 
-export const MORTGAGE_DEFAULT_ROUTE = 'management-summary';
+/** Default landing route under /mortgage (Management Summary is gated until ready for users). */
+export const MORTGAGE_DEFAULT_ROUTE = 'loan-alias-assignment';

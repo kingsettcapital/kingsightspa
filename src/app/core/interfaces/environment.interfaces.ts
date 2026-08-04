@@ -16,4 +16,9 @@ export interface Environment {
   azureConfig: AzureConfig;
   /** Dev fallback when the token has no role claim. */
   mockUserRole?: UserRole;
+  /**
+   * When false, Management Summary is hidden from everyone (nav + routes).
+   * Set true when the page is ready for testing.
+   */
+  managementSummaryEnabled?: boolean;
 }

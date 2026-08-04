@@ -4,6 +4,7 @@ import { filter } from 'rxjs';
 import { UserRole } from '../../core/enums/user-role.enum';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationUnreadCountService } from '../../core/services/notification-unread-count.service';
+import { environment } from '../../../environments/environment';
 import {
   LucideAngularModule,
   LUCIDE_ICONS,
@@ -92,6 +93,11 @@ export class MainLayoutComponent implements OnInit {
       role: user?.role ?? UserRole.User,
     };
   });
+
+  /** Hidden until environment.managementSummaryEnabled is true. */
+  readonly showManagementSummary = computed(
+    () => environment.managementSummaryEnabled === true,
+  );
 
   homeIcon = Home;
   chartBarIcon = ChartBar;
