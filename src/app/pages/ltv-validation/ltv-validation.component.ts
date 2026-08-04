@@ -788,6 +788,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   }
 
   formatLtvDisplay(value: number | null): string {
+    // Prior and Current LTV may exceed 100% — display as-is (no clamp).
     if (value == null || !Number.isFinite(value)) {
       return '-';
     }
@@ -1313,7 +1314,8 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     if (!Number.isFinite(parsed)) {
       return null;
     }
-    return Math.min(100, Math.max(0, parsed));
+    // LTV may exceed 100% (underwater / high-risk). Keep a soft upper bound for bad input.
+    return Math.min(999, Math.max(0, parsed));
   }
 
   private nullIfEmpty(value: string): string | null {
