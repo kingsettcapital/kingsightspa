@@ -281,11 +281,16 @@
   max-width: 3ch;
 }
 
-.ltv-col--prior-ltv,
-.ltv-col--ltv,
 .ltv-col--ltv-change {
   width: 6%;
   max-width: 10ch;
+}
+
+.ltv-col--prior-ltv,
+.ltv-col--ltv {
+  width: 8%;
+  max-width: 14ch;
+  min-width: 7.5rem;
 }
 
 .ltv-col--reason {
@@ -364,22 +369,22 @@
 .ltv-input-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.25rem;
   width: 100%;
-  max-width: 6ch;
-  min-width: 0;
+  max-width: 9rem;
+  min-width: 5.5rem;
 }
 
 .ltv-input {
   flex: 1 1 auto;
   width: 100%;
-  min-width: 0;
-  max-width: 4.5ch;
+  min-width: 4.5rem;
+  max-width: none;
   border: 1px solid #d1d5db;
   border-radius: 0.25rem;
   height: 1.75rem;
-  padding: 0.15rem 0.2rem;
-  font-size: 0.75rem;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.8125rem;
   text-align: right;
   background: #ffffff;
   color: #111827;
