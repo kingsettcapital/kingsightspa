@@ -5,7 +5,10 @@ export const environment: Environment = {
   requireLogin: true,
   apiUrl: 'https://kingsightdevapi.kingsettcapital.com/',
   // apiUrl: 'http://localhost:7140/',
-  managementSummaryEnabled: true,
+  managementSummaryEnabled: false,
+  showHomeCapitalAndDataExplorer: false,
+  showAiAssistant: false,
+  showUserManagement: false,
   azureConfig: {
     clientId: 'e32db1db-4cd9-4853-aa46-69cd1d63f8d7',
     authority: 'https://login.microsoftonline.com/f6d94abc-5472-43af-ab66-95726e5ab0cc',

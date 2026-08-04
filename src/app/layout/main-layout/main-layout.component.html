@@ -31,24 +31,26 @@
     </div>
 
     <nav class="ks-sidebar__nav">
-      <a
-        routerLink="/"
-        routerLinkActive="ks-sidebar__link--active"
-        [routerLinkActiveOptions]="{ exact: true }"
-        class="ks-sidebar__link"
-      >
-        <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
-        <span class="ks-sidebar__link-label">Home</span>
-      </a>
-      <a
-        routerLink="/capital-dashboard"
-        routerLinkActive="ks-sidebar__link--active"
-        [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
-        class="ks-sidebar__link"
-      >
-        <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
-        <span class="ks-sidebar__link-label">Capital</span>
-      </a>
+      @if (showHomeCapitalAndDataExplorer()) {
+        <a
+          routerLink="/"
+          routerLinkActive="ks-sidebar__link--active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="ks-sidebar__link"
+        >
+          <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
+          <span class="ks-sidebar__link-label">Home</span>
+        </a>
+        <a
+          routerLink="/capital-dashboard"
+          routerLinkActive="ks-sidebar__link--active"
+          [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
+          class="ks-sidebar__link"
+        >
+          <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
+          <span class="ks-sidebar__link-label">Capital</span>
+        </a>
+      }
 
       <div
         class="ks-sidebar__group"
@@ -156,16 +158,18 @@
         }
       </div>
 
-      <a
-        routerLink="/data-explorer"
-        routerLinkActive="ks-sidebar__link--active"
-        class="ks-sidebar__link"
-      >
-        <lucide-icon [img]="databaseIcon" color="currentColor" [size]="22"></lucide-icon>
-        <span class="ks-sidebar__link-label">Data Explorer</span>
-      </a>
+      @if (showHomeCapitalAndDataExplorer()) {
+        <a
+          routerLink="/data-explorer"
+          routerLinkActive="ks-sidebar__link--active"
+          class="ks-sidebar__link"
+        >
+          <lucide-icon [img]="databaseIcon" color="currentColor" [size]="22"></lucide-icon>
+          <span class="ks-sidebar__link-label">Data Explorer</span>
+        </a>
+      }
 
-      @if (currentUser().role === 'Administrator') {
+      @if (showUserManagement() && currentUser().role === 'Administrator') {
         <a
           routerLink="/admin/user-management"
           routerLinkActive="ks-sidebar__link--active"
@@ -255,25 +259,31 @@
         >
           <lucide-icon [img]="menuIcon" color="currentColor" [size]="22"></lucide-icon>
         </button>
-        <a routerLink="/" class="ks-header__brand-link" aria-label="KingSett Capital — KingSight home">
+        <a
+          [routerLink]="showHomeCapitalAndDataExplorer() ? '/' : '/mortgage/loan-alias-assignment'"
+          class="ks-header__brand-link"
+          aria-label="KingSett Capital — KingSight home"
+        >
           <app-kingsett-logo variant="reversed" size="md" />
         </a>
         <p class="ks-header__app-tagline">Data Insights</p>
       </div>
 
       <div class="ks-header__actions">
-        <button
-          type="button"
-          [class]="isAIChatOpen() ? 'ks-btn ks-btn--primary' : 'ks-btn ks-btn--ghost'"
-          (click)="toggleAIChat()"
-        >
-          <lucide-icon
-            [img]="messageSquareIcon"
-            [size]="18"
-            [color]="isAIChatOpen() ? 'white' : 'currentColor'"
-          ></lucide-icon>
-          <span>AI Assistant</span>
-        </button>
+        @if (showAiAssistant()) {
+          <button
+            type="button"
+            [class]="isAIChatOpen() ? 'ks-btn ks-btn--primary' : 'ks-btn ks-btn--ghost'"
+            (click)="toggleAIChat()"
+          >
+            <lucide-icon
+              [img]="messageSquareIcon"
+              [size]="18"
+              [color]="isAIChatOpen() ? 'white' : 'currentColor'"
+            ></lucide-icon>
+            <span>AI Assistant</span>
+          </button>
+        }
       </div>
     </header>
 
@@ -282,10 +292,12 @@
     </main>
   </div>
 
-  <app-ai-chat-sidebar
-    [isOpen]="isAIChatOpen()"
-    (closed)="isAIChatOpen.set(false)"
-  ></app-ai-chat-sidebar>
+  @if (showAiAssistant()) {
+    <app-ai-chat-sidebar
+      [isOpen]="isAIChatOpen()"
+      (closed)="isAIChatOpen.set(false)"
+    ></app-ai-chat-sidebar>
+  }
 
   <app-toast-container />
 </div>
