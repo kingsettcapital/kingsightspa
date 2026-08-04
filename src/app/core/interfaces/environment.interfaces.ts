@@ -21,4 +21,19 @@ export interface Environment {
    * Set true when the page is ready for testing.
    */
   managementSummaryEnabled?: boolean;
+  /**
+   * When false, Home / Capital / Data Explorer nav and dashboard placeholder cards are hidden.
+   * Feature routes and components remain in the codebase.
+   */
+  showHomeCapitalAndDataExplorer?: boolean;
+  /**
+   * When false, AI Assistant button and chat sidebar are hidden.
+   * The AI chat component remains in the codebase.
+   */
+  showAiAssistant?: boolean;
+  /**
+   * When false, User Management nav is hidden.
+   * Admin routes/components remain in the codebase.
+   */
+  showUserManagement?: boolean;
 }

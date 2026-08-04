@@ -64,7 +64,9 @@ export class MainLayoutComponent implements OnInit {
   isSidebarExpanded = signal(true);
   isMobileNavOpen = signal(false);
   isAIChatOpen = signal(false);
-  openDropdown = signal<string | null>(null);
+  openDropdown = signal<string | null>(
+    environment.showHomeCapitalAndDataExplorer === true ? null : 'Loans',
+  );
   hideAppSidebar = signal(this.shouldHideAppChrome(this.router.url));
 
   ngOnInit(): void {
@@ -98,6 +100,17 @@ export class MainLayoutComponent implements OnInit {
   readonly showManagementSummary = computed(
     () => environment.managementSummaryEnabled === true,
   );
+
+  /** Home / Capital / Data Explorer — hidden when flag is false; code kept. */
+  readonly showHomeCapitalAndDataExplorer = computed(
+    () => environment.showHomeCapitalAndDataExplorer === true,
+  );
+
+  /** AI Assistant — hidden when flag is false; component kept. */
+  readonly showAiAssistant = computed(() => environment.showAiAssistant === true);
+
+  /** User Management — hidden when flag is false; admin routes kept. */
+  readonly showUserManagement = computed(() => environment.showUserManagement === true);
 
   homeIcon = Home;
   chartBarIcon = ChartBar;
