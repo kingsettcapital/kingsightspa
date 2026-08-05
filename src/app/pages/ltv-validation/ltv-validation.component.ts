@@ -54,6 +54,11 @@ type LtvValidationRow = {
   ranking: number | null;
   priorLtv: number | null;
   ltv: number | null;
+  /**
+   * Sort key for Current LTV / LTV Change. Frozen while editing so live `ltv`
+   * keystrokes do not reshuffle rows; refreshed on load, save, and sort-header click.
+   */
+  ltvSortValue: number | null;
   updateReasons: string[];
   updateComment: string;
   aiConfidenceScore: number | null;
@@ -472,6 +477,12 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   }
 
   toggleSort(column: LtvColumnKey): void {
+    // Capture current editable LTV into sort snapshots before applying sort,
+    // so header clicks use latest values without reshuffling on each keystroke.
+    if (column === 'ltv' || column === 'ltvChange') {
+      this.refreshLtvSortSnapshots();
+    }
+
     if (this.sortColumn() === column) {
       this.sortDirection.update((direction) => (direction === 'asc' ? 'desc' : 'asc'));
     } else {
@@ -1017,13 +1028,17 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       case 'exposure':
       case 'ranking':
       case 'priorLtv':
-      case 'ltv':
       case 'aiConfidenceScore':
         return (left[column] ?? Number.NEGATIVE_INFINITY) - (right[column] ?? Number.NEGATIVE_INFINITY);
+      case 'ltv':
+        return (
+          (left.ltvSortValue ?? Number.NEGATIVE_INFINITY) -
+          (right.ltvSortValue ?? Number.NEGATIVE_INFINITY)
+        );
       case 'ltvChange':
         return (
-          (this.computeLtvChange(left) ?? Number.NEGATIVE_INFINITY) -
-          (this.computeLtvChange(right) ?? Number.NEGATIVE_INFINITY)
+          (this.computeLtvChangeForSort(left) ?? Number.NEGATIVE_INFINITY) -
+          (this.computeLtvChangeForSort(right) ?? Number.NEGATIVE_INFINITY)
         );
       case 'userUpdatedDate':
         return this.dateSortValue(left.userUpdatedDate) - this.dateSortValue(right.userUpdatedDate);
@@ -1038,6 +1053,25 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
           { sensitivity: 'base' },
         );
     }
+  }
+
+  /** LTV Change for sorting — uses frozen `ltvSortValue`, not the live editable field. */
+  private computeLtvChangeForSort(row: LtvValidationRow): number | null {
+    if (row.ltvSortValue == null || !Number.isFinite(row.ltvSortValue)) {
+      return null;
+    }
+    const prior =
+      row.priorLtv != null && Number.isFinite(row.priorLtv) ? row.priorLtv : 0;
+    return Math.round((row.ltvSortValue - prior) * 100) / 100;
+  }
+
+  private refreshLtvSortSnapshots(): void {
+    this.rows.update((rows) =>
+      rows.map((row) => ({
+        ...row,
+        ltvSortValue: row.ltv,
+      })),
+    );
   }
 
   private getCellDisplayValue(row: LtvValidationRow, column: LtvColumnKey): string {
@@ -1105,6 +1139,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     const qrSlideLink = this.pickString(raw, 'qrSlideLink', 'QrSlideLink') || '';
     const rowTrackId =
       loanKey > 0 ? String(loanKey) : `${loanCode}|${loanAliasName}|${loanName}`;
+    const ltv = this.pickNullableNumber(raw, 'ltv', 'Ltv', 'LTV', 'currentLtv', 'CurrentLtv');
     return {
       rowTrackId,
       loanKey,
@@ -1116,7 +1151,8 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       exposure: this.pickNullableNumber(raw, 'exposure', 'Exposure'),
       ranking: this.pickNullableNumber(raw, 'ranking', 'Ranking', 'loanRanking', 'LoanRanking'),
       priorLtv: this.pickNullableNumber(raw, 'priorLtv', 'PriorLtv', 'prior_ltv'),
-      ltv: this.pickNullableNumber(raw, 'ltv', 'Ltv', 'LTV', 'currentLtv', 'CurrentLtv'),
+      ltv,
+      ltvSortValue: ltv,
       updateReasons: this.parseUpdateReasons(
         this.pickString(raw, 'updateReason', 'UpdateReason'),
       ),
