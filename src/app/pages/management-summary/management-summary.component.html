@@ -272,7 +272,7 @@
     <article class="ms-chart-card">
       <header class="ms-chart-card__head">
         <h2>Capital Stack</h2>
-        <p>Exposure between External, RMF, MLP &amp; Subordinate</p>
+        <p>Principal, outstanding interest and late interest</p>
       </header>
       <div #capitalStackContainer class="ms-chart">
         <canvas #capitalStackCanvas aria-label="Capital stack breakdown chart"></canvas>
@@ -375,7 +375,7 @@
     <div class="ms-watchlist-head">
       <div>
         <h2>CMHC Default Watchlist</h2>
-        <p>As at January 15, 2025 — {{ watchlistRows().length }} accounts under review</p>
+        <p>As at {{ watchlistAsAtDisplay() }} — {{ watchlistRows().length }} accounts under review</p>
       </div>
       <div class="ms-watchlist-badges">
         <span class="ms-badge ms-badge--concern">{{ watchlistConcernCount() }} CONCERN</span>
@@ -403,27 +403,33 @@
           </tr>
         </thead>
         <tbody>
-          @for (row of watchlistRows(); track row.loanId) {
+          @for (row of watchlistRows(); track $index) {
             <tr>
-              <td>{{ row.loanId }}</td>
-              <td>{{ row.investor }}</td>
-              <td>{{ row.sponsor }}</td>
-              <td class="wrap">{{ row.property }}</td>
-              <td>
-                @if (row.missed == null || row.missed <= 0) {
-                  <span class="ms-missed ms-missed--none">—</span>
+              <td class="wrap ms-prewrap">{{ row.loanId }}</td>
+              <td class="wrap ms-prewrap">{{ row.investor }}</td>
+              <td class="wrap ms-prewrap">{{ row.sponsor }}</td>
+              <td class="wrap ms-prewrap">{{ row.property }}</td>
+              <td class="wrap ms-prewrap">{{ row.missed }}</td>
+              <td class="num">
+                @if (row.principal == null) {
+                  —
                 } @else {
-                  <span [class]="missedClass(row.missed)">{{ row.missed }}</span>
+                  {{ row.principal | currency: 'CAD' : 'symbol' : '1.0-0' }}
                 }
               </td>
-              <td class="num">{{ row.principal | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-              <td class="num">{{ row.osInterest | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-              <td class="wrap">{{ row.taxArrears }}</td>
-              <td class="wrap">{{ row.ltv }}</td>
-              <td class="wrap">{{ row.dscr }}</td>
-              <td class="wrap">{{ row.issue }}</td>
-              <td class="wrap">{{ row.statusUpdate }}</td>
-              <td class="wrap">{{ row.conclusion }}</td>
+              <td class="num">
+                @if (row.osInterest == null) {
+                  —
+                } @else {
+                  {{ row.osInterest | currency: 'CAD' : 'symbol' : '1.0-0' }}
+                }
+              </td>
+              <td class="wrap ms-prewrap">{{ row.taxArrears }}</td>
+              <td class="wrap ms-prewrap">{{ row.ltv }}</td>
+              <td class="wrap ms-prewrap">{{ row.dscr }}</td>
+              <td class="wrap ms-prewrap ms-watchlist-notes">{{ row.issue }}</td>
+              <td class="wrap ms-prewrap ms-watchlist-notes">{{ row.statusUpdate }}</td>
+              <td class="wrap ms-prewrap ms-watchlist-notes">{{ row.conclusion }}</td>
               <td><span [class]="watchlistStatusClass(row)">{{ row.status }}</span></td>
             </tr>
           }

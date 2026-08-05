@@ -47,12 +47,58 @@ function mapChartSlice(slice: {
   };
 }
 
-function parseMissed(value: string | null | undefined): number | null {
-  if (!value?.trim()) {
-    return null;
+function displayText(value: string | null | undefined): string {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : '—';
+}
+
+function extractCommentSection(text: string, label: string): string | null {
+  const pattern = new RegExp(
+    `${label}:\\s*([\\s\\S]*?)(?=\\n\\s*(?:Issue|Status Update|Next Steps|Conclusion):|$)`,
+    'i',
+  );
+  const match = text.match(pattern);
+  const value = match?.[1]?.trim();
+  return value ? value : null;
+}
+
+function splitWatchlistComments(text: string | null | undefined): {
+  issue: string;
+  statusUpdate: string;
+  conclusion: string;
+} {
+  if (!text?.trim()) {
+    return { issue: '—', statusUpdate: '—', conclusion: '—' };
   }
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+
+  const issue = extractCommentSection(text, 'Issue');
+  const statusUpdate =
+    extractCommentSection(text, 'Status Update') ?? extractCommentSection(text, 'Next Steps');
+  const conclusion = extractCommentSection(text, 'Conclusion');
+
+  if (!issue && !statusUpdate && !conclusion) {
+    return { issue: text.trim(), statusUpdate: '—', conclusion: '—' };
+  }
+
+  return {
+    issue: issue ?? '—',
+    statusUpdate: statusUpdate ?? '—',
+    conclusion: conclusion ?? '—',
+  };
+}
+
+function dedupeWatchlistRows(
+  rows: ManagementSummaryDashboardDto['watchlistRows'],
+): ManagementSummaryDashboardDto['watchlistRows'] {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    const key = `${row.loanId ?? ''}|${row.investor ?? ''}|${row.reportDate ?? ''}|${row.property ?? ''}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 }
 
 export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto) {
@@ -96,22 +142,25 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
     totalLateInterest: dto.outstandingInterest?.totalLateInterest ?? 0,
   };
 
-  const watchlistRows: CmhcWatchlistRow[] = (dto.watchlistRows ?? []).map((row) => ({
-    loanId: row.loanId,
-    investor: row.investor,
-    sponsor: row.sponsor,
-    property: row.property,
-    missed: parseMissed(row.missed),
-    principal: row.principal ?? null,
-    osInterest: row.osInterest ?? null,
-    taxArrears: row.taxArrears ?? '—',
-    ltv: row.ltv ?? '—',
-    dscr: row.dscr ?? '—',
-    issue: row.issue ?? '—',
-    statusUpdate: row.statusUpdate ?? '—',
-    conclusion: row.conclusion ?? '—',
-    status: row.status ?? 'NO CONCERNS',
-  }));
+  const watchlistRows: CmhcWatchlistRow[] = dedupeWatchlistRows(dto.watchlistRows ?? []).map((row) => {
+    const comments = splitWatchlistComments(row.issue);
+    return {
+      loanId: displayText(row.loanId),
+      investor: displayText(row.investor),
+      sponsor: displayText(row.sponsor),
+      property: displayText(row.property),
+      missed: row.missed == null || String(row.missed).trim() === '' ? '—' : row.missed,
+      principal: row.principal ?? null,
+      osInterest: row.osInterest ?? null,
+      taxArrears: displayText(row.taxArrears),
+      ltv: displayText(row.ltv),
+      dscr: displayText(row.dscr),
+      issue: row.statusUpdate || row.conclusion ? displayText(row.issue) : comments.issue,
+      statusUpdate: row.statusUpdate ? displayText(row.statusUpdate) : comments.statusUpdate,
+      conclusion: row.conclusion ? displayText(row.conclusion) : comments.conclusion,
+      status: row.status ?? 'NO CONCERNS',
+    };
+  });
 
   const ltvRiskBands: LtvRiskBandRow[] = (charts?.ltvRiskDistribution ?? []).map((slice) => ({
     label: slice.label,
@@ -128,20 +177,24 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
 
   const exposureBreakdown = (charts?.exposureBreakdown ?? []).map(mapChartSlice);
 
-  const investorSummary: InvestorSummaryRow[] = (charts?.investorSummary ?? []).map((slice) => ({
-    investor: slice.label,
-    loans: 0,
-    exposure: slice.value,
-    sharePercent: slice.sharePercent ?? 0,
-  }));
+  const investorSummary: InvestorSummaryRow[] = (charts?.investorSummary ?? [])
+    .filter((slice) => slice.value > 0)
+    .map((slice) => ({
+      investor: slice.label,
+      loans: 0,
+      exposure: slice.value,
+      sharePercent: slice.sharePercent ?? 0,
+    }));
 
-  const sponsorSummary: SponsorSummaryRow[] = (charts?.sponsorSummary ?? []).map((slice) => ({
-    sponsor: slice.label,
-    exposure: slice.value,
-    sharePercent: slice.sharePercent ?? 0,
-    ltv: null,
-    loanCount: 0,
-  }));
+  const sponsorSummary: SponsorSummaryRow[] = (charts?.sponsorSummary ?? [])
+    .filter((slice) => slice.value > 0)
+    .map((slice) => ({
+      sponsor: slice.label,
+      exposure: slice.value,
+      sharePercent: slice.sharePercent ?? 0,
+      ltv: null,
+      loanCount: 0,
+    }));
 
   const sponsorOptions = ['All', ...(dto.filterOptions?.sponsors ?? [])];
   const investorAliasOptions = ['All', ...(dto.filterOptions?.investorAliases ?? [])];
@@ -153,10 +206,13 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
     outstanding,
     loanRows,
     watchlistRows,
+    watchlistAsAt: dto.watchlistAsAt
+      ? formatAsOfDisplay(String(dto.watchlistAsAt).slice(0, 10))
+      : '—',
     ltvRiskBands,
     topExposures,
     exposureBreakdown,
-    capitalStack: [] as ChartSlice[],
+    capitalStack: exposureBreakdown,
     exposureAnalysis: [] as ExposureAnalysisRow[],
     investorSummary,
     sponsorSummary,

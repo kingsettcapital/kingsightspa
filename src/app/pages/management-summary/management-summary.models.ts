@@ -41,7 +41,7 @@ export type CmhcWatchlistRow = {
   investor: string;
   sponsor: string;
   property: string;
-  missed: number | null;
+  missed: string | number | null;
   principal: number | null;
   osInterest: number | null;
   taxArrears: string;

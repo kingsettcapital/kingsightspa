@@ -88,6 +88,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   });
   readonly loanRows = signal<LoanAliasSummaryRow[]>([]);
   readonly watchlistRows = signal<CmhcWatchlistRow[]>([]);
+  readonly watchlistAsAtDisplay = signal('—');
   readonly ltvRiskBands = signal<LtvRiskBandRow[]>([]);
   readonly topExposures = signal<TopExposureRow[]>([]);
   readonly exposureBreakdown = signal<ChartSlice[]>([]);
@@ -258,6 +259,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
           this.outstanding.set(mapped.outstanding);
           this.loanRows.set(mapped.loanRows);
           this.watchlistRows.set(mapped.watchlistRows);
+          this.watchlistAsAtDisplay.set(mapped.watchlistAsAt);
           this.ltvRiskBands.set(mapped.ltvRiskBands);
           this.topExposures.set(mapped.topExposures);
           this.exposureBreakdown.set(mapped.exposureBreakdown);
@@ -332,11 +334,12 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
     return row.status === 'CONCERN' ? 'ms-watch-status ms-watch-status--concern' : 'ms-watch-status ms-watch-status--ok';
   }
 
-  missedClass(missed: number | null): string {
-    if (missed == null || missed <= 0) {
+  missedClass(missed: string | number | null): string {
+    const numeric = typeof missed === 'number' ? missed : Number(missed);
+    if (!Number.isFinite(numeric) || numeric <= 0) {
       return 'ms-missed ms-missed--none';
     }
-    if (missed >= 2) {
+    if (numeric >= 2) {
       return 'ms-missed ms-missed--high';
     }
     return 'ms-missed ms-missed--warn';

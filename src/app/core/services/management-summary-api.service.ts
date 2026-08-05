@@ -91,12 +91,13 @@ export type ManagementSummaryDashboardDto = {
     ltv?: number | null;
     risk?: string | null;
   }[];
+  watchlistAsAt?: string | null;
   watchlistRows: {
     loanId: string;
     investor: string;
     sponsor: string;
     property: string;
-    missed?: string | null;
+    missed?: string | number | null;
     principal?: number | null;
     osInterest?: number | null;
     taxArrears?: string | null;
@@ -106,6 +107,7 @@ export type ManagementSummaryDashboardDto = {
     statusUpdate?: string | null;
     conclusion?: string | null;
     status?: string | null;
+    reportDate?: string | null;
   }[];
   filterOptions: {
     sponsors?: string[];
