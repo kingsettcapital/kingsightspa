@@ -200,6 +200,7 @@
 
 .ms-table-wrap {
   overflow-x: hidden;
+  overflow-y: auto;
   width: 100%;
 }
 

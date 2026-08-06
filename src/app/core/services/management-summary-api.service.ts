@@ -51,6 +51,8 @@ export type ChartSliceDto = {
   label: string;
   value: number;
   sharePercent?: number | null;
+  count?: number | null;
+  averageLtv?: number | null;
 };
 
 export type ManagementSummaryDashboardDto = {
@@ -90,6 +92,17 @@ export type ManagementSummaryDashboardDto = {
     totalExposure?: number | null;
     ltv?: number | null;
     risk?: string | null;
+  }[];
+  exposureAnalysisRows?: {
+    loanAliasKey: number;
+    loanAlias: string;
+    sponsor: string;
+    externalBalance: number;
+    smfBalance: number;
+    mlpBalance: number;
+    totalKsExposure: number;
+    subordinateExposure: number;
+    ltv?: number | null;
   }[];
   watchlistAsAt?: string | null;
   watchlistRows: {

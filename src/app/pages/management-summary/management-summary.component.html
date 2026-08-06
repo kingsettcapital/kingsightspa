@@ -233,7 +233,7 @@
             <th>Loan Name</th>
             <th>Sponsor</th>
             <th class="num">External Balance</th>
-            <th class="num">RMF Balance</th>
+            <th class="num">SMF Balance</th>
             <th class="num">MLP Balance</th>
             <th class="num">Total KS Exposure</th>
             <th class="num">Subordinate Exposure</th>
@@ -241,7 +241,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (row of exposureAnalysis(); track row.loanAliasKey) {
+          @for (row of exposureAnalysis(); track row.loanAlias + '|' + row.sponsor) {
             <tr
               class="ms-table__row ms-table__row--clickable"
               (click)="openExposureAnalysisDetail(row)"
@@ -278,7 +278,7 @@
     <article class="ms-chart-card">
       <header class="ms-chart-card__head">
         <h2>Capital Stack</h2>
-        <p>Principal, outstanding interest and late interest</p>
+        <p>Outstanding interest, late interest and related components</p>
       </header>
       <div #capitalStackContainer class="ms-chart">
         <canvas #capitalStackCanvas aria-label="Capital stack breakdown chart"></canvas>

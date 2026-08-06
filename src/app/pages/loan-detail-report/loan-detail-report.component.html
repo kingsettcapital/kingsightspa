@@ -5,7 +5,7 @@
     <div class="ldr-header__main">
       <div>
         <h1>{{ report().loanAlias }} — Loan Portfolio Management Report</h1>
-        <p class="ldr-header__subtitle">As of {{ report().keyDates.asOfDate | date: 'MMMM d, y' }}</p>
+        <p class="ldr-header__subtitle">As of {{ report().keyDates.asOfDate }}</p>
       </div>
       <div class="ldr-header__actions">
         <button type="button" class="ldr-btn ldr-btn--ghost">Export Excel</button>
@@ -47,13 +47,13 @@
     <article class="ldr-info-card">
       <h2>Key Dates</h2>
       <dl>
-        <div><dt>Date of Default</dt><dd>{{ report().keyDates.dateOfDefault | date: 'MMM d, y' }}</dd></div>
+        <div><dt>Date of Default</dt><dd>{{ report().keyDates.dateOfDefault }}</dd></div>
         <div>
           <dt>Days in Default</dt>
-          <dd class="ldr-negative">{{ report().keyDates.daysInDefault }}</dd>
+          <dd class="ldr-negative">{{ report().keyDates.daysInDefault || '—' }}</dd>
         </div>
-        <div><dt>Maturity Date</dt><dd>{{ report().keyDates.maturityDate | date: 'MMM d, y' }}</dd></div>
-        <div><dt>As Of Date</dt><dd>{{ report().keyDates.asOfDate | date: 'MMM d, y' }}</dd></div>
+        <div><dt>Maturity Date</dt><dd>{{ report().keyDates.maturityDate }}</dd></div>
+        <div><dt>As Of Date</dt><dd>{{ report().keyDates.asOfDate }}</dd></div>
       </dl>
     </article>
 
@@ -66,7 +66,7 @@
           <dd><span [class]="riskClass(report().propertyStats.riskStatus)">{{ report().propertyStats.riskStatus }}</span></dd>
         </div>
         <div><dt>Property Type</dt><dd>{{ report().propertyStats.propertyType }}</dd></div>
-        <div><dt>Location</dt><dd>{{ report().propertyStats.location }}</dd></div>
+        <div><dt>Sponsor</dt><dd>{{ report().propertyStats.location }}</dd></div>
       </dl>
     </article>
 
@@ -192,7 +192,7 @@
 
   <section class="ldr-section ldr-section--tax">
     <div class="ldr-section__head">
-      <h2>Tax Arrears As At {{ report().taxArrearsAsAt | date: 'MMMM d, y' }}</h2>
+      <h2>Tax Arrears As At {{ report().taxArrearsAsAt }}</h2>
       <p>Latest Tax Memo Date — amounts by year</p>
     </div>
     <div class="ldr-table-wrap ldr-table-wrap--narrow">

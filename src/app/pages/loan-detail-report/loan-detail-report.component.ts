@@ -1,4 +1,4 @@
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   Component,
@@ -28,7 +28,7 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-loan-detail-report',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe],
+  imports: [CommonModule, RouterLink],
   templateUrl: './loan-detail-report.component.html',
   styleUrl: './loan-detail-report.component.css',
 })

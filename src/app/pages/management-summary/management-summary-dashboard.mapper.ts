@@ -170,7 +170,7 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
     label: slice.label,
     value: slice.value,
     sharePercent: slice.sharePercent ?? 0,
-    loans: slice.value,
+    loans: slice.count ?? 0,
   }));
 
   const topExposures: TopExposureRow[] = (charts?.top5Exposures ?? []).map((slice) => ({
@@ -185,7 +185,7 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
     .filter((slice) => slice.value > 0)
     .map((slice) => ({
       investor: slice.label,
-      loans: 0,
+      loans: slice.count ?? 0,
       exposure: slice.value,
       sharePercent: slice.sharePercent ?? 0,
     }));
@@ -196,9 +196,20 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
       sponsor: slice.label,
       exposure: slice.value,
       sharePercent: slice.sharePercent ?? 0,
-      ltv: null,
-      loanCount: 0,
+      ltv: slice.averageLtv ?? null,
+      loanCount: slice.count ?? 0,
     }));
+
+  const exposureAnalysis: ExposureAnalysisRow[] = (dto.exposureAnalysisRows ?? []).map((row) => ({
+    loanAliasKey: row.loanAliasKey,
+    loanAlias: row.loanAlias,
+    sponsor: row.sponsor || '—',
+    externalBalance: row.externalBalance ?? 0,
+    rmfBalance: row.smfBalance ?? 0,
+    mlpBalance: row.mlpBalance ?? 0,
+    totalKsExposure: row.totalKsExposure ?? 0,
+    subordinateExposure: row.subordinateExposure ?? 0,
+  }));
 
   const sponsorOptions = ['All', ...(dto.filterOptions?.sponsors ?? [])];
   const investorAliasOptions = ['All', ...(dto.filterOptions?.investorAliases ?? [])];
@@ -217,7 +228,7 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
     topExposures,
     exposureBreakdown,
     capitalStack: exposureBreakdown,
-    exposureAnalysis: [] as ExposureAnalysisRow[],
+    exposureAnalysis,
     investorSummary,
     sponsorSummary,
     sponsorOptions,

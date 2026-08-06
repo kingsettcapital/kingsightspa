@@ -5,11 +5,30 @@ function formatDate(value: string | null | undefined): string {
   if (!value) {
     return '—';
   }
-  const parsed = new Date(value);
+  const parsed = new Date(value.length <= 10 ? `${value}T00:00:00` : value);
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
-  return parsed.toISOString().slice(0, 10);
+  return parsed.toLocaleDateString('en-CA', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function formatAsOfDisplay(value: string | null | undefined): string {
+  if (!value) {
+    return '—';
+  }
+  const parsed = new Date(value.length <= 10 ? `${value}T00:00:00` : value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleDateString('en-CA', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 }
 
 function mapChartSlice(slice: {
@@ -43,7 +62,7 @@ export function mapLoanDetailReportDashboard(dto: LoanDetailReportDashboardDto):
       dateOfDefault: formatDate(dto.keyDates?.dateOfDefault),
       daysInDefault: dto.keyDates?.daysInDefault ?? 0,
       maturityDate: formatDate(dto.keyDates?.maturityDate),
-      asOfDate: formatDate(dto.keyDates?.asOfDate),
+      asOfDate: formatAsOfDisplay(dto.keyDates?.asOfDate),
     },
     propertyStats: {
       valuePerUnit: dto.propertyStats?.valuePerUnit ?? 0,
@@ -83,7 +102,7 @@ export function mapLoanDetailReportDashboard(dto: LoanDetailReportDashboardDto):
     exposureByInvestor: (dto.exposureByInvestor ?? []).map(mapChartSlice),
     exposureComposition: (dto.exposureComposition ?? []).map(mapChartSlice),
     investorBreakdown: (dto.investorBreakdown ?? []).map(mapChartSlice),
-    taxArrearsAsAt: formatDate(dto.taxArrearsAsAt),
+    taxArrearsAsAt: formatAsOfDisplay(dto.taxArrearsAsAt),
     taxArrearsByYear: (dto.taxArrearsByYear ?? []).map((row) => ({
       year: row.year,
       taxArrears: row.taxArrears,

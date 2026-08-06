@@ -514,7 +514,7 @@ function createDefaultFilters(): ManagementSummaryFilters {
     maturityDateTo: '',
     sponsor: 'All',
     riskLevels: ['ALL'],
-    status: 'In Default',
+    status: 'All',
     investorAliases: ['All'],
   };
 }
