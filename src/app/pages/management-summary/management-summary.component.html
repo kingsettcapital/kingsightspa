@@ -3,8 +3,7 @@
     <div class="ms-header__meta">AS OF {{ asOfDisplay() | uppercase }} | CONFIDENTIAL — INTERNAL USE ONLY</div>
     <div class="ms-header__main">
       <div>
-        <h1>Default Loan Portfolio</h1>
-        <p class="ms-header__subtitle">Management Summary — {{ reportPeriod() }}</p>
+        <h1>Loan Portfolio</h1>
       </div>
       <div class="ms-header__actions">
         <button type="button" class="ms-btn ms-btn--ghost">Print</button>
@@ -14,6 +13,13 @@
       </div>
     </div>
   </header>
+
+  @if (isLoading()) {
+    <p class="ms-loading">Loading portfolio data…</p>
+  }
+  @if (errorMessage()) {
+    <p class="ms-error">{{ errorMessage() }}</p>
+  }
 
   <div class="ms-kpi-row">
     <article class="ms-kpi-card">
@@ -64,7 +70,7 @@
     <div class="ms-section__head">
       <div>
         <h2>Detailed Loan Summary</h2>
-        <p>{{ loanRows().length }} of {{ loanRows().length }} loan aliases — As of {{ filters().asOfDate | date: 'yyyy-MM-dd' }}</p>
+        <p>{{ loanRows().length }} of {{ loanRows().length }} loan aliases — As of {{ filters().asOfDate }}</p>
       </div>
     </div>
     <div class="ms-table-wrap">
@@ -102,20 +108,20 @@
                 <span class="ms-drill-cell__name">{{ row.loanAlias }}</span>
               </td>
               <td>{{ row.sponsor }}</td>
-              <td>{{ row.defaultDate | date: 'MMM d, y' }}</td>
-              <td>{{ row.maturityDate | date: 'MMM d, y' }}</td>
+              <td>{{ row.defaultDate }}</td>
+              <td>{{ row.maturityDate }}</td>
               <td class="wrap">{{ row.interestStatus }}</td>
               <td class="wrap">{{ row.units }}</td>
               <td>{{ row.exit }}</td>
-              <td class="num">{{ row.security | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-              <td class="num">{{ row.principal | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-              <td class="num">{{ row.osInt | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-              <td class="num">{{ row.accrued | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-              <td class="num">{{ row.lateInt | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-              <td class="num">{{ row.taxIns | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-              <td class="num">{{ row.intAdv | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-              <td class="num">{{ row.other | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-              <td class="num">{{ row.totalExposure | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.security | number: '1.0-0' }}</td>
+              <td class="num">{{ row.principal | number: '1.0-0' }}</td>
+              <td class="num">{{ row.osInt | number: '1.0-0' }}</td>
+              <td class="num">{{ row.accrued | number: '1.0-0' }}</td>
+              <td class="num">{{ row.lateInt | number: '1.0-0' }}</td>
+              <td class="num">{{ row.taxIns | number: '1.0-0' }}</td>
+              <td class="num">{{ row.intAdv | number: '1.0-0' }}</td>
+              <td class="num">{{ row.other | number: '1.0-0' }}</td>
+              <td class="num">{{ row.totalExposure | number: '1.0-0' }}</td>
               <td class="num">{{ row.ltv }}%</td>
               <td><span [class]="riskClass(row.risk)">{{ row.risk }}</span></td>
               <td class="ms-table__chevron-col">
@@ -125,15 +131,15 @@
           }
           <tr class="ms-table__total">
             <td colspan="7">TOTAL</td>
-            <td class="num">{{ loanTotals().security | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().principal | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().osInt | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().accrued | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().lateInt | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().taxIns | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().intAdv | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().other | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().totalExposure | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().security | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().principal | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().osInt | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().accrued | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().lateInt | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().taxIns | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().intAdv | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().other | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().totalExposure | number: '1.0-0' }}</td>
             <td class="num">{{ loanTotals().ltv != null ? (loanTotals().ltv | number: '1.0-0') + '%' : '—' }}</td>
             <td></td>
             <td class="ms-table__chevron-col" aria-hidden="true"></td>
@@ -244,11 +250,11 @@
                 <span class="ms-drill-cell__name">{{ row.loanAlias }}</span>
               </td>
               <td>{{ row.sponsor }}</td>
-              <td class="num">{{ row.externalBalance | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-              <td class="num">{{ row.rmfBalance | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-              <td class="num">{{ row.mlpBalance | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-              <td class="num">{{ row.totalKsExposure | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-              <td class="num">{{ row.subordinateExposure | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+              <td class="num">{{ row.externalBalance | number: '1.0-0' }}</td>
+              <td class="num">{{ row.rmfBalance | number: '1.0-0' }}</td>
+              <td class="num">{{ row.mlpBalance | number: '1.0-0' }}</td>
+              <td class="num">{{ row.totalKsExposure | number: '1.0-0' }}</td>
+              <td class="num">{{ row.subordinateExposure | number: '1.0-0' }}</td>
               <td class="ms-table__chevron-col">
                 <mat-icon aria-hidden="true">chevron_right</mat-icon>
               </td>
@@ -256,11 +262,11 @@
           }
           <tr class="ms-table__total">
             <td colspan="2">TOTAL</td>
-            <td class="num">{{ exposureAnalysisTotals().externalBalance | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-            <td class="num">{{ exposureAnalysisTotals().rmfBalance | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-            <td class="num">{{ exposureAnalysisTotals().mlpBalance | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-            <td class="num">{{ exposureAnalysisTotals().totalKsExposure | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
-            <td class="num">{{ exposureAnalysisTotals().subordinateExposure | currency: 'CAD' : 'symbol' : '1.0-0' }}</td>
+            <td class="num">{{ exposureAnalysisTotals().externalBalance | number: '1.0-0' }}</td>
+            <td class="num">{{ exposureAnalysisTotals().rmfBalance | number: '1.0-0' }}</td>
+            <td class="num">{{ exposureAnalysisTotals().mlpBalance | number: '1.0-0' }}</td>
+            <td class="num">{{ exposureAnalysisTotals().totalKsExposure | number: '1.0-0' }}</td>
+            <td class="num">{{ exposureAnalysisTotals().subordinateExposure | number: '1.0-0' }}</td>
             <td class="ms-table__chevron-col" aria-hidden="true"></td>
           </tr>
         </tbody>
@@ -396,9 +402,7 @@
             <th>Tax Arrears</th>
             <th>LTV</th>
             <th>DSCR</th>
-            <th>Issue</th>
-            <th>Status Update</th>
-            <th>Conclusion</th>
+            <th>Notes</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -414,22 +418,37 @@
                 @if (row.principal == null) {
                   —
                 } @else {
-                  {{ row.principal | currency: 'CAD' : 'symbol' : '1.0-0' }}
+                  {{ row.principal | number: '1.0-0' }}
                 }
               </td>
               <td class="num">
                 @if (row.osInterest == null) {
                   —
                 } @else {
-                  {{ row.osInterest | currency: 'CAD' : 'symbol' : '1.0-0' }}
+                  {{ row.osInterest | number: '1.0-0' }}
                 }
               </td>
               <td class="wrap ms-prewrap">{{ row.taxArrears }}</td>
               <td class="wrap ms-prewrap">{{ row.ltv }}</td>
               <td class="wrap ms-prewrap">{{ row.dscr }}</td>
-              <td class="wrap ms-prewrap ms-watchlist-notes">{{ row.issue }}</td>
-              <td class="wrap ms-prewrap ms-watchlist-notes">{{ row.statusUpdate }}</td>
-              <td class="wrap ms-prewrap ms-watchlist-notes">{{ row.conclusion }}</td>
+              <td class="wrap ms-prewrap ms-watchlist-notes">
+                <div class="ms-note-block">
+                  <span class="ms-note-block__label">Issue</span>
+                  {{ row.issue }}
+                </div>
+                @if (row.statusUpdate && row.statusUpdate !== '—') {
+                  <div class="ms-note-block">
+                    <span class="ms-note-block__label">Status Update</span>
+                    {{ row.statusUpdate }}
+                  </div>
+                }
+                @if (row.conclusion && row.conclusion !== '—') {
+                  <div class="ms-note-block">
+                    <span class="ms-note-block__label">Conclusion</span>
+                    {{ row.conclusion }}
+                  </div>
+                }
+              </td>
               <td><span [class]="watchlistStatusClass(row)">{{ row.status }}</span></td>
             </tr>
           }

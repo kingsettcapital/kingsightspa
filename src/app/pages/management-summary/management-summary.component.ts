@@ -1,4 +1,4 @@
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   Component,
@@ -40,7 +40,7 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-management-summary',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, DatePipe, MatIconModule],
+  imports: [CommonModule, MatIconModule],
   templateUrl: './management-summary.component.html',
   styleUrl: './management-summary.component.css',
 })
@@ -102,17 +102,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   readonly riskOptions = ['ALL', 'HIGH', 'ELEVATED', 'MODERATE', 'LOW'] as const;
   readonly statusOptions = ['In Default', 'Watchlist', 'Performing', 'All'] as const;
 
-  readonly filters = signal<ManagementSummaryFilters>({
-    asOfDate: '2025-08-31',
-    defaultDateFrom: '',
-    defaultDateTo: '',
-    maturityDateFrom: '',
-    maturityDateTo: '',
-    sponsor: 'All',
-    riskLevels: ['ALL'],
-    status: 'In Default',
-    investorAliases: ['All'],
-  });
+  readonly filters = signal<ManagementSummaryFilters>(createDefaultFilters());
 
   readonly loanTotals = computed(() => this.sumLoanRows(this.loanRows()));
 
@@ -204,17 +194,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   }
 
   resetFilters(): void {
-    this.filters.set({
-      asOfDate: '2025-08-31',
-      defaultDateFrom: '',
-      defaultDateTo: '',
-      maturityDateFrom: '',
-      maturityDateTo: '',
-      sponsor: 'All',
-      riskLevels: ['ALL'],
-      status: 'In Default',
-      investorAliases: ['All'],
-    });
+    this.filters.set(createDefaultFilters());
   }
 
   applyFilters(): void {
@@ -289,14 +269,15 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
     if (value == null || Number.isNaN(value)) {
       return '—';
     }
+    const format = (amount: number) =>
+      new Intl.NumberFormat('en-CA', {
+        maximumFractionDigits: 0,
+      }).format(amount);
+
     if (Math.abs(value) >= 1_000_000) {
-      return `$${(value / 1_000_000).toFixed(0)}M`;
+      return `${format(Math.round(value / 1_000_000))}M`;
     }
-    return new Intl.NumberFormat('en-CA', {
-      style: 'currency',
-      currency: 'CAD',
-      maximumFractionDigits: 0,
-    }).format(value);
+    return format(value);
   }
 
   riskClass(risk: string): string {
@@ -513,4 +494,27 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
 
     this.top5Chart.mount(canvas, container, config);
   }
+}
+
+function defaultAsOfDate(): string {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function createDefaultFilters(): ManagementSummaryFilters {
+  return {
+    asOfDate: defaultAsOfDate(),
+    defaultDateFrom: '',
+    defaultDateTo: '',
+    maturityDateFrom: '',
+    maturityDateTo: '',
+    sponsor: 'All',
+    riskLevels: ['ALL'],
+    status: 'In Default',
+    investorAliases: ['All'],
+  };
 }

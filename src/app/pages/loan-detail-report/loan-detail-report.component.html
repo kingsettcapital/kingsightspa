@@ -207,12 +207,12 @@
           @for (row of report().taxArrearsByYear; track row.year) {
             <tr>
               <td>{{ row.year }}</td>
-              <td class="num">{{ row.taxArrears | currency: 'CAD' : 'symbol' : '1.2-2' }}</td>
+              <td class="num">{{ row.taxArrears | number: '1.2-2' }}</td>
             </tr>
           }
           <tr class="ldr-table__total">
             <td>TOTAL</td>
-            <td class="num">{{ taxArrearsTotal() | currency: 'CAD' : 'symbol' : '1.2-2' }}</td>
+            <td class="num">{{ taxArrearsTotal() | number: '1.2-2' }}</td>
           </tr>
         </tbody>
       </table>

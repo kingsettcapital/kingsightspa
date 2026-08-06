@@ -1,4 +1,4 @@
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import {
   AfterViewInit,
   Component,
@@ -28,7 +28,7 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-loan-detail-report',
   standalone: true,
-  imports: [CommonModule, RouterLink, CurrencyPipe, DatePipe],
+  imports: [CommonModule, RouterLink, DatePipe],
   templateUrl: './loan-detail-report.component.html',
   styleUrl: './loan-detail-report.component.css',
 })
@@ -80,7 +80,7 @@ export class LoanDetailReportComponent implements AfterViewInit {
     combineLatest([this.route.paramMap, this.route.queryParamMap]).subscribe(([params, query]) => {
       const loanAliasKey = Number(params.get('loanAliasKey'));
       const alias = String(query.get('alias') ?? '').trim();
-      const asOfDate = String(query.get('asOfDate') ?? '2025-08-31').trim();
+      const asOfDate = String(query.get('asOfDate') ?? defaultAsOfDate()).trim();
       if (!Number.isFinite(loanAliasKey) || loanAliasKey <= 0) {
         return;
       }
@@ -116,14 +116,15 @@ export class LoanDetailReportComponent implements AfterViewInit {
     if (value == null || Number.isNaN(value)) {
       return '—';
     }
+    const format = (amount: number) =>
+      new Intl.NumberFormat('en-CA', {
+        maximumFractionDigits: 0,
+      }).format(amount);
+
     if (Math.abs(value) >= 1_000_000) {
-      return `$${(value / 1_000_000).toFixed(1)}M`;
+      return `${format(Math.round(value / 1_000_000))}M`;
     }
-    return new Intl.NumberFormat('en-CA', {
-      style: 'currency',
-      currency: 'CAD',
-      maximumFractionDigits: 0,
-    }).format(value);
+    return format(value);
   }
 
   formatCurrency(value: number | null | undefined): string {
@@ -131,8 +132,6 @@ export class LoanDetailReportComponent implements AfterViewInit {
       return '—';
     }
     return new Intl.NumberFormat('en-CA', {
-      style: 'currency',
-      currency: 'CAD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
@@ -317,4 +316,13 @@ export class LoanDetailReportComponent implements AfterViewInit {
 
     lifecycle.mount(canvas, container, config);
   }
+}
+
+function defaultAsOfDate(): string {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

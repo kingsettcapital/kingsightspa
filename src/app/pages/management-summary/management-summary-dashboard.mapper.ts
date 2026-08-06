@@ -20,7 +20,11 @@ function formatDate(value: string | null | undefined): string {
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
-  return parsed.toISOString().slice(0, 10);
+  return parsed.toLocaleDateString('en-CA', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 function formatAsOfDisplay(asOfDate: string): string {
