@@ -211,8 +211,20 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
     subordinateExposure: row.subordinateExposure ?? 0,
   }));
 
-  const sponsorOptions = ['All', ...(dto.filterOptions?.sponsors ?? [])];
-  const investorAliasOptions = ['All', ...(dto.filterOptions?.investorAliases ?? [])];
+  const sponsorOptions = ['All', ...(dto.filterOptions?.sponsors ?? []).filter((s) => s !== 'All')];
+  const investorAliasOptions = [
+    'All',
+    ...(dto.filterOptions?.investorAliases ?? []).filter((s) => s !== 'All'),
+  ];
+  const statusOptions = (() => {
+    const fromApi = (dto.filterOptions?.statuses ?? []).filter((s) => !!s?.trim());
+    if (fromApi.length === 0) {
+      return ['Default', 'All'];
+    }
+    const withoutAll = fromApi.filter((s) => s.toLowerCase() !== 'all');
+    const hasAll = fromApi.some((s) => s.toLowerCase() === 'all');
+    return hasAll ? [...withoutAll, 'All'] : [...withoutAll, 'All'];
+  })();
 
   return {
     asOfDisplay: formatAsOfDisplay(dto.asOfDate),
@@ -233,5 +245,6 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
     sponsorSummary,
     sponsorOptions,
     investorAliasOptions,
+    statusOptions,
   };
 }

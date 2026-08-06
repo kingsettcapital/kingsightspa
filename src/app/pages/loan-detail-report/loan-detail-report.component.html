@@ -7,10 +7,6 @@
         <h1>{{ report().loanAlias }} — Loan Portfolio Management Report</h1>
         <p class="ldr-header__subtitle">As of {{ report().keyDates.asOfDate }}</p>
       </div>
-      <div class="ldr-header__actions">
-        <button type="button" class="ldr-btn ldr-btn--ghost">Export Excel</button>
-        <button type="button" class="ldr-btn ldr-btn--primary">Export PDF</button>
-      </div>
     </div>
   </header>
 
@@ -108,7 +104,25 @@
       <p>Total exposure {{ totalExposureDisplay() }}</p>
     </div>
     <div class="ldr-table-wrap">
-      <table class="ldr-table">
+      <table class="ldr-table ldr-table--portfolio">
+        <colgroup>
+          <col class="ldr-col ldr-col--id" />
+          <col class="ldr-col ldr-col--text" />
+          <col class="ldr-col ldr-col--text" />
+          <col class="ldr-col ldr-col--narrow" />
+          <col class="ldr-col ldr-col--num" />
+          <col class="ldr-col ldr-col--num" />
+          <col class="ldr-col ldr-col--num" />
+          <col class="ldr-col ldr-col--num" />
+          <col class="ldr-col ldr-col--num" />
+          <col class="ldr-col ldr-col--num" />
+          <col class="ldr-col ldr-col--num" />
+          <col class="ldr-col ldr-col--num" />
+          <col class="ldr-col ldr-col--num" />
+          <col class="ldr-col ldr-col--narrow" />
+          <col class="ldr-col ldr-col--narrow" />
+          <col class="ldr-col ldr-col--narrow" />
+        </colgroup>
         <thead>
           <tr>
             <th>Loan ID</th>
@@ -125,7 +139,7 @@
             <th class="num">Other Costs</th>
             <th class="num">Total Exposure</th>
             <th class="num">LTV</th>
-            <th class="num"># Months Loan in Arrears</th>
+            <th class="num"># Mo. in Arrears</th>
             <th class="num"># Times NSF'd</th>
           </tr>
         </thead>
@@ -150,6 +164,8 @@
               <td class="num">{{ row.timesNsfd ?? '—' }}</td>
             </tr>
           }
+        </tbody>
+        <tfoot>
           <tr class="ldr-table__total">
             <td colspan="5">TOTAL</td>
             <td class="num">{{ formatCurrency(portfolioTotals().principal) }}</td>
@@ -163,7 +179,7 @@
             <td class="num">{{ formatLtv(portfolioTotals().ltv) }}</td>
             <td colspan="2"></td>
           </tr>
-        </tbody>
+        </tfoot>
       </table>
     </div>
   </section>
@@ -210,11 +226,13 @@
               <td class="num">{{ row.taxArrears | number: '1.2-2' }}</td>
             </tr>
           }
+        </tbody>
+        <tfoot>
           <tr class="ldr-table__total">
             <td>TOTAL</td>
             <td class="num">{{ taxArrearsTotal() | number: '1.2-2' }}</td>
           </tr>
-        </tbody>
+        </tfoot>
       </table>
     </div>
   </section>

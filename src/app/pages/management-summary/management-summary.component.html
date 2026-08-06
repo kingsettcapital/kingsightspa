@@ -6,10 +6,7 @@
         <h1>Loan Portfolio</h1>
       </div>
       <div class="ms-header__actions">
-        <button type="button" class="ms-btn ms-btn--ghost">Print</button>
         <button type="button" class="ms-btn ms-btn--ghost" (click)="toggleFilters()">Filters</button>
-        <button type="button" class="ms-btn ms-btn--primary">Export</button>
-        <span class="ms-header__brand">KingSett CAPITAL</span>
       </div>
     </div>
   </header>
@@ -129,6 +126,8 @@
               </td>
             </tr>
           }
+        </tbody>
+        <tfoot>
           <tr class="ms-table__total">
             <td colspan="7">TOTAL</td>
             <td class="num">{{ loanTotals().security | number: '1.0-0' }}</td>
@@ -144,7 +143,7 @@
             <td></td>
             <td class="ms-table__chevron-col" aria-hidden="true"></td>
           </tr>
-        </tbody>
+        </tfoot>
       </table>
     </div>
   </section>
@@ -260,6 +259,8 @@
               </td>
             </tr>
           }
+        </tbody>
+        <tfoot>
           <tr class="ms-table__total">
             <td colspan="2">TOTAL</td>
             <td class="num">{{ exposureAnalysisTotals().externalBalance | number: '1.0-0' }}</td>
@@ -269,7 +270,7 @@
             <td class="num">{{ exposureAnalysisTotals().subordinateExposure | number: '1.0-0' }}</td>
             <td class="ms-table__chevron-col" aria-hidden="true"></td>
           </tr>
-        </tbody>
+        </tfoot>
       </table>
     </div>
   </section>
@@ -510,31 +511,65 @@
 
       <label class="ms-filter-field">
         <span>Sponsor</span>
-        <select
-          [value]="filters().sponsor"
-          (change)="updateFilterField('sponsor', $any($event.target).value)"
-        >
-          @for (sponsor of sponsorOptions(); track sponsor) {
-            <option [value]="sponsor">{{ sponsor }}</option>
-          }
-        </select>
-      </label>
-
-      <fieldset class="ms-filter-field">
-        <legend>Investor Alias</legend>
-        <div class="ms-chip-group">
-          @for (alias of investorAliasOptions(); track alias) {
-            <button
-              type="button"
-              class="ms-chip"
-              [class.ms-chip--active]="isInvestorAliasSelected(alias)"
-              (click)="toggleInvestorAlias(alias)"
-            >
-              {{ alias }}
-            </button>
+        <div class="ms-filter-select" [class.ms-filter-select--open]="openFilterMenu() === 'sponsor'">
+          <button
+            type="button"
+            class="ms-filter-select__trigger"
+            (click)="toggleFilterMenu('sponsor')"
+            [attr.aria-expanded]="openFilterMenu() === 'sponsor'"
+          >
+            <span class="ms-filter-select__value">{{ filters().sponsor }}</span>
+            <span class="ms-filter-select__caret" aria-hidden="true"></span>
+          </button>
+          @if (openFilterMenu() === 'sponsor') {
+            <ul class="ms-filter-select__menu" role="listbox">
+              @for (sponsor of sponsorOptions(); track sponsor) {
+                <li>
+                  <button
+                    type="button"
+                    class="ms-filter-select__option"
+                    [class.ms-filter-select__option--active]="filters().sponsor === sponsor"
+                    (click)="setSponsor(sponsor)"
+                  >
+                    {{ sponsor }}
+                  </button>
+                </li>
+              }
+            </ul>
           }
         </div>
-      </fieldset>
+      </label>
+
+      <label class="ms-filter-field">
+        <span>Investor Alias</span>
+        <div class="ms-filter-select" [class.ms-filter-select--open]="openFilterMenu() === 'investor'">
+          <button
+            type="button"
+            class="ms-filter-select__trigger"
+            (click)="toggleFilterMenu('investor')"
+            [attr.aria-expanded]="openFilterMenu() === 'investor'"
+          >
+            <span class="ms-filter-select__value">{{ selectedInvestorAlias() }}</span>
+            <span class="ms-filter-select__caret" aria-hidden="true"></span>
+          </button>
+          @if (openFilterMenu() === 'investor') {
+            <ul class="ms-filter-select__menu" role="listbox">
+              @for (alias of investorAliasOptions(); track alias) {
+                <li>
+                  <button
+                    type="button"
+                    class="ms-filter-select__option"
+                    [class.ms-filter-select__option--active]="selectedInvestorAlias() === alias"
+                    (click)="setInvestorAlias(alias)"
+                  >
+                    {{ alias }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </label>
 
       <fieldset class="ms-filter-field">
         <legend>Risk</legend>
@@ -555,7 +590,7 @@
       <fieldset class="ms-filter-field">
         <legend>Status</legend>
         <div class="ms-chip-group">
-          @for (status of statusOptions; track status) {
+          @for (status of statusOptions(); track status) {
             <button
               type="button"
               class="ms-chip"

@@ -189,54 +189,113 @@
 }
 
 .ldr-table-wrap {
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: min(32rem, 60vh);
+  width: 100%;
 }
 
 .ldr-table-wrap--narrow {
   max-width: 28rem;
+  max-height: min(20rem, 40vh);
+  overflow-x: auto;
 }
 
 .ldr-table {
   width: 100%;
-  border-collapse: collapse;
-  min-width: 70rem;
+  min-width: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
 }
 
 .ldr-table--tax {
-  min-width: auto;
+  width: 100%;
+  min-width: 0;
+  table-layout: auto;
+}
+
+.ldr-table--portfolio .ldr-col--id {
+  width: 7%;
+}
+
+.ldr-table--portfolio .ldr-col--text {
+  width: 10%;
+}
+
+.ldr-table--portfolio .ldr-col--narrow {
+  width: 4.5%;
+}
+
+.ldr-table--portfolio .ldr-col--num {
+  width: 5.5%;
 }
 
 .ldr-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: #0c274a;
   color: #fff;
-  padding: 0.65rem 0.75rem;
+  padding: 0.55rem 0.4rem;
   font-size: 0.72rem;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   text-align: left;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.25;
+  vertical-align: middle;
+}
+
+.ldr-table thead th.num {
+  text-align: right;
 }
 
 .ldr-table tbody td {
-  padding: 0.65rem 0.75rem;
+  padding: 0.55rem 0.4rem;
   border-bottom: 1px solid #e2e8f0;
   font-size: 0.82rem;
   vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
-.ldr-table tbody tr:nth-child(even):not(.ldr-table__total) {
+.ldr-table--portfolio tbody td:nth-child(1),
+.ldr-table--portfolio tbody td:nth-child(2),
+.ldr-table--portfolio tbody td:nth-child(3) {
+  white-space: normal;
+}
+
+.ldr-table tbody tr:nth-child(even) {
   background: #fafafa;
 }
 
 .ldr-table .num {
   text-align: right;
-  white-space: nowrap;
+  white-space: normal;
+  font-variant-numeric: tabular-nums;
 }
 
-.ldr-table__total td {
+.ldr-table tfoot tr.ldr-table__total td,
+.ldr-table tbody tr.ldr-table__total td {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   background: #0c274a !important;
   color: #fff;
   font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  padding: 0.55rem 0.4rem;
+  line-height: 1.25;
+  vertical-align: middle;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  border-top: 1px solid #0c274a;
+  box-shadow: 0 -2px 6px rgba(15, 23, 42, 0.18);
 }
 
 .ldr-charts-row {

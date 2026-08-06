@@ -100,7 +100,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   readonly sponsorOptions = signal<string[]>(['All']);
   readonly investorAliasOptions = signal<string[]>(['All']);
   readonly riskOptions = ['ALL', 'HIGH', 'ELEVATED', 'MODERATE', 'LOW'] as const;
-  readonly statusOptions = ['In Default', 'Watchlist', 'Performing', 'All'] as const;
+  readonly statusOptions = signal<string[]>(['Default', 'All']);
 
   readonly filters = signal<ManagementSummaryFilters>(createDefaultFilters());
 
@@ -148,7 +148,19 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   }
 
   closeFilters(): void {
+    this.openFilterMenu.set(null);
     this.filtersOpen.set(false);
+  }
+
+  readonly selectedInvestorAlias = computed(() => this.filters().investorAliases[0] ?? 'All');
+  readonly openFilterMenu = signal<'sponsor' | 'investor' | null>(null);
+
+  toggleFilterMenu(menu: 'sponsor' | 'investor'): void {
+    this.openFilterMenu.update((current) => (current === menu ? null : menu));
+  }
+
+  closeFilterMenus(): void {
+    this.openFilterMenu.set(null);
   }
 
   isRiskSelected(level: string): boolean {
@@ -172,21 +184,17 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
     this.filters.update((current) => ({ ...current, status }));
   }
 
-  isInvestorAliasSelected(alias: string): boolean {
-    return this.filters().investorAliases.includes(alias);
+  setSponsor(sponsor: string): void {
+    this.updateFilterField('sponsor', sponsor || 'All');
+    this.closeFilterMenus();
   }
 
-  toggleInvestorAlias(alias: string): void {
-    this.filters.update((current) => {
-      if (alias === 'All') {
-        return { ...current, investorAliases: ['All'] };
-      }
-      const withoutAll = current.investorAliases.filter((item) => item !== 'All');
-      const next = withoutAll.includes(alias)
-        ? withoutAll.filter((item) => item !== alias)
-        : [...withoutAll, alias];
-      return { ...current, investorAliases: next.length ? next : ['All'] };
-    });
+  setInvestorAlias(alias: string): void {
+    this.filters.update((current) => ({
+      ...current,
+      investorAliases: [alias || 'All'],
+    }));
+    this.closeFilterMenus();
   }
 
   updateFilterField<K extends keyof ManagementSummaryFilters>(key: K, value: ManagementSummaryFilters[K]): void {
@@ -249,6 +257,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
           this.sponsorSummary.set(mapped.sponsorSummary);
           this.sponsorOptions.set(mapped.sponsorOptions);
           this.investorAliasOptions.set(mapped.investorAliasOptions);
+          this.statusOptions.set(mapped.statusOptions);
           this.isLoading.set(false);
           queueMicrotask(() => this.renderCharts());
         },
@@ -514,7 +523,7 @@ function createDefaultFilters(): ManagementSummaryFilters {
     maturityDateTo: '',
     sponsor: 'All',
     riskLevels: ['ALL'],
-    status: 'All',
+    status: 'Default',
     investorAliases: ['All'],
   };
 }
