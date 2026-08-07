@@ -51,6 +51,51 @@ function mapChartSlice(slice: {
   };
 }
 
+function buildCapitalStackFromExposureAnalysis(
+  rows: ManagementSummaryDashboardDto['exposureAnalysisRows'],
+): Array<{ label: string; value: number; sharePercent: number }> {
+  const external = rows.reduce((sum, row) => sum + (row.externalBalance ?? 0), 0);
+  const smf = rows.reduce((sum, row) => sum + (row.smfBalance ?? 0), 0);
+  const mlp = rows.reduce((sum, row) => sum + (row.mlpBalance ?? 0), 0);
+  const subordinate = rows.reduce((sum, row) => sum + (row.subordinateExposure ?? 0), 0);
+  const total = external + smf + mlp + subordinate;
+  const pct = (value: number) => (total > 0 ? Math.round((value / total) * 1000) / 10 : 0);
+
+  return [
+    { label: 'External', value: external, sharePercent: pct(external) },
+    { label: 'SMF', value: smf, sharePercent: pct(smf) },
+    { label: 'MLP', value: mlp, sharePercent: pct(mlp) },
+    { label: 'Subordinate Exposure', value: subordinate, sharePercent: pct(subordinate) },
+  ].filter((slice) => slice.value !== 0);
+}
+
+function mapWatchlistStatus(status: string | null | undefined): string {
+  if (!status?.trim()) {
+    return 'NO CONCERNS';
+  }
+  const value = status.trim();
+  const lower = value.toLowerCase();
+  if (lower.includes('yellow') || lower === 'y') {
+    return 'CONCERN';
+  }
+  if (lower.includes('green') || lower === 'g') {
+    return 'NO CONCERNS';
+  }
+  if (lower.includes('orange') || lower.includes('red') || lower === 'r') {
+    return 'CLAIM EXPECTED';
+  }
+  if (lower.includes('claim')) {
+    return 'CLAIM EXPECTED';
+  }
+  if (lower.includes('no concern')) {
+    return 'NO CONCERNS';
+  }
+  if (lower.includes('concern')) {
+    return 'CONCERN';
+  }
+  return value.toUpperCase();
+}
+
 function displayText(value: string | null | undefined): string {
   const trimmed = value?.trim();
   return trimmed ? trimmed : '—';
@@ -162,7 +207,7 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
       issue: row.statusUpdate || row.conclusion ? displayText(row.issue) : comments.issue,
       statusUpdate: row.statusUpdate ? displayText(row.statusUpdate) : comments.statusUpdate,
       conclusion: row.conclusion ? displayText(row.conclusion) : comments.conclusion,
-      status: row.status ?? 'NO CONCERNS',
+      status: mapWatchlistStatus(row.status),
     };
   });
 
@@ -181,14 +226,32 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
 
   const exposureBreakdown = (charts?.exposureBreakdown ?? []).map(mapChartSlice);
 
+  const capitalStack = (charts?.capitalStack?.length
+    ? charts.capitalStack
+    : buildCapitalStackFromExposureAnalysis(dto.exposureAnalysisRows ?? [])
+  ).map(mapChartSlice);
+
   const investorSummary: InvestorSummaryRow[] = (charts?.investorSummary ?? [])
     .filter((slice) => slice.value > 0)
+    .filter((slice) => {
+      const label = (slice.label ?? '').trim();
+      return label.length > 0
+        && label.toLowerCase() !== '(unknown)'
+        && label.toLowerCase() !== 'unknown';
+    })
     .map((slice) => ({
       investor: slice.label,
       loans: slice.count ?? 0,
       exposure: slice.value,
       sharePercent: slice.sharePercent ?? 0,
     }));
+
+  const investorTotal = investorSummary.reduce((sum, row) => sum + row.exposure, 0);
+  if (investorTotal > 0) {
+    for (const row of investorSummary) {
+      row.sharePercent = Math.round((row.exposure / investorTotal) * 1000) / 10;
+    }
+  }
 
   const sponsorSummary: SponsorSummaryRow[] = (charts?.sponsorSummary ?? [])
     .filter((slice) => slice.value > 0)
@@ -239,7 +302,7 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
     ltvRiskBands,
     topExposures,
     exposureBreakdown,
-    capitalStack: exposureBreakdown,
+    capitalStack,
     exposureAnalysis,
     investorSummary,
     sponsorSummary,

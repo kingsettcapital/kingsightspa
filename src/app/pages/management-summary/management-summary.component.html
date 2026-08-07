@@ -74,53 +74,89 @@
       <table class="ms-table ms-table--loan-summary">
         <thead>
           <tr>
-            <th>Loan Alias</th>
-            <th>Sponsor</th>
-            <th>Default</th>
-            <th>Maturity</th>
-            <th>Interest Status</th>
-            <th>Units</th>
-            <th>Exit</th>
-            <th class="num">Security</th>
-            <th class="num">Principal</th>
-            <th class="num">O/S Int</th>
-            <th class="num">Accrued</th>
-            <th class="num">Late Int</th>
-            <th class="num">Tax/Ins</th>
-            <th class="num">Int Adv</th>
-            <th class="num">Other</th>
-            <th class="num">Total Exposure</th>
-            <th class="num">LTV</th>
-            <th>Risk</th>
+            <th class="ms-col-left ms-sortable" (click)="sortLoanColumn('loanAlias')">
+              Loan Alias <span class="ms-sort-icon">{{ loanSortIndicator('loanAlias') }}</span>
+            </th>
+            <th class="ms-col-left ms-sortable" (click)="sortLoanColumn('sponsor')">
+              Sponsor <span class="ms-sort-icon">{{ loanSortIndicator('sponsor') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('defaultDate')">
+              Default Date <span class="ms-sort-icon">{{ loanSortIndicator('defaultDate') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('maturityDate')">
+              Maturity Date <span class="ms-sort-icon">{{ loanSortIndicator('maturityDate') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('interestStatus')">
+              Interest Status <span class="ms-sort-icon">{{ loanSortIndicator('interestStatus') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('units')">
+              Units <span class="ms-sort-icon">{{ loanSortIndicator('units') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('exit')">
+              Exit <span class="ms-sort-icon">{{ loanSortIndicator('exit') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('security')">
+              Security <span class="ms-sort-icon">{{ loanSortIndicator('security') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('principal')">
+              Principal <span class="ms-sort-icon">{{ loanSortIndicator('principal') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('osInt')">
+              O/S Int. <span class="ms-sort-icon">{{ loanSortIndicator('osInt') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('accrued')">
+              Accrued Int. <span class="ms-sort-icon">{{ loanSortIndicator('accrued') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('lateInt')">
+              Late Int. <span class="ms-sort-icon">{{ loanSortIndicator('lateInt') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('taxIns')">
+              Tax Arrears <span class="ms-sort-icon">{{ loanSortIndicator('taxIns') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('intAdv')">
+              Int. Adj. <span class="ms-sort-icon">{{ loanSortIndicator('intAdv') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('other')">
+              Other Costs <span class="ms-sort-icon">{{ loanSortIndicator('other') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('totalExposure')">
+              Total Exposure <span class="ms-sort-icon">{{ loanSortIndicator('totalExposure') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('ltv')">
+              LTV <span class="ms-sort-icon">{{ loanSortIndicator('ltv') }}</span>
+            </th>
+            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('risk')">
+              Risk <span class="ms-sort-icon">{{ loanSortIndicator('risk') }}</span>
+            </th>
             <th class="ms-table__chevron-col" aria-hidden="true"></th>
           </tr>
         </thead>
         <tbody>
-          @for (row of loanRows(); track row.loanAliasKey) {
+          @for (row of sortedLoanRows(); track row.loanAliasKey) {
             <tr
               class="ms-table__row ms-table__row--clickable"
               (click)="openLoanDetail(row)"
             >
-              <td>
+              <td class="ms-col-left">
                 <span class="ms-drill-cell__name">{{ row.loanAlias }}</span>
               </td>
-              <td>{{ row.sponsor }}</td>
-              <td>{{ row.defaultDate }}</td>
-              <td>{{ row.maturityDate }}</td>
-              <td class="wrap">{{ row.interestStatus }}</td>
-              <td class="wrap">{{ row.units }}</td>
-              <td>{{ row.exit }}</td>
-              <td class="num">{{ row.security | number: '1.0-0' }}</td>
-              <td class="num">{{ row.principal | number: '1.0-0' }}</td>
-              <td class="num">{{ row.osInt | number: '1.0-0' }}</td>
-              <td class="num">{{ row.accrued | number: '1.0-0' }}</td>
-              <td class="num">{{ row.lateInt | number: '1.0-0' }}</td>
-              <td class="num">{{ row.taxIns | number: '1.0-0' }}</td>
-              <td class="num">{{ row.intAdv | number: '1.0-0' }}</td>
-              <td class="num">{{ row.other | number: '1.0-0' }}</td>
-              <td class="num">{{ row.totalExposure | number: '1.0-0' }}</td>
-              <td class="num">{{ row.ltv }}%</td>
-              <td><span [class]="riskClass(row.risk)">{{ row.risk }}</span></td>
+              <td class="ms-col-left">{{ row.sponsor }}</td>
+              <td class="ms-col-center">{{ row.defaultDate }}</td>
+              <td class="ms-col-center">{{ row.maturityDate }}</td>
+              <td class="ms-col-center wrap">{{ row.interestStatus }}</td>
+              <td class="ms-col-center wrap">{{ row.units }}</td>
+              <td class="ms-col-center">{{ row.exit }}</td>
+              <td class="ms-col-center">{{ row.security | number: '1.0-0' }}</td>
+              <td class="ms-col-center">{{ row.principal | number: '1.0-0' }}</td>
+              <td class="ms-col-center">{{ row.osInt | number: '1.0-0' }}</td>
+              <td class="ms-col-center">{{ row.accrued | number: '1.0-0' }}</td>
+              <td class="ms-col-center">{{ row.lateInt | number: '1.0-0' }}</td>
+              <td class="ms-col-center">{{ row.taxIns | number: '1.0-0' }}</td>
+              <td class="ms-col-center">{{ row.intAdv | number: '1.0-0' }}</td>
+              <td class="ms-col-center">{{ row.other | number: '1.0-0' }}</td>
+              <td class="ms-col-center">{{ row.totalExposure | number: '1.0-0' }}</td>
+              <td class="ms-col-center">{{ row.ltv }}%</td>
+              <td class="ms-col-center"><span [class]="riskClass(row.risk)">{{ row.risk }}</span></td>
               <td class="ms-table__chevron-col">
                 <mat-icon aria-hidden="true">chevron_right</mat-icon>
               </td>
@@ -130,16 +166,16 @@
         <tfoot>
           <tr class="ms-table__total">
             <td colspan="7">TOTAL</td>
-            <td class="num">{{ loanTotals().security | number: '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().principal | number: '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().osInt | number: '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().accrued | number: '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().lateInt | number: '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().taxIns | number: '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().intAdv | number: '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().other | number: '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().totalExposure | number: '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().ltv != null ? (loanTotals().ltv | number: '1.0-0') + '%' : '—' }}</td>
+            <td class="ms-col-center">{{ loanTotals().security | number: '1.0-0' }}</td>
+            <td class="ms-col-center">{{ loanTotals().principal | number: '1.0-0' }}</td>
+            <td class="ms-col-center">{{ loanTotals().osInt | number: '1.0-0' }}</td>
+            <td class="ms-col-center">{{ loanTotals().accrued | number: '1.0-0' }}</td>
+            <td class="ms-col-center">{{ loanTotals().lateInt | number: '1.0-0' }}</td>
+            <td class="ms-col-center">{{ loanTotals().taxIns | number: '1.0-0' }}</td>
+            <td class="ms-col-center">{{ loanTotals().intAdv | number: '1.0-0' }}</td>
+            <td class="ms-col-center">{{ loanTotals().other | number: '1.0-0' }}</td>
+            <td class="ms-col-center">{{ loanTotals().totalExposure | number: '1.0-0' }}</td>
+            <td class="ms-col-center">{{ loanTotals().ltv != null ? (loanTotals().ltv | number: '1.0-0') + '%' : '—' }}</td>
             <td></td>
             <td class="ms-table__chevron-col" aria-hidden="true"></td>
           </tr>
@@ -161,7 +197,7 @@
         <thead>
           <tr>
             <th>Risk Band</th>
-            <th class="num">Loans</th>
+            <th class="num">Loan Alias</th>
             <th class="num">Exposure</th>
             <th class="num">%</th>
           </tr>
@@ -229,12 +265,12 @@
       <table class="ms-table ms-table--exposure-analysis">
         <thead>
           <tr>
-            <th>Loan Name</th>
+            <th>Loan Alias</th>
             <th>Sponsor</th>
             <th class="num">External Balance</th>
             <th class="num">SMF Balance</th>
             <th class="num">MLP Balance</th>
-            <th class="num">Total KS Exposure</th>
+            <th class="num ms-col-sum">Total KS Exposure</th>
             <th class="num">Subordinate Exposure</th>
             <th class="ms-table__chevron-col" aria-hidden="true"></th>
           </tr>
@@ -252,7 +288,7 @@
               <td class="num">{{ row.externalBalance | number: '1.0-0' }}</td>
               <td class="num">{{ row.rmfBalance | number: '1.0-0' }}</td>
               <td class="num">{{ row.mlpBalance | number: '1.0-0' }}</td>
-              <td class="num">{{ row.totalKsExposure | number: '1.0-0' }}</td>
+              <td class="num ms-col-sum">{{ row.totalKsExposure | number: '1.0-0' }}</td>
               <td class="num">{{ row.subordinateExposure | number: '1.0-0' }}</td>
               <td class="ms-table__chevron-col">
                 <mat-icon aria-hidden="true">chevron_right</mat-icon>
@@ -266,7 +302,7 @@
             <td class="num">{{ exposureAnalysisTotals().externalBalance | number: '1.0-0' }}</td>
             <td class="num">{{ exposureAnalysisTotals().rmfBalance | number: '1.0-0' }}</td>
             <td class="num">{{ exposureAnalysisTotals().mlpBalance | number: '1.0-0' }}</td>
-            <td class="num">{{ exposureAnalysisTotals().totalKsExposure | number: '1.0-0' }}</td>
+            <td class="num ms-col-sum">{{ exposureAnalysisTotals().totalKsExposure | number: '1.0-0' }}</td>
             <td class="num">{{ exposureAnalysisTotals().subordinateExposure | number: '1.0-0' }}</td>
             <td class="ms-table__chevron-col" aria-hidden="true"></td>
           </tr>
@@ -279,7 +315,7 @@
     <article class="ms-chart-card">
       <header class="ms-chart-card__head">
         <h2>Capital Stack</h2>
-        <p>Outstanding interest, late interest and related components</p>
+        <p>External, SMF, MLP and subordinate exposure</p>
       </header>
       <div #capitalStackContainer class="ms-chart">
         <canvas #capitalStackCanvas aria-label="Capital stack breakdown chart"></canvas>
@@ -307,7 +343,7 @@
     <article class="ms-chart-card">
       <header class="ms-chart-card__head">
         <h2>Investor Summary</h2>
-        <p>Exposure by capital partner</p>
+        <p>Exposure by investor alias</p>
       </header>
       <div #investorContainer class="ms-chart">
         <canvas #investorCanvas aria-label="Investor summary chart"></canvas>
@@ -315,8 +351,8 @@
       <table class="ms-mini-table">
         <thead>
           <tr>
-            <th>Investor</th>
-            <th class="num">Loans</th>
+            <th>Investor Alias</th>
+            <th class="num">Loan Alias</th>
             <th class="num">Exposure</th>
             <th class="num">%</th>
           </tr>
@@ -385,6 +421,7 @@
         <p>As at {{ watchlistAsAtDisplay() }} — {{ watchlistRows().length }} accounts under review</p>
       </div>
       <div class="ms-watchlist-badges">
+        <span class="ms-badge ms-badge--claim">{{ watchlistClaimExpectedCount() }} CLAIM EXPECTED</span>
         <span class="ms-badge ms-badge--concern">{{ watchlistConcernCount() }} CONCERN</span>
         <span class="ms-badge ms-badge--ok">{{ watchlistNoConcernCount() }} NO CONCERNS</span>
       </div>

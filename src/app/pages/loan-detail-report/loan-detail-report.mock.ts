@@ -4,10 +4,9 @@ import type { LoanDetailReportData } from './loan-detail-report.models';
 export const LOAN_DETAIL_REPORT_MOCK: LoanDetailReportData = {
   loanAlias: 'Brentwood Tower C',
   header: {
-    securityValue: 222_100_000,
+    principalBalance: 210_800_000,
+    percentInterestPaid: 71.4,
     overallLtv: 99.1,
-    equityCushion: 1_900_000,
-    units: 329,
   },
   reportDetails: {
     mainLoanId: '145027',
@@ -16,22 +15,30 @@ export const LOAN_DETAIL_REPORT_MOCK: LoanDetailReportData = {
     ranking: '1st / 2nd',
   },
   keyDates: {
+    dateOfAdvance: '2023-06-15',
     dateOfDefault: '2024-10-01',
-    daysInDefault: 503,
     maturityDate: '2026-12-31',
+    interestOffDate: '2024-11-01',
+    daysInDefault: 503,
     asOfDate: '2026-03-18',
   },
   propertyStats: {
+    securityValue: 222_100_000,
+    unitsSize: 'Units: 329 | Acres: 1.2',
     valuePerUnit: 674_772,
+    exposurePerUnit: 668_997,
     riskStatus: 'ELEVATED',
-    propertyType: 'Multi-Residential',
-    location: 'Burnaby, BC',
   },
   interestSummary: {
     interestDisbursed: 15_900_000,
     interestNotDisbursed: 9_600_000,
-    totalOutstandingInterest: 25_500_000,
     monthsInArrears: 14,
+  },
+  interestOverLife: {
+    totalInterestDue: 42_000_000,
+    paidByReservesOrInterCo: 18_000_000,
+    paidViaCash: 12_000_000,
+    interestUnpaid: 12_000_000,
   },
   interestReserve: {
     currentInterestReserve: 14_600_000,

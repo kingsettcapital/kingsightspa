@@ -132,6 +132,7 @@ export type ManagementSummaryDashboardDto = {
     ltvRiskDistribution?: ChartSliceDto[];
     top5Exposures?: ChartSliceDto[];
     exposureBreakdown?: ChartSliceDto[];
+    capitalStack?: ChartSliceDto[];
     exposureAnalysis?: ChartSliceDto[];
     investorSummary?: ChartSliceDto[];
     sponsorSummary?: ChartSliceDto[];
@@ -141,10 +142,9 @@ export type ManagementSummaryDashboardDto = {
 export type LoanDetailReportDashboardDto = {
   loanAlias: string;
   header: {
-    securityValue?: number | null;
+    principalBalance?: number | null;
+    percentInterestPaid?: number | null;
     overallLtv?: number | null;
-    equityCushion?: number | null;
-    units?: string | null;
   };
   reportDetails: {
     mainLoanId?: string | null;
@@ -153,22 +153,30 @@ export type LoanDetailReportDashboardDto = {
     ranking?: number | null;
   };
   keyDates: {
+    dateOfAdvance?: string | null;
     dateOfDefault?: string | null;
     daysInDefault?: number | null;
     maturityDate?: string | null;
+    interestOffDate?: string | null;
     asOfDate?: string | null;
   };
   propertyStats: {
+    securityValue?: number | null;
+    unitsSize?: string | null;
     valuePerUnit?: number | null;
+    exposurePerUnit?: number | null;
     riskStatus?: string | null;
-    propertyType?: string | null;
-    location?: string | null;
   };
   interestSummary: {
     interestDisbursed?: number;
     interestNotDisbursed?: number;
-    totalOutstandingInterest?: number;
     monthsInArrears?: number | null;
+  };
+  interestOverLife?: {
+    totalInterestDue?: number | null;
+    paidByReservesOrInterCo?: number | null;
+    paidViaCash?: number | null;
+    interestUnpaid?: number | null;
   };
   interestReserve: {
     currentInterestReserve?: number | null;

@@ -50,7 +50,7 @@ export type CmhcWatchlistRow = {
   issue: string;
   statusUpdate: string;
   conclusion: string;
-  status: 'CONCERN' | 'NO CONCERNS' | string;
+  status: 'CONCERN' | 'NO CONCERNS' | 'CLAIM EXPECTED' | string;
 };
 
 export type ManagementSummaryFilters = {

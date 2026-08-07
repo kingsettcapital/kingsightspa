@@ -16,7 +16,6 @@ import { combineLatest } from 'rxjs';
 import { ManagementSummaryApiService } from '../../core/services/management-summary-api.service';
 import { mapLoanDetailReportDashboard } from './loan-detail-report.mapper';
 import {
-  dashboardHorizontalBarChartScales,
   dashboardLegendLabels,
   DashboardChartLifecycle,
 } from '../../features/capital-dashboard/dashboard/dashboard-chart.util';
@@ -36,14 +35,11 @@ export class LoanDetailReportComponent implements AfterViewInit {
   private readonly route = inject(ActivatedRoute);
   private readonly summaryApi = inject(ManagementSummaryApiService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly investorChart = new DashboardChartLifecycle(this.destroyRef);
   private readonly compositionChart = new DashboardChartLifecycle(this.destroyRef);
   private readonly breakdownChart = new DashboardChartLifecycle(this.destroyRef);
 
-  private readonly investorCanvas = viewChild<ElementRef<HTMLCanvasElement>>('investorCanvas');
   private readonly compositionCanvas = viewChild<ElementRef<HTMLCanvasElement>>('compositionCanvas');
   private readonly breakdownCanvas = viewChild<ElementRef<HTMLCanvasElement>>('breakdownCanvas');
-  private readonly investorChartContainer = viewChild<ElementRef<HTMLElement>>('investorChartContainer');
   private readonly compositionChartContainer = viewChild<ElementRef<HTMLElement>>('compositionChartContainer');
   private readonly breakdownChartContainer = viewChild<ElementRef<HTMLElement>>('breakdownChartContainer');
 
@@ -196,23 +192,61 @@ export class LoanDetailReportComponent implements AfterViewInit {
   private renderCharts(): void {
     const data = this.report();
     this.renderDonut(
-      this.investorCanvas()?.nativeElement,
-      this.investorChartContainer()?.nativeElement,
-      data.exposureByInvestor,
-      this.investorChart,
-    );
-    this.renderDonut(
       this.compositionCanvas()?.nativeElement,
       this.compositionChartContainer()?.nativeElement,
-      data.exposureComposition,
+      this.knownSlices(data.exposureComposition),
       this.compositionChart,
     );
-    this.renderHorizontalBar(
+    this.renderStackedInvestorBar(
       this.breakdownCanvas()?.nativeElement,
       this.breakdownChartContainer()?.nativeElement,
-      data.investorBreakdown,
+      this.knownSlices(data.exposureByInvestor),
       this.breakdownChart,
     );
+  }
+
+  private knownSlices(
+    slices: LoanDetailReportData['exposureByInvestor'],
+  ): LoanDetailReportData['exposureByInvestor'] {
+    const filtered = slices.filter((slice) => {
+      const label = slice.label.trim().toLowerCase();
+      return label && label !== 'unknown' && label !== '(unknown)';
+    });
+    const total = filtered.reduce((sum, slice) => sum + slice.value, 0);
+    return filtered.map((slice) => ({
+      ...slice,
+      sharePercent: total > 0 ? (slice.value / total) * 100 : 0,
+    }));
+  }
+
+  private legendLabelsWithData(slices: LoanDetailReportData['exposureByInvestor']) {
+    return {
+      ...dashboardLegendLabels(),
+      generateLabels: (chart: Chart) => {
+        const dataset = chart.data.datasets[0];
+        const labels = chart.data.labels ?? [];
+        return labels.map((label, index) => {
+          const slice = slices[index];
+          const valueText = this.formatMillions(slice?.value ?? 0);
+          const pctText = `${(slice?.sharePercent ?? 0).toFixed(1)}%`;
+          const fill =
+            typeof dataset.backgroundColor === 'string'
+              ? dataset.backgroundColor
+              : Array.isArray(dataset.backgroundColor)
+                ? String(dataset.backgroundColor[index] ?? '#0c274a')
+                : '#0c274a';
+          return {
+            text: `${String(label)} — ${valueText} (${pctText})`,
+            fillStyle: fill,
+            strokeStyle: fill,
+            lineWidth: 0,
+            hidden: false,
+            index,
+            datasetIndex: 0,
+          };
+        });
+      },
+    };
   }
 
   private renderDonut(
@@ -246,7 +280,7 @@ export class LoanDetailReportComponent implements AfterViewInit {
           legend: {
             display: true,
             position: 'bottom',
-            labels: dashboardLegendLabels(),
+            labels: this.legendLabelsWithData(slices),
           },
           tooltip: {
             backgroundColor: '#1a202c',
@@ -265,52 +299,74 @@ export class LoanDetailReportComponent implements AfterViewInit {
     lifecycle.mount(canvas, container, config);
   }
 
-  private renderHorizontalBar(
+  private renderStackedInvestorBar(
     canvas: HTMLCanvasElement | undefined,
     container: HTMLElement | undefined,
-    slices: LoanDetailReportData['investorBreakdown'],
+    slices: LoanDetailReportData['exposureByInvestor'],
     lifecycle: DashboardChartLifecycle,
   ): void {
     if (!canvas || !container || !slices.length) {
       return;
     }
 
-    const maxValue = Math.max(...slices.map((item) => item.value)) * 1.1;
+    const total = slices.reduce((sum, slice) => sum + slice.value, 0);
 
     const config: ChartConfiguration<'bar'> = {
       type: 'bar',
       data: {
-        labels: slices.map((item) => item.label),
-        datasets: [
-          {
-            data: slices.map((item) => item.value),
-            backgroundColor: slices.map((_, index) => dashboardBarPieSeriesColor(index)),
-            borderWidth: 0,
-            barThickness: 18,
-          },
-        ],
+        labels: ['Exposure'],
+        datasets: slices.map((slice, index) => ({
+          label: `${slice.label} — ${this.formatMillions(slice.value)} (${slice.sharePercent.toFixed(1)}%)`,
+          data: [slice.value],
+          backgroundColor: dashboardBarPieSeriesColor(index),
+          borderWidth: 0,
+          barThickness: 42,
+        })),
       },
       options: {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              ...dashboardLegendLabels(),
+              generateLabels: (chart) =>
+                chart.data.datasets.map((dataset, index) => ({
+                  text: String(dataset.label ?? ''),
+                  fillStyle: String(dataset.backgroundColor ?? '#0c274a'),
+                  strokeStyle: String(dataset.backgroundColor ?? '#0c274a'),
+                  lineWidth: 0,
+                  hidden: false,
+                  datasetIndex: index,
+                })),
+            },
+          },
           tooltip: {
             backgroundColor: '#1a202c',
             padding: 10,
             callbacks: {
               label: (ctx) => {
-                const slice = slices[ctx.dataIndex];
-                return ` ${this.formatMillions(slice.value)} (${slice.sharePercent.toFixed(1)}%)`;
+                const slice = slices[ctx.datasetIndex];
+                return ` ${slice.label}: ${this.formatMillions(slice.value)} (${slice.sharePercent.toFixed(1)}%)`;
               },
             },
           },
         },
-        scales: dashboardHorizontalBarChartScales({
-          xMax: maxValue,
-          xTickCallback: (value) => this.formatMillions(Number(value)),
-        }),
+        scales: {
+          x: {
+            stacked: true,
+            max: total > 0 ? total * 1.05 : undefined,
+            ticks: {
+              callback: (value) => this.formatMillions(Number(value)),
+            },
+          },
+          y: {
+            stacked: true,
+          },
+        },
       },
     };
 

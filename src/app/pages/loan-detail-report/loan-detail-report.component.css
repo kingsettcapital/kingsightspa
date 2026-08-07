@@ -100,19 +100,19 @@
 
 .ldr-info-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.ldr-info-grid--interest {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .ldr-info-card {
   background: #fff;
   border: 1px solid #e2e8f0;
   padding: 0.9rem 1rem 1rem;
-}
-
-.ldr-info-card--wide {
-  margin-bottom: 1rem;
 }
 
 .ldr-info-card h2 {
@@ -146,19 +146,6 @@
 
 .ldr-negative {
   color: #b91c1c !important;
-}
-
-.ldr-reserve-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-.ldr-reserve-value {
-  display: block;
-  margin-top: 0.35rem;
-  font-size: 1.35rem;
-  color: #0c274a;
 }
 
 .ldr-section {
@@ -300,7 +287,7 @@
 
 .ldr-charts-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
   gap: 1rem;
   margin-bottom: 1rem;
 }
@@ -329,7 +316,7 @@
 }
 
 .ldr-chart--bar {
-  height: 14rem;
+  height: 16rem;
 }
 
 .ldr-chart canvas {
@@ -367,11 +354,8 @@
 
 @media (max-width: 1200px) {
   .ldr-info-grid,
+  .ldr-info-grid--interest,
   .ldr-charts-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .ldr-reserve-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -379,6 +363,7 @@
 @media (max-width: 768px) {
   .ldr-kpi-row,
   .ldr-info-grid,
+  .ldr-info-grid--interest,
   .ldr-charts-row {
     grid-template-columns: 1fr;
   }

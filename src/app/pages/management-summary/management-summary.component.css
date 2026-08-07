@@ -292,6 +292,32 @@
   font-variant-numeric: tabular-nums;
 }
 
+.ms-table--loan-summary .ms-col-left {
+  text-align: left;
+}
+
+.ms-table--loan-summary .ms-col-center {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-table--loan-summary thead th.ms-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.ms-table--loan-summary thead th.ms-sortable:hover {
+  background: #143761;
+}
+
+.ms-table--loan-summary .ms-sort-icon {
+  display: inline-block;
+  margin-left: 0.15rem;
+  font-size: 0.65rem;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
 .ms-table .wrap {
   min-width: 0;
   max-width: none;
@@ -425,9 +451,14 @@
   letter-spacing: 0.04em;
 }
 
+.ms-badge--claim {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
 .ms-badge--concern {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: #fef08a;
+  color: #a16207;
 }
 
 .ms-badge--ok {
@@ -469,9 +500,14 @@
   overflow-wrap: anywhere;
 }
 
+.ms-watch-status--claim {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
 .ms-watch-status--concern {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: #fef08a;
+  color: #a16207;
 }
 
 .ms-watch-status--ok {
@@ -721,6 +757,7 @@
 .ms-mini-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 0.75rem;
 }
 
@@ -741,13 +778,25 @@
   color: #1e293b;
 }
 
-.ms-mini-table .num {
-  text-align: right;
+.ms-mini-table thead th.num,
+.ms-mini-table tbody td.num {
+  text-align: center;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .ms-table--exposure-analysis {
   min-width: 0;
+}
+
+.ms-table--exposure-analysis thead th.num,
+.ms-table--exposure-analysis tbody td.num,
+.ms-table--exposure-analysis tfoot td.num {
+  text-align: center;
+}
+
+.ms-table--exposure-analysis .ms-col-sum {
+  font-weight: 700;
 }
 
 .ms-ltv {

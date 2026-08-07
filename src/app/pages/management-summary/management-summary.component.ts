@@ -87,6 +87,8 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
     totalLateInterest: 0,
   });
   readonly loanRows = signal<LoanAliasSummaryRow[]>([]);
+  readonly loanSortColumn = signal<keyof LoanAliasSummaryRow | null>(null);
+  readonly loanSortDir = signal<'asc' | 'desc'>('asc');
   readonly watchlistRows = signal<CmhcWatchlistRow[]>([]);
   readonly watchlistAsAtDisplay = signal('—');
   readonly ltvRiskBands = signal<LtvRiskBandRow[]>([]);
@@ -105,6 +107,46 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   readonly filters = signal<ManagementSummaryFilters>(createDefaultFilters());
 
   readonly loanTotals = computed(() => this.sumLoanRows(this.loanRows()));
+
+  readonly sortedLoanRows = computed(() => {
+    const rows = [...this.loanRows()];
+    const column = this.loanSortColumn();
+    if (!column) {
+      return rows;
+    }
+    const direction = this.loanSortDir() === 'asc' ? 1 : -1;
+    const dateColumns = new Set<keyof LoanAliasSummaryRow>(['defaultDate', 'maturityDate']);
+    rows.sort((left, right) => {
+      const leftValue = left[column];
+      const rightValue = right[column];
+      if (leftValue == null && rightValue == null) {
+        return 0;
+      }
+      if (leftValue == null || leftValue === '—') {
+        return 1;
+      }
+      if (rightValue == null || rightValue === '—') {
+        return -1;
+      }
+      if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+        return (leftValue - rightValue) * direction;
+      }
+      if (dateColumns.has(column)) {
+        const leftTime = Date.parse(String(leftValue));
+        const rightTime = Date.parse(String(rightValue));
+        if (!Number.isNaN(leftTime) && !Number.isNaN(rightTime)) {
+          return (leftTime - rightTime) * direction;
+        }
+      }
+      return (
+        String(leftValue).localeCompare(String(rightValue), undefined, {
+          sensitivity: 'base',
+          numeric: true,
+        }) * direction
+      );
+    });
+    return rows;
+  });
 
   readonly exposureBreakdownTotal = computed(() =>
     this.exposureBreakdown().reduce((sum, slice) => sum + slice.value, 0),
@@ -129,6 +171,10 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
 
   readonly watchlistConcernCount = computed(
     () => this.watchlistRows().filter((row) => row.status === 'CONCERN').length,
+  );
+
+  readonly watchlistClaimExpectedCount = computed(
+    () => this.watchlistRows().filter((row) => row.status === 'CLAIM EXPECTED').length,
   );
 
   readonly watchlistNoConcernCount = computed(
@@ -212,6 +258,22 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
 
   openLoanDetail(row: LoanAliasSummaryRow): void {
     this.navigateToLoanDetail(row.loanAliasKey, row.loanAlias);
+  }
+
+  sortLoanColumn(column: keyof LoanAliasSummaryRow): void {
+    if (this.loanSortColumn() === column) {
+      this.loanSortDir.update((dir) => (dir === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    this.loanSortColumn.set(column);
+    this.loanSortDir.set('asc');
+  }
+
+  loanSortIndicator(column: keyof LoanAliasSummaryRow): string {
+    if (this.loanSortColumn() !== column) {
+      return '↕';
+    }
+    return this.loanSortDir() === 'asc' ? '↑' : '↓';
   }
 
   openExposureAnalysisDetail(row: ExposureAnalysisRow): void {
@@ -321,7 +383,13 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   }
 
   watchlistStatusClass(row: CmhcWatchlistRow): string {
-    return row.status === 'CONCERN' ? 'ms-watch-status ms-watch-status--concern' : 'ms-watch-status ms-watch-status--ok';
+    if (row.status === 'CLAIM EXPECTED') {
+      return 'ms-watch-status ms-watch-status--claim';
+    }
+    if (row.status === 'CONCERN') {
+      return 'ms-watch-status ms-watch-status--concern';
+    }
+    return 'ms-watch-status ms-watch-status--ok';
   }
 
   missedClass(missed: string | number | null): string {

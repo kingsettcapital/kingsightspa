@@ -12,20 +12,18 @@
 
   <div class="ldr-kpi-row">
     <article class="ldr-kpi-card">
-      <span class="ldr-kpi-card__label">Security Value</span>
-      <strong class="ldr-kpi-card__value">{{ formatMillions(report().header.securityValue) }}</strong>
+      <span class="ldr-kpi-card__label">Principal Balance</span>
+      <strong class="ldr-kpi-card__value">{{ formatMillions(report().header.principalBalance) }}</strong>
+    </article>
+    <article class="ldr-kpi-card">
+      <span class="ldr-kpi-card__label">% of Interest Paid</span>
+      <strong class="ldr-kpi-card__value">
+        {{ report().header.percentInterestPaid != null ? report().header.percentInterestPaid + '%' : '—' }}
+      </strong>
     </article>
     <article class="ldr-kpi-card">
       <span class="ldr-kpi-card__label">Overall LTV</span>
       <strong class="ldr-kpi-card__value">{{ report().header.overallLtv }}%</strong>
-    </article>
-    <article class="ldr-kpi-card">
-      <span class="ldr-kpi-card__label">Equity Cushion</span>
-      <strong class="ldr-kpi-card__value">{{ formatMillions(report().header.equityCushion) }}</strong>
-    </article>
-    <article class="ldr-kpi-card">
-      <span class="ldr-kpi-card__label">Units</span>
-      <strong class="ldr-kpi-card__value">{{ report().header.units }}</strong>
     </article>
   </div>
 
@@ -43,60 +41,92 @@
     <article class="ldr-info-card">
       <h2>Key Dates</h2>
       <dl>
+        <div><dt>Date of Advance</dt><dd>{{ report().keyDates.dateOfAdvance }}</dd></div>
         <div><dt>Date of Default</dt><dd>{{ report().keyDates.dateOfDefault }}</dd></div>
+        <div><dt>Maturity Date</dt><dd>{{ report().keyDates.maturityDate }}</dd></div>
+        <div><dt>Interest Off Date</dt><dd>{{ report().keyDates.interestOffDate }}</dd></div>
         <div>
           <dt>Days in Default</dt>
           <dd class="ldr-negative">{{ report().keyDates.daysInDefault || '—' }}</dd>
         </div>
-        <div><dt>Maturity Date</dt><dd>{{ report().keyDates.maturityDate }}</dd></div>
-        <div><dt>As Of Date</dt><dd>{{ report().keyDates.asOfDate }}</dd></div>
       </dl>
     </article>
 
     <article class="ldr-info-card">
       <h2>Property Stats</h2>
       <dl>
+        <div><dt>Security Value</dt><dd>{{ formatMillions(report().propertyStats.securityValue) }}</dd></div>
+        <div><dt>Units / Size</dt><dd>{{ report().propertyStats.unitsSize }}</dd></div>
         <div><dt>Value / Unit</dt><dd>{{ formatCurrency(report().propertyStats.valuePerUnit) }}</dd></div>
+        <div><dt>Exposure / Unit</dt><dd>{{ formatCurrency(report().propertyStats.exposurePerUnit) }}</dd></div>
         <div>
           <dt>Risk Status</dt>
           <dd><span [class]="riskClass(report().propertyStats.riskStatus)">{{ report().propertyStats.riskStatus }}</span></dd>
         </div>
-        <div><dt>Property Type</dt><dd>{{ report().propertyStats.propertyType }}</dd></div>
-        <div><dt>Sponsor</dt><dd>{{ report().propertyStats.location }}</dd></div>
+      </dl>
+    </article>
+
+  </div>
+
+  <div class="ldr-info-grid ldr-info-grid--interest">
+    <article class="ldr-info-card">
+      <h2>Interest Reserve</h2>
+      <dl>
+        <div>
+          <dt>Current Interest Reserve</dt>
+          <dd>{{ formatMillions(report().interestReserve.currentInterestReserve) }}</dd>
+        </div>
+        <div>
+          <dt>Current Interest Reserve Balance</dt>
+          <dd>{{ formatMillions(report().interestReserve.currentInterestReserveBalance) }}</dd>
+        </div>
+        <div>
+          <dt># Of Months Interest Covered by Interest Reserve</dt>
+          <dd>{{ report().interestReserve.monthsCoveredByReserve ?? '—' }}</dd>
+        </div>
       </dl>
     </article>
 
     <article class="ldr-info-card">
       <h2>Interest Over Life of Loan</h2>
       <dl>
-        <div><dt>Interest Disbursed</dt><dd>{{ formatMillions(report().interestSummary.interestDisbursed) }}</dd></div>
-        <div><dt>Interest Not Disbursed</dt><dd>{{ formatMillions(report().interestSummary.interestNotDisbursed) }}</dd></div>
-        <div><dt>Total Outstanding Interest</dt><dd>{{ formatMillions(report().interestSummary.totalOutstandingInterest) }}</dd></div>
+        <div>
+          <dt>Total Interest Due</dt>
+          <dd>{{ formatMillions(report().interestOverLife.totalInterestDue) }}</dd>
+        </div>
+        <div>
+          <dt>Paid by Reserves or InterCo</dt>
+          <dd>{{ formatMillions(report().interestOverLife.paidByReservesOrInterCo) }}</dd>
+        </div>
+        <div>
+          <dt>Paid via Cash</dt>
+          <dd>{{ formatMillions(report().interestOverLife.paidViaCash) }}</dd>
+        </div>
+        <div>
+          <dt>Interest Unpaid</dt>
+          <dd>{{ formatMillions(report().interestOverLife.interestUnpaid) }}</dd>
+        </div>
+      </dl>
+    </article>
+
+    <article class="ldr-info-card">
+      <h2>Interest Disbursed</h2>
+      <dl>
+        <div>
+          <dt>Interest Disbursed</dt>
+          <dd>{{ formatMillions(report().interestSummary.interestDisbursed) }}</dd>
+        </div>
+        <div>
+          <dt>Interest Not Disbursed</dt>
+          <dd>{{ formatMillions(report().interestSummary.interestNotDisbursed) }}</dd>
+        </div>
         <div>
           <dt># Months in Arrears</dt>
-          <dd class="ldr-negative">{{ report().interestSummary.monthsInArrears }}</dd>
+          <dd class="ldr-negative">{{ report().interestSummary.monthsInArrears || '—' }}</dd>
         </div>
       </dl>
     </article>
   </div>
-
-  <article class="ldr-info-card ldr-info-card--wide">
-    <h2>Interest Reserve</h2>
-    <div class="ldr-reserve-grid">
-      <div>
-        <span class="ldr-kpi-card__label">Current Interest Reserve</span>
-        <strong class="ldr-reserve-value">{{ formatMillions(report().interestReserve.currentInterestReserve) }}</strong>
-      </div>
-      <div>
-        <span class="ldr-kpi-card__label">Current Interest Reserve Balance</span>
-        <strong class="ldr-reserve-value">{{ formatMillions(report().interestReserve.currentInterestReserveBalance) }}</strong>
-      </div>
-      <div>
-        <span class="ldr-kpi-card__label"># Of Months Interest Covered by Interest Reserve</span>
-        <strong class="ldr-reserve-value">{{ report().interestReserve.monthsCoveredByReserve }}</strong>
-      </div>
-    </div>
-  </article>
 
   <section class="ldr-section">
     <div class="ldr-section__head">
@@ -121,17 +151,16 @@
           <col class="ldr-col ldr-col--num" />
           <col class="ldr-col ldr-col--narrow" />
           <col class="ldr-col ldr-col--narrow" />
-          <col class="ldr-col ldr-col--narrow" />
         </colgroup>
         <thead>
           <tr>
             <th>Loan ID</th>
-            <th>Description</th>
+            <th>Loan Name</th>
             <th>Investor</th>
             <th>Rank</th>
             <th class="num">Rate</th>
             <th class="num">Principal</th>
-            <th class="num">Def. Interest</th>
+            <th class="num">O/S Int.</th>
             <th class="num">Accrued Int.</th>
             <th class="num">Late Int.</th>
             <th class="num">Int. Adj.</th>
@@ -140,7 +169,6 @@
             <th class="num">Total Exposure</th>
             <th class="num">LTV</th>
             <th class="num"># Mo. in Arrears</th>
-            <th class="num"># Times NSF'd</th>
           </tr>
         </thead>
         <tbody>
@@ -161,7 +189,6 @@
               <td class="num">{{ formatCurrency(row.totalExposure) }}</td>
               <td class="num">{{ formatLtv(row.ltv) }}</td>
               <td class="num">{{ row.monthsInArrears ?? '—' }}</td>
-              <td class="num">{{ row.timesNsfd ?? '—' }}</td>
             </tr>
           }
         </tbody>
@@ -177,7 +204,7 @@
             <td class="num">{{ formatCurrency(portfolioTotals().otherCosts) }}</td>
             <td class="num">{{ formatCurrency(portfolioTotals().totalExposure) }}</td>
             <td class="num">{{ formatLtv(portfolioTotals().ltv) }}</td>
-            <td colspan="2"></td>
+            <td></td>
           </tr>
         </tfoot>
       </table>
@@ -185,23 +212,17 @@
   </section>
 
   <div class="ldr-charts-row">
-    <article class="ldr-chart-card">
-      <h2>Exposure by Investor</h2>
-      <div #investorChartContainer class="ldr-chart">
-        <canvas #investorCanvas aria-label="Exposure by investor donut chart"></canvas>
-      </div>
-    </article>
-    <article class="ldr-chart-card">
+    <article class="ldr-chart-card ldr-chart-card--composition">
       <h2>Exposure Composition</h2>
       <p class="ldr-chart-subtitle">Total {{ totalExposureDisplay() }}</p>
       <div #compositionChartContainer class="ldr-chart">
         <canvas #compositionCanvas aria-label="Exposure composition donut chart"></canvas>
       </div>
     </article>
-    <article class="ldr-chart-card">
-      <h2>Investor Breakdown</h2>
+    <article class="ldr-chart-card ldr-chart-card--investor">
+      <h2>Exposure by Investor</h2>
       <div #breakdownChartContainer class="ldr-chart ldr-chart--bar">
-        <canvas #breakdownCanvas aria-label="Investor breakdown bar chart"></canvas>
+        <canvas #breakdownCanvas aria-label="Exposure by investor stacked bar chart"></canvas>
       </div>
     </article>
   </div>
