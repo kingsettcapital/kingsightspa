@@ -155,7 +155,11 @@ export class MainLayoutComponent implements OnInit {
   }
 
   private shouldHideAppChrome(url: string): boolean {
-    return url.startsWith('/capital-dashboard') || url.startsWith('/data-explorer');
+    return (
+      url.startsWith('/capital-dashboard')
+      || url.startsWith('/data-explorer')
+      || url.startsWith('/mortgage/management-summary')
+    );
   }
 
   private syncDropdownToRoute(url: string): void {

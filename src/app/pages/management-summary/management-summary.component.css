@@ -1,3 +1,30 @@
+.ms-home-link {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin: 0.75rem 0 0 0.75rem;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #e7a614 0%, #c9a227 48%, #a8842f 100%);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+}
+
+.ms-home-link:hover {
+  filter: brightness(1.05);
+}
+
+.ms-home-link mat-icon {
+  font-size: 1.15rem;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
 .ms-dashboard {
   min-height: 100%;
   padding: 1.25rem 1.5rem 2rem;

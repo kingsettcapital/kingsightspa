@@ -5,10 +5,43 @@
   color: #1a1f36;
 }
 
+.ldr-chrome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin: 0 0 1rem;
+}
+
+.ldr-home-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #e7a614 0%, #c9a227 48%, #a8842f 100%);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+}
+
+.ldr-home-link:hover {
+  filter: brightness(1.05);
+  color: #fff;
+}
+
+.ldr-home-link mat-icon {
+  font-size: 1.15rem;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
 .ldr-back-link {
   display: inline-flex;
   align-items: center;
-  margin: 0 0 1rem;
+  margin: 0;
   color: #2563eb;
   font-size: 0.95rem;
   font-weight: 600;

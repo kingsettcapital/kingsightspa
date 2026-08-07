@@ -249,6 +249,7 @@
   }
 
   <div class="ks-app-main">
+    @if (!hideAppSidebar()) {
     <header class="ks-header">
       <div class="ks-header__brand">
         <button
@@ -286,8 +287,9 @@
         }
       </div>
     </header>
+    }
 
-    <main class="ks-page">
+    <main class="ks-page" [class.ks-page--report]="hideAppSidebar()">
       <router-outlet></router-outlet>
     </main>
   </div>
