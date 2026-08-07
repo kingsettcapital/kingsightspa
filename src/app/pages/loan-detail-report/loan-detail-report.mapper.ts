@@ -54,8 +54,8 @@ export function mapLoanDetailReportDashboard(dto: LoanDetailReportDashboardDto):
     reportDetails: {
       mainLoanId: dto.reportDetails?.mainLoanId ?? '—',
       loanType: dto.reportDetails?.loanType ?? '—',
-      investorAlias: dto.reportDetails?.investorAlias ?? '—',
-      ranking: dto.reportDetails?.ranking != null ? String(dto.reportDetails.ranking) : '—',
+      investorCount: dto.reportDetails?.investorCount ?? null,
+      sponsor: dto.reportDetails?.sponsor?.trim() || '—',
     },
     keyDates: {
       dateOfAdvance: formatDate(dto.keyDates?.dateOfAdvance),

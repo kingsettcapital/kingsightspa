@@ -149,8 +149,8 @@ export type LoanDetailReportDashboardDto = {
   reportDetails: {
     mainLoanId?: string | null;
     loanType?: string | null;
-    investorAlias?: string | null;
-    ranking?: number | null;
+    investorCount?: number | null;
+    sponsor?: string | null;
   };
   keyDates: {
     dateOfAdvance?: string | null;

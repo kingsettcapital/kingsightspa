@@ -7,8 +7,8 @@ export type LoanDetailHeaderSummary = {
 export type LoanDetailReportDetails = {
   mainLoanId: string;
   loanType: string;
-  investorAlias: string;
-  ranking: string;
+  investorCount: number | null;
+  sponsor: string;
 };
 
 export type LoanDetailKeyDates = {

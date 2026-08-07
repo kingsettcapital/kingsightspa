@@ -42,8 +42,11 @@
       <dl>
         <div><dt>Main Loan ID</dt><dd>{{ report().reportDetails.mainLoanId }}</dd></div>
         <div><dt>Loan Type</dt><dd>{{ report().reportDetails.loanType }}</dd></div>
-        <div><dt>Investor Alias</dt><dd>{{ report().reportDetails.investorAlias }}</dd></div>
-        <div><dt>Ranking</dt><dd>{{ report().reportDetails.ranking }}</dd></div>
+        <div>
+          <dt># of Investors</dt>
+          <dd>{{ report().reportDetails.investorCount != null ? report().reportDetails.investorCount : '—' }}</dd>
+        </div>
+        <div><dt>Sponsor</dt><dd>{{ report().reportDetails.sponsor }}</dd></div>
       </dl>
     </article>
 

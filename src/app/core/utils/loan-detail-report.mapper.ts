@@ -14,8 +14,8 @@ const EMPTY_REPORT = (loanAlias: string): LoanDetailReportData => ({
   reportDetails: {
     mainLoanId: '—',
     loanType: '—',
-    investorAlias: '—',
-    ranking: '—',
+    investorCount: null,
+    sponsor: '—',
   },
   keyDates: {
     dateOfAdvance: '—',
@@ -114,8 +114,8 @@ export function buildLoanDetailReport(
   report.reportDetails = {
     mainLoanId: rows[0].parentLoanId,
     loanType: '—',
-    investorAlias: rows[0].investorAliasName ?? '—',
-    ranking: '—',
+    investorCount: byInvestor.size,
+    sponsor: '—',
   };
   report.portfolioRows = portfolioRows;
   report.exposureByInvestor = investorSlices;
