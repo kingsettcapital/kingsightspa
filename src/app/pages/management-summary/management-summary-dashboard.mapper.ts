@@ -54,10 +54,11 @@ function mapChartSlice(slice: {
 function buildCapitalStackFromExposureAnalysis(
   rows: ManagementSummaryDashboardDto['exposureAnalysisRows'],
 ): Array<{ label: string; value: number; sharePercent: number }> {
-  const external = rows.reduce((sum, row) => sum + (row.externalBalance ?? 0), 0);
-  const smf = rows.reduce((sum, row) => sum + (row.smfBalance ?? 0), 0);
-  const mlp = rows.reduce((sum, row) => sum + (row.mlpBalance ?? 0), 0);
-  const subordinate = rows.reduce((sum, row) => sum + (row.subordinateExposure ?? 0), 0);
+  const source = rows ?? [];
+  const external = source.reduce((sum, row) => sum + (row.externalBalance ?? 0), 0);
+  const smf = source.reduce((sum, row) => sum + (row.smfBalance ?? 0), 0);
+  const mlp = source.reduce((sum, row) => sum + (row.mlpBalance ?? 0), 0);
+  const subordinate = source.reduce((sum, row) => sum + (row.subordinateExposure ?? 0), 0);
   const total = external + smf + mlp + subordinate;
   const pct = (value: number) => (total > 0 ? Math.round((value / total) * 1000) / 10 : 0);
 
