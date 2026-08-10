@@ -102,7 +102,7 @@
 
 .ldr-kpi-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
 }
@@ -355,6 +355,55 @@
 .ldr-chart canvas {
   width: 100% !important;
   height: 100% !important;
+}
+
+.ldr-mini-table {
+  width: 100%;
+  margin-top: 0.65rem;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.75rem;
+}
+
+.ldr-mini-table thead th {
+  background: #f8fafc;
+  color: #475569;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ldr-mini-table tbody td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+.ldr-mini-table thead th.num,
+.ldr-mini-table tbody td.num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.ldr-legend-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.ldr-legend-swatch {
+  flex: 0 0 auto;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 2px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
 }
 
 .ldr-risk {

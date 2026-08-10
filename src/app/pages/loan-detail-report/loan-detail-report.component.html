@@ -230,12 +230,58 @@
       <div #compositionChartContainer class="ldr-chart">
         <canvas #compositionCanvas aria-label="Exposure composition donut chart"></canvas>
       </div>
+      <table class="ldr-mini-table">
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th class="num">Amount</th>
+            <th class="num">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (slice of compositionLegend(); track slice.label; let i = $index) {
+            <tr>
+              <td>
+                <span class="ldr-legend-label">
+                  <span class="ldr-legend-swatch" [style.background]="chartSeriesColor(i)" aria-hidden="true"></span>
+                  {{ slice.label }}
+                </span>
+              </td>
+              <td class="num">{{ formatMillions(slice.value) }}</td>
+              <td class="num">{{ slice.sharePercent | number: '1.1-1' }}%</td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </article>
     <article class="ldr-chart-card ldr-chart-card--investor">
       <h2>Exposure by Investor</h2>
       <div #breakdownChartContainer class="ldr-chart ldr-chart--bar">
         <canvas #breakdownCanvas aria-label="Exposure by investor stacked bar chart"></canvas>
       </div>
+      <table class="ldr-mini-table">
+        <thead>
+          <tr>
+            <th>Investor</th>
+            <th class="num">Exposure</th>
+            <th class="num">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (slice of investorLegend(); track slice.label; let i = $index) {
+            <tr>
+              <td>
+                <span class="ldr-legend-label">
+                  <span class="ldr-legend-swatch" [style.background]="chartSeriesColor(i)" aria-hidden="true"></span>
+                  {{ slice.label }}
+                </span>
+              </td>
+              <td class="num">{{ formatMillions(slice.value) }}</td>
+              <td class="num">{{ slice.sharePercent | number: '1.1-1' }}%</td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </article>
   </div>
 

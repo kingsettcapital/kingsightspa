@@ -812,14 +812,25 @@
   font-variant-numeric: tabular-nums;
 }
 
-.ms-table--exposure-analysis {
+.ms-legend-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   min-width: 0;
 }
 
-.ms-table--exposure-analysis thead th.num,
-.ms-table--exposure-analysis tbody td.num,
-.ms-table--exposure-analysis tfoot td.num {
-  text-align: center;
+.ms-legend-swatch {
+  flex: 0 0 auto;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 2px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.ms-table--exposure-analysis {
+  min-width: 0;
 }
 
 .ms-table--exposure-analysis .ms-col-sum {

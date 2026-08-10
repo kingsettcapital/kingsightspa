@@ -16,6 +16,9 @@ import { Chart, ChartConfiguration, registerables } from 'chart.js';
 
 import { ManagementSummaryApiService } from '../../core/services/management-summary-api.service';
 import {
+  ManagementSummaryFilterStateService,
+} from '../../core/services/management-summary-filter-state.service';
+import {
   dashboardHorizontalBarChartScales,
   DashboardChartLifecycle,
 } from '../../features/capital-dashboard/dashboard/dashboard-chart.util';
@@ -47,6 +50,7 @@ Chart.register(...registerables);
 export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   private readonly router = inject(Router);
   private readonly summaryApi = inject(ManagementSummaryApiService);
+  private readonly filterState = inject(ManagementSummaryFilterStateService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly ltvRiskChart = new DashboardChartLifecycle(this.destroyRef);
   private readonly top5Chart = new DashboardChartLifecycle(this.destroyRef);
@@ -104,7 +108,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   readonly riskOptions = ['ALL', 'HIGH', 'ELEVATED', 'MODERATE', 'LOW'] as const;
   readonly statusOptions = signal<string[]>(['Default', 'All']);
 
-  readonly filters = signal<ManagementSummaryFilters>(createDefaultFilters());
+  readonly filters = signal<ManagementSummaryFilters>(this.filterState.getFilters());
 
   readonly loanTotals = computed(() => this.sumLoanRows(this.loanRows()));
 
@@ -216,18 +220,26 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   toggleRisk(level: string): void {
     this.filters.update((current) => {
       if (level === 'ALL') {
-        return { ...current, riskLevels: ['ALL'] };
+        const next = { ...current, riskLevels: ['ALL'] };
+        this.filterState.saveFilters(next);
+        return next;
       }
       const withoutAll = current.riskLevels.filter((item) => item !== 'ALL');
-      const next = withoutAll.includes(level)
+      const nextLevels = withoutAll.includes(level)
         ? withoutAll.filter((item) => item !== level)
         : [...withoutAll, level];
-      return { ...current, riskLevels: next.length ? next : ['ALL'] };
+      const next = { ...current, riskLevels: nextLevels.length ? nextLevels : ['ALL'] };
+      this.filterState.saveFilters(next);
+      return next;
     });
   }
 
   setStatus(status: string): void {
-    this.filters.update((current) => ({ ...current, status }));
+    this.filters.update((current) => {
+      const next = { ...current, status };
+      this.filterState.saveFilters(next);
+      return next;
+    });
   }
 
   setSponsor(sponsor: string): void {
@@ -236,22 +248,31 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   }
 
   setInvestorAlias(alias: string): void {
-    this.filters.update((current) => ({
-      ...current,
-      investorAliases: [alias || 'All'],
-    }));
+    this.filters.update((current) => {
+      const next = {
+        ...current,
+        investorAliases: [alias || 'All'],
+      };
+      this.filterState.saveFilters(next);
+      return next;
+    });
     this.closeFilterMenus();
   }
 
   updateFilterField<K extends keyof ManagementSummaryFilters>(key: K, value: ManagementSummaryFilters[K]): void {
-    this.filters.update((current) => ({ ...current, [key]: value }));
+    this.filters.update((current) => {
+      const next = { ...current, [key]: value };
+      this.filterState.saveFilters(next);
+      return next;
+    });
   }
 
   resetFilters(): void {
-    this.filters.set(createDefaultFilters());
+    this.filters.set(this.filterState.resetToDefaults());
   }
 
   applyFilters(): void {
+    this.filterState.saveFilters(this.filters());
     this.closeFilters();
     this.loadSummary();
   }
@@ -331,6 +352,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   }
 
   private navigateToLoanDetail(loanAliasKey: number, loanAlias: string): void {
+    this.filterState.saveFilters(this.filters());
     void this.router.navigate(['/mortgage', 'management-summary', loanAliasKey, 'loan-detail'], {
       queryParams: { alias: loanAlias, asOfDate: this.filters().asOfDate },
     });
@@ -349,6 +371,10 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
       return `${format(Math.round(value / 1_000_000))}M`;
     }
     return format(value);
+  }
+
+  chartSeriesColor(index: number): string {
+    return dashboardBarPieSeriesColor(index);
   }
 
   riskClass(risk: string): string {
@@ -571,27 +597,4 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
 
     this.top5Chart.mount(canvas, container, config);
   }
-}
-
-function defaultAsOfDate(): string {
-  const date = new Date();
-  date.setDate(date.getDate() - 1);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function createDefaultFilters(): ManagementSummaryFilters {
-  return {
-    asOfDate: defaultAsOfDate(),
-    defaultDateFrom: '',
-    defaultDateTo: '',
-    maturityDateFrom: '',
-    maturityDateTo: '',
-    sponsor: 'All',
-    riskLevels: ['ALL'],
-    status: 'Default',
-    investorAliases: ['All'],
-  };
 }

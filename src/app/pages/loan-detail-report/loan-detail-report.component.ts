@@ -17,7 +17,6 @@ import { combineLatest } from 'rxjs';
 import { ManagementSummaryApiService } from '../../core/services/management-summary-api.service';
 import { mapLoanDetailReportDashboard } from './loan-detail-report.mapper';
 import {
-  dashboardLegendLabels,
   DashboardChartLifecycle,
 } from '../../features/capital-dashboard/dashboard/dashboard-chart.util';
 import { dashboardBarPieSeriesColor } from '../../features/capital-dashboard/dashboard/dashboard-chart-colors';
@@ -73,6 +72,9 @@ export class LoanDetailReportComponent implements AfterViewInit {
     this.report().taxArrearsByYear.reduce((sum, row) => sum + row.taxArrears, 0),
   );
 
+  readonly compositionLegend = computed(() => this.knownSlices(this.report().exposureComposition));
+  readonly investorLegend = computed(() => this.knownSlices(this.report().exposureByInvestor));
+
   constructor() {
     combineLatest([this.route.paramMap, this.route.queryParamMap]).subscribe(([params, query]) => {
       const loanAliasKey = Number(params.get('loanAliasKey'));
@@ -122,6 +124,10 @@ export class LoanDetailReportComponent implements AfterViewInit {
       return `${format(Math.round(value / 1_000_000))}M`;
     }
     return format(value);
+  }
+
+  chartSeriesColor(index: number): string {
+    return dashboardBarPieSeriesColor(index);
   }
 
   formatCurrency(value: number | null | undefined): string {
@@ -191,17 +197,16 @@ export class LoanDetailReportComponent implements AfterViewInit {
   }
 
   private renderCharts(): void {
-    const data = this.report();
     this.renderDonut(
       this.compositionCanvas()?.nativeElement,
       this.compositionChartContainer()?.nativeElement,
-      this.knownSlices(data.exposureComposition),
+      this.compositionLegend(),
       this.compositionChart,
     );
     this.renderStackedInvestorBar(
       this.breakdownCanvas()?.nativeElement,
       this.breakdownChartContainer()?.nativeElement,
-      this.knownSlices(data.exposureByInvestor),
+      this.investorLegend(),
       this.breakdownChart,
     );
   }
@@ -218,36 +223,6 @@ export class LoanDetailReportComponent implements AfterViewInit {
       ...slice,
       sharePercent: total > 0 ? (slice.value / total) * 100 : 0,
     }));
-  }
-
-  private legendLabelsWithData(slices: LoanDetailReportData['exposureByInvestor']) {
-    return {
-      ...dashboardLegendLabels(),
-      generateLabels: (chart: Chart) => {
-        const dataset = chart.data.datasets[0];
-        const labels = chart.data.labels ?? [];
-        return labels.map((label, index) => {
-          const slice = slices[index];
-          const valueText = this.formatMillions(slice?.value ?? 0);
-          const pctText = `${(slice?.sharePercent ?? 0).toFixed(1)}%`;
-          const fill =
-            typeof dataset.backgroundColor === 'string'
-              ? dataset.backgroundColor
-              : Array.isArray(dataset.backgroundColor)
-                ? String(dataset.backgroundColor[index] ?? '#0c274a')
-                : '#0c274a';
-          return {
-            text: `${String(label)} — ${valueText} (${pctText})`,
-            fillStyle: fill,
-            strokeStyle: fill,
-            lineWidth: 0,
-            hidden: false,
-            index,
-            datasetIndex: 0,
-          };
-        });
-      },
-    };
   }
 
   private renderDonut(
@@ -278,11 +253,7 @@ export class LoanDetailReportComponent implements AfterViewInit {
         maintainAspectRatio: false,
         cutout: '62%',
         plugins: {
-          legend: {
-            display: true,
-            position: 'bottom',
-            labels: this.legendLabelsWithData(slices),
-          },
+          legend: { display: false },
           tooltip: {
             backgroundColor: '#1a202c',
             padding: 10,
@@ -329,22 +300,7 @@ export class LoanDetailReportComponent implements AfterViewInit {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: {
-            display: true,
-            position: 'bottom',
-            labels: {
-              ...dashboardLegendLabels(),
-              generateLabels: (chart) =>
-                chart.data.datasets.map((dataset, index) => ({
-                  text: String(dataset.label ?? ''),
-                  fillStyle: String(dataset.backgroundColor ?? '#0c274a'),
-                  strokeStyle: String(dataset.backgroundColor ?? '#0c274a'),
-                  lineWidth: 0,
-                  hidden: false,
-                  datasetIndex: index,
-                })),
-            },
-          },
+          legend: { display: false },
           tooltip: {
             backgroundColor: '#1a202c',
             padding: 10,

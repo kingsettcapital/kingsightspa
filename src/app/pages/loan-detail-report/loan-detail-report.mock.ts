@@ -108,7 +108,7 @@ export const LOAN_DETAIL_REPORT_MOCK: LoanDetailReportData = {
   ],
   exposureComposition: [
     { label: 'Principal', value: 210_800_000, sharePercent: 95.8 },
-    { label: 'Def. Interest', value: 4_000_000, sharePercent: 1.8 },
+    { label: 'O/S Int.', value: 4_000_000, sharePercent: 1.8 },
     { label: 'Accrued Int.', value: 1_700_000, sharePercent: 0.8 },
     { label: 'Late Int.', value: 45_000, sharePercent: 0.02 },
     { label: 'Tax Arrears', value: 788_957, sharePercent: 0.36 },

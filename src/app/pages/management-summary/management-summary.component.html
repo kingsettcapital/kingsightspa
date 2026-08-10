@@ -103,31 +103,31 @@
             <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('exit')">
               Exit <span class="ms-sort-icon">{{ loanSortIndicator('exit') }}</span>
             </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('security')">
+            <th class="num ms-sortable" (click)="sortLoanColumn('security')">
               Security <span class="ms-sort-icon">{{ loanSortIndicator('security') }}</span>
             </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('principal')">
+            <th class="num ms-sortable" (click)="sortLoanColumn('principal')">
               Principal <span class="ms-sort-icon">{{ loanSortIndicator('principal') }}</span>
             </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('osInt')">
+            <th class="num ms-sortable" (click)="sortLoanColumn('osInt')">
               O/S Int. <span class="ms-sort-icon">{{ loanSortIndicator('osInt') }}</span>
             </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('accrued')">
+            <th class="num ms-sortable" (click)="sortLoanColumn('accrued')">
               Accrued Int. <span class="ms-sort-icon">{{ loanSortIndicator('accrued') }}</span>
             </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('lateInt')">
+            <th class="num ms-sortable" (click)="sortLoanColumn('lateInt')">
               Late Int. <span class="ms-sort-icon">{{ loanSortIndicator('lateInt') }}</span>
             </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('taxIns')">
+            <th class="num ms-sortable" (click)="sortLoanColumn('taxIns')">
               Tax Arrears <span class="ms-sort-icon">{{ loanSortIndicator('taxIns') }}</span>
             </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('intAdv')">
+            <th class="num ms-sortable" (click)="sortLoanColumn('intAdv')">
               Int. Adj. <span class="ms-sort-icon">{{ loanSortIndicator('intAdv') }}</span>
             </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('other')">
+            <th class="num ms-sortable" (click)="sortLoanColumn('other')">
               Other Costs <span class="ms-sort-icon">{{ loanSortIndicator('other') }}</span>
             </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('totalExposure')">
+            <th class="num ms-sortable" (click)="sortLoanColumn('totalExposure')">
               Total Exposure <span class="ms-sort-icon">{{ loanSortIndicator('totalExposure') }}</span>
             </th>
             <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('ltv')">
@@ -154,15 +154,15 @@
               <td class="ms-col-center wrap">{{ row.interestStatus }}</td>
               <td class="ms-col-center wrap">{{ row.units }}</td>
               <td class="ms-col-center">{{ row.exit }}</td>
-              <td class="ms-col-center">{{ row.security | number: '1.0-0' }}</td>
-              <td class="ms-col-center">{{ row.principal | number: '1.0-0' }}</td>
-              <td class="ms-col-center">{{ row.osInt | number: '1.0-0' }}</td>
-              <td class="ms-col-center">{{ row.accrued | number: '1.0-0' }}</td>
-              <td class="ms-col-center">{{ row.lateInt | number: '1.0-0' }}</td>
-              <td class="ms-col-center">{{ row.taxIns | number: '1.0-0' }}</td>
-              <td class="ms-col-center">{{ row.intAdv | number: '1.0-0' }}</td>
-              <td class="ms-col-center">{{ row.other | number: '1.0-0' }}</td>
-              <td class="ms-col-center">{{ row.totalExposure | number: '1.0-0' }}</td>
+              <td class="num">{{ row.security | number: '1.0-0' }}</td>
+              <td class="num">{{ row.principal | number: '1.0-0' }}</td>
+              <td class="num">{{ row.osInt | number: '1.0-0' }}</td>
+              <td class="num">{{ row.accrued | number: '1.0-0' }}</td>
+              <td class="num">{{ row.lateInt | number: '1.0-0' }}</td>
+              <td class="num">{{ row.taxIns | number: '1.0-0' }}</td>
+              <td class="num">{{ row.intAdv | number: '1.0-0' }}</td>
+              <td class="num">{{ row.other | number: '1.0-0' }}</td>
+              <td class="num">{{ row.totalExposure | number: '1.0-0' }}</td>
               <td class="ms-col-center">{{ row.ltv }}%</td>
               <td class="ms-col-center"><span [class]="riskClass(row.risk)">{{ row.risk }}</span></td>
               <td class="ms-table__chevron-col">
@@ -174,15 +174,15 @@
         <tfoot>
           <tr class="ms-table__total">
             <td colspan="7">TOTAL</td>
-            <td class="ms-col-center">{{ loanTotals().security | number: '1.0-0' }}</td>
-            <td class="ms-col-center">{{ loanTotals().principal | number: '1.0-0' }}</td>
-            <td class="ms-col-center">{{ loanTotals().osInt | number: '1.0-0' }}</td>
-            <td class="ms-col-center">{{ loanTotals().accrued | number: '1.0-0' }}</td>
-            <td class="ms-col-center">{{ loanTotals().lateInt | number: '1.0-0' }}</td>
-            <td class="ms-col-center">{{ loanTotals().taxIns | number: '1.0-0' }}</td>
-            <td class="ms-col-center">{{ loanTotals().intAdv | number: '1.0-0' }}</td>
-            <td class="ms-col-center">{{ loanTotals().other | number: '1.0-0' }}</td>
-            <td class="ms-col-center">{{ loanTotals().totalExposure | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().security | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().principal | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().osInt | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().accrued | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().lateInt | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().taxIns | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().intAdv | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().other | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().totalExposure | number: '1.0-0' }}</td>
             <td class="ms-col-center">{{ loanTotals().ltv != null ? (loanTotals().ltv | number: '1.0-0') + '%' : '—' }}</td>
             <td></td>
             <td class="ms-table__chevron-col" aria-hidden="true"></td>
@@ -211,9 +211,14 @@
           </tr>
         </thead>
         <tbody>
-          @for (band of ltvRiskBands(); track band.label) {
+          @for (band of ltvRiskBands(); track band.label; let i = $index) {
             <tr>
-              <td>{{ band.label }}</td>
+              <td>
+                <span class="ms-legend-label">
+                  <span class="ms-legend-swatch" [style.background]="chartSeriesColor(i)" aria-hidden="true"></span>
+                  {{ band.label }}
+                </span>
+              </td>
               <td class="num">{{ band.loans }}</td>
               <td class="num">{{ formatMillions(band.value) }}</td>
               <td class="num">{{ band.sharePercent }}%</td>
@@ -250,9 +255,14 @@
           </tr>
         </thead>
         <tbody>
-          @for (slice of exposureBreakdown(); track slice.label) {
+          @for (slice of exposureBreakdown(); track slice.label; let i = $index) {
             <tr>
-              <td>{{ slice.label }}</td>
+              <td>
+                <span class="ms-legend-label">
+                  <span class="ms-legend-swatch" [style.background]="chartSeriesColor(i)" aria-hidden="true"></span>
+                  {{ slice.label }}
+                </span>
+              </td>
               <td class="num">{{ formatMillions(slice.value) }}</td>
               <td class="num">{{ slice.sharePercent }}%</td>
             </tr>
@@ -337,9 +347,14 @@
           </tr>
         </thead>
         <tbody>
-          @for (slice of capitalStack(); track slice.label) {
+          @for (slice of capitalStack(); track slice.label; let i = $index) {
             <tr>
-              <td>{{ slice.label }}</td>
+              <td>
+                <span class="ms-legend-label">
+                  <span class="ms-legend-swatch" [style.background]="chartSeriesColor(i)" aria-hidden="true"></span>
+                  {{ slice.label }}
+                </span>
+              </td>
               <td class="num">{{ formatMillions(slice.value) }}</td>
               <td class="num">{{ slice.sharePercent }}%</td>
             </tr>
@@ -366,9 +381,14 @@
           </tr>
         </thead>
         <tbody>
-          @for (row of investorSummary(); track row.investor) {
+          @for (row of investorSummary(); track row.investor; let i = $index) {
             <tr>
-              <td>{{ row.investor }}</td>
+              <td>
+                <span class="ms-legend-label">
+                  <span class="ms-legend-swatch" [style.background]="chartSeriesColor(i)" aria-hidden="true"></span>
+                  {{ row.investor }}
+                </span>
+              </td>
               <td class="num">{{ row.loans }}</td>
               <td class="num">{{ formatMillions(row.exposure) }}</td>
               <td class="num">{{ row.sharePercent }}%</td>
@@ -397,13 +417,18 @@
             </tr>
           </thead>
           <tbody>
-            @for (row of sponsorSummary(); track row.sponsor) {
+            @for (row of sponsorSummary(); track row.sponsor; let i = $index) {
               <tr>
                 <td>
-                  {{ row.sponsor }}
-                  @if (row.loanCount > 1) {
-                    <span class="ms-count-badge">{{ row.loanCount }}</span>
-                  }
+                  <span class="ms-legend-label">
+                    <span class="ms-legend-swatch" [style.background]="chartSeriesColor(i)" aria-hidden="true"></span>
+                    <span>
+                      {{ row.sponsor }}
+                      @if (row.loanCount > 1) {
+                        <span class="ms-count-badge">{{ row.loanCount }}</span>
+                      }
+                    </span>
+                  </span>
                 </td>
                 <td class="num">
                   @if (row.ltv != null) {
