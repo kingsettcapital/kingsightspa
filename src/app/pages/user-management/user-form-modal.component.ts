@@ -128,6 +128,11 @@ export class UserFormModalComponent {
     this.emailError.set('');
   }
 
+  isRoleOptionActive(role: RoleDto): boolean {
+    const normalized = (role.status ?? '').trim().toUpperCase();
+    return normalized === 'A' || normalized === 'Y' || normalized === '1' || normalized === 'ACTIVE';
+  }
+
   private isValidEmail(value: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   }

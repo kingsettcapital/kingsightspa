@@ -169,7 +169,7 @@
         </a>
       }
 
-      @if (showUserManagement() && currentUser().role === 'Administrator') {
+      @if (showUserManagement()) {
         <a
           routerLink="/admin/user-management"
           routerLinkActive="ks-sidebar__link--active"

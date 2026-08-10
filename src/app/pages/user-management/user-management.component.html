@@ -1,16 +1,21 @@
-<section class="um-page">
-  <div class="ks-page__heading">
-    <h1 class="ks-page__title">User Management</h1>
-    <p class="ks-page__subtitle">Manage application users and roles</p>
+<section class="ks-fp um-page">
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">User Management</h1>
+        <p class="ks-page__subtitle">Manage application users and roles</p>
+      </div>
+
+      <div class="ks-fp__filters-compact um-page__actions">
+        <button type="button" class="ks-btn ks-btn--primary" (click)="openCreateUser()">Add User</button>
+        <button type="button" class="ks-btn ks-btn--outline" (click)="openCreateRole()">Add Role</button>
+      </div>
+    </div>
   </div>
 
   @if (errorMessage()) {
     <p class="ks-message ks-message--error um-page__message">{{ errorMessage() }}</p>
   }
-
-  <div class="um-toolbar">
-    <button type="button" class="ks-btn ks-btn--primary" (click)="openCreateUser()">Add User</button>
-  </div>
 
   <div class="ks-table-card um-table-card">
     <h2 class="ks-table-card__title">Users</h2>
@@ -36,7 +41,7 @@
           </thead>
           <tbody>
             @for (user of users(); track trackByUserId($index, user)) {
-              <tr>
+              <tr [class.um-row--inactive]="!user.isActive">
                 <td class="ks-table__cell--mono ks-table__cell--strong">{{ user.userId }}</td>
                 <td>{{ user.email }}</td>
                 <td>{{ user.firstName || '—' }}</td>
@@ -53,13 +58,15 @@
                     <button type="button" class="ks-btn ks-btn--outline um-actions__btn" (click)="openEditUser(user)">
                       Edit
                     </button>
-                    <button
-                      type="button"
-                      class="ks-btn ks-btn--outline um-actions__btn um-actions__btn--danger"
-                      (click)="deleteUser(user)"
-                    >
-                      Delete
-                    </button>
+                    @if (user.isActive) {
+                      <button
+                        type="button"
+                        class="ks-btn ks-btn--outline um-actions__btn um-actions__btn--danger"
+                        (click)="deactivateUser(user)"
+                      >
+                        Deactivate
+                      </button>
+                    }
                   </div>
                 </td>
               </tr>
@@ -70,12 +77,9 @@
     }
   </div>
 
-  <div class="um-toolbar um-toolbar--roles">
-    <h2 class="um-section-title">Roles</h2>
-    <button type="button" class="ks-btn ks-btn--outline" (click)="openCreateRole()">Add Role</button>
-  </div>
+  <div class="ks-table-card um-table-card um-table-card--roles">
+    <h2 class="ks-table-card__title">Roles</h2>
 
-  <div class="ks-table-card um-table-card">
     @if (isLoading()) {
       <p class="um-empty">Loading roles…</p>
     } @else if (roles().length === 0) {
@@ -87,28 +91,34 @@
             <tr>
               <th>Role ID</th>
               <th>Role Name</th>
-              <th>Status</th>
+              <th>Active</th>
               <th class="um-table__actions-col">Actions</th>
             </tr>
           </thead>
           <tbody>
             @for (role of roles(); track trackByRoleId($index, role)) {
-              <tr>
+              <tr [class.um-row--inactive]="!isRoleActive(role.status)">
                 <td class="ks-table__cell--mono ks-table__cell--strong">{{ role.roleId }}</td>
                 <td>{{ role.roleName }}</td>
-                <td>{{ role.status || '—' }}</td>
+                <td>
+                  <span [class]="roleStatusClass(role.status)">
+                    {{ isRoleActive(role.status) ? 'Yes' : 'No' }}
+                  </span>
+                </td>
                 <td class="um-table__actions-col">
                   <div class="um-actions">
                     <button type="button" class="ks-btn ks-btn--outline um-actions__btn" (click)="openEditRole(role)">
                       Edit
                     </button>
-                    <button
-                      type="button"
-                      class="ks-btn ks-btn--outline um-actions__btn um-actions__btn--danger"
-                      (click)="deleteRole(role)"
-                    >
-                      Delete
-                    </button>
+                    @if (isRoleActive(role.status)) {
+                      <button
+                        type="button"
+                        class="ks-btn ks-btn--outline um-actions__btn um-actions__btn--danger"
+                        (click)="deactivateRole(role)"
+                      >
+                        Deactivate
+                      </button>
+                    }
                   </div>
                 </td>
               </tr>

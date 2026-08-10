@@ -119,21 +119,33 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
-  deleteUser(user: UserDto): void {
-    const confirmed = window.confirm(`Delete user ${user.userId} (${user.email})?`);
+  deactivateUser(user: UserDto): void {
+    const confirmed = window.confirm(
+      `Mark user ${user.userId} (${user.email}) as inactive?\n\nThe record will stay in the database and can be reactivated later.`,
+    );
     if (!confirmed) {
       return;
     }
 
-    this.userManagementApi.deleteUser(user.userId).subscribe({
-      next: () => {
-        this.users.update((rows) => rows.filter((row) => row.userId !== user.userId));
-        this.toastService.success(`User ${user.userId} deleted.`);
-      },
-      error: (error) => {
-        this.toastService.error(this.extractBackendError(error, 'Failed to delete user.'));
-      },
-    });
+    this.userManagementApi
+      .updateUser(user.userId, {
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        isActive: false,
+        roleId: user.roleId,
+      })
+      .subscribe({
+        next: (saved) => {
+          this.users.update((rows) =>
+            this.sortUsers(rows.map((row) => (row.userId === saved.userId ? saved : row))),
+          );
+          this.toastService.success(`User ${saved.userId} marked inactive.`);
+        },
+        error: (error) => {
+          this.toastService.error(this.extractBackendError(error, 'Failed to deactivate user.'));
+        },
+      });
   }
 
   onRoleFormSubmit(event: RoleFormSubmit): void {
@@ -167,21 +179,30 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
-  deleteRole(role: RoleDto): void {
-    const confirmed = window.confirm(`Delete role ${role.roleId} (${role.roleName})?`);
+  deactivateRole(role: RoleDto): void {
+    const confirmed = window.confirm(
+      `Mark role ${role.roleId} (${role.roleName}) as inactive?\n\nThe record will stay in the database and can be reactivated later.`,
+    );
     if (!confirmed) {
       return;
     }
 
-    this.userManagementApi.deleteRole(role.roleId).subscribe({
-      next: () => {
-        this.roles.update((rows) => rows.filter((row) => row.roleId !== role.roleId));
-        this.toastService.success(`Role ${role.roleId} deleted.`);
-      },
-      error: (error) => {
-        this.toastService.error(this.extractBackendError(error, 'Failed to delete role.'));
-      },
-    });
+    this.userManagementApi
+      .updateRole(role.roleId, {
+        roleName: role.roleName,
+        status: 'I',
+      })
+      .subscribe({
+        next: (saved) => {
+          this.roles.update((rows) =>
+            this.sortRoles(rows.map((row) => (row.roleId === saved.roleId ? saved : row))),
+          );
+          this.toastService.success(`Role ${saved.roleId} marked inactive.`);
+        },
+        error: (error) => {
+          this.toastService.error(this.extractBackendError(error, 'Failed to deactivate role.'));
+        },
+      });
   }
 
   formatDate(value: string | null | undefined): string {
@@ -199,6 +220,15 @@ export class UserManagementComponent implements OnInit {
       hour: '2-digit',
       minute: '2-digit',
     });
+  }
+
+  isRoleActive(status: string | null | undefined): boolean {
+    const normalized = (status ?? '').trim().toUpperCase();
+    return normalized === 'A' || normalized === 'Y' || normalized === '1' || normalized === 'ACTIVE';
+  }
+
+  roleStatusClass(status: string | null | undefined): string {
+    return this.isRoleActive(status) ? 'um-badge um-badge--active' : 'um-badge um-badge--inactive';
   }
 
   private loadData(): void {

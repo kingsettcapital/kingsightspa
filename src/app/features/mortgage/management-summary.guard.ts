@@ -1,14 +1,14 @@
-import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { CanActivateFn } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
-import { MORTGAGE_DEFAULT_ROUTE } from './mortgage-nav.config';
+import { managementSummaryFeatureGuard } from '../../core/access/access.guards';
 
-/** Blocks Management Summary until `environment.managementSummaryEnabled` is true. */
-export const managementSummaryGuard: CanActivateFn = () => {
+/**
+ * Blocks Management Summary when the env flag is off — unless the user is admin.
+ */
+export const managementSummaryGuard: CanActivateFn = (route, state) => {
   if (environment.managementSummaryEnabled === true) {
     return true;
   }
-
-  return inject(Router).createUrlTree(['/mortgage', MORTGAGE_DEFAULT_ROUTE]);
+  return managementSummaryFeatureGuard(route, state);
 };
