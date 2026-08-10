@@ -24,7 +24,7 @@ export const LOAN_DETAIL_REPORT_MOCK: LoanDetailReportData = {
   },
   propertyStats: {
     securityValue: 222_100_000,
-    unitsSize: 'Units: 329 | Acres: 1.2',
+    unitsSize: 'SF: 535,000 | Acres: 15',
     valuePerUnit: 674_772,
     exposurePerUnit: 668_997,
     riskStatus: 'ELEVATED',
