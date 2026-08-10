@@ -18,6 +18,7 @@ import { ManagementSummaryApiService } from '../../core/services/management-summ
 import {
   ManagementSummaryFilterStateService,
 } from '../../core/services/management-summary-filter-state.service';
+import { ReportPrintExportService } from '../../core/services/report-print-export.service';
 import {
   dashboardHorizontalBarChartScales,
   DashboardChartLifecycle,
@@ -37,6 +38,10 @@ import type {
   TopExposureRow,
 } from './management-summary.models';
 import { mapManagementSummaryDashboard } from './management-summary-dashboard.mapper';
+import {
+  filtersToQueryParams,
+  statusesFromFilters,
+} from './management-summary-filter.util';
 
 Chart.register(...registerables);
 
@@ -51,6 +56,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   private readonly router = inject(Router);
   private readonly summaryApi = inject(ManagementSummaryApiService);
   private readonly filterState = inject(ManagementSummaryFilterStateService);
+  private readonly reportPrintExport = inject(ReportPrintExportService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly ltvRiskChart = new DashboardChartLifecycle(this.destroyRef);
   private readonly top5Chart = new DashboardChartLifecycle(this.destroyRef);
@@ -71,11 +77,14 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   private readonly capitalStackContainer = viewChild<ElementRef<HTMLElement>>('capitalStackContainer');
   private readonly investorContainer = viewChild<ElementRef<HTMLElement>>('investorContainer');
   private readonly sponsorContainer = viewChild<ElementRef<HTMLElement>>('sponsorContainer');
+  private readonly reportRoot = viewChild<ElementRef<HTMLElement>>('reportRoot');
 
   readonly asOfDisplay = signal('');
   readonly reportPeriod = signal('');
   readonly filtersOpen = signal(false);
   readonly isLoading = signal(false);
+  readonly isPrinting = signal(false);
+  readonly isExporting = signal(false);
   readonly errorMessage = signal('');
 
   readonly kpis = signal<ManagementSummaryKpis>({
@@ -186,11 +195,48 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   );
 
   ngOnInit(): void {
+    // Rehydrate from shared session (e.g. after returning from loan detail).
+    this.filters.set(this.filterState.getFilters());
+    const options = this.filterState.getFilterOptions();
+    if (options.sponsors.length > 1) {
+      this.sponsorOptions.set(options.sponsors);
+    }
+    if (options.investorAliases.length > 1) {
+      this.investorAliasOptions.set(options.investorAliases);
+    }
+    if (options.statuses.length > 1) {
+      this.statusOptions.set(options.statuses);
+    }
     this.loadSummary();
   }
 
   ngAfterViewInit(): void {
     queueMicrotask(() => this.renderCharts());
+  }
+
+  printReport(): void {
+    this.filtersOpen.set(false);
+    this.isPrinting.set(true);
+    setTimeout(() => {
+      this.reportPrintExport.print();
+      this.isPrinting.set(false);
+    }, 50);
+  }
+
+  async exportPdf(): Promise<void> {
+    const root = this.reportRoot()?.nativeElement;
+    if (!root || this.isExporting()) {
+      return;
+    }
+    this.filtersOpen.set(false);
+    this.isExporting.set(true);
+    try {
+      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+      const asOf = this.asOfDisplay().replace(/\W+/g, '-') || 'report';
+      await this.reportPrintExport.exportElementToPdf(root, `loan-portfolio-management-summary-${asOf}.pdf`);
+    } finally {
+      this.isExporting.set(false);
+    }
   }
 
   toggleFilters(): void {
@@ -306,8 +352,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
     this.errorMessage.set('');
 
     const filters = this.filters();
-    const statuses =
-      filters.status && filters.status !== 'All' ? [filters.status] : undefined;
+    const statuses = statusesFromFilters(filters);
 
     this.summaryApi
       .getDashboard({
@@ -341,6 +386,11 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
           this.sponsorOptions.set(mapped.sponsorOptions);
           this.investorAliasOptions.set(mapped.investorAliasOptions);
           this.statusOptions.set(mapped.statusOptions);
+          this.filterState.saveFilterOptions({
+            sponsors: mapped.sponsorOptions,
+            investorAliases: mapped.investorAliasOptions,
+            statuses: mapped.statusOptions,
+          });
           this.isLoading.set(false);
           queueMicrotask(() => this.renderCharts());
         },
@@ -354,10 +404,11 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   private navigateToLoanDetail(loanAliasKey: number, loanAlias: string): void {
     this.filterState.saveFilters(this.filters());
     void this.router.navigate(['/mortgage', 'management-summary', loanAliasKey, 'loan-detail'], {
-      queryParams: { alias: loanAlias, asOfDate: this.filters().asOfDate },
+      queryParams: filtersToQueryParams(this.filters(), loanAlias),
     });
   }
 
+  /** Compact amounts for pictorial charts/tables: millions → M, thousands → K. */
   formatMillions(value: number | null | undefined): string {
     if (value == null || Number.isNaN(value)) {
       return '—';
@@ -367,8 +418,12 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
         maximumFractionDigits: 0,
       }).format(amount);
 
-    if (Math.abs(value) >= 1_000_000) {
+    const abs = Math.abs(value);
+    if (abs >= 1_000_000) {
       return `${format(Math.round(value / 1_000_000))}M`;
+    }
+    if (abs >= 1_000) {
+      return `${format(Math.round(value / 1_000))}K`;
     }
     return format(value);
   }

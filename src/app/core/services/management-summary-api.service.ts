@@ -238,11 +238,21 @@ export class ManagementSummaryApiService {
     });
   }
 
-  getLoanDetailReport(loanAliasKey: number, asOfDate: string, statuses?: string[]) {
+  getLoanDetailReport(
+    loanAliasKey: number,
+    asOfDate: string,
+    statuses?: string[],
+    investorAliases?: string[],
+  ) {
     let params = new HttpParams().set('asOfDate', asOfDate);
     for (const status of statuses ?? []) {
       if (status.trim()) {
         params = params.append('statuses', status.trim());
+      }
+    }
+    for (const alias of investorAliases ?? []) {
+      if (alias.trim() && alias !== 'All') {
+        params = params.append('investorAliases', alias.trim());
       }
     }
     return this.http.get<LoanDetailReportDashboardDto>(

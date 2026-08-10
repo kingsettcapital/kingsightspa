@@ -1,20 +1,33 @@
 <a
-  class="ms-home-link"
+  class="ms-home-link ks-no-print"
   routerLink="/"
   aria-label="Back to KingSight home"
 >
   <mat-icon aria-hidden="true">home</mat-icon>
 </a>
 
-<section class="ms-dashboard">
+<section class="ms-dashboard" #reportRoot>
   <header class="ms-header">
     <div class="ms-header__meta">AS OF {{ asOfDisplay() | uppercase }} | CONFIDENTIAL — INTERNAL USE ONLY</div>
     <div class="ms-header__main">
       <div>
         <h1>Loan Portfolio</h1>
       </div>
-      <div class="ms-header__actions">
-        <button type="button" class="ms-btn ms-btn--ghost" (click)="toggleFilters()">Filters</button>
+      <div class="ms-header__actions ks-no-print">
+        <button type="button" class="ms-btn ms-btn--ghost" (click)="printReport()" [disabled]="isPrinting() || isExporting()">
+          Print
+        </button>
+        <button type="button" class="ms-btn ms-btn--ghost" (click)="toggleFilters()" [disabled]="isPrinting() || isExporting()">
+          Filters
+        </button>
+        <button
+          type="button"
+          class="ms-btn ms-btn--primary"
+          (click)="exportPdf()"
+          [disabled]="isPrinting() || isExporting() || isLoading()"
+        >
+          {{ isExporting() ? 'Exporting…' : 'Export' }}
+        </button>
       </div>
     </div>
   </header>
@@ -658,7 +671,7 @@
       </fieldset>
 
       <fieldset class="ms-filter-field">
-        <legend>Status</legend>
+        <legend>Funding Status</legend>
         <div class="ms-chip-group">
           @for (status of statusOptions(); track status) {
             <button

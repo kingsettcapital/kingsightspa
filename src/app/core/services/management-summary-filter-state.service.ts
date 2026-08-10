@@ -3,6 +3,10 @@ import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 
 import type { ManagementSummaryFilters } from '../../pages/management-summary/management-summary.models';
+import {
+  DEFAULT_FILTER_OPTIONS,
+  type ManagementSummaryFilterOptions,
+} from '../../pages/management-summary/management-summary-filter.util';
 
 function todayAsOfDate(): string {
   const date = new Date();
@@ -36,6 +40,7 @@ export class ManagementSummaryFilterStateService {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private sessionFilters: ManagementSummaryFilters | null = null;
+  private sessionOptions: ManagementSummaryFilterOptions | null = null;
 
   constructor() {
     const sub = this.router.events
@@ -67,6 +72,23 @@ export class ManagementSummaryFilterStateService {
     };
   }
 
+  getFilterOptions(): ManagementSummaryFilterOptions {
+    const options = this.sessionOptions ?? DEFAULT_FILTER_OPTIONS;
+    return {
+      sponsors: [...options.sponsors],
+      investorAliases: [...options.investorAliases],
+      statuses: [...options.statuses],
+    };
+  }
+
+  saveFilterOptions(options: ManagementSummaryFilterOptions): void {
+    this.sessionOptions = {
+      sponsors: [...options.sponsors],
+      investorAliases: [...options.investorAliases],
+      statuses: [...options.statuses],
+    };
+  }
+
   resetToDefaults(): ManagementSummaryFilters {
     this.sessionFilters = createManagementSummaryDefaultFilters();
     return this.getFilters();
@@ -74,6 +96,7 @@ export class ManagementSummaryFilterStateService {
 
   clear(): void {
     this.sessionFilters = null;
+    this.sessionOptions = null;
   }
 
   private isManagementSummaryRoute(url: string): boolean {

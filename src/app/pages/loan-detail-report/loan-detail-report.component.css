@@ -80,6 +80,21 @@
   gap: 0.5rem;
 }
 
+.ldr-loading,
+.ldr-error {
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.88rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.ldr-error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
 .ldr-btn {
   border: 1px solid #cbd5e1;
   background: #fff;
@@ -449,4 +464,192 @@
   .ldr-charts-row {
     grid-template-columns: 1fr;
   }
+}
+
+.ms-filter-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  z-index: 1200;
+}
+
+.ms-filter-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(22rem, 100vw);
+  height: 100vh;
+  overflow: auto;
+  background: #fff;
+  border-left: 1px solid #e2e8f0;
+  box-shadow: -8px 0 24px rgba(15, 23, 42, 0.12);
+  z-index: 1201;
+  padding: 1rem 1rem 1.25rem;
+}
+
+.ms-filter-panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.ms-filter-panel__head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.ms-filter-close {
+  border: 0;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ms-filter-field {
+  display: block;
+  margin-bottom: 1rem;
+  border: 0;
+  padding: 0;
+}
+
+.ms-filter-field > span,
+.ms-filter-field legend {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.ms-filter-field input,
+.ms-filter-field select {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #cbd5e1;
+  font: inherit;
+}
+
+.ms-filter-select {
+  position: relative;
+  width: 100%;
+}
+
+.ms-filter-select__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ms-filter-select__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ms-filter-select__caret {
+  flex: 0 0 auto;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #64748b;
+}
+
+.ms-filter-select--open .ms-filter-select__caret {
+  transform: rotate(180deg);
+}
+
+.ms-filter-select__menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-height: 14rem;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  z-index: 5;
+  box-sizing: border-box;
+}
+
+.ms-filter-select__option {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.45rem 0.55rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ms-filter-select__option:hover,
+.ms-filter-select__option--active {
+  background: #f1f5f9;
+}
+
+.ms-filter-select__option--active {
+  font-weight: 600;
+  color: #0c274a;
+}
+
+.ms-filter-range {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.ms-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ms-chip {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.ms-chip--active {
+  background: #0c274a;
+  border-color: #0c274a;
+  color: #fff;
+}
+
+.ms-filter-panel__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
 }

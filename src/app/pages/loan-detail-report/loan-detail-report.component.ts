@@ -6,20 +6,30 @@ import {
   DestroyRef,
   ElementRef,
   inject,
+  OnDestroy,
   signal,
   viewChild,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { combineLatest } from 'rxjs';
 
 import { ManagementSummaryApiService } from '../../core/services/management-summary-api.service';
+import { ManagementSummaryFilterStateService } from '../../core/services/management-summary-filter-state.service';
+import { ReportPrintExportService } from '../../core/services/report-print-export.service';
 import { mapLoanDetailReportDashboard } from './loan-detail-report.mapper';
 import {
   DashboardChartLifecycle,
 } from '../../features/capital-dashboard/dashboard/dashboard-chart.util';
 import { dashboardBarPieSeriesColor } from '../../features/capital-dashboard/dashboard/dashboard-chart-colors';
+import type { ManagementSummaryFilters } from '../management-summary/management-summary.models';
+import {
+  filtersToQueryParams,
+  investorAliasesFromFilters,
+  mergeFiltersFromQuery,
+  statusesFromFilters,
+} from '../management-summary/management-summary-filter.util';
 import type { LoanDetailReportData, LoanPortfolioDetailRow } from './loan-detail-report.models';
 
 Chart.register(...registerables);
@@ -31,9 +41,12 @@ Chart.register(...registerables);
   templateUrl: './loan-detail-report.component.html',
   styleUrl: './loan-detail-report.component.css',
 })
-export class LoanDetailReportComponent implements AfterViewInit {
+export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly summaryApi = inject(ManagementSummaryApiService);
+  private readonly filterState = inject(ManagementSummaryFilterStateService);
+  private readonly reportPrintExport = inject(ReportPrintExportService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly compositionChart = new DashboardChartLifecycle(this.destroyRef);
   private readonly breakdownChart = new DashboardChartLifecycle(this.destroyRef);
@@ -42,6 +55,10 @@ export class LoanDetailReportComponent implements AfterViewInit {
   private readonly breakdownCanvas = viewChild<ElementRef<HTMLCanvasElement>>('breakdownCanvas');
   private readonly compositionChartContainer = viewChild<ElementRef<HTMLElement>>('compositionChartContainer');
   private readonly breakdownChartContainer = viewChild<ElementRef<HTMLElement>>('breakdownChartContainer');
+  private readonly reportRoot = viewChild<ElementRef<HTMLElement>>('reportRoot');
+
+  private loanAliasKey = 0;
+  private loanAliasName = '';
 
   readonly report = signal<LoanDetailReportData>(
     mapLoanDetailReportDashboard({
@@ -56,8 +73,19 @@ export class LoanDetailReportComponent implements AfterViewInit {
     }),
   );
   readonly isLoading = signal(false);
+  readonly isPrinting = signal(false);
+  readonly isExporting = signal(false);
   readonly errorMessage = signal('');
+  readonly filtersOpen = signal(false);
+  readonly filters = signal<ManagementSummaryFilters>(this.filterState.getFilters());
+  readonly openFilterMenu = signal<'sponsor' | 'investor' | null>(null);
 
+  readonly riskOptions = ['ALL', 'HIGH', 'ELEVATED', 'MODERATE', 'LOW'] as const;
+  readonly sponsorOptions = signal<string[]>(this.filterState.getFilterOptions().sponsors);
+  readonly investorAliasOptions = signal<string[]>(this.filterState.getFilterOptions().investorAliases);
+  readonly statusOptions = signal<string[]>(this.filterState.getFilterOptions().statuses);
+
+  readonly selectedInvestorAlias = computed(() => this.filters().investorAliases[0] ?? 'All');
   readonly portfolioTotals = computed(() => this.sumPortfolioRows(this.report().portfolioRows));
 
   readonly totalExposureDisplay = computed(() => {
@@ -79,11 +107,21 @@ export class LoanDetailReportComponent implements AfterViewInit {
     combineLatest([this.route.paramMap, this.route.queryParamMap]).subscribe(([params, query]) => {
       const loanAliasKey = Number(params.get('loanAliasKey'));
       const alias = String(query.get('alias') ?? '').trim();
-      const asOfDate = String(query.get('asOfDate') ?? defaultAsOfDate()).trim();
       if (!Number.isFinite(loanAliasKey) || loanAliasKey <= 0) {
         return;
       }
-      this.loadReport(loanAliasKey, alias, asOfDate);
+
+      const merged = mergeFiltersFromQuery(this.filterState.getFilters(), query);
+      // Loan detail must always have an explicit funding status (MS default is Default).
+      if (!merged.status?.trim()) {
+        merged.status = 'Default';
+      }
+      this.filterState.saveFilters(merged);
+      this.filters.set(merged);
+      this.loanAliasKey = loanAliasKey;
+      this.loanAliasName = alias;
+      this.hydrateFilterOptions(merged.asOfDate);
+      this.loadReport();
     });
   }
 
@@ -91,26 +129,191 @@ export class LoanDetailReportComponent implements AfterViewInit {
     queueMicrotask(() => this.renderCharts());
   }
 
-  private loadReport(loanAliasKey: number, loanAlias: string, asOfDate: string): void {
-    this.isLoading.set(true);
-    this.errorMessage.set('');
-    this.summaryApi.getLoanDetailReport(loanAliasKey, asOfDate).subscribe({
-      next: (dto) => {
-        const mapped = mapLoanDetailReportDashboard(dto);
-        this.report.set({
-          ...mapped,
-          loanAlias: loanAlias || mapped.loanAlias,
-        });
-        this.isLoading.set(false);
-        queueMicrotask(() => this.renderCharts());
-      },
-      error: () => {
-        this.errorMessage.set('Unable to load loan detail report. Verify API availability.');
-        this.isLoading.set(false);
-      },
+  ngOnDestroy(): void {
+    this.filterState.saveFilters(this.filters());
+  }
+
+  printReport(): void {
+    this.filtersOpen.set(false);
+    this.isPrinting.set(true);
+    setTimeout(() => {
+      this.reportPrintExport.print();
+      this.isPrinting.set(false);
+    }, 50);
+  }
+
+  async exportPdf(): Promise<void> {
+    const root = this.reportRoot()?.nativeElement;
+    if (!root || this.isExporting()) {
+      return;
+    }
+    this.filtersOpen.set(false);
+    this.isExporting.set(true);
+    try {
+      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+      const alias = this.report().loanAlias.replace(/\W+/g, '-') || 'loan';
+      const asOf = this.report().keyDates.asOfDate.replace(/\W+/g, '-') || 'report';
+      await this.reportPrintExport.exportElementToPdf(root, `loan-portfolio-detail-${alias}-${asOf}.pdf`);
+    } finally {
+      this.isExporting.set(false);
+    }
+  }
+
+  toggleFilters(): void {
+    this.filtersOpen.update((open) => !open);
+  }
+
+  closeFilters(): void {
+    this.openFilterMenu.set(null);
+    this.filtersOpen.set(false);
+  }
+
+  toggleFilterMenu(menu: 'sponsor' | 'investor'): void {
+    this.openFilterMenu.update((current) => (current === menu ? null : menu));
+  }
+
+  isRiskSelected(level: string): boolean {
+    return this.filters().riskLevels.includes(level);
+  }
+
+  toggleRisk(level: string): void {
+    this.filters.update((current) => {
+      if (level === 'ALL') {
+        const next = { ...current, riskLevels: ['ALL'] };
+        this.filterState.saveFilters(next);
+        return next;
+      }
+      const withoutAll = current.riskLevels.filter((item) => item !== 'ALL');
+      const nextLevels = withoutAll.includes(level)
+        ? withoutAll.filter((item) => item !== level)
+        : [...withoutAll, level];
+      const next = { ...current, riskLevels: nextLevels.length ? nextLevels : ['ALL'] };
+      this.filterState.saveFilters(next);
+      return next;
     });
   }
 
+  setStatus(status: string): void {
+    this.updateFilterField('status', status);
+  }
+
+  setSponsor(sponsor: string): void {
+    this.updateFilterField('sponsor', sponsor || 'All');
+    this.openFilterMenu.set(null);
+  }
+
+  setInvestorAlias(alias: string): void {
+    this.filters.update((current) => {
+      const next = {
+        ...current,
+        investorAliases: [alias || 'All'],
+      };
+      this.filterState.saveFilters(next);
+      return next;
+    });
+    this.openFilterMenu.set(null);
+  }
+
+  updateFilterField<K extends keyof ManagementSummaryFilters>(key: K, value: ManagementSummaryFilters[K]): void {
+    this.filters.update((current) => {
+      const next = { ...current, [key]: value };
+      this.filterState.saveFilters(next);
+      return next;
+    });
+  }
+
+  resetFilters(): void {
+    this.filters.set(this.filterState.resetToDefaults());
+  }
+
+  applyFilters(): void {
+    const next = this.filters();
+    this.filterState.saveFilters(next);
+    this.closeFilters();
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: filtersToQueryParams(next, this.loanAliasName || this.report().loanAlias),
+      replaceUrl: true,
+    });
+  }
+
+  /** Persist current filters before returning to Management Summary. */
+  backToManagementSummary(): void {
+    this.filterState.saveFilters(this.filters());
+  }
+
+  private loadReport(): void {
+    if (this.loanAliasKey <= 0) {
+      return;
+    }
+    const filters = this.filters();
+    const statuses = statusesFromFilters(filters) ?? (filters.status === 'All' ? undefined : ['Default']);
+    this.isLoading.set(true);
+    this.errorMessage.set('');
+    this.summaryApi
+      .getLoanDetailReport(
+        this.loanAliasKey,
+        filters.asOfDate,
+        statuses,
+        investorAliasesFromFilters(filters),
+      )
+      .subscribe({
+        next: (dto) => {
+          const mapped = mapLoanDetailReportDashboard(dto);
+          this.report.set({
+            ...mapped,
+            loanAlias: this.loanAliasName || mapped.loanAlias,
+          });
+          this.isLoading.set(false);
+          queueMicrotask(() => this.renderCharts());
+        },
+        error: () => {
+          this.errorMessage.set('Unable to load loan detail report. Verify API availability.');
+          this.isLoading.set(false);
+        },
+      });
+  }
+
+  /** Ensure Status / Sponsor / Investor options exist even on deep-link into detail. */
+  private hydrateFilterOptions(asOfDate: string): void {
+    const existing = this.filterState.getFilterOptions();
+    const hasStatuses = existing.statuses.some((s) => s.toLowerCase() !== 'all');
+    if (hasStatuses && existing.sponsors.length > 1) {
+      this.sponsorOptions.set(existing.sponsors);
+      this.investorAliasOptions.set(existing.investorAliases);
+      this.statusOptions.set(existing.statuses);
+      return;
+    }
+
+    this.summaryApi
+      .getDashboard({
+        asOfDate,
+        statuses: statusesFromFilters(this.filters()),
+      })
+      .subscribe({
+        next: (dto) => {
+          const sponsors = ['All', ...(dto.filterOptions?.sponsors ?? []).filter((s) => s !== 'All')];
+          const investors = [
+            'All',
+            ...(dto.filterOptions?.investorAliases ?? []).filter((s) => s !== 'All'),
+          ];
+          const fromApi = (dto.filterOptions?.statuses ?? []).filter((s) => !!s?.trim());
+          const withoutAll = fromApi.filter((s) => s.toLowerCase() !== 'all');
+          const statuses =
+            withoutAll.length > 0 ? [...withoutAll, 'All'] : ['Default', 'Funded', 'Unfunded', 'Repaid', 'All'];
+          this.filterState.saveFilterOptions({
+            sponsors,
+            investorAliases: investors,
+            statuses,
+          });
+          this.sponsorOptions.set(sponsors);
+          this.investorAliasOptions.set(investors);
+          this.statusOptions.set(statuses);
+        },
+      });
+  }
+
+  /** Compact amounts for pictorial charts/tables: millions → M, thousands → K. */
   formatMillions(value: number | null | undefined): string {
     if (value == null || Number.isNaN(value)) {
       return '—';
@@ -120,8 +323,12 @@ export class LoanDetailReportComponent implements AfterViewInit {
         maximumFractionDigits: 0,
       }).format(amount);
 
-    if (Math.abs(value) >= 1_000_000) {
+    const abs = Math.abs(value);
+    if (abs >= 1_000_000) {
       return `${format(Math.round(value / 1_000_000))}M`;
+    }
+    if (abs >= 1_000) {
+      return `${format(Math.round(value / 1_000))}K`;
     }
     return format(value);
   }
@@ -329,13 +536,4 @@ export class LoanDetailReportComponent implements AfterViewInit {
 
     lifecycle.mount(canvas, container, config);
   }
-}
-
-function defaultAsOfDate(): string {
-  const date = new Date();
-  date.setDate(date.getDate() - 1);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }

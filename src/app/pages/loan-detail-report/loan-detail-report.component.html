@@ -1,5 +1,5 @@
-<section class="ldr-dashboard">
-  <div class="ldr-chrome">
+<section class="ldr-dashboard" #reportRoot>
+  <div class="ldr-chrome ks-no-print">
     <a
       class="ldr-home-link"
       routerLink="/"
@@ -7,7 +7,13 @@
     >
       <mat-icon aria-hidden="true">home</mat-icon>
     </a>
-    <a class="ldr-back-link" routerLink="/mortgage/management-summary">← Back to Management Summary</a>
+    <a
+      class="ldr-back-link"
+      routerLink="/mortgage/management-summary"
+      (click)="backToManagementSummary()"
+    >
+      ← Back to Management Summary
+    </a>
   </div>
 
   <header class="ldr-header">
@@ -16,8 +22,31 @@
         <h1>{{ report().loanAlias }} — Loan Portfolio Management Report</h1>
         <p class="ldr-header__subtitle">As of {{ report().keyDates.asOfDate }}</p>
       </div>
+      <div class="ldr-header__actions ks-no-print">
+        <button type="button" class="ldr-btn ldr-btn--ghost" (click)="printReport()" [disabled]="isPrinting() || isExporting()">
+          Print
+        </button>
+        <button type="button" class="ldr-btn ldr-btn--ghost" (click)="toggleFilters()" [disabled]="isPrinting() || isExporting()">
+          Filters
+        </button>
+        <button
+          type="button"
+          class="ldr-btn ldr-btn--primary"
+          (click)="exportPdf()"
+          [disabled]="isPrinting() || isExporting() || isLoading()"
+        >
+          {{ isExporting() ? 'Exporting…' : 'Export' }}
+        </button>
+      </div>
     </div>
   </header>
+
+  @if (errorMessage()) {
+    <p class="ldr-error">{{ errorMessage() }}</p>
+  }
+  @if (isLoading()) {
+    <p class="ldr-loading">Loading loan report…</p>
+  }
 
   <div class="ldr-kpi-row">
     <article class="ldr-kpi-card">
@@ -315,4 +344,156 @@
       </table>
     </div>
   </section>
+
+  @if (filtersOpen()) {
+    <div class="ms-filter-backdrop ks-no-print" (click)="closeFilters()"></div>
+    <aside class="ms-filter-panel ks-no-print" aria-label="Refine the loan report">
+      <header class="ms-filter-panel__head">
+        <h2>Refine the loan summary</h2>
+        <button type="button" class="ms-filter-close" (click)="closeFilters()" aria-label="Close filters">×</button>
+      </header>
+
+      <label class="ms-filter-field">
+        <span>As Of Date</span>
+        <input
+          type="date"
+          [value]="filters().asOfDate"
+          (change)="updateFilterField('asOfDate', $any($event.target).value)"
+        />
+      </label>
+
+      <fieldset class="ms-filter-field">
+        <legend>Default Date</legend>
+        <div class="ms-filter-range">
+          <input
+            type="date"
+            [value]="filters().defaultDateFrom"
+            (change)="updateFilterField('defaultDateFrom', $any($event.target).value)"
+          />
+          <span>to</span>
+          <input
+            type="date"
+            [value]="filters().defaultDateTo"
+            (change)="updateFilterField('defaultDateTo', $any($event.target).value)"
+          />
+        </div>
+      </fieldset>
+
+      <fieldset class="ms-filter-field">
+        <legend>Maturity Date</legend>
+        <div class="ms-filter-range">
+          <input
+            type="date"
+            [value]="filters().maturityDateFrom"
+            (change)="updateFilterField('maturityDateFrom', $any($event.target).value)"
+          />
+          <span>to</span>
+          <input
+            type="date"
+            [value]="filters().maturityDateTo"
+            (change)="updateFilterField('maturityDateTo', $any($event.target).value)"
+          />
+        </div>
+      </fieldset>
+
+      <label class="ms-filter-field">
+        <span>Sponsor</span>
+        <div class="ms-filter-select" [class.ms-filter-select--open]="openFilterMenu() === 'sponsor'">
+          <button
+            type="button"
+            class="ms-filter-select__trigger"
+            (click)="toggleFilterMenu('sponsor')"
+            [attr.aria-expanded]="openFilterMenu() === 'sponsor'"
+          >
+            <span class="ms-filter-select__value">{{ filters().sponsor }}</span>
+            <span class="ms-filter-select__caret" aria-hidden="true"></span>
+          </button>
+          @if (openFilterMenu() === 'sponsor') {
+            <ul class="ms-filter-select__menu" role="listbox">
+              @for (sponsor of sponsorOptions(); track sponsor) {
+                <li>
+                  <button
+                    type="button"
+                    class="ms-filter-select__option"
+                    [class.ms-filter-select__option--active]="filters().sponsor === sponsor"
+                    (click)="setSponsor(sponsor)"
+                  >
+                    {{ sponsor }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </label>
+
+      <label class="ms-filter-field">
+        <span>Investor Alias</span>
+        <div class="ms-filter-select" [class.ms-filter-select--open]="openFilterMenu() === 'investor'">
+          <button
+            type="button"
+            class="ms-filter-select__trigger"
+            (click)="toggleFilterMenu('investor')"
+            [attr.aria-expanded]="openFilterMenu() === 'investor'"
+          >
+            <span class="ms-filter-select__value">{{ selectedInvestorAlias() }}</span>
+            <span class="ms-filter-select__caret" aria-hidden="true"></span>
+          </button>
+          @if (openFilterMenu() === 'investor') {
+            <ul class="ms-filter-select__menu" role="listbox">
+              @for (alias of investorAliasOptions(); track alias) {
+                <li>
+                  <button
+                    type="button"
+                    class="ms-filter-select__option"
+                    [class.ms-filter-select__option--active]="selectedInvestorAlias() === alias"
+                    (click)="setInvestorAlias(alias)"
+                  >
+                    {{ alias }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </label>
+
+      <fieldset class="ms-filter-field">
+        <legend>Risk</legend>
+        <div class="ms-chip-group">
+          @for (risk of riskOptions; track risk) {
+            <button
+              type="button"
+              class="ms-chip"
+              [class.ms-chip--active]="isRiskSelected(risk)"
+              (click)="toggleRisk(risk)"
+            >
+              {{ risk }}
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <fieldset class="ms-filter-field">
+        <legend>Funding Status</legend>
+        <div class="ms-chip-group">
+          @for (status of statusOptions(); track status) {
+            <button
+              type="button"
+              class="ms-chip"
+              [class.ms-chip--active]="filters().status === status"
+              (click)="setStatus(status)"
+            >
+              {{ status }}
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <footer class="ms-filter-panel__foot">
+        <button type="button" class="ldr-btn ldr-btn--ghost" (click)="resetFilters()">Reset</button>
+        <button type="button" class="ldr-btn ldr-btn--primary" (click)="applyFilters()">Apply Filters</button>
+      </footer>
+    </aside>
+  }
 </section>
