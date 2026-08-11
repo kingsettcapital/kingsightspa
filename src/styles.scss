@@ -194,12 +194,18 @@
 }
 
 @media print {
+  /* Report Print buttons use ReportPrintExportService, which also injects
+     @page { size: landscape } for Management Summary / Loan Detail. */
   html,
   body,
   app-root {
     height: auto !important;
     overflow: visible !important;
     background: #fff !important;
+    /* Force table/header fills to print even if "Background graphics" is off. */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   .ks-app-shell,
@@ -227,6 +233,8 @@
   .ldr-dashboard {
     background: #fff !important;
     padding: 0.5rem !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Prevent sticky table headers from overlapping section titles when printing. */
@@ -235,6 +243,23 @@
   .ms-home-link {
     position: static !important;
     top: auto !important;
+  }
+
+  .ms-table thead th,
+  .ldr-table thead th,
+  .ms-table tfoot tr.ms-table__total td,
+  .ldr-table tfoot tr.ldr-table__total td,
+  .ms-table tbody tr.ms-table__total td,
+  .ldr-table tbody tr.ldr-table__total td,
+  .ms-mini-table thead th,
+  .ldr-mini-table thead th,
+  .ms-risk,
+  .ldr-risk,
+  .ms-legend-swatch,
+  .ldr-legend-swatch {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   .ms-table-wrap,

@@ -15,6 +15,39 @@ import { jsPDF } from 'jspdf';
 })
 export class ReportPrintExportService {
   print(): void {
+    // Browsers do not allow JS to check the print-dialog "Landscape" /
+    // "Background graphics" boxes. @page size + print-color-adjust achieve the
+    // same outcome for Management Summary / Loan Detail Print.
+    const style = document.createElement('style');
+    style.setAttribute('data-ks-report-print', 'true');
+    style.textContent = `
+      @page {
+        size: landscape;
+        margin: 0.5in;
+      }
+      @media print {
+        html, body {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          color-adjust: exact !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) {
+        return;
+      }
+      cleaned = true;
+      style.remove();
+      window.removeEventListener('afterprint', cleanup);
+      window.clearTimeout(fallbackTimer);
+    };
+    const fallbackTimer = window.setTimeout(cleanup, 120_000);
+    window.addEventListener('afterprint', cleanup);
+
     window.print();
   }
 
