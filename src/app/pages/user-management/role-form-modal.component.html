@@ -29,17 +29,16 @@
           />
         </div>
 
-        <div class="um-field">
-          <label class="ks-label" for="roleStatus">Status</label>
-          <input
-            id="roleStatus"
-            type="text"
-            class="ks-input"
-            [ngModel]="status()"
-            (ngModelChange)="status.set($event)"
-            name="status"
-            placeholder="Optional"
-          />
+        <div class="um-field um-field--checkbox">
+          <label class="um-checkbox">
+            <input
+              type="checkbox"
+              [ngModel]="isActive()"
+              (ngModelChange)="isActive.set($event)"
+              name="isActive"
+            />
+            <span>Active</span>
+          </label>
         </div>
 
         @if (errorMessage()) {

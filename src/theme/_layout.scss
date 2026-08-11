@@ -479,6 +479,12 @@
   background: var(--ks-color-bg);
 }
 
+/* Report / tool routes (Capital Dashboard, Data Explorer, Management Summary): no app chrome padding */
+.ks-page--report {
+  padding: 0;
+  background: transparent;
+}
+
 /* Page title typography + vertical line: see _brand-elements.scss (.ks-page__heading) */
 
 @include bp-md-down {

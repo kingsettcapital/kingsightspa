@@ -193,3 +193,85 @@
   caret-color: var(--ks-color-text, #1a1a1a);
 }
 
+@media print {
+  /* Report Print buttons use ReportPrintExportService, which also injects
+     @page { size: landscape } for Management Summary / Loan Detail. */
+  html,
+  body,
+  app-root {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    /* Force table/header fills to print even if "Background graphics" is off. */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .ks-app-shell,
+  .ks-app-main,
+  .ks-page {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .ks-sidebar,
+  .ks-sidebar-backdrop,
+  .ks-header,
+  app-ai-chat-sidebar,
+  app-toast-container,
+  .ks-no-print,
+  .ms-home-link {
+    display: none !important;
+  }
+
+  .ms-dashboard,
+  .ldr-dashboard {
+    background: #fff !important;
+    padding: 0.5rem !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Prevent sticky table headers from overlapping section titles when printing. */
+  .ms-table thead th,
+  .ldr-table thead th,
+  .ms-home-link {
+    position: static !important;
+    top: auto !important;
+  }
+
+  .ms-table thead th,
+  .ldr-table thead th,
+  .ms-table tfoot tr.ms-table__total td,
+  .ldr-table tfoot tr.ldr-table__total td,
+  .ms-table tbody tr.ms-table__total td,
+  .ldr-table tbody tr.ldr-table__total td,
+  .ms-mini-table thead th,
+  .ldr-mini-table thead th,
+  .ms-risk,
+  .ldr-risk,
+  .ms-legend-swatch,
+  .ldr-legend-swatch {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .ms-table-wrap,
+  .ldr-table-wrap,
+  .ms-mini-table-wrap {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  canvas {
+    max-width: 100% !important;
+  }
+}
+

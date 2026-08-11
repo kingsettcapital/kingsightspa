@@ -30,7 +30,7 @@ export class RoleFormModalComponent {
   readonly submitted = output<RoleFormSubmit>();
 
   readonly roleName = signal('');
-  readonly status = signal('');
+  readonly isActive = signal(true);
 
   readonly heading = computed(() => (this.mode() === 'create' ? 'Add Role' : 'Edit Role'));
   readonly editingRoleId = computed(() => this.role()?.roleId ?? null);
@@ -41,17 +41,17 @@ export class RoleFormModalComponent {
     effect(() => {
       if (!this.isOpen()) {
         this.roleName.set('');
-        this.status.set('');
+        this.isActive.set(true);
         return;
       }
 
       const existing = this.role();
       if (this.mode() === 'edit' && existing) {
         this.roleName.set(existing.roleName);
-        this.status.set(existing.status ?? '');
+        this.isActive.set(this.isActiveStatus(existing.status));
       } else {
         this.roleName.set('');
-        this.status.set('');
+        this.isActive.set(true);
       }
     });
   }
@@ -78,8 +78,13 @@ export class RoleFormModalComponent {
       roleId: this.editingRoleId(),
       body: {
         roleName: this.roleName().trim(),
-        status: this.status().trim() || null,
+        status: this.isActive() ? 'A' : 'I',
       },
     });
+  }
+
+  private isActiveStatus(status: string | null | undefined): boolean {
+    const normalized = (status ?? '').trim().toUpperCase();
+    return normalized === 'A' || normalized === 'Y' || normalized === '1' || normalized === 'ACTIVE';
   }
 }

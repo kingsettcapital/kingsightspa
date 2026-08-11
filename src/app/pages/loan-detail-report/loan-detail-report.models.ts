@@ -1,36 +1,45 @@
 export type LoanDetailHeaderSummary = {
-  securityValue: number;
+  principalBalance: number;
+  percentInterestPaid: number | null;
   overallLtv: number;
-  equityCushion: number;
-  units: number;
 };
 
 export type LoanDetailReportDetails = {
   mainLoanId: string;
   loanType: string;
-  investorAlias: string;
-  ranking: string;
+  investorCount: number | null;
+  sponsor: string;
 };
 
 export type LoanDetailKeyDates = {
+  dateOfAdvance: string;
   dateOfDefault: string;
-  daysInDefault: number;
   maturityDate: string;
+  interestOffDate: string;
+  daysInDefault: number;
+  /** Report as-of date (header only; not shown in Key Dates box). */
   asOfDate: string;
 };
 
 export type LoanDetailPropertyStats = {
+  securityValue: number;
+  unitsSize: string;
   valuePerUnit: number;
+  exposurePerUnit: number;
   riskStatus: 'HIGH' | 'ELEVATED' | 'MODERATE' | 'LOW' | string;
-  propertyType: string;
-  location: string;
 };
 
 export type LoanDetailInterestSummary = {
   interestDisbursed: number;
   interestNotDisbursed: number;
-  totalOutstandingInterest: number;
   monthsInArrears: number;
+};
+
+export type LoanDetailInterestOverLife = {
+  totalInterestDue: number | null;
+  paidByReservesOrInterCo: number | null;
+  paidViaCash: number | null;
+  interestUnpaid: number | null;
 };
 
 export type LoanDetailInterestReserve = {
@@ -76,6 +85,7 @@ export type LoanDetailReportData = {
   keyDates: LoanDetailKeyDates;
   propertyStats: LoanDetailPropertyStats;
   interestSummary: LoanDetailInterestSummary;
+  interestOverLife: LoanDetailInterestOverLife;
   interestReserve: LoanDetailInterestReserve;
   portfolioRows: LoanPortfolioDetailRow[];
   exposureByInvestor: LoanDetailChartSlice[];

@@ -7,34 +7,41 @@ import type {
 const EMPTY_REPORT = (loanAlias: string): LoanDetailReportData => ({
   loanAlias,
   header: {
-    securityValue: 0,
+    principalBalance: 0,
+    percentInterestPaid: null,
     overallLtv: 0,
-    equityCushion: 0,
-    units: 0,
   },
   reportDetails: {
     mainLoanId: '—',
     loanType: '—',
-    investorAlias: '—',
-    ranking: '—',
+    investorCount: null,
+    sponsor: '—',
   },
   keyDates: {
+    dateOfAdvance: '—',
     dateOfDefault: '—',
-    daysInDefault: 0,
     maturityDate: '—',
+    interestOffDate: '—',
+    daysInDefault: 0,
     asOfDate: new Date().toISOString().slice(0, 10),
   },
   propertyStats: {
+    securityValue: 0,
+    unitsSize: '—',
     valuePerUnit: 0,
+    exposurePerUnit: 0,
     riskStatus: '—',
-    propertyType: '—',
-    location: '—',
   },
   interestSummary: {
     interestDisbursed: 0,
     interestNotDisbursed: 0,
-    totalOutstandingInterest: 0,
     monthsInArrears: 0,
+  },
+  interestOverLife: {
+    totalInterestDue: null,
+    paidByReservesOrInterCo: null,
+    paidViaCash: null,
+    interestUnpaid: null,
   },
   interestReserve: {
     currentInterestReserve: 0,
@@ -100,16 +107,15 @@ export function buildLoanDetailReport(
   }));
 
   report.header = {
-    securityValue: totalSecurity,
+    principalBalance: totalExposure,
+    percentInterestPaid: null,
     overallLtv,
-    equityCushion: Math.max(0, totalSecurity - totalExposure),
-    units: rows.length,
   };
   report.reportDetails = {
     mainLoanId: rows[0].parentLoanId,
     loanType: '—',
-    investorAlias: rows[0].investorAliasName ?? '—',
-    ranking: '—',
+    investorCount: byInvestor.size,
+    sponsor: '—',
   };
   report.portfolioRows = portfolioRows;
   report.exposureByInvestor = investorSlices;

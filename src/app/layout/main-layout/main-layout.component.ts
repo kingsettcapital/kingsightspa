@@ -1,8 +1,9 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
-import { UserRole } from '../../core/enums/user-role.enum';
+import { AccessControlService } from '../../core/access/access-control.service';
 import { AuthService } from '../../core/services/auth.service';
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { NotificationUnreadCountService } from '../../core/services/notification-unread-count.service';
 import { environment } from '../../../environments/environment';
 import {
@@ -58,6 +59,8 @@ import { ToastContainerComponent } from '../../shared/components/toast/toast-con
 })
 export class MainLayoutComponent implements OnInit {
   private readonly authService = inject(AuthService);
+  private readonly accessControl = inject(AccessControlService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly router = inject(Router);
   private readonly notificationUnreadCount = inject(NotificationUnreadCountService);
 
@@ -88,29 +91,35 @@ export class MainLayoutComponent implements OnInit {
   readonly unreadNotificationCount = this.notificationUnreadCount.count;
 
   readonly currentUser = computed(() => {
-    const user = this.authService.currentUser();
+    const authUser = this.authService.currentUser();
+    const appUser = this.currentAppUser.user();
+    const displayName = appUser
+      ? CurrentAppUserService.formatDisplayName(appUser)
+      : (authUser?.name ?? 'User');
     return {
-      name: user?.name ?? 'John Doe',
-      email: user?.email ?? '',
-      role: user?.role ?? UserRole.User,
+      name: displayName,
+      email: authUser?.email ?? appUser?.email ?? '',
+      role: this.accessControl.roleLabel(),
     };
   });
 
-  /** Hidden until environment.managementSummaryEnabled is true. */
-  readonly showManagementSummary = computed(
-    () => environment.managementSummaryEnabled === true,
+  /** Env flag, or admin (admins see UAT-hidden sections). */
+  readonly showManagementSummary = computed(() =>
+    this.accessControl.isFeatureVisible(environment.managementSummaryEnabled),
   );
 
-  /** Home / Capital / Data Explorer — hidden when flag is false; code kept. */
-  readonly showHomeCapitalAndDataExplorer = computed(
-    () => environment.showHomeCapitalAndDataExplorer === true,
+  /** Env flag, or admin (Home / Capital / Data Explorer). */
+  readonly showHomeCapitalAndDataExplorer = computed(() =>
+    this.accessControl.isFeatureVisible(environment.showHomeCapitalAndDataExplorer),
   );
 
-  /** AI Assistant — hidden when flag is false; component kept. */
-  readonly showAiAssistant = computed(() => environment.showAiAssistant === true);
+  /** Env flag, or admin. */
+  readonly showAiAssistant = computed(() =>
+    this.accessControl.isFeatureVisible(environment.showAiAssistant),
+  );
 
-  /** User Management — hidden when flag is false; admin routes kept. */
-  readonly showUserManagement = computed(() => environment.showUserManagement === true);
+  /** Admin only — also visible in UAT when the env flag is off. */
+  readonly showUserManagement = computed(() => this.accessControl.canAccessUserManagement());
 
   homeIcon = Home;
   chartBarIcon = ChartBar;
@@ -151,28 +160,24 @@ export class MainLayoutComponent implements OnInit {
       this.openDropdown.set(label);
       return;
     }
-    this.openDropdown.update((v) => (v === label ? null : label));
-  }
-
-  private shouldHideAppChrome(url: string): boolean {
-    return url.startsWith('/capital-dashboard') || url.startsWith('/data-explorer');
-  }
-
-  private syncDropdownToRoute(url: string): void {
-    const path = url.split('?')[0];
-
-    // Investor Alias Assignment lives under MORTGAGE nav but routes to capital-reporting.
-    if (path.startsWith('/mortgage') || path.startsWith('/capital-reporting/investor')) {
-      this.openDropdown.set('Loans');
-      return;
-    }
-
-    if (path.startsWith('/capital-reporting')) {
-      this.openDropdown.set('Stats');
-    }
+    this.openDropdown.update((current) => (current === label ? null : label));
   }
 
   handleLogout(): void {
     void this.authService.logout();
+  }
+
+  private syncDropdownToRoute(url: string): void {
+    if (url.includes('/mortgage')) {
+      this.openDropdown.set('Loans');
+    }
+  }
+
+  private shouldHideAppChrome(url: string): boolean {
+    const path = url.split('?')[0];
+    return (
+      path.startsWith('/mortgage/management-summary') ||
+      path.includes('/loan-detail')
+    );
   }
 }

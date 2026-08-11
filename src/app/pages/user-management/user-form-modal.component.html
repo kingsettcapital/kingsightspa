@@ -78,7 +78,9 @@
             required
           >
             @for (role of roles(); track role.roleId) {
-              <option [ngValue]="role.roleId">{{ role.roleName }}</option>
+              <option [ngValue]="role.roleId">
+                {{ role.roleName }}{{ isRoleOptionActive(role) ? '' : ' (Inactive)' }}
+              </option>
             }
           </select>
         </div>

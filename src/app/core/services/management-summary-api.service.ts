@@ -51,6 +51,8 @@ export type ChartSliceDto = {
   label: string;
   value: number;
   sharePercent?: number | null;
+  count?: number | null;
+  averageLtv?: number | null;
 };
 
 export type ManagementSummaryDashboardDto = {
@@ -91,12 +93,24 @@ export type ManagementSummaryDashboardDto = {
     ltv?: number | null;
     risk?: string | null;
   }[];
+  exposureAnalysisRows?: {
+    loanAliasKey: number;
+    loanAlias: string;
+    sponsor: string;
+    externalBalance: number;
+    smfBalance: number;
+    mlpBalance: number;
+    totalKsExposure: number;
+    subordinateExposure: number;
+    ltv?: number | null;
+  }[];
+  watchlistAsAt?: string | null;
   watchlistRows: {
     loanId: string;
     investor: string;
     sponsor: string;
     property: string;
-    missed?: string | null;
+    missed?: string | number | null;
     principal?: number | null;
     osInterest?: number | null;
     taxArrears?: string | null;
@@ -106,6 +120,7 @@ export type ManagementSummaryDashboardDto = {
     statusUpdate?: string | null;
     conclusion?: string | null;
     status?: string | null;
+    reportDate?: string | null;
   }[];
   filterOptions: {
     sponsors?: string[];
@@ -117,6 +132,7 @@ export type ManagementSummaryDashboardDto = {
     ltvRiskDistribution?: ChartSliceDto[];
     top5Exposures?: ChartSliceDto[];
     exposureBreakdown?: ChartSliceDto[];
+    capitalStack?: ChartSliceDto[];
     exposureAnalysis?: ChartSliceDto[];
     investorSummary?: ChartSliceDto[];
     sponsorSummary?: ChartSliceDto[];
@@ -126,34 +142,41 @@ export type ManagementSummaryDashboardDto = {
 export type LoanDetailReportDashboardDto = {
   loanAlias: string;
   header: {
-    securityValue?: number | null;
+    principalBalance?: number | null;
+    percentInterestPaid?: number | null;
     overallLtv?: number | null;
-    equityCushion?: number | null;
-    units?: string | null;
   };
   reportDetails: {
     mainLoanId?: string | null;
     loanType?: string | null;
-    investorAlias?: string | null;
-    ranking?: number | null;
+    investorCount?: number | null;
+    sponsor?: string | null;
   };
   keyDates: {
+    dateOfAdvance?: string | null;
     dateOfDefault?: string | null;
     daysInDefault?: number | null;
     maturityDate?: string | null;
+    interestOffDate?: string | null;
     asOfDate?: string | null;
   };
   propertyStats: {
+    securityValue?: number | null;
+    unitsSize?: string | null;
     valuePerUnit?: number | null;
+    exposurePerUnit?: number | null;
     riskStatus?: string | null;
-    propertyType?: string | null;
-    location?: string | null;
   };
   interestSummary: {
     interestDisbursed?: number;
     interestNotDisbursed?: number;
-    totalOutstandingInterest?: number;
     monthsInArrears?: number | null;
+  };
+  interestOverLife?: {
+    totalInterestDue?: number | null;
+    paidByReservesOrInterCo?: number | null;
+    paidViaCash?: number | null;
+    interestUnpaid?: number | null;
   };
   interestReserve: {
     currentInterestReserve?: number | null;
@@ -215,11 +238,21 @@ export class ManagementSummaryApiService {
     });
   }
 
-  getLoanDetailReport(loanAliasKey: number, asOfDate: string, statuses?: string[]) {
+  getLoanDetailReport(
+    loanAliasKey: number,
+    asOfDate: string,
+    statuses?: string[],
+    investorAliases?: string[],
+  ) {
     let params = new HttpParams().set('asOfDate', asOfDate);
     for (const status of statuses ?? []) {
       if (status.trim()) {
         params = params.append('statuses', status.trim());
+      }
+    }
+    for (const alias of investorAliases ?? []) {
+      if (alias.trim() && alias !== 'All') {
+        params = params.append('investorAliases', alias.trim());
       }
     }
     return this.http.get<LoanDetailReportDashboardDto>(

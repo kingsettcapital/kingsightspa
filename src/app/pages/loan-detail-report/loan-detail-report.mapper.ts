@@ -5,11 +5,30 @@ function formatDate(value: string | null | undefined): string {
   if (!value) {
     return '—';
   }
-  const parsed = new Date(value);
+  const parsed = new Date(value.length <= 10 ? `${value}T00:00:00` : value);
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
-  return parsed.toISOString().slice(0, 10);
+  return parsed.toLocaleDateString('en-CA', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function formatAsOfDisplay(value: string | null | undefined): string {
+  if (!value) {
+    return '—';
+  }
+  const parsed = new Date(value.length <= 10 ? `${value}T00:00:00` : value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleDateString('en-CA', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 }
 
 function mapChartSlice(slice: {
@@ -28,62 +47,84 @@ export function mapLoanDetailReportDashboard(dto: LoanDetailReportDashboardDto):
   return {
     loanAlias: dto.loanAlias,
     header: {
-      securityValue: dto.header?.securityValue ?? 0,
+      principalBalance: dto.header?.principalBalance ?? 0,
+      percentInterestPaid: dto.header?.percentInterestPaid ?? null,
       overallLtv: dto.header?.overallLtv ?? 0,
-      equityCushion: dto.header?.equityCushion ?? 0,
-      units: Number(dto.header?.units) || 0,
     },
     reportDetails: {
       mainLoanId: dto.reportDetails?.mainLoanId ?? '—',
       loanType: dto.reportDetails?.loanType ?? '—',
-      investorAlias: dto.reportDetails?.investorAlias ?? '—',
-      ranking: dto.reportDetails?.ranking != null ? String(dto.reportDetails.ranking) : '—',
+      investorCount: dto.reportDetails?.investorCount ?? null,
+      sponsor: dto.reportDetails?.sponsor?.trim() || '—',
     },
     keyDates: {
+      dateOfAdvance: formatDate(dto.keyDates?.dateOfAdvance),
       dateOfDefault: formatDate(dto.keyDates?.dateOfDefault),
-      daysInDefault: dto.keyDates?.daysInDefault ?? 0,
       maturityDate: formatDate(dto.keyDates?.maturityDate),
-      asOfDate: formatDate(dto.keyDates?.asOfDate),
+      interestOffDate: formatDate(dto.keyDates?.interestOffDate),
+      daysInDefault: dto.keyDates?.daysInDefault ?? 0,
+      asOfDate: formatAsOfDisplay(dto.keyDates?.asOfDate),
     },
     propertyStats: {
+      securityValue: dto.propertyStats?.securityValue ?? 0,
+      unitsSize: dto.propertyStats?.unitsSize?.trim() || '—',
       valuePerUnit: dto.propertyStats?.valuePerUnit ?? 0,
+      exposurePerUnit: dto.propertyStats?.exposurePerUnit ?? 0,
       riskStatus: dto.propertyStats?.riskStatus ?? '—',
-      propertyType: dto.propertyStats?.propertyType ?? '—',
-      location: dto.propertyStats?.location ?? '—',
     },
     interestSummary: {
       interestDisbursed: dto.interestSummary?.interestDisbursed ?? 0,
       interestNotDisbursed: dto.interestSummary?.interestNotDisbursed ?? 0,
-      totalOutstandingInterest: dto.interestSummary?.totalOutstandingInterest ?? 0,
       monthsInArrears: dto.interestSummary?.monthsInArrears ?? 0,
+    },
+    interestOverLife: {
+      totalInterestDue: dto.interestOverLife?.totalInterestDue ?? null,
+      paidByReservesOrInterCo: dto.interestOverLife?.paidByReservesOrInterCo ?? null,
+      paidViaCash: dto.interestOverLife?.paidViaCash ?? null,
+      interestUnpaid: dto.interestOverLife?.interestUnpaid ?? null,
     },
     interestReserve: {
       currentInterestReserve: dto.interestReserve?.currentInterestReserve ?? 0,
       currentInterestReserveBalance: dto.interestReserve?.currentInterestReserveBalance ?? 0,
       monthsCoveredByReserve: dto.interestReserve?.monthsCoveredByReserve ?? 0,
     },
-    portfolioRows: (dto.portfolioRows ?? []).map((row) => ({
-      loanId: row.loanId,
-      description: row.description,
-      investor: row.investor,
-      rank: row.rank != null ? String(row.rank) : '—',
-      rate: row.rate ?? null,
-      principal: row.principal ?? null,
-      defInterest: row.defInterest ?? null,
-      accruedInt: row.accruedInt ?? null,
-      lateInt: row.lateInt ?? null,
-      intAdj: row.intAdj ?? null,
-      taxArrears: row.taxArrears ?? null,
-      otherCosts: row.otherCosts ?? null,
-      totalExposure: row.totalExposure ?? null,
-      ltv: row.ltv ?? null,
-      monthsInArrears: row.monthsInArrears ?? null,
-      timesNsfd: row.timesNsfd ?? null,
-    })),
+    portfolioRows: [...(dto.portfolioRows ?? [])]
+      .map((row) => ({
+        loanId: row.loanId,
+        description: row.description,
+        investor: row.investor,
+        rank: row.rank != null ? String(row.rank) : '—',
+        rate: row.rate ?? null,
+        principal: row.principal ?? null,
+        defInterest: row.defInterest ?? null,
+        accruedInt: row.accruedInt ?? null,
+        lateInt: row.lateInt ?? null,
+        intAdj: row.intAdj ?? null,
+        taxArrears: row.taxArrears ?? null,
+        otherCosts: row.otherCosts ?? null,
+        totalExposure: row.totalExposure ?? null,
+        ltv: row.ltv ?? null,
+        monthsInArrears: row.monthsInArrears ?? null,
+        timesNsfd: row.timesNsfd ?? null,
+      }))
+      .sort((a, b) => {
+        const aRanked = a.rank !== '—';
+        const bRanked = b.rank !== '—';
+        if (aRanked !== bRanked) {
+          return aRanked ? -1 : 1;
+        }
+        if (aRanked && bRanked) {
+          const rankDiff = Number(a.rank) - Number(b.rank);
+          if (rankDiff !== 0) {
+            return rankDiff;
+          }
+        }
+        return a.loanId.localeCompare(b.loanId, undefined, { sensitivity: 'base' });
+      }),
     exposureByInvestor: (dto.exposureByInvestor ?? []).map(mapChartSlice),
     exposureComposition: (dto.exposureComposition ?? []).map(mapChartSlice),
     investorBreakdown: (dto.investorBreakdown ?? []).map(mapChartSlice),
-    taxArrearsAsAt: formatDate(dto.taxArrearsAsAt),
+    taxArrearsAsAt: formatAsOfDisplay(dto.taxArrearsAsAt),
     taxArrearsByYear: (dto.taxArrearsByYear ?? []).map((row) => ({
       year: row.year,
       taxArrears: row.taxArrears,

@@ -41,7 +41,7 @@ export type CmhcWatchlistRow = {
   investor: string;
   sponsor: string;
   property: string;
-  missed: number | null;
+  missed: string | number | null;
   principal: number | null;
   osInterest: number | null;
   taxArrears: string;
@@ -50,7 +50,7 @@ export type CmhcWatchlistRow = {
   issue: string;
   statusUpdate: string;
   conclusion: string;
-  status: 'CONCERN' | 'NO CONCERNS' | string;
+  status: 'CONCERN' | 'NO CONCERNS' | 'CLAIM EXPECTED' | string;
 };
 
 export type ManagementSummaryFilters = {
