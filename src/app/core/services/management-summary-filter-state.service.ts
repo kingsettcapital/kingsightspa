@@ -8,8 +8,10 @@ import {
   type ManagementSummaryFilterOptions,
 } from '../../pages/management-summary/management-summary-filter.util';
 
-function todayAsOfDate(): string {
+/** Report as-of defaults to yesterday (T-1). */
+function defaultAsOfDate(): string {
   const date = new Date();
+  date.setDate(date.getDate() - 1);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -18,7 +20,7 @@ function todayAsOfDate(): string {
 
 export function createManagementSummaryDefaultFilters(): ManagementSummaryFilters {
   return {
-    asOfDate: todayAsOfDate(),
+    asOfDate: defaultAsOfDate(),
     defaultDateFrom: '',
     defaultDateTo: '',
     maturityDateFrom: '',
@@ -32,8 +34,8 @@ export function createManagementSummaryDefaultFilters(): ManagementSummaryFilter
 
 /**
  * Keeps Management Summary filters for the active report session.
- * First open → TODAY. Drill to loan detail and back → retained.
- * Leave /mortgage/management-summary* → cleared so the next open is TODAY again.
+ * First open → yesterday (T-1). Drill to loan detail and back → retained.
+ * Leave /mortgage/management-summary* → cleared so the next open is T-1 again.
  */
 @Injectable({ providedIn: 'root' })
 export class ManagementSummaryFilterStateService {
