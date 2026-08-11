@@ -307,7 +307,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (row of exposureAnalysis(); track row.loanAlias + '|' + row.sponsor) {
+          @for (row of exposureAnalysis(); track row.loanAlias) {
             <tr
               class="ms-table__row ms-table__row--clickable"
               (click)="openExposureAnalysisDetail(row)"
