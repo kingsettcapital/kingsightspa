@@ -747,6 +747,7 @@
   padding: 0.9rem 1rem 1rem;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .ms-chart-card__head h2 {
@@ -777,8 +778,16 @@
 }
 
 .ms-mini-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
   max-height: 10rem;
   overflow: auto;
+}
+
+.ms-mini-table-wrap .ms-mini-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .ms-mini-table {

@@ -251,12 +251,17 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
     this.isLoading.set(true);
     this.errorMessage.set('');
     this.summaryApi
-      .getLoanDetailReport(
-        this.loanAliasKey,
-        filters.asOfDate,
+      .getLoanDetailReport(this.loanAliasKey, {
+        asOfDate: filters.asOfDate,
+        defaultDateFrom: filters.defaultDateFrom || undefined,
+        defaultDateTo: filters.defaultDateTo || undefined,
+        maturityDateFrom: filters.maturityDateFrom || undefined,
+        maturityDateTo: filters.maturityDateTo || undefined,
+        sponsor: filters.sponsor,
+        riskLevels: filters.riskLevels,
         statuses,
-        investorAliasesFromFilters(filters),
-      )
+        investorAliases: investorAliasesFromFilters(filters),
+      })
       .subscribe({
         next: (dto) => {
           const mapped = mapLoanDetailReportDashboard(dto);

@@ -240,17 +240,45 @@ export class ManagementSummaryApiService {
 
   getLoanDetailReport(
     loanAliasKey: number,
-    asOfDate: string,
-    statuses?: string[],
-    investorAliases?: string[],
+    query: {
+      asOfDate: string;
+      defaultDateFrom?: string;
+      defaultDateTo?: string;
+      maturityDateFrom?: string;
+      maturityDateTo?: string;
+      sponsor?: string;
+      riskLevels?: string[];
+      statuses?: string[];
+      investorAliases?: string[];
+    },
   ) {
-    let params = new HttpParams().set('asOfDate', asOfDate);
-    for (const status of statuses ?? []) {
+    let params = new HttpParams().set('asOfDate', query.asOfDate);
+    if (query.defaultDateFrom) {
+      params = params.set('defaultDateFrom', query.defaultDateFrom);
+    }
+    if (query.defaultDateTo) {
+      params = params.set('defaultDateTo', query.defaultDateTo);
+    }
+    if (query.maturityDateFrom) {
+      params = params.set('maturityDateFrom', query.maturityDateFrom);
+    }
+    if (query.maturityDateTo) {
+      params = params.set('maturityDateTo', query.maturityDateTo);
+    }
+    if (query.sponsor?.trim()) {
+      params = params.set('sponsor', query.sponsor.trim());
+    }
+    for (const level of query.riskLevels ?? []) {
+      if (level.trim()) {
+        params = params.append('riskLevels', level.trim());
+      }
+    }
+    for (const status of query.statuses ?? []) {
       if (status.trim()) {
         params = params.append('statuses', status.trim());
       }
     }
-    for (const alias of investorAliases ?? []) {
+    for (const alias of query.investorAliases ?? []) {
       if (alias.trim() && alias !== 'All') {
         params = params.append('investorAliases', alias.trim());
       }

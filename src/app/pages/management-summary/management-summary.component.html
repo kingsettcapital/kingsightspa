@@ -307,7 +307,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (row of exposureAnalysis(); track row.loanAlias + '|' + row.sponsor) {
+          @for (row of exposureAnalysis(); track row.loanAlias) {
             <tr
               class="ms-table__row ms-table__row--clickable"
               (click)="openExposureAnalysisDetail(row)"
@@ -351,29 +351,31 @@
       <div #capitalStackContainer class="ms-chart">
         <canvas #capitalStackCanvas aria-label="Capital stack breakdown chart"></canvas>
       </div>
-      <table class="ms-mini-table">
-        <thead>
-          <tr>
-            <th>Source</th>
-            <th class="num">Exposure</th>
-            <th class="num">%</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (slice of capitalStack(); track slice.label; let i = $index) {
+      <div class="ms-mini-table-wrap">
+        <table class="ms-mini-table">
+          <thead>
             <tr>
-              <td>
-                <span class="ms-legend-label">
-                  <span class="ms-legend-swatch" [style.background]="chartSeriesColor(i)" aria-hidden="true"></span>
-                  {{ slice.label }}
-                </span>
-              </td>
-              <td class="num">{{ formatMillions(slice.value) }}</td>
-              <td class="num">{{ slice.sharePercent }}%</td>
+              <th>Source</th>
+              <th class="num">Exposure</th>
+              <th class="num">%</th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (slice of capitalStack(); track slice.label; let i = $index) {
+              <tr>
+                <td>
+                  <span class="ms-legend-label">
+                    <span class="ms-legend-swatch" [style.background]="chartSeriesColor(i)" aria-hidden="true"></span>
+                    {{ slice.label }}
+                  </span>
+                </td>
+                <td class="num">{{ formatMillions(slice.value) }}</td>
+                <td class="num">{{ slice.sharePercent }}%</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </article>
 
     <article class="ms-chart-card">
@@ -384,31 +386,33 @@
       <div #investorContainer class="ms-chart">
         <canvas #investorCanvas aria-label="Investor summary chart"></canvas>
       </div>
-      <table class="ms-mini-table">
-        <thead>
-          <tr>
-            <th>Investor Alias</th>
-            <th class="num">Loan Alias</th>
-            <th class="num">Exposure</th>
-            <th class="num">%</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of investorSummary(); track row.investor; let i = $index) {
+      <div class="ms-mini-table-wrap">
+        <table class="ms-mini-table">
+          <thead>
             <tr>
-              <td>
-                <span class="ms-legend-label">
-                  <span class="ms-legend-swatch" [style.background]="chartSeriesColor(i)" aria-hidden="true"></span>
-                  {{ row.investor }}
-                </span>
-              </td>
-              <td class="num">{{ row.loans }}</td>
-              <td class="num">{{ formatMillions(row.exposure) }}</td>
-              <td class="num">{{ row.sharePercent }}%</td>
+              <th>Investor Alias</th>
+              <th class="num">Loan Alias</th>
+              <th class="num">Exposure</th>
+              <th class="num">%</th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (row of investorSummary(); track row.investor; let i = $index) {
+              <tr>
+                <td>
+                  <span class="ms-legend-label">
+                    <span class="ms-legend-swatch" [style.background]="chartSeriesColor(i)" aria-hidden="true"></span>
+                    {{ row.investor }}
+                  </span>
+                </td>
+                <td class="num">{{ row.loans }}</td>
+                <td class="num">{{ formatMillions(row.exposure) }}</td>
+                <td class="num">{{ row.sharePercent }}%</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </article>
 
     <article class="ms-chart-card">
