@@ -9,9 +9,17 @@ import { CurrentAppUserService } from '../../core/services/current-app-user.serv
 import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import {
+  normalizeStatusOptions,
+  toStatusSelectOptions,
+} from '../../core/utils/mortgage-status-filter.util';
+import {
   InvestorApiService,
   InvestorDto,
 } from '../../core/services/investor-api.service';
+import {
+  LoanSecurityValueApiService,
+  LoanStatusFilterOption,
+} from '../../core/services/loan-security-value-api.service';
 import { LoanAliasOptionDto, LoansApiService } from '../../core/services/loans-api.service';
 import {
   NonKsServicedLoanDto,
@@ -54,6 +62,7 @@ type NonKsLoanRow = {
   costToComplete: number | null;
   taxArrears: number | null;
   interestAdjustment: number | null;
+  fundingStatus: string;
   userUpdatedBy: string;
   userUpdatedDate: string;
 };
@@ -167,6 +176,7 @@ const NON_KS_TABLE_COLUMNS: NonKsTableColumn[] = [
   { key: 'estRealizationCosts', label: 'Est. Realization', numeric: true },
   { key: 'costToComplete', label: 'Cost to Complete', numeric: true },
   { key: 'taxArrears', label: 'Tax Arrears', numeric: true },
+  { key: 'fundingStatus', label: 'Funding Status' },
   { key: 'userUpdatedBy', label: 'Modified By', audit: true },
   { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
 ];
@@ -182,11 +192,22 @@ export class NonKsServicedLoansComponent implements OnInit {
   private readonly api = inject(NonKsServicedLoansApiService);
   private readonly loansApi = inject(LoansApiService);
   private readonly investorApi = inject(InvestorApiService);
+  private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
 
   readonly tableColumns = NON_KS_TABLE_COLUMNS;
   readonly rows = signal<NonKsLoanRow[]>([]);
+  readonly fundingStatusOptions = signal<LoanStatusFilterOption[]>([]);
+  readonly fundingStatusSelectOptions = computed(() =>
+    toStatusSelectOptions(this.fundingStatusOptions())
+      .filter((option) => option.value.length > 0 && option.value !== '(null)')
+      .map((option) => ({
+        // Persist status_name into external_serviced_loan.funding_status.
+        value: option.label,
+        label: option.label,
+      })),
+  );
   readonly originalRowState = signal<Record<string, RowSnapshot>>({});
   readonly loanAliasOptions = signal<LoanAliasOptionDto[]>([]);
   readonly investorOptions = signal<InvestorDto[]>([]);
@@ -949,8 +970,10 @@ export class NonKsServicedLoansComponent implements OnInit {
         catchError(() => of({ loanAliases: [] as LoanAliasOptionDto[] })),
       ),
       investors: this.investorApi.getInvestors().pipe(catchError(() => of([] as InvestorDto[]))),
+      statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ records, lookups, loanAliases, investors }) => {
+      next: ({ records, lookups, loanAliases, investors, statuses }) => {
+        this.fundingStatusOptions.set(normalizeStatusOptions(statuses));
         this.loanAliasOptions.set(
           (loanAliases.loanAliases ?? [])
             .map((alias) => ({
@@ -1041,6 +1064,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       costToComplete: null,
       taxArrears: null,
       interestAdjustment: null,
+      fundingStatus: '',
       userUpdatedBy: '-',
       userUpdatedDate: '',
     };
@@ -1164,6 +1188,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       costToComplete: draft.costToComplete,
       taxArrears: draft.taxArrears,
       interestAdjustment: draft.interestAdjustment,
+      fundingStatus: draft.fundingStatus,
       userUpdatedBy: '-',
       userUpdatedDate: '',
     };
@@ -1332,6 +1357,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       costToComplete: draft.costToComplete,
       taxArrears: draft.taxArrears,
       interestAdjustment: draft.interestAdjustment,
+      fundingStatus: this.nullIfEmpty(draft.fundingStatus),
       userUpdatedBy,
     };
   }
@@ -1453,6 +1479,7 @@ export class NonKsServicedLoansComponent implements OnInit {
         'ArrearsAsOf',
       ),
       interestAdjustment: this.pickNullableNumber(raw, 'interestAdjustment', 'InterestAdjustment'),
+      fundingStatus: this.pickString(raw, 'fundingStatus', 'FundingStatus'),
       userUpdatedBy:
         this.pickString(
           raw,
@@ -1502,6 +1529,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       costToComplete,
       taxArrears,
       interestAdjustment,
+      fundingStatus,
     } = row;
     return {
       loanName,
@@ -1529,6 +1557,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       costToComplete,
       taxArrears,
       interestAdjustment,
+      fundingStatus,
     };
   }
 

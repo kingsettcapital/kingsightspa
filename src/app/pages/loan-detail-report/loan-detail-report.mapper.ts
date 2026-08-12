@@ -105,6 +105,7 @@ export function mapLoanDetailReportDashboard(dto: LoanDetailReportDashboardDto):
         ltv: row.ltv ?? null,
         monthsInArrears: row.monthsInArrears ?? null,
         timesNsfd: row.timesNsfd ?? null,
+        aggregateFlag: row.aggregateFlag ?? null,
       }))
       .sort((a, b) => {
         const aRanked = a.rank !== '—';

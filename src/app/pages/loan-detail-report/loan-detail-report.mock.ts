@@ -62,6 +62,7 @@ export const LOAN_DETAIL_REPORT_MOCK: LoanDetailReportData = {
       ltv: 98.2,
       monthsInArrears: 14,
       timesNsfd: 3,
+      aggregateFlag: 'Y',
     },
     {
       loanId: '145103',
@@ -80,6 +81,7 @@ export const LOAN_DETAIL_REPORT_MOCK: LoanDetailReportData = {
       ltv: 99.8,
       monthsInArrears: 11,
       timesNsfd: 1,
+      aggregateFlag: 'Y',
     },
     {
       loanId: '145211',
@@ -98,6 +100,7 @@ export const LOAN_DETAIL_REPORT_MOCK: LoanDetailReportData = {
       ltv: 101.2,
       monthsInArrears: 0,
       timesNsfd: 0,
+      aggregateFlag: 'N',
     },
   ],
   exposureByInvestor: [

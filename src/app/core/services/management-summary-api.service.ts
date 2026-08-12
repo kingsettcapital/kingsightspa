@@ -200,6 +200,7 @@ export type LoanDetailReportDashboardDto = {
     ltv?: number | null;
     monthsInArrears?: number | null;
     timesNsfd?: number | null;
+    aggregateFlag?: string | null;
   }[];
   exposureByInvestor?: ChartSliceDto[];
   exposureComposition?: ChartSliceDto[];
