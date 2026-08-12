@@ -135,6 +135,7 @@
             <td class="numeric-cell">{{ formatCurrencyDisplay(row.estRealizationCosts) }}</td>
             <td class="numeric-cell">{{ formatCurrencyDisplay(row.costToComplete) }}</td>
             <td class="numeric-cell">{{ formatCurrencyDisplay(row.taxArrears) }}</td>
+            <td>{{ formatTextDisplay(row.fundingStatus) }}</td>
             <td class="readonly-cell audit-col audit-col-by">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
             <td class="readonly-cell audit-col audit-col-date">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>
@@ -318,6 +319,21 @@
                     placeholder="Loan name"
                   />
                 }
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-funding-status">Funding Status</label>
+                <select
+                  id="dlg-funding-status"
+                  class="cell-input"
+                  [ngModel]="draft.fundingStatus"
+                  (ngModelChange)="updateDialogTextField('fundingStatus', $event ?? '')"
+                  [ngModelOptions]="{ standalone: true }"
+                >
+                  <option value="">— Select —</option>
+                  @for (option of fundingStatusSelectOptions(); track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
               </div>
               @if (dialogMode() === 'update' || dialogMode() === 'duplicate') {
                 <div class="dlg-field">

@@ -21,6 +21,8 @@ export type LoanDto = {
   dummyLoanLink?: string | null;
   isLoanInterestApplicable?: boolean | null;
   lateInterestOffNote?: string | null;
+  fundingStatusKey?: number | null;
+  fundingStatusName?: string | null;
   userUpdatedBy?: string | null;
   userUpdatedDate?: string | null;
   isNonKs?: boolean | null;
@@ -34,6 +36,7 @@ export type LoanAttributeUpdatePayload = {
   dummyLoanLink?: string | null;
   isLoanInterestApplicable?: boolean | null;
   lateInterestOffNote?: string | null;
+  fundingStatusKey?: number | null;
   userUpdatedBy: string;
 };
 

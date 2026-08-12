@@ -73,6 +73,7 @@ export function mapApiRowToPortfolioDetail(row: LoanDetailReportRowDto): LoanPor
     ltv: row.ltv,
     monthsInArrears: null,
     timesNsfd: null,
+    aggregateFlag: null,
   };
 }
 

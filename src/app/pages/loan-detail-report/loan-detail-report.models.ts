@@ -64,6 +64,8 @@ export type LoanPortfolioDetailRow = {
   ltv: number | null;
   monthsInArrears: number | null;
   timesNsfd: number | null;
+  /** Y/N (aggregate_flag); TOTALS only include Y rows. Grid still shows all rows. */
+  aggregateFlag: string | null;
 };
 
 export type LoanDetailChartSlice = {

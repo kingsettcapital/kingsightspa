@@ -35,6 +35,7 @@ export type NonKsServicedLoanDto = {
   costToComplete?: number | null;
   taxArrears?: number | null;
   interestAdjustment?: number | null;
+  fundingStatus?: string | null;
   userUpdatedBy?: string | null;
   userUpdatedDate?: string | null;
 };

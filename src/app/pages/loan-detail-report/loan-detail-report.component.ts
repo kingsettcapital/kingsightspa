@@ -385,8 +385,10 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   }
 
   private sumPortfolioRows(rows: LoanPortfolioDetailRow[]) {
+    // Grid shows all rows; TOTALS only include aggregate_flag = Y.
+    const totalRows = rows.filter((row) => row.aggregateFlag?.trim().toUpperCase() === 'Y');
     const sum = (key: keyof LoanPortfolioDetailRow) =>
-      rows.reduce((total, row) => {
+      totalRows.reduce((total, row) => {
         const value = row[key];
         return typeof value === 'number' ? total + value : total;
       }, 0);
@@ -394,8 +396,9 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
     const principal = sum('principal');
     const totalExposure = sum('totalExposure');
     const ltv =
-      rows.length && principal > 0
-        ? rows.reduce((weighted, row) => weighted + (row.ltv ?? 0) * (row.principal ?? 0), 0) / principal
+      totalRows.length && principal > 0
+        ? totalRows.reduce((weighted, row) => weighted + (row.ltv ?? 0) * (row.principal ?? 0), 0) /
+          principal
         : null;
 
     return {
