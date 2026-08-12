@@ -87,40 +87,25 @@ export function mapLoanDetailReportDashboard(dto: LoanDetailReportDashboardDto):
       currentInterestReserveBalance: dto.interestReserve?.currentInterestReserveBalance ?? 0,
       monthsCoveredByReserve: dto.interestReserve?.monthsCoveredByReserve ?? 0,
     },
-    portfolioRows: [...(dto.portfolioRows ?? [])]
-      .map((row) => ({
-        loanId: row.loanId,
-        description: row.description,
-        investor: row.investor,
-        rank: row.rank != null ? String(row.rank) : '—',
-        rate: row.rate ?? null,
-        principal: row.principal ?? null,
-        defInterest: row.defInterest ?? null,
-        accruedInt: row.accruedInt ?? null,
-        lateInt: row.lateInt ?? null,
-        intAdj: row.intAdj ?? null,
-        taxArrears: row.taxArrears ?? null,
-        otherCosts: row.otherCosts ?? null,
-        totalExposure: row.totalExposure ?? null,
-        ltv: row.ltv ?? null,
-        monthsInArrears: row.monthsInArrears ?? null,
-        timesNsfd: row.timesNsfd ?? null,
-        aggregateFlag: row.aggregateFlag ?? null,
-      }))
-      .sort((a, b) => {
-        const aRanked = a.rank !== '—';
-        const bRanked = b.rank !== '—';
-        if (aRanked !== bRanked) {
-          return aRanked ? -1 : 1;
-        }
-        if (aRanked && bRanked) {
-          const rankDiff = Number(a.rank) - Number(b.rank);
-          if (rankDiff !== 0) {
-            return rankDiff;
-          }
-        }
-        return a.loanId.localeCompare(b.loanId, undefined, { sensitivity: 'base' });
-      }),
+    portfolioRows: (dto.portfolioRows ?? []).map((row) => ({
+      loanId: row.loanId,
+      description: row.description,
+      investor: row.investor,
+      rank: row.rank != null ? String(row.rank) : '—',
+      rate: row.rate ?? null,
+      principal: row.principal ?? null,
+      defInterest: row.defInterest ?? null,
+      accruedInt: row.accruedInt ?? null,
+      lateInt: row.lateInt ?? null,
+      intAdj: row.intAdj ?? null,
+      taxArrears: row.taxArrears ?? null,
+      otherCosts: row.otherCosts ?? null,
+      totalExposure: row.totalExposure ?? null,
+      ltv: row.ltv ?? null,
+      monthsInArrears: row.monthsInArrears ?? null,
+      timesNsfd: row.timesNsfd ?? null,
+      aggregateFlag: row.aggregateFlag ?? null,
+    })),
     exposureByInvestor: (dto.exposureByInvestor ?? []).map(mapChartSlice),
     exposureComposition: (dto.exposureComposition ?? []).map(mapChartSlice),
     investorBreakdown: (dto.investorBreakdown ?? []).map(mapChartSlice),
