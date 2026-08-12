@@ -18,6 +18,7 @@ import { combineLatest } from 'rxjs';
 import { ManagementSummaryApiService } from '../../core/services/management-summary-api.service';
 import { ManagementSummaryFilterStateService } from '../../core/services/management-summary-filter-state.service';
 import { ReportPrintExportService } from '../../core/services/report-print-export.service';
+import { extractApiError } from '../../core/utils/api-error.util';
 import { mapLoanDetailReportDashboard } from './loan-detail-report.mapper';
 import {
   DashboardChartLifecycle,
@@ -272,8 +273,10 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
           this.isLoading.set(false);
           queueMicrotask(() => this.renderCharts());
         },
-        error: () => {
-          this.errorMessage.set('Unable to load loan detail report. Verify API availability.');
+        error: (err) => {
+          this.errorMessage.set(
+            extractApiError(err, 'Unable to load loan detail report. Verify API availability.'),
+          );
           this.isLoading.set(false);
         },
       });

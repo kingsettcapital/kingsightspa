@@ -19,6 +19,7 @@ import {
   ManagementSummaryFilterStateService,
 } from '../../core/services/management-summary-filter-state.service';
 import { ReportPrintExportService } from '../../core/services/report-print-export.service';
+import { extractApiError } from '../../core/utils/api-error.util';
 import {
   dashboardHorizontalBarChartScales,
   DashboardChartLifecycle,
@@ -394,8 +395,10 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
           this.isLoading.set(false);
           queueMicrotask(() => this.renderCharts());
         },
-        error: () => {
-          this.errorMessage.set('Unable to load management summary. Verify API availability.');
+        error: (err) => {
+          this.errorMessage.set(
+            extractApiError(err, 'Unable to load management summary. Verify API availability.'),
+          );
           this.isLoading.set(false);
         },
       });
