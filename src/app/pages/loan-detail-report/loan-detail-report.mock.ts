@@ -10,7 +10,6 @@ export const LOAN_DETAIL_REPORT_MOCK: LoanDetailReportData = {
   },
   reportDetails: {
     mainLoanId: '145027',
-    loanType: '1st Mortgage — Multi-Residential',
     investorCount: 2,
     sponsor: 'KingSett Developments',
   },

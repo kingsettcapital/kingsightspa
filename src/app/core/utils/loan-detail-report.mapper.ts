@@ -13,7 +13,6 @@ const EMPTY_REPORT = (loanAlias: string): LoanDetailReportData => ({
   },
   reportDetails: {
     mainLoanId: '—',
-    loanType: '—',
     investorCount: null,
     sponsor: '—',
   },
@@ -113,7 +112,6 @@ export function buildLoanDetailReport(
   };
   report.reportDetails = {
     mainLoanId: rows[0].parentLoanId,
-    loanType: '—',
     investorCount: byInvestor.size,
     sponsor: '—',
   };

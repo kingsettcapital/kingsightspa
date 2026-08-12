@@ -53,7 +53,6 @@ export function mapLoanDetailReportDashboard(dto: LoanDetailReportDashboardDto):
     },
     reportDetails: {
       mainLoanId: dto.reportDetails?.mainLoanId ?? '—',
-      loanType: dto.reportDetails?.loanType ?? '—',
       investorCount: dto.reportDetails?.investorCount ?? null,
       sponsor: dto.reportDetails?.sponsor?.trim() || '—',
     },
