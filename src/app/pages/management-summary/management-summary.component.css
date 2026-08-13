@@ -225,6 +225,70 @@
   color: #64748b;
 }
 
+.ms-loan-search {
+  position: relative;
+  flex: 0 0 auto;
+  align-self: center;
+  width: min(22rem, 42vw);
+  min-width: 16rem;
+}
+
+.ms-loan-search__icon {
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.25rem;
+  height: 1.25rem;
+  font-size: 1.25rem;
+  line-height: 1.25rem;
+  color: #1e4f8c;
+  pointer-events: none;
+}
+
+.ms-loan-search__input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid #94a3b8;
+  border-radius: 0.45rem;
+  padding: 0.55rem 0.85rem 0.55rem 2.4rem;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #0f172a;
+  background: #f8fafc;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.ms-loan-search__input::placeholder {
+  color: #64748b;
+  font-weight: 400;
+}
+
+.ms-loan-search__input:hover {
+  border-color: #64748b;
+  background: #fff;
+}
+
+.ms-loan-search__input:focus {
+  outline: none;
+  border-color: #1e4f8c;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(30, 79, 140, 0.18);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .ms-table-wrap {
   overflow-x: hidden;
   overflow-y: auto;
@@ -254,6 +318,19 @@
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+/* Match body alignment — base thead th { text-align:left } wins over .num otherwise. */
+.ms-table thead th.num {
+  text-align: right;
+}
+
+.ms-table thead th.ms-col-center {
+  text-align: center;
+}
+
+.ms-table thead th.ms-col-left {
+  text-align: left;
 }
 
 .ms-table tbody td {
@@ -343,6 +420,12 @@
   font-size: 0.65rem;
   opacity: 0.85;
   white-space: nowrap;
+}
+
+.ms-table--loan-summary thead th.num {
+  white-space: normal;
+  line-height: 1.15;
+  hyphens: auto;
 }
 
 .ms-table .wrap {

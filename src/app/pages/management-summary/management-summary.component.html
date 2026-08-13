@@ -78,8 +78,19 @@
     <div class="ms-section__head">
       <div>
         <h2>Detailed Loan Summary</h2>
-        <p>{{ loanRows().length }} of {{ loanRows().length }} loan aliases — As of {{ filters().asOfDate }}</p>
+        <p>{{ sortedLoanRows().length }} of {{ loanRows().length }} loan aliases — As of {{ filters().asOfDate }}</p>
       </div>
+      <label class="ms-loan-search">
+        <span class="visually-hidden">Search loan summary</span>
+        <mat-icon class="ms-loan-search__icon" aria-hidden="true">search</mat-icon>
+        <input
+          type="search"
+          class="ms-loan-search__input"
+          placeholder="Search..."
+          [value]="loanSearchText()"
+          (input)="updateLoanSearch($any($event.target).value)"
+        />
+      </label>
     </div>
     <div class="ms-table-wrap">
       <table class="ms-table ms-table--loan-summary">
