@@ -348,18 +348,23 @@
         <button
           type="button"
           class="ks-btn ks-btn--accent"
-          (click)="confirmAiLtv()"
-          [disabled]="isConfirming() || !confirmableLoanKeys().length"
-        >
-          @if (isConfirming()) { Confirming… } @else { Confirm LTV }
-        </button>
-        <button
-          type="button"
-          class="ks-btn ks-btn--accent"
           (click)="saveChanges()"
           [disabled]="isSaving() || !rows().length"
         >
           @if (isSaving()) { Saving… } @else { Save Changes }
+        </button>
+        <button
+          type="button"
+          class="ks-btn ks-btn--accent"
+          (click)="confirmAiLtv()"
+          [disabled]="!canConfirmLtv()"
+          [attr.title]="
+            hasUnsavedChanges()
+              ? 'Save Changes before confirming LTV'
+              : null
+          "
+        >
+          @if (isConfirming()) { Confirming… } @else { Confirm LTV }
         </button>
       </div>
     </div>
