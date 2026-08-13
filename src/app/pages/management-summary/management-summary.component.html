@@ -49,16 +49,6 @@
       <strong class="ms-kpi-card__value">{{ formatMillions(kpis().totalOutstandingBalance) }}</strong>
     </article>
     <article class="ms-kpi-card">
-      <span class="ms-kpi-card__label">Average LTV</span>
-      <strong class="ms-kpi-card__value">{{ kpis().averageLtv ?? '—' }}%</strong>
-      <span class="ms-kpi-card__hint">
-        {{ kpis().averageLtvTrendLabel || '—' }}
-        @if (kpis().maxLtv) {
-          · Max: {{ kpis().maxLtv }}%
-        }
-      </span>
-    </article>
-    <article class="ms-kpi-card">
       <span class="ms-kpi-card__label">% of Fundings</span>
       <strong class="ms-kpi-card__value">{{ kpis().percentOfFundings ?? '—' }}%</strong>
     </article>

@@ -8,13 +8,14 @@ import {
   type ManagementSummaryFilterOptions,
 } from '../../pages/management-summary/management-summary-filter.util';
 
-/** Report as-of defaults to yesterday (T-1). */
+/** Report as-of defaults to prior month-end: STARTOFMONTH(TODAY()) - 1. */
 function defaultAsOfDate(): string {
-  const date = new Date();
-  date.setDate(date.getDate() - 1);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const today = new Date();
+  // Day 0 of current month = last calendar day of prior month (local).
+  const priorMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+  const year = priorMonthEnd.getFullYear();
+  const month = String(priorMonthEnd.getMonth() + 1).padStart(2, '0');
+  const day = String(priorMonthEnd.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
@@ -34,8 +35,8 @@ export function createManagementSummaryDefaultFilters(): ManagementSummaryFilter
 
 /**
  * Keeps Management Summary filters for the active report session.
- * First open → yesterday (T-1). Drill to loan detail and back → retained.
- * Leave /mortgage/management-summary* → cleared so the next open is T-1 again.
+ * First open → prior month-end. Drill to loan detail and back → retained.
+ * Leave /mortgage/management-summary* → cleared so the next open redefaults.
  */
 @Injectable({ providedIn: 'root' })
 export class ManagementSummaryFilterStateService {

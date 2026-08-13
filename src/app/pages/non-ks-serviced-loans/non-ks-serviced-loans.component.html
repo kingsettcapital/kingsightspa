@@ -111,22 +111,21 @@
             </td>
             <td>{{ formatTextDisplay(row.loanName) }}</td>
             <td>{{ formatDateDisplay(row.asAtDate) }}</td>
+            <td>{{ formatTextDisplay(row.fundingStatus) }}</td>
             <td class="loan-code-cell">{{ formatTextDisplay(row.loanCode) }}</td>
             <td>{{ formatTextDisplay(row.servicerId) }}</td>
             <td>{{ formatTextDisplay(row.description) }}</td>
             <td>{{ formatTextDisplay(row.investor) }}</td>
             <td>{{ formatTextDisplay(row.investorAlias) }}</td>
             <td>{{ formatTextDisplay(row.investorCode) }}</td>
+            <td>{{ formatTextDisplay(row.sponsor) }}</td>
             <td>{{ formatDateDisplay(row.dateOfDefault) }}</td>
             <td>{{ formatDateDisplay(row.maturityDate) }}</td>
             <td>{{ formatDateDisplay(row.interestOffDate) }}</td>
             <td>{{ formatDateDisplay(row.taxMemoDate) }}</td>
-            <td class="numeric-cell">{{ formatCurrencyDisplay(row.securityValue) }}</td>
-            <td class="numeric-cell">{{ formatIntegerDisplay(row.units) }}</td>
-            <td class="numeric-cell">{{ formatDecimalDisplay(row.netAcres, 2) }}</td>
-            <td class="numeric-cell">{{ formatIntegerDisplay(row.squareFeet) }}</td>
-            <td class="numeric-cell">{{ formatPercentDisplay(row.interestRate) }}</td>
             <td class="numeric-cell">{{ formatCurrencyDisplay(row.principalBalance) }}</td>
+            <td class="numeric-cell">{{ formatPercentDisplay(row.currentLtv) }}</td>
+            <td class="numeric-cell">{{ formatPercentDisplay(row.interestRate) }}</td>
             <td class="numeric-cell">{{ formatCurrencyDisplay(row.outstandingInterest) }}</td>
             <td class="numeric-cell">{{ formatCurrencyDisplay(row.accruedInterest) }}</td>
             <td class="numeric-cell">{{ formatCurrencyDisplay(row.lateInterest) }}</td>
@@ -135,7 +134,6 @@
             <td class="numeric-cell">{{ formatCurrencyDisplay(row.estRealizationCosts) }}</td>
             <td class="numeric-cell">{{ formatCurrencyDisplay(row.costToComplete) }}</td>
             <td class="numeric-cell">{{ formatCurrencyDisplay(row.taxArrears) }}</td>
-            <td>{{ formatTextDisplay(row.fundingStatus) }}</td>
             <td class="readonly-cell audit-col audit-col-by">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
             <td class="readonly-cell audit-col audit-col-date">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>
@@ -320,21 +318,6 @@
                   />
                 }
               </div>
-              <div class="dlg-field">
-                <label class="dlg-label" for="dlg-funding-status">Funding Status</label>
-                <select
-                  id="dlg-funding-status"
-                  class="cell-input"
-                  [ngModel]="draft.fundingStatus"
-                  (ngModelChange)="updateDialogTextField('fundingStatus', $event ?? '')"
-                  [ngModelOptions]="{ standalone: true }"
-                >
-                  <option value="">— Select —</option>
-                  @for (option of fundingStatusSelectOptions(); track option.value) {
-                    <option [value]="option.value">{{ option.label }}</option>
-                  }
-                </select>
-              </div>
               @if (dialogMode() === 'update' || dialogMode() === 'duplicate') {
                 <div class="dlg-field">
                   <label class="dlg-label" for="dlg-investor-alias">Investor Alias</label>
@@ -396,61 +379,35 @@
                   aria-readonly="true"
                 />
               </div>
-              <div class="dlg-field-row">
-                <div class="dlg-field">
-                  <label class="dlg-label" for="dlg-units">Units</label>
-                  <input
-                    id="dlg-units"
-                    type="text"
-                    inputmode="numeric"
-                    class="cell-input number"
-                    [value]="dialogInputDisplay('units', formatIntegerInput(draft.units))"
-                    (input)="onDialogInputText('units', $any($event.target).value)"
-                    (blur)="commitDialogIntegerField('units', $any($event.target))"
-                    placeholder="0"
-                  />
-                </div>
-                <div class="dlg-field">
-                  <label class="dlg-label" for="dlg-net-acres">Net Acres</label>
-                  <input
-                    id="dlg-net-acres"
-                    type="text"
-                    inputmode="decimal"
-                    class="cell-input number"
-                    [value]="dialogInputDisplay('netAcres', formatDecimalInput(draft.netAcres, 2))"
-                    (input)="onDialogInputText('netAcres', $any($event.target).value)"
-                    (blur)="commitDialogDecimalField('netAcres', $any($event.target), 2)"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div class="dlg-field">
-                  <label class="dlg-label" for="dlg-sf">SF</label>
-                  <input
-                    id="dlg-sf"
-                    type="text"
-                    inputmode="numeric"
-                    class="cell-input number"
-                    [value]="dialogInputDisplay('squareFeet', formatIntegerInput(draft.squareFeet))"
-                    (input)="onDialogInputText('squareFeet', $any($event.target).value)"
-                    (blur)="commitDialogIntegerField('squareFeet', $any($event.target))"
-                    placeholder="0"
-                  />
-                </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-sponsor">Sponsor</label>
+                <ng-select
+                  #sponsorSelect
+                  id="dlg-sponsor"
+                  class="ks-ng-select"
+                  appendTo="body"
+                  [items]="sponsorSelectItems()"
+                  bindLabel="label"
+                  bindValue="value"
+                  [searchable]="true"
+                  [clearable]="true"
+                  placeholder="— Select sponsor —"
+                  [ngModel]="draft.sponsor || null"
+                  (ngModelChange)="updateDialogTextField('sponsor', $event ?? '')"
+                  [ngModelOptions]="{ standalone: true }"
+                >
+                  <ng-template ng-footer-tmp>
+                    <button
+                      type="button"
+                      class="alias-add-btn"
+                      (click)="sponsorSelect.close(); openSponsorDialog()"
+                    >
+                      + Add New Sponsor
+                    </button>
+                  </ng-template>
+                </ng-select>
               </div>
               <div class="dlg-field-row">
-                <div class="dlg-field">
-                  <label class="dlg-label" for="dlg-security-value">Security Value</label>
-                  <input
-                    id="dlg-security-value"
-                    type="text"
-                    inputmode="decimal"
-                    class="cell-input number"
-                    [value]="dialogInputDisplay('securityValue', formatCurrencyInput(draft.securityValue))"
-                    (input)="onDialogInputText('securityValue', $any($event.target).value)"
-                    (blur)="commitDialogCurrencyField('securityValue', $any($event.target))"
-                    placeholder="$0.00"
-                  />
-                </div>
                 <div class="dlg-field">
                   <label class="dlg-label" for="dlg-principal">Principal</label>
                   <input
@@ -473,7 +430,20 @@
                     class="cell-input number"
                     [value]="dialogInputDisplay('interestRate', formatPercentInput(draft.interestRate))"
                     (input)="onDialogInputText('interestRate', $any($event.target).value)"
-                    (blur)="commitDialogPercentField($any($event.target))"
+                    (blur)="commitDialogPercentField('interestRate', $any($event.target))"
+                    placeholder="0.00%"
+                  />
+                </div>
+                <div class="dlg-field">
+                  <label class="dlg-label" for="dlg-current-ltv">Current LTV</label>
+                  <input
+                    id="dlg-current-ltv"
+                    type="text"
+                    inputmode="decimal"
+                    class="cell-input number"
+                    [value]="dialogInputDisplay('currentLtv', formatPercentInput(draft.currentLtv))"
+                    (input)="onDialogInputText('currentLtv', $any($event.target).value)"
+                    (blur)="commitDialogPercentField('currentLtv', $any($event.target))"
                     placeholder="0.00%"
                   />
                 </div>
@@ -493,6 +463,21 @@
                   [value]="draft.asAtDate"
                   (input)="updateDialogDateField('asAtDate', $any($event.target).value)"
                 />
+              </div>
+              <div class="dlg-field">
+                <label class="dlg-label" for="dlg-funding-status">Funding Status</label>
+                <select
+                  id="dlg-funding-status"
+                  class="cell-input"
+                  [ngModel]="draft.fundingStatus"
+                  (ngModelChange)="updateDialogTextField('fundingStatus', $event ?? '')"
+                  [ngModelOptions]="{ standalone: true }"
+                >
+                  <option value="">— Select —</option>
+                  @for (option of fundingStatusSelectOptions(); track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
               </div>
             </div>
           </section>
@@ -725,6 +710,65 @@
           [disabled]="!investorDialogName().trim() || isCreatingInvestor()"
         >
           @if (isCreatingInvestor()) { Creating… } @else { Create }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showSponsorDialog()) {
+  <div class="non-ks-dialog-overlay" (click)="closeSponsorDialog()" role="presentation">
+    <div
+      class="non-ks-dialog non-ks-dialog--compact"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="non-ks-sponsor-dialog-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="non-ks-dialog-header">
+        <h2 id="non-ks-sponsor-dialog-title">Add New Sponsor</h2>
+        <button type="button" class="dlg-close" (click)="closeSponsorDialog()" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="non-ks-dialog-body">
+        <p class="dlg-field-note">
+          Adds the sponsor to this dropdown. It is stored on the Non-KS loan when you save the row
+          (no separate sponsor master table).
+        </p>
+        <div class="dlg-field">
+          <label class="dlg-label" for="dlg-new-sponsor-name">
+            Sponsor <span class="dlg-required">*</span>
+          </label>
+          <input
+            id="dlg-new-sponsor-name"
+            type="text"
+            class="cell-input wide"
+            placeholder="Enter sponsor name"
+            [value]="sponsorDialogName()"
+            (input)="sponsorDialogName.set($any($event.target).value)"
+            (keyup.enter)="createSponsorFromDialog()"
+            autofocus
+          />
+        </div>
+        @if (sponsorDialogError()) {
+          <p class="dlg-error">{{ sponsorDialogError() }}</p>
+        }
+      </div>
+      <div class="non-ks-dialog-footer">
+        <button type="button" class="ks-btn" (click)="closeSponsorDialog()" [disabled]="isCreatingSponsor()">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="ks-btn ks-btn--accent"
+          (click)="createSponsorFromDialog()"
+          [disabled]="!sponsorDialogName().trim() || isCreatingSponsor()"
+        >
+          @if (isCreatingSponsor()) { Adding… } @else { Add }
         </button>
       </div>
     </div>

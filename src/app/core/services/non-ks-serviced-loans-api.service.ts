@@ -17,6 +17,7 @@ export type NonKsServicedLoanDto = {
   investorAliasName?: string | null;
   investor?: string | null;
   investorCode?: string | null;
+  sponsor?: string | null;
   dateOfDefault?: string | null;
   maturityDate?: string | null;
   interestOffDate?: string | null;
@@ -26,6 +27,7 @@ export type NonKsServicedLoanDto = {
   netAcres?: number | null;
   squareFeet?: number | null;
   interestRate?: number | null;
+  currentLtv?: number | null;
   principalBalance?: number | null;
   outstandingInterest?: number | null;
   accruedInterest?: number | null;
@@ -60,6 +62,8 @@ export type NonKsServicedLoanBulkUpdateRequest = {
 export type NonKsServicedLoanLookupsDto = {
   nextExtLoanCode?: string;
   NextExtLoanCode?: string;
+  sponsors?: string[];
+  Sponsors?: string[];
 };
 
 @Injectable({

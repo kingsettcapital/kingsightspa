@@ -225,6 +225,8 @@
 
 .ltv-validation-page .table-wrap {
   overflow-x: hidden;
+  /* Keep usable height when few loans so Reason dropdown isn't cramped against footer. */
+  min-height: min(28rem, 55vh);
 }
 
 .ltv-validation-page .table-wrap table {

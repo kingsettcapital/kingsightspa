@@ -44,16 +44,19 @@ type NonKsLoanRow = {
   investor: string;
   investorCode: string;
   investorAlias: string;
+  sponsor: string;
   dateOfDefault: string;
   maturityDate: string;
   interestOffDate: string;
   taxMemoDate: string;
+  /** Hidden from UI — retained so updates do not wipe warehouse values. */
   securityValue: number | null;
   units: number | null;
   netAcres: number | null;
   squareFeet: number | null;
-  interestRate: number | null;
   principalBalance: number | null;
+  currentLtv: number | null;
+  interestRate: number | null;
   outstandingInterest: number | null;
   accruedInterest: number | null;
   lateInterest: number | null;
@@ -93,8 +96,9 @@ const NUMERIC_FIELDS: (keyof RowSnapshot)[] = [
   'units',
   'netAcres',
   'squareFeet',
-  'interestRate',
   'principalBalance',
+  'currentLtv',
+  'interestRate',
   'outstandingInterest',
   'accruedInterest',
   'lateInterest',
@@ -152,22 +156,21 @@ type NonKsTableColumn = {
 const NON_KS_TABLE_COLUMNS: NonKsTableColumn[] = [
   { key: 'loanName', label: 'Loan Alias' },
   { key: 'asAtDate', label: 'As At' },
+  { key: 'fundingStatus', label: 'Funding Status' },
   { key: 'loanCode', label: 'Loan Code' },
   { key: 'servicerId', label: 'Servicer ID' },
   { key: 'description', label: 'Loan Name' },
   { key: 'investor', label: 'Investor Name' },
   { key: 'investorAlias', label: 'Investor Alias' },
   { key: 'investorCode', label: 'Investor Code' },
+  { key: 'sponsor', label: 'Sponsor' },
   { key: 'dateOfDefault', label: 'Default Date' },
   { key: 'maturityDate', label: 'Maturity' },
   { key: 'interestOffDate', label: 'Interest Off' },
   { key: 'taxMemoDate', label: 'Tax Memo' },
-  { key: 'securityValue', label: 'Security Value', numeric: true },
-  { key: 'units', label: 'Units', numeric: true },
-  { key: 'netAcres', label: 'Net Acres', numeric: true },
-  { key: 'squareFeet', label: 'SF', numeric: true },
-  { key: 'interestRate', label: 'Interest Rate', numeric: true },
   { key: 'principalBalance', label: 'Principal', numeric: true },
+  { key: 'currentLtv', label: 'Current LTV', numeric: true },
+  { key: 'interestRate', label: 'Interest Rate', numeric: true },
   { key: 'outstandingInterest', label: 'Outstanding Int.', numeric: true },
   { key: 'accruedInterest', label: 'Accrued Int.', numeric: true },
   { key: 'lateInterest', label: 'Late Int.', numeric: true },
@@ -176,7 +179,6 @@ const NON_KS_TABLE_COLUMNS: NonKsTableColumn[] = [
   { key: 'estRealizationCosts', label: 'Est. Realization', numeric: true },
   { key: 'costToComplete', label: 'Cost to Complete', numeric: true },
   { key: 'taxArrears', label: 'Tax Arrears', numeric: true },
-  { key: 'fundingStatus', label: 'Funding Status' },
   { key: 'userUpdatedBy', label: 'Modified By', audit: true },
   { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
 ];
@@ -211,10 +213,15 @@ export class NonKsServicedLoansComponent implements OnInit {
   readonly originalRowState = signal<Record<string, RowSnapshot>>({});
   readonly loanAliasOptions = signal<LoanAliasOptionDto[]>([]);
   readonly investorOptions = signal<InvestorDto[]>([]);
+  readonly sponsorOptions = signal<string[]>([]);
   readonly showInvestorDialog = signal(false);
   readonly investorDialogName = signal('');
   readonly investorDialogError = signal('');
   readonly isCreatingInvestor = signal(false);
+  readonly showSponsorDialog = signal(false);
+  readonly sponsorDialogName = signal('');
+  readonly sponsorDialogError = signal('');
+  readonly isCreatingSponsor = signal(false);
   readonly selectedLoanKeys = signal<string[]>([]);
   readonly searchText = signal('');
   /** Ignores the empty search emit ng-select fires right after selecting a chip. */
@@ -265,6 +272,31 @@ export class NonKsServicedLoansComponent implements OnInit {
         left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }),
       ),
   );
+
+  readonly sponsorSelectItems = computed(() => {
+    const names = new Map<string, string>();
+    for (const sponsor of this.sponsorOptions()) {
+      const trimmed = sponsor.trim();
+      if (trimmed) {
+        names.set(trimmed.toLowerCase(), trimmed);
+      }
+    }
+    for (const row of this.rows()) {
+      const trimmed = row.sponsor.trim();
+      if (trimmed) {
+        names.set(trimmed.toLowerCase(), trimmed);
+      }
+    }
+    const draft = this.dialogDraft()?.sponsor.trim();
+    if (draft) {
+      names.set(draft.toLowerCase(), draft);
+    }
+    return [...names.values()]
+      .map((value) => ({ value, label: value }))
+      .sort((left, right) =>
+        left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }),
+      );
+  });
 
   /** Investor Alias from Investor Alias Assignment for the selected investor (read-only). */
   dialogInvestorAliasDisplay(): string {
@@ -614,6 +646,49 @@ export class NonKsServicedLoansComponent implements OnInit {
     this.investorDialogError.set('');
   }
 
+  openSponsorDialog(): void {
+    this.sponsorDialogName.set('');
+    this.sponsorDialogError.set('');
+    this.showSponsorDialog.set(true);
+  }
+
+  closeSponsorDialog(): void {
+    this.showSponsorDialog.set(false);
+    this.sponsorDialogName.set('');
+    this.sponsorDialogError.set('');
+  }
+
+  createSponsorFromDialog(): void {
+    const name = this.sponsorDialogName().trim();
+    if (!name || this.isCreatingSponsor()) {
+      return;
+    }
+
+    const duplicate = this.sponsorSelectItems().find(
+      (option) => option.value.toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicate) {
+      this.sponsorDialogError.set('This sponsor is already in the list.');
+      this.updateDialogTextField('sponsor', duplicate.value);
+      this.closeSponsorDialog();
+      return;
+    }
+
+    this.isCreatingSponsor.set(true);
+    this.sponsorDialogError.set('');
+    this.sponsorOptions.set(
+      [...this.sponsorOptions(), name].sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: 'base' }),
+      ),
+    );
+    this.updateDialogTextField('sponsor', name);
+    this.isCreatingSponsor.set(false);
+    this.closeSponsorDialog();
+    this.statusMessage.set(
+      `Sponsor "${name}" added to the list. It is saved with the Non-KS loan when you click Save Changes.`,
+    );
+  }
+
   createInvestorFromDialog(): void {
     const name = this.investorDialogName().trim();
     if (!name || this.isCreatingInvestor()) {
@@ -739,10 +814,10 @@ export class NonKsServicedLoansComponent implements OnInit {
     input.value = this.formatCurrencyInput(parsed);
   }
 
-  commitDialogPercentField(input: HTMLInputElement): void {
+  commitDialogPercentField(field: 'interestRate' | 'currentLtv', input: HTMLInputElement): void {
     const parsed = this.parsePercentInput(input.value);
-    this.patchDialogDraft({ interestRate: parsed });
-    this.clearDialogFieldText('interestRate');
+    this.patchDialogDraft({ [field]: parsed });
+    this.clearDialogFieldText(field);
     input.value = this.formatPercentInput(parsed);
   }
 
@@ -768,8 +843,8 @@ export class NonKsServicedLoansComponent implements OnInit {
     for (const fieldName of keys) {
       const field = fieldName as keyof RowSnapshot;
       const raw = pending[fieldName] ?? '';
-      if (field === 'interestRate') {
-        patch.interestRate = this.parsePercentInput(raw);
+      if (field === 'interestRate' || field === 'currentLtv') {
+        patch[field] = this.parsePercentInput(raw) as never;
         continue;
       }
       if (DIALOG_INTEGER_FIELDS.has(field)) {
@@ -974,6 +1049,17 @@ export class NonKsServicedLoansComponent implements OnInit {
     }).subscribe({
       next: ({ records, lookups, loanAliases, investors, statuses }) => {
         this.fundingStatusOptions.set(normalizeStatusOptions(statuses));
+        const lookupSponsors = [
+          ...((lookups as { sponsors?: string[]; Sponsors?: string[] }).sponsors ?? []),
+          ...((lookups as { sponsors?: string[]; Sponsors?: string[] }).Sponsors ?? []),
+        ]
+          .map((name) => String(name ?? '').trim())
+          .filter(Boolean);
+        this.sponsorOptions.set(
+          [...new Map(lookupSponsors.map((name) => [name.toLowerCase(), name])).values()].sort(
+            (a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }),
+          ),
+        );
         this.loanAliasOptions.set(
           (loanAliases.loanAliases ?? [])
             .map((alias) => ({
@@ -1046,6 +1132,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       investor: '',
       investorCode: '',
       investorAlias: '',
+      sponsor: '',
       dateOfDefault: '',
       maturityDate: '',
       interestOffDate: '',
@@ -1054,8 +1141,9 @@ export class NonKsServicedLoansComponent implements OnInit {
       units: null,
       netAcres: null,
       squareFeet: null,
-      interestRate: null,
       principalBalance: null,
+      currentLtv: null,
+      interestRate: null,
       outstandingInterest: null,
       accruedInterest: null,
       lateInterest: null,
@@ -1170,6 +1258,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       investor: draft.investor,
       investorCode: draft.investorCode,
       investorAlias: this.resolveInvestorFields(draft.investorCode, draft.investor).investorAlias,
+      sponsor: draft.sponsor,
       dateOfDefault: draft.dateOfDefault,
       maturityDate: draft.maturityDate,
       interestOffDate: draft.interestOffDate,
@@ -1178,8 +1267,9 @@ export class NonKsServicedLoansComponent implements OnInit {
       units: draft.units,
       netAcres: draft.netAcres,
       squareFeet: draft.squareFeet,
-      interestRate: draft.interestRate,
       principalBalance: draft.principalBalance,
+      currentLtv: draft.currentLtv,
+      interestRate: draft.interestRate,
       outstandingInterest: draft.outstandingInterest,
       accruedInterest: draft.accruedInterest,
       lateInterest: draft.lateInterest,
@@ -1339,6 +1429,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       investorAliasName: investorName,
       investor: investorName,
       investorCode,
+      sponsor: this.nullIfEmpty(draft.sponsor),
       dateOfDefault: this.nullIfEmpty(draft.dateOfDefault),
       maturityDate: this.nullIfEmpty(draft.maturityDate),
       interestOffDate: this.nullIfEmpty(draft.interestOffDate),
@@ -1347,8 +1438,9 @@ export class NonKsServicedLoansComponent implements OnInit {
       units: draft.units,
       netAcres: draft.netAcres,
       squareFeet: draft.squareFeet,
-      interestRate: draft.interestRate,
       principalBalance: draft.principalBalance,
+      currentLtv: draft.currentLtv,
+      interestRate: draft.interestRate,
       outstandingInterest: draft.outstandingInterest,
       accruedInterest: draft.accruedInterest,
       lateInterest: draft.lateInterest,
@@ -1422,6 +1514,7 @@ export class NonKsServicedLoansComponent implements OnInit {
         'InvestorName',
       ),
       investorCode: this.pickString(raw, 'investorCode', 'InvestorCode'),
+      sponsor: this.pickString(raw, 'sponsor', 'Sponsor', 'sponsorName', 'SponsorName'),
       investorAlias: '',
       dateOfDefault: this.toDateInputValue(
         this.pickString(raw, 'dateOfDefault', 'DateOfDefault') || null,
@@ -1437,7 +1530,6 @@ export class NonKsServicedLoansComponent implements OnInit {
       units: this.pickNullableNumber(raw, 'units', 'Units'),
       netAcres: this.pickNullableNumber(raw, 'netAcres', 'NetAcres'),
       squareFeet: this.pickNullableNumber(raw, 'squareFeet', 'SquareFeet', 'sf', 'SF'),
-      interestRate: this.pickNullableNumber(raw, 'interestRate', 'InterestRate'),
       principalBalance: this.pickNullableNumber(
         raw,
         'principalBalance',
@@ -1445,6 +1537,16 @@ export class NonKsServicedLoansComponent implements OnInit {
         'principal',
         'Principal',
       ),
+      currentLtv: this.pickNullableNumber(
+        raw,
+        'currentLtv',
+        'CurrentLtv',
+        'ltv',
+        'Ltv',
+        'loanToValue',
+        'LoanToValue',
+      ),
+      interestRate: this.pickNullableNumber(raw, 'interestRate', 'InterestRate'),
       outstandingInterest: this.pickNullableNumber(
         raw,
         'outstandingInterest',
@@ -1519,8 +1621,9 @@ export class NonKsServicedLoansComponent implements OnInit {
       units,
       netAcres,
       squareFeet,
-      interestRate,
       principalBalance,
+      currentLtv,
+      interestRate,
       outstandingInterest,
       accruedInterest,
       lateInterest,
@@ -1530,6 +1633,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       taxArrears,
       interestAdjustment,
       fundingStatus,
+      sponsor,
     } = row;
     return {
       loanName,
@@ -1547,8 +1651,9 @@ export class NonKsServicedLoansComponent implements OnInit {
       units,
       netAcres,
       squareFeet,
-      interestRate,
       principalBalance,
+      currentLtv,
+      interestRate,
       outstandingInterest,
       accruedInterest,
       lateInterest,
@@ -1558,6 +1663,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       taxArrears,
       interestAdjustment,
       fundingStatus,
+      sponsor,
     };
   }
 
@@ -1640,6 +1746,7 @@ export class NonKsServicedLoansComponent implements OnInit {
       case 'squareFeet':
         return row[key] == null ? '' : String(row[key]);
       case 'netAcres':
+      case 'currentLtv':
       case 'interestRate':
         return row[key] == null ? '' : String(row[key]);
       case 'investorAlias':
@@ -1667,8 +1774,9 @@ export class NonKsServicedLoansComponent implements OnInit {
       case 'units':
       case 'netAcres':
       case 'squareFeet':
-      case 'interestRate':
       case 'principalBalance':
+      case 'currentLtv':
+      case 'interestRate':
       case 'outstandingInterest':
       case 'accruedInterest':
       case 'lateInterest':
@@ -1684,8 +1792,11 @@ export class NonKsServicedLoansComponent implements OnInit {
         return left.investorAlias.localeCompare(right.investorAlias, undefined, {
           sensitivity: 'base',
         });
-      default:
-        return left[column].localeCompare(right[column], undefined, { sensitivity: 'base' });
+      default: {
+        const leftValue = String(left[column] ?? '');
+        const rightValue = String(right[column] ?? '');
+        return leftValue.localeCompare(rightValue, undefined, { sensitivity: 'base' });
+      }
     }
   }
 
