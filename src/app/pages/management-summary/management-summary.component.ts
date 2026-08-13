@@ -101,6 +101,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
     totalLateInterest: 0,
   });
   readonly loanRows = signal<LoanAliasSummaryRow[]>([]);
+  readonly loanSearchText = signal('');
   readonly loanSortColumn = signal<keyof LoanAliasSummaryRow | null>(null);
   readonly loanSortDir = signal<'asc' | 'desc'>('asc');
   readonly watchlistRows = signal<CmhcWatchlistRow[]>([]);
@@ -120,10 +121,19 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
 
   readonly filters = signal<ManagementSummaryFilters>(this.filterState.getFilters());
 
-  readonly loanTotals = computed(() => this.sumLoanRows(this.loanRows()));
+  readonly filteredLoanRows = computed(() => {
+    const term = this.loanSearchText().trim().toLowerCase();
+    const rows = this.loanRows();
+    if (!term) {
+      return rows;
+    }
+    return rows.filter((row) => this.loanRowMatchesSearch(row, term));
+  });
+
+  readonly loanTotals = computed(() => this.sumLoanRows(this.filteredLoanRows()));
 
   readonly sortedLoanRows = computed(() => {
-    const rows = [...this.loanRows()];
+    const rows = [...this.filteredLoanRows()];
     const column = this.loanSortColumn();
     if (!column) {
       return rows;
@@ -337,9 +347,13 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
     this.loanSortDir.set('asc');
   }
 
+  updateLoanSearch(value: string): void {
+    this.loanSearchText.set(value);
+  }
+
   loanSortIndicator(column: keyof LoanAliasSummaryRow): string {
     if (this.loanSortColumn() !== column) {
-      return '↕';
+      return '';
     }
     return this.loanSortDir() === 'asc' ? '↑' : '↓';
   }
@@ -512,6 +526,41 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
       totalExposure: sum('totalExposure'),
       ltv,
     };
+  }
+
+  private loanRowMatchesSearch(row: LoanAliasSummaryRow, term: string): boolean {
+    const haystack = [
+      row.loanAlias,
+      row.sponsor,
+      row.defaultDate,
+      row.maturityDate,
+      row.interestStatus,
+      row.units,
+      row.exit,
+      row.risk,
+      this.formatSearchNumber(row.security),
+      this.formatSearchNumber(row.principal),
+      this.formatSearchNumber(row.osInt),
+      this.formatSearchNumber(row.accrued),
+      this.formatSearchNumber(row.lateInt),
+      this.formatSearchNumber(row.taxIns),
+      this.formatSearchNumber(row.intAdv),
+      this.formatSearchNumber(row.other),
+      this.formatSearchNumber(row.totalExposure),
+      row.ltv == null ? '' : `${row.ltv}%`,
+      row.ltv == null ? '' : String(row.ltv),
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    return haystack.includes(term);
+  }
+
+  private formatSearchNumber(value: number | null | undefined): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '';
+    }
+    return `${value} ${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
   }
 
   private renderCharts(): void {
