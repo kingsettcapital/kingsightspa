@@ -41,6 +41,7 @@ export type LtvValidationBulkUpdateRequest = {
 
 export type LtvValidationConfirmRequest = {
   loanKeys: number[];
+  loanCodes?: string[];
   userUpdatedBy: string;
 };
 

@@ -359,6 +359,23 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       .filter((key) => key > 0),
   );
 
+  readonly confirmableLoanCodes = computed(() =>
+    this.rows()
+      .filter((row) => !this.hasRowChanged(row))
+      .map((row) => row.loanCode?.trim() || '')
+      .filter((code) => !!code && code !== '-'),
+  );
+
+  /** Approvers may Confirm only when the grid has no pending edits. */
+  readonly hasUnsavedChanges = computed(() => this.rows().some((row) => this.hasRowChanged(row)));
+
+  readonly canConfirmLtv = computed(
+    () =>
+      !this.isConfirming() &&
+      !this.hasUnsavedChanges() &&
+      (this.confirmableLoanCodes().length > 0 || this.confirmableLoanKeys().length > 0),
+  );
+
   readonly pdfPreviewUrl = computed(() => this.pdfPreviewBlobUrl());
 
   readonly previewZoomLabel = computed(() => `${Math.round(this.previewZoom() * 100)}%`);
@@ -688,13 +705,18 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   }
 
   confirmAiLtv(): void {
-    if (this.isConfirming() || !this.rows().length) {
+    if (!this.canConfirmLtv()) {
+      if (this.hasUnsavedChanges()) {
+        this.statusMessage.set('Save Changes before confirming LTV.');
+        this.errorMessage.set('');
+      }
       return;
     }
 
+    const loanCodes = this.confirmableLoanCodes();
     const loanKeys = this.confirmableLoanKeys();
-    if (!loanKeys.length) {
-      this.statusMessage.set('No unmodified rows available to confirm. Save manual LTV edits first.');
+    if (!loanCodes.length && !loanKeys.length) {
+      this.statusMessage.set('No loans available to confirm.');
       this.errorMessage.set('');
       return;
     }
@@ -709,9 +731,10 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     this.statusMessage.set('');
     this.errorMessage.set('');
 
-    this.ltvApi.confirmAiLtv({ loanKeys, userUpdatedBy }).subscribe({
+    this.ltvApi.confirmAiLtv({ loanKeys, loanCodes, userUpdatedBy }).subscribe({
       next: () => {
-        this.statusMessage.set(`${loanKeys.length} loan(s) confirmed with AI-extracted LTV.`);
+        const count = loanCodes.length || loanKeys.length;
+        this.statusMessage.set(`${count} loan(s) confirmed with AI-extracted LTV.`);
         this.isConfirming.set(false);
         this.loadGrid();
       },
