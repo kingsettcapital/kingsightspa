@@ -197,7 +197,7 @@
             <td class="num">{{ loanTotals().intAdv | number: '1.0-0' }}</td>
             <td class="num">{{ loanTotals().other | number: '1.0-0' }}</td>
             <td class="num">{{ loanTotals().totalExposure | number: '1.0-0' }}</td>
-            <td class="ms-col-center">{{ loanTotals().ltv != null ? (loanTotals().ltv | number: '1.0-0') + '%' : '—' }}</td>
+            <td class="ms-col-center" aria-label="LTV total not shown"></td>
             <td></td>
             <td class="ms-table__chevron-col" aria-hidden="true"></td>
           </tr>
