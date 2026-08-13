@@ -320,6 +320,19 @@
   word-break: break-word;
 }
 
+/* Match body alignment — base thead th { text-align:left } wins over .num otherwise. */
+.ms-table thead th.num {
+  text-align: right;
+}
+
+.ms-table thead th.ms-col-center {
+  text-align: center;
+}
+
+.ms-table thead th.ms-col-left {
+  text-align: left;
+}
+
 .ms-table tbody td {
   padding: 0.5rem 0.45rem;
   border-bottom: 1px solid #e2e8f0;
@@ -407,6 +420,12 @@
   font-size: 0.65rem;
   opacity: 0.85;
   white-space: nowrap;
+}
+
+.ms-table--loan-summary thead th.num {
+  white-space: normal;
+  line-height: 1.15;
+  hyphens: auto;
 }
 
 .ms-table .wrap {
