@@ -97,8 +97,8 @@
       <dl>
         <div><dt>Security Value</dt><dd>{{ formatMillions(report().propertyStats.securityValue) }}</dd></div>
         <div><dt>Units / Size</dt><dd>{{ report().propertyStats.unitsSize }}</dd></div>
-        <div><dt>Value / Unit</dt><dd>{{ formatCurrency(report().propertyStats.valuePerUnit) }}</dd></div>
-        <div><dt>Exposure / Unit</dt><dd>{{ formatCurrency(report().propertyStats.exposurePerUnit) }}</dd></div>
+        <div><dt>Value / Unit</dt><dd>{{ formatMillions(report().propertyStats.valuePerUnit) }}</dd></div>
+        <div><dt>Exposure / Unit</dt><dd>{{ formatMillions(report().propertyStats.exposurePerUnit) }}</dd></div>
         <div>
           <dt>Risk Status</dt>
           <dd><span [class]="riskClass(report().propertyStats.riskStatus)">{{ report().propertyStats.riskStatus }}</span></dd>
