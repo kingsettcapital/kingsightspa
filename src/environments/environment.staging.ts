@@ -5,7 +5,7 @@ export const environment: Environment = {
   production: false,
   requireLogin: true,
   apiUrl: 'https://kingsightuatapi.kingsettcapital.com/',
-  managementSummaryEnabled: false, // staging = UAT: keep hidden
+  managementSummaryEnabled: true, // staging = UAT: keep hidden
   showHomeCapitalAndDataExplorer: false, // staging = UAT: mortgage-focused shell
   showAiAssistant: false, // staging = UAT
   showUserManagement: false, // staging = UAT
