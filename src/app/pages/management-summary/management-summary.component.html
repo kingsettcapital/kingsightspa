@@ -429,7 +429,6 @@
           <thead>
             <tr>
               <th>Sponsor</th>
-              <th class="num">LTV</th>
               <th class="num">Exposure</th>
               <th class="num">%</th>
             </tr>
@@ -447,13 +446,6 @@
                       }
                     </span>
                   </span>
-                </td>
-                <td class="num">
-                  @if (row.ltv != null) {
-                    <span [class]="sponsorLtvClass(row.ltv)">{{ row.ltv }}%</span>
-                  } @else {
-                    —
-                  }
                 </td>
                 <td class="num">{{ formatMillions(row.exposure) }}</td>
                 <td class="num">{{ row.sharePercent }}%</td>

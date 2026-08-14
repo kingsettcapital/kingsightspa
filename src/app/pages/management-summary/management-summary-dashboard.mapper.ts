@@ -262,7 +262,8 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
       sharePercent: slice.sharePercent ?? 0,
       ltv: slice.averageLtv ?? null,
       loanCount: slice.count ?? 0,
-    }));
+    }))
+    .sort((left, right) => right.exposure - left.exposure);
 
   const exposureAnalysis: ExposureAnalysisRow[] = (dto.exposureAnalysisRows ?? []).map((row) => ({
     loanAliasKey: row.loanAliasKey,
