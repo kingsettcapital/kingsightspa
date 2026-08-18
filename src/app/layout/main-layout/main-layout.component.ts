@@ -176,6 +176,7 @@ export class MainLayoutComponent implements OnInit {
   private shouldHideAppChrome(url: string): boolean {
     const path = url.split('?')[0];
     return (
+      path.startsWith('/capital-dashboard') ||
       path.startsWith('/mortgage/management-summary') ||
       path.includes('/loan-detail')
     );
