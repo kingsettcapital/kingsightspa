@@ -30,6 +30,7 @@ import { LoanAliasApiService } from '../../core/services/loan-alias-api.service'
 import {
   LtvValidationApiService,
   LtvValidationBulkUpdateRequest,
+  LtvValidationColumnDatesDto,
   LtvValidationRowDto,
 } from '../../core/services/ltv-validation-api.service';
 import {
@@ -154,8 +155,10 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
 
   readonly aliasOptions = signal<AliasOption[]>([]);
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
-  /** QR-slides upload history, newest first (source of Prior/Current As Of). */
+  /** QR-slides upload history, newest first (QR preview matching). */
   readonly qrSlideUploads = signal<CmhcUploadHistoryRecord[]>([]);
+  readonly currentLtvAsOfDate = signal<string | null>(null);
+  readonly priorLtvConfirmedDate = signal<string | null>(null);
   readonly searchText = signal('');
   readonly selectedLoanAliasIds = signal<number[]>([]);
   /** Client-side loan filter for Search Loans (code / name). */
@@ -200,15 +203,15 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Current pack As Of = newest QR-slides upload (file being processed).
-   * Prior pack As Of = previous QR-slides upload (last confirmed / prior pack).
+   * Current LTV date = latest QR-slides File Upload As Of.
+   * Prior LTV date = MAX(ltv_updated_datetime) on loan_alias_relationship.
    */
   readonly currentLtvAsOfDisplay = computed(() =>
-    this.formatAsOfHeaderDate(this.qrSlideUploads()[0]?.asOfDate),
+    this.formatAsOfHeaderDate(this.currentLtvAsOfDate()),
   );
 
   readonly priorLtvAsOfDisplay = computed(() =>
-    this.formatAsOfHeaderDate(this.qrSlideUploads()[1]?.asOfDate),
+    this.formatConfirmHeaderDate(this.priorLtvConfirmedDate()),
   );
 
   readonly tableColumns = computed<LtvTableColumn[]>(() => {
@@ -736,6 +739,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
         const count = loanCodes.length || loanKeys.length;
         this.statusMessage.set(`${count} loan(s) confirmed with AI-extracted LTV.`);
         this.isConfirming.set(false);
+        this.loadColumnDates();
         this.loadGrid();
       },
       error: (error) => {
@@ -962,8 +966,9 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       aliases: this.loanAliasApi.getAll().pipe(catchError(() => of([]))),
       statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
       uploads: this.cmhcUploadApi.getHistory().pipe(catchError(() => of([]))),
+      columnDates: this.ltvApi.getColumnDates().pipe(catchError(() => of(null))),
     }).subscribe({
-      next: ({ aliases, statuses, uploads }) => {
+      next: ({ aliases, statuses, uploads, columnDates }) => {
         this.aliasOptions.set(
           aliases
             .map((a) => ({
@@ -976,6 +981,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
 
         this.statusOptions.set(normalizeStatusOptions(statuses));
         this.qrSlideUploads.set(this.normalizeQrSlideUploads(uploads));
+        this.applyColumnDates(columnDates, this.qrSlideUploads());
         this.isLoadingFilters.set(false);
 
         if (!this.aliasOptions().length) {
@@ -991,6 +997,21 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
         this.errorMessage.set('Unable to load filters.');
       },
     });
+  }
+
+  private loadColumnDates(): void {
+    this.ltvApi.getColumnDates().subscribe({
+      next: (dates) => this.applyColumnDates(dates, this.qrSlideUploads()),
+      error: () => this.applyColumnDates(null, this.qrSlideUploads()),
+    });
+  }
+
+  private applyColumnDates(
+    dates: LtvValidationColumnDatesDto | null,
+    qrUploads: CmhcUploadHistoryRecord[],
+  ): void {
+    this.currentLtvAsOfDate.set(dates?.currentLtvAsOfDate?.trim() || qrUploads[0]?.asOfDate || null);
+    this.priorLtvConfirmedDate.set(dates?.priorLtvConfirmedDate?.trim() || null);
   }
 
   /** Selected aliases only; empty = all aliases (API skips alias filter). */
@@ -1241,7 +1262,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     return loanCode.trim() || 'View QR Slide';
   }
 
-  /** Newest QR-slides uploads first; drives Prior/Current LTV As Of headers. */
+  /** Newest QR-slides uploads first (QR preview matching). */
   private normalizeQrSlideUploads(uploads: unknown): CmhcUploadHistoryRecord[] {
     if (!Array.isArray(uploads) || !uploads.length) {
       return [];
@@ -1271,7 +1292,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       });
   }
 
-  /** Rajeev format: MM.DD.YY (e.g. 07.24.26). */
+  /** Rajeev format: MM.DD.YY (e.g. 07.24.26). Date-only As Of — do not apply time zone. */
   private formatAsOfHeaderDate(value: string | null | undefined): string {
     if (!value?.trim()) {
       return '';
@@ -1293,6 +1314,33 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     const dd = String(parsed.getDate()).padStart(2, '0');
     const yy = String(parsed.getFullYear()).slice(-2);
     return `${mm}.${dd}.${yy}`;
+  }
+
+  /** Confirm click timestamp in America/New_York, same calendar date as Modified Date. */
+  private formatConfirmHeaderDate(value: string | null | undefined): string {
+    if (!value?.trim()) {
+      return '';
+    }
+
+    const parsed = new Date(value.trim());
+    if (Number.isNaN(parsed.getTime())) {
+      return this.formatAsOfHeaderDate(value);
+    }
+
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      month: '2-digit',
+      day: '2-digit',
+      year: '2-digit',
+    }).formatToParts(parsed);
+    const month = parts.find((part) => part.type === 'month')?.value;
+    const day = parts.find((part) => part.type === 'day')?.value;
+    const year = parts.find((part) => part.type === 'year')?.value;
+    if (!month || !day || !year) {
+      return this.formatAsOfHeaderDate(value);
+    }
+
+    return `${month}.${day}.${year}`;
   }
 
   /**

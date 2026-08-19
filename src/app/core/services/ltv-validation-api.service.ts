@@ -45,6 +45,11 @@ export type LtvValidationConfirmRequest = {
   userUpdatedBy: string;
 };
 
+export type LtvValidationColumnDatesDto = {
+  currentLtvAsOfDate?: string | null;
+  priorLtvConfirmedDate?: string | null;
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -73,5 +78,9 @@ export class LtvValidationApiService {
 
   confirmAiLtv(request: LtvValidationConfirmRequest) {
     return this.http.post<void>(`${this.baseUrl}/confirm`, request);
+  }
+
+  getColumnDates() {
+    return this.http.get<LtvValidationColumnDatesDto>(`${this.baseUrl}/column-dates`);
   }
 }
