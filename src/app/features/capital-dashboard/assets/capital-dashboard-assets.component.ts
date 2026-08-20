@@ -59,7 +59,7 @@ export class CapitalDashboardAssetsComponent {
   readonly geographyFilter = signal('all');
   readonly statusFilter = signal('all');
   readonly filtersPanelVisible = signal(true);
-  readonly sortColumn = signal<AssetsTableSortColumn | null>(null);
+  readonly sortColumn = signal<AssetsTableSortColumn | null>('glaSf');
   readonly sortDir = signal<AssetsTableSortDirection>('desc');
   readonly currentPage = signal(1);
 
