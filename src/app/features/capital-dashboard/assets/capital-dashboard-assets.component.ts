@@ -18,10 +18,7 @@ import {
   AssetsTableSortDirection,
   buildAssetsListCacheKey,
   defaultAssetsSortDirection,
-  assetTypeColor,
-  clampBarFillPercent,
   formatAreaNumber,
-  formatOccupiedPercent,
   formatSquareFeet,
   mapPropertyListItemToRow,
 } from '../shared/utils/asset-list-row.util';
@@ -163,9 +160,6 @@ export class CapitalDashboardAssetsComponent {
 
   readonly formatSquareFeet = formatSquareFeet;
   readonly formatAreaNumber = formatAreaNumber;
-  readonly formatOccupiedPercent = formatOccupiedPercent;
-  readonly assetTypeColor = assetTypeColor;
-  readonly clampBarFillPercent = clampBarFillPercent;
 
   constructor() {
     this.routeSearchSync.bindTableSearch(this.tableSearch, () => this.currentPage.set(1));

@@ -196,17 +196,7 @@
                 <td>{{ row.investmentType }}</td>
                 <td>{{ row.developmentType }}</td>
                 <td class="cdt-table__num">
-                  <span class="cdt-commitment-cell">
-                    <span class="cdt-commitment-cell__amount">{{ formatAreaNumber(row.glaSf) }}</span>
-                    <span class="cdt-commitment-cell__bar" aria-hidden="true">
-                      <span class="cdt-commitment-cell__bar-fill cdt-commitment-cell__bar-fill--asset"
-                        [style.width.%]="clampBarFillPercent(row.occupiedPercent)"
-                        [style.background-color]="assetTypeColor(row.assetTypeHue)"></span>
-                    </span>
-                    <span class="cdt-commitment-cell__meta">
-                      {{ formatOccupiedPercent(row.occupiedPercent) }}
-                    </span>
-                  </span>
+                  {{ formatAreaNumber(row.glaSf) }}
                 </td>
                 <td class="cdt-table__num cdt-table__num--positive">
                   {{ formatAreaNumber(row.committedSf) }}
