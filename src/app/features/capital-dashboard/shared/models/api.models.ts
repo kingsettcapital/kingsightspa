@@ -71,9 +71,13 @@ export interface AssetsFilterOptionsDto {
   investmentTypes?: AssetsFilterOptionDto[] | null;
   geographies?: AssetsFilterOptionDto[] | null;
   statuses?: AssetsFilterOptionDto[] | null;
+  quarterly_periods?: InvestorsQuarterlyPeriodDto[] | null;
+  quarterlyPeriods?: InvestorsQuarterlyPeriodDto[] | null;
 }
 
 export interface AssetsQueryParams extends ListQueryParams {
+  view?: 'ltd' | 'quarterly';
+  dateKey?: number;
   fundKey?: number;
   investorKey?: number;
   fundCode?: string;

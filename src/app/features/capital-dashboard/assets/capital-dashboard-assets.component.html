@@ -11,6 +11,39 @@
         </div>
 
         <div class="cdt-assets__actions">
+          <div class="cdt-toggle" role="group" aria-label="Reporting period">
+            <button type="button" class="cdt-toggle__btn" [class.cdt-toggle__btn--active]="timeframe() === 'ltd'"
+              (click)="setTimeframe('ltd')">
+              ITD
+            </button>
+            <button type="button" class="cdt-toggle__btn" [class.cdt-toggle__btn--active]="timeframe() === 'quarterly'"
+              (click)="setTimeframe('quarterly')">
+              Quarterly
+            </button>
+          </div>
+
+          @if (timeframe() === 'quarterly') {
+          <div class="cdt-period-select">
+            <mat-icon class="cdt-period-select__calendar" aria-hidden="true">calendar_today</mat-icon>
+            <label class="cdt-period-select__field">
+              <select [ngModel]="quarter()" (ngModelChange)="setQuarter(+$event)" aria-label="Quarter">
+                @for (option of availableQuarters(); track option) {
+                <option [ngValue]="option">Q{{ option }}</option>
+                }
+              </select>
+              <mat-icon class="cdt-period-select__chevron" aria-hidden="true">expand_more</mat-icon>
+            </label>
+            <label class="cdt-period-select__field">
+              <select [ngModel]="year()" (ngModelChange)="setYear(+$event)" aria-label="Year">
+                @for (option of availableYears(); track option) {
+                <option [ngValue]="option">{{ option }}</option>
+                }
+              </select>
+              <mat-icon class="cdt-period-select__chevron" aria-hidden="true">expand_more</mat-icon>
+            </label>
+          </div>
+          }
+
           <button type="button" class="cdt-btn cdt-btn--filters" [class.cdt-btn--filters-active]="filtersPanelVisible()"
             (click)="toggleFiltersPanel()" [attr.aria-expanded]="filtersPanelVisible()">
             <mat-icon aria-hidden="true">filter_alt</mat-icon>

@@ -60,6 +60,97 @@ body[data-ks-capital-dashboard] {
     flex-wrap: wrap;
   }
 
+  .cdt-assets .cdt-toggle {
+    display: inline-flex;
+    padding: 0;
+    overflow: hidden;
+    background: #fff;
+    border-radius: var(--cdt-radius);
+    border: 1px solid var(--cdt-control-border);
+    box-shadow: none;
+    min-height: 2.25rem;
+  }
+
+  .cdt-assets .cdt-toggle__btn {
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    font-family: var(--cdt-font-sans);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 0;
+    cursor: pointer;
+    line-height: 1.25;
+    min-height: 2.25rem;
+
+    &--active {
+      background: var(--cdt-header-bg);
+      color: #fff;
+      font-weight: 600;
+    }
+  }
+
+  .cdt-assets .cdt-period-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.3125rem 0.75rem;
+    border: 1px solid var(--cdt-control-border);
+    border-radius: var(--cdt-radius-control);
+    background: var(--cdt-surface);
+    box-shadow: none;
+    min-height: 2.25rem;
+  }
+
+  .cdt-assets .cdt-period-select__calendar {
+    width: 1rem;
+    height: 1rem;
+    font-size: 1rem;
+    color: #64748b;
+    flex-shrink: 0;
+  }
+
+  .cdt-assets .cdt-period-select__field {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+  }
+
+  .cdt-assets .cdt-period-select__field select {
+    border: 0;
+    background: transparent;
+    font-family: var(--cdt-font-sans);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--cdt-title-color);
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    padding: 0;
+    min-width: 0;
+  }
+
+  .cdt-assets .cdt-period-select__chevron {
+    width: 1.125rem;
+    height: 1.125rem;
+    font-size: 1.125rem;
+    color: #64748b;
+    pointer-events: none;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 72rem) {
+    .cdt-assets__header {
+      align-items: flex-start;
+    }
+
+    .cdt-assets__actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+  }
+
   .cdt-assets__kpi-row {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
