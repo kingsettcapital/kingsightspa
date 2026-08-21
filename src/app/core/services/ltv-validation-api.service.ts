@@ -46,7 +46,9 @@ export type LtvValidationConfirmRequest = {
 };
 
 export type LtvValidationColumnDatesDto = {
+  /** Latest as_of_date for is_confirmed = 'N' (yyyy-MM-dd). */
   currentLtvAsOfDate?: string | null;
+  /** Latest as_of_date for is_confirmed = 'Y' (yyyy-MM-dd). */
   priorLtvConfirmedDate?: string | null;
 };
 
