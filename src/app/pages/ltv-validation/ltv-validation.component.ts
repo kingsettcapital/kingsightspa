@@ -203,8 +203,9 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Current LTV date = latest as_of_date for is_confirmed = 'N' (via file_upload_id).
-   * Prior LTV date = latest as_of_date for is_confirmed = 'Y' (via file_upload_id).
+   * Current LTV date = latest as_of_date via loan_alias_relationship (order by uploaded_date desc).
+   * Prior LTV date = latest as_of_date via loan_alias_relationship_history where is_confirmed = 'Y'
+   * (order by snapshot_date desc).
    */
   readonly currentLtvAsOfDisplay = computed(() =>
     this.formatAsOfHeaderDate(this.currentLtvAsOfDate()),
