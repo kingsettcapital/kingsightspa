@@ -195,29 +195,9 @@ function buildAreaSummaryGrid(
             label: 'Vacancy Rate',
             value: formatAssetDisplayPercent(vacantPct),
           },
-          {
-            label: 'Est. Market Value',
-            value: formatAssetDisplayCurrency(kpi.marketValue, true),
-          },
-          {
-            label: 'Est. Annual NOI',
-            value: formatAssetDisplayCurrency(
-              readPropertyDetailNumber(detail, 'est_annual_noi', 'estAnnualNoi'),
-              true,
-            ),
-          },
         ],
       },
     ],
-    occupancyFooter:
-      occupiedPct != null && Number.isFinite(occupiedPct)
-        ? {
-            label: 'Occupancy',
-            percent: occupiedPct,
-            committedLabel: `${formatAssetDisplaySqFt(kpi.committedSf, true)} committed`,
-            vacantLabel: `${formatAssetDisplaySqFt(kpi.vacantSf, true)} vacant`,
-          }
-        : undefined,
   };
 }
 

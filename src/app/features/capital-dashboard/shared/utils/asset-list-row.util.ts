@@ -327,6 +327,8 @@ export function defaultAssetsSortDirection(column: AssetsTableSortColumn): Asset
 }
 
 export function buildAssetsListCacheKey(filters: {
+  view: 'ltd' | 'quarterly';
+  dateKey: number | null;
   assetType: string;
   investmentType: string;
   geography: string;
@@ -335,6 +337,8 @@ export function buildAssetsListCacheKey(filters: {
   sortDir: AssetsTableSortDirection | null;
 }): string {
   return [
+    filters.view,
+    filters.dateKey ?? '',
     filters.assetType,
     filters.investmentType,
     filters.geography,

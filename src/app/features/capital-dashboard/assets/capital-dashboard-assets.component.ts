@@ -18,10 +18,7 @@ import {
   AssetsTableSortDirection,
   buildAssetsListCacheKey,
   defaultAssetsSortDirection,
-  assetTypeColor,
-  clampBarFillPercent,
   formatAreaNumber,
-  formatOccupiedPercent,
   formatSquareFeet,
   mapPropertyListItemToRow,
 } from '../shared/utils/asset-list-row.util';
@@ -32,6 +29,8 @@ import {
 } from '../shared/utils/asset-filter-options.util';
 import { AssetsApiActions } from '../store';
 import { selectAssetsList } from '../store/capital-dashboard.selectors';
+
+type TimeframeView = 'ltd' | 'quarterly';
 
 const VISIBLE_PAGE_BUTTON_COUNT = 3;
 
@@ -53,13 +52,16 @@ export class CapitalDashboardAssetsComponent {
   private readonly listState = this.store.selectSignal(selectAssetsList);
 
   readonly tableSearch = signal('');
+  readonly timeframe = signal<TimeframeView>('ltd');
+  readonly quarter = signal<number | null>(null);
+  readonly year = signal<number | null>(null);
   readonly filterOptions = signal<AssetsFilterOptions>(EMPTY_ASSETS_FILTER_OPTIONS);
   readonly assetTypeFilter = signal('all');
   readonly investmentTypeFilter = signal('all');
   readonly geographyFilter = signal('all');
   readonly statusFilter = signal('all');
   readonly filtersPanelVisible = signal(true);
-  readonly sortColumn = signal<AssetsTableSortColumn | null>(null);
+  readonly sortColumn = signal<AssetsTableSortColumn | null>('glaSf');
   readonly sortDir = signal<AssetsTableSortDirection>('desc');
   readonly currentPage = signal(1);
 
@@ -70,10 +72,59 @@ export class CapitalDashboardAssetsComponent {
     Math.max(1, Math.ceil(this.totalCount() / ASSETS_LIST_PAGE_SIZE)),
   );
 
+  readonly quarterlyPeriodOptions = computed(() => this.filterOptions().quarterlyPeriods);
+
+  readonly dateKey = computed(() => {
+    const quarter = this.quarter();
+    const year = this.year();
+    if (quarter == null || year == null) {
+      return null;
+    }
+
+    return (
+      this.quarterlyPeriodOptions().find(
+        (period) => period.quarter === quarter && period.calendarYear === year,
+      )?.dateKey ?? null
+    );
+  });
+
+  readonly availableQuarters = computed(() => {
+    const periods = this.quarterlyPeriodOptions();
+    return [...new Set(periods.map((period) => period.quarter))].sort((a, b) => a - b);
+  });
+
+  readonly availableYears = computed(() => {
+    const periods = this.quarterlyPeriodOptions();
+    const selectedQuarter = this.quarter();
+    const scoped =
+      selectedQuarter != null
+        ? periods.filter((period) => period.quarter === selectedQuarter)
+        : periods;
+
+    return [...new Set(scoped.map((period) => period.calendarYear))].sort((a, b) => b - a);
+  });
+
   readonly subtitleText = computed(() => {
     const count = this.totalCount();
     return `${count} propert${count === 1 ? 'y' : 'ies'}`;
   });
+
+  readonly periodLabel = computed(() => {
+    const quarter = this.quarter();
+    const year = this.year();
+    if (quarter == null || year == null) {
+      return 'Quarterly';
+    }
+
+    const period = this.quarterlyPeriodOptions().find(
+      (item) => item.quarter === quarter && item.calendarYear === year,
+    );
+    return period?.label ?? period?.quarterYear ?? `Q${quarter} ${year}`;
+  });
+
+  readonly reportingPeriodTitle = computed(() =>
+    this.timeframe() === 'quarterly' ? this.periodLabel() : 'ITD',
+  );
 
   readonly activeFilterCount = computed(() => {
     let count = 0;
@@ -163,9 +214,6 @@ export class CapitalDashboardAssetsComponent {
 
   readonly formatSquareFeet = formatSquareFeet;
   readonly formatAreaNumber = formatAreaNumber;
-  readonly formatOccupiedPercent = formatOccupiedPercent;
-  readonly assetTypeColor = assetTypeColor;
-  readonly clampBarFillPercent = clampBarFillPercent;
 
   constructor() {
     this.routeSearchSync.bindTableSearch(this.tableSearch, () => this.currentPage.set(1));
@@ -195,10 +243,15 @@ export class CapitalDashboardAssetsComponent {
         takeUntilDestroyed(),
       )
       .subscribe((response) => {
-        this.filterOptions.set(normalizeAssetsFilterOptions(response));
+        const options = normalizeAssetsFilterOptions(response);
+        this.filterOptions.set(options);
+        this.ensureQuarterlySelection(options);
       });
 
     effect(() => {
+      this.timeframe();
+      this.quarter();
+      this.year();
       this.assetTypeFilter();
       this.investmentTypeFilter();
       this.geographyFilter();
@@ -206,6 +259,9 @@ export class CapitalDashboardAssetsComponent {
       this.sortColumn();
       this.sortDir();
       this.currentPage();
+      if (this.timeframe() === 'quarterly' && this.dateKey() == null) {
+        return;
+      }
       this.dispatchLoad(true);
     });
 
@@ -215,6 +271,26 @@ export class CapitalDashboardAssetsComponent {
         this.currentPage.set(1);
         this.dispatchLoad(true);
       });
+  }
+
+  setTimeframe(view: TimeframeView): void {
+    this.timeframe.set(view);
+    if (view === 'quarterly') {
+      this.ensureQuarterlySelection(this.filterOptions());
+    }
+    this.currentPage.set(1);
+  }
+
+  setQuarter(quarter: number): void {
+    this.quarter.set(quarter);
+    this.alignYearToQuarter();
+    this.currentPage.set(1);
+  }
+
+  setYear(year: number): void {
+    this.year.set(year);
+    this.alignQuarterToYear();
+    this.currentPage.set(1);
   }
 
   toggleFiltersPanel(): void {
@@ -313,8 +389,11 @@ export class CapitalDashboardAssetsComponent {
     const activeSortColumn = this.sortColumn();
     const sortBy = activeSortColumn ? ASSETS_TABLE_SORT_API_FIELDS[activeSortColumn] : undefined;
     const sortDir = activeSortColumn ? this.sortDir() : undefined;
+    const activeDateKey = this.timeframe() === 'quarterly' ? this.dateKey() : null;
 
     const cacheKey = buildAssetsListCacheKey({
+      view: this.timeframe(),
+      dateKey: activeDateKey,
       assetType: this.assetTypeFilter(),
       investmentType: this.investmentTypeFilter(),
       geography: this.geographyFilter(),
@@ -324,10 +403,12 @@ export class CapitalDashboardAssetsComponent {
     });
 
     const apiParams: AssetsQueryParams = {
+      view: this.timeframe(),
       page: this.currentPage(),
       pageSize: ASSETS_LIST_PAGE_SIZE,
       search: this.tableSearch().trim() || undefined,
       ...(sortBy && sortDir ? { sortBy, sortDir } : {}),
+      ...(activeDateKey != null ? { dateKey: activeDateKey } : {}),
       ...(this.assetTypeFilter() !== 'all' ? { assetType: this.assetTypeFilter() } : {}),
       ...(this.investmentTypeFilter() !== 'all'
         ? { investmentType: this.investmentTypeFilter() }
@@ -345,5 +426,54 @@ export class CapitalDashboardAssetsComponent {
         apiParams,
       }),
     );
+  }
+
+  private ensureQuarterlySelection(options: AssetsFilterOptions): void {
+    const periods = options.quarterlyPeriods;
+    if (!periods.length) {
+      this.quarter.set(null);
+      this.year.set(null);
+      return;
+    }
+
+    const quarter = this.quarter();
+    const year = this.year();
+    if (
+      quarter != null &&
+      year != null &&
+      periods.some((period) => period.quarter === quarter && period.calendarYear === year)
+    ) {
+      return;
+    }
+
+    const first = periods[0];
+    this.quarter.set(first.quarter);
+    this.year.set(first.calendarYear);
+  }
+
+  private alignYearToQuarter(): void {
+    const years = this.availableYears();
+    const currentYear = this.year();
+    if (currentYear == null || !years.includes(currentYear)) {
+      this.year.set(years[0] ?? null);
+    }
+  }
+
+  private alignQuarterToYear(): void {
+    const quarters = this.availableQuarters();
+    const currentQuarter = this.quarter();
+    const year = this.year();
+    if (currentQuarter == null || year == null) {
+      this.quarter.set(quarters[0] ?? null);
+      return;
+    }
+
+    const match = this.quarterlyPeriodOptions().some(
+      (period) => period.quarter === currentQuarter && period.calendarYear === year,
+    );
+    if (!match) {
+      const forYear = this.quarterlyPeriodOptions().find((period) => period.calendarYear === year);
+      this.quarter.set(forYear?.quarter ?? quarters[0] ?? null);
+    }
   }
 }
