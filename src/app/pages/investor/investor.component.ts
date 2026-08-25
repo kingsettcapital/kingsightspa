@@ -6,6 +6,7 @@ import { forkJoin } from 'rxjs';
 
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
+import { AccessControlService } from '../../core/access/access-control.service';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import {
   InvestorAlias,
@@ -57,7 +58,10 @@ const INVESTOR_ASSIGNMENT_TABLE_COLUMNS: InvestorAssignmentTableColumn[] = [
 export class InvestorComponent implements OnInit {
   private readonly investorApi = inject(InvestorApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
+  private readonly accessControl = inject(AccessControlService);
   private readonly defaultPageSize = 10;
+
+  readonly canEditAliasAssignment = this.accessControl.canEditAliasAssignment;
 
   readonly tableColumns = INVESTOR_ASSIGNMENT_TABLE_COLUMNS;
 
@@ -321,6 +325,9 @@ export class InvestorComponent implements OnInit {
   }
 
   updateAlias(investorCode: string, value: string): void {
+    if (!this.canEditAliasAssignment()) {
+      return;
+    }
     const investorAliasKey = value ? Number(value) : null;
     const alias = this.aliasOptions().find((a) => this.getAliasKey(a) === investorAliasKey);
     this.rows.set(
@@ -346,6 +353,9 @@ export class InvestorComponent implements OnInit {
   }
 
   openAliasDialog(investorCode: string | null): void {
+    if (!this.canEditAliasAssignment()) {
+      return;
+    }
     this.aliasDialogMode.set('create');
     this.aliasDialogRowCode.set(investorCode);
     this.aliasDialogEditKey.set(null);
@@ -355,6 +365,9 @@ export class InvestorComponent implements OnInit {
   }
 
   openAliasEditDialog(investorCode: string | null): void {
+    if (!this.canEditAliasAssignment()) {
+      return;
+    }
     this.aliasDialogMode.set('edit');
     this.aliasDialogRowCode.set(investorCode);
     this.aliasDialogError.set('');
@@ -396,6 +409,9 @@ export class InvestorComponent implements OnInit {
   }
 
   createAliasFromDialog(assignToRow: boolean): void {
+    if (!this.canEditAliasAssignment()) {
+      return;
+    }
     if (this.aliasDialogMode() !== 'create') {
       return;
     }
@@ -445,6 +461,9 @@ export class InvestorComponent implements OnInit {
   }
 
   saveAliasRenameFromDialog(): void {
+    if (!this.canEditAliasAssignment()) {
+      return;
+    }
     if (this.aliasDialogMode() !== 'edit' || this.isCreatingAlias()) {
       return;
     }
@@ -551,7 +570,7 @@ export class InvestorComponent implements OnInit {
   }
 
   saveChanges(): void {
-    if (this.isSaving()) {
+    if (!this.canEditAliasAssignment() || this.isSaving()) {
       return;
     }
 

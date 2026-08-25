@@ -41,21 +41,39 @@ export function displayAppRole(role: AppRole, fallbackName?: string | null): str
   }
 }
 
-/** Mortgage Approver may lock/unlock LTV and edit Current LTV when unlocked. */
-export function isMortgageApproverRole(roleName: string | null | undefined): boolean {
-  const normalized = (roleName ?? '')
+function normalizeRoleLabel(roleName: string | null | undefined): string {
+  return (roleName ?? '')
     .trim()
     .toLowerCase()
     .replace(/[_-]+/g, ' ')
     .replace(/\s+/g, ' ');
-
-  return normalized === 'mortgage approver';
 }
 
-/** Admin sees everything; Mortgage Approver may edit/lock LTV. Other roles are read-only. */
+/** Mortgage User — LTV Validation is read-only for this role. */
+export function isMortgageUserRole(roleName: string | null | undefined): boolean {
+  return normalizeRoleLabel(roleName) === 'mortgage user';
+}
+
+/** Mortgage Super User — only role that may edit Loan/Investor Alias Assignment. */
+export function isMortgageSuperUserRole(roleName: string | null | undefined): boolean {
+  return normalizeRoleLabel(roleName) === 'mortgage super user';
+}
+
+/**
+ * LTV Validation: editable for every role except Mortgage User.
+ * No role loaded yet → deny edit (avoid flash of editable UI).
+ */
 export function canEditLtvValidation(roleName: string | null | undefined): boolean {
-  if (normalizeAppRole(roleName) === AppRole.Admin) {
-    return true;
+  if (!roleName?.trim()) {
+    return false;
   }
-  return isMortgageApproverRole(roleName);
+  return !isMortgageUserRole(roleName);
+}
+
+/**
+ * Loan Alias Assignment / Investor Alias Assignment:
+ * editable only for Mortgage Super User.
+ */
+export function canEditAliasAssignment(roleName: string | null | undefined): boolean {
+  return isMortgageSuperUserRole(roleName);
 }

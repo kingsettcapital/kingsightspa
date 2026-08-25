@@ -13,6 +13,7 @@ import {
   normalizeStatusOptions,
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
+import { AccessControlService } from '../../core/access/access-control.service';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
@@ -71,7 +72,10 @@ export class LoanAliasAssignmentComponent implements OnInit {
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
+  private readonly accessControl = inject(AccessControlService);
   private readonly defaultPageSize = 10;
+
+  readonly canEditAliasAssignment = this.accessControl.canEditAliasAssignment;
 
   readonly tableColumns = LOAN_ASSIGNMENT_TABLE_COLUMNS;
 
@@ -371,6 +375,9 @@ export class LoanAliasAssignmentComponent implements OnInit {
   }
 
   updateAlias(loanCode: string, value: string): void {
+    if (!this.canEditAliasAssignment()) {
+      return;
+    }
     const loanAliasKey = value ? Number(value) : null;
     const alias = this.aliasOptions().find((a) => this.getAliasKey(a) === loanAliasKey);
     this.rows.set(
@@ -399,6 +406,9 @@ export class LoanAliasAssignmentComponent implements OnInit {
   }
 
   openAliasDialog(loanCode: string | null): void {
+    if (!this.canEditAliasAssignment()) {
+      return;
+    }
     this.aliasDialogMode.set('create');
     this.aliasDialogRowCode.set(loanCode);
     this.aliasDialogEditKey.set(null);
@@ -408,6 +418,9 @@ export class LoanAliasAssignmentComponent implements OnInit {
   }
 
   openAliasEditDialog(loanCode: string | null): void {
+    if (!this.canEditAliasAssignment()) {
+      return;
+    }
     this.aliasDialogMode.set('edit');
     this.aliasDialogRowCode.set(loanCode);
     this.aliasDialogError.set('');
@@ -446,6 +459,9 @@ export class LoanAliasAssignmentComponent implements OnInit {
   }
 
   createAliasFromDialog(assignToRow: boolean): void {
+    if (!this.canEditAliasAssignment()) {
+      return;
+    }
     if (this.aliasDialogMode() !== 'create') {
       return;
     }
@@ -495,6 +511,9 @@ export class LoanAliasAssignmentComponent implements OnInit {
   }
 
   saveAliasRenameFromDialog(): void {
+    if (!this.canEditAliasAssignment()) {
+      return;
+    }
     if (this.aliasDialogMode() !== 'edit' || this.isCreatingAlias()) {
       return;
     }
@@ -602,7 +621,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
   }
 
   saveChanges(): void {
-    if (this.isSaving()) {
+    if (!this.canEditAliasAssignment() || this.isSaving()) {
       return;
     }
 
