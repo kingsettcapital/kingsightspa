@@ -119,6 +119,7 @@
   --ks-bp-md: 768px;
   --ks-bp-lg: 1024px;
   --ks-bp-xl: 1280px;
+  --ks-bp-desktop: 1440px;
 }
 
 // SCSS tokens (mirror :root — use in @media, math, mixins)
@@ -126,3 +127,5 @@ $ks-bp-sm: 640px;
 $ks-bp-md: 768px;
 $ks-bp-lg: 1024px;
 $ks-bp-xl: 1280px;
+/* True desktop / large monitors — laptop density rules apply below this. */
+$ks-bp-desktop: 1440px;

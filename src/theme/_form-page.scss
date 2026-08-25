@@ -1,3 +1,5 @@
+@use 'variables' as *;
+
 /* Shared layout for mortgage subjective input / capture pages (KingSett branded) */
 
 .ks-fp {
@@ -734,6 +736,106 @@
 
   .ks-fp__filters-compact {
     justify-content: flex-start;
+  }
+}
+
+/*
+ * Laptop / mid-width density (below desktop monitor width).
+ * Desktop (≥1440px) keeps the existing look and feel unchanged.
+ * Scoped to .ks-fp so reporting screens (e.g. Management Summary) are untouched.
+ */
+@media (max-width: #{$ks-bp-desktop - 1px}) {
+  .ks-page:has(> .ks-fp),
+  .ks-page:has(.ks-fp) {
+    --ks-content-padding: 1.15rem;
+  }
+
+  .ks-fp__sticky-chrome {
+    padding-bottom: 0.55rem;
+  }
+
+  .ks-fp__title-row {
+    column-gap: 1rem;
+    row-gap: 0.55rem;
+  }
+
+  .ks-fp__title-row .ks-page__title {
+    font-size: 1.35rem;
+  }
+
+  .ks-fp__title-row .ks-page__subtitle {
+    font-size: 0.875rem;
+  }
+
+  .ks-fp__filters-compact {
+    gap: 0.55rem;
+  }
+
+  .ks-fp__search-block {
+    flex-basis: 14rem;
+    width: 14rem;
+    min-width: 14rem;
+    max-width: 14rem;
+  }
+
+  .ks-fp__status-block {
+    flex-basis: 11rem;
+    width: 11rem;
+    min-width: 11rem;
+    max-width: 11rem;
+  }
+
+  .ks-fp__table,
+  .ks-fp .table-wrap table,
+  .ks-fp .la-table,
+  .ks-fp .ia-table {
+    font-size: 0.8125rem;
+  }
+
+  .ks-fp__table thead th,
+  .ks-fp .table-wrap thead th,
+  .ks-fp .la-table thead th,
+  .ks-fp .ia-table thead th {
+    padding: 0.45rem 0.55rem;
+    font-size: 0.6875rem;
+  }
+
+  .ks-fp__table tbody td,
+  .ks-fp .table-wrap tbody td,
+  .ks-fp .la-table tbody td,
+  .ks-fp .ia-table tbody td {
+    padding: 0.45rem 0.55rem;
+  }
+
+  .ks-fp .audit-col,
+  .ks-fp th.audit-col,
+  .ks-fp td.audit-col,
+  .ks-fp .updated-by-cell,
+  .ks-fp .date-cell,
+  .ks-fp .created-by-cell,
+  .ks-fp .created-date-cell,
+  .ks-fp .modified-by-cell,
+  .ks-fp .modified-date-cell {
+    max-width: 5.5rem;
+    width: 5.5rem;
+    min-width: 4.5rem;
+    font-size: 0.625rem;
+  }
+
+  .ks-fp thead th.audit-col {
+    max-width: 5.5rem;
+  }
+
+  .ks-fp .table-wrap input:not([type='checkbox']):not([type='radio']),
+  .ks-fp .table-wrap select,
+  .ks-fp__table input:not([type='checkbox']):not([type='radio']),
+  .ks-fp__table select {
+    font-size: 0.75rem;
+  }
+
+  .ks-fp .table-wrap .ng-select.ks-ng-select,
+  .ks-fp__table .ng-select.ks-ng-select {
+    font-size: 0.75rem;
   }
 }
 

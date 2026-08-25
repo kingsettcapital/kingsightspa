@@ -5,19 +5,43 @@ export enum AppRole {
   Other = 'Other',
 }
 
-/** Normalize DB / UI role names (handles Administrator → admin, Kingset vs KingSett). */
-export function normalizeAppRole(roleName: string | null | undefined): AppRole {
-  const normalized = (roleName ?? '')
+function normalizeRoleLabel(roleName: string | null | undefined): string {
+  return (roleName ?? '')
     .trim()
     .toLowerCase()
     .replace(/[_-]+/g, ' ')
     .replace(/\s+/g, ' ');
+}
+
+/**
+ * Admin detection — aligned with API IsAdminRole (admin, administrator, * admin, etc.).
+ * Admin bypasses all mortgage role restrictions.
+ */
+export function isAdminRole(roleName: string | null | undefined): boolean {
+  const normalized = normalizeRoleLabel(roleName);
+  if (!normalized) {
+    return false;
+  }
+  if (normalized === 'admin' || normalized === 'administrator') {
+    return true;
+  }
+  return (
+    normalized.endsWith(' admin') ||
+    normalized.startsWith('admin ') ||
+    normalized.includes('administrator')
+  );
+}
+
+/** Normalize DB / UI role names (handles Administrator → admin, Kingset vs KingSett). */
+export function normalizeAppRole(roleName: string | null | undefined): AppRole {
+  if (isAdminRole(roleName)) {
+    return AppRole.Admin;
+  }
+
+  const normalized = normalizeRoleLabel(roleName);
 
   if (!normalized) {
     return AppRole.Other;
-  }
-  if (normalized === 'admin' || normalized === 'administrator') {
-    return AppRole.Admin;
   }
   if (
     normalized === 'kingsett user' ||
@@ -41,29 +65,24 @@ export function displayAppRole(role: AppRole, fallbackName?: string | null): str
   }
 }
 
-function normalizeRoleLabel(roleName: string | null | undefined): string {
-  return (roleName ?? '')
-    .trim()
-    .toLowerCase()
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ');
-}
-
-/** Mortgage User — LTV Validation is read-only for this role. */
+/** Mortgage User — LTV Validation is read-only for this role (Admin exempt). */
 export function isMortgageUserRole(roleName: string | null | undefined): boolean {
   return normalizeRoleLabel(roleName) === 'mortgage user';
 }
 
-/** Mortgage Super User — only role that may edit Loan/Investor Alias Assignment. */
+/** Mortgage Super User — may edit Loan/Investor Alias Assignment (Admin exempt). */
 export function isMortgageSuperUserRole(roleName: string | null | undefined): boolean {
   return normalizeRoleLabel(roleName) === 'mortgage super user';
 }
 
 /**
  * LTV Validation: editable for every role except Mortgage User.
- * No role loaded yet → deny edit (avoid flash of editable UI).
+ * Admin always has full access. No role loaded yet → deny edit.
  */
 export function canEditLtvValidation(roleName: string | null | undefined): boolean {
+  if (isAdminRole(roleName)) {
+    return true;
+  }
   if (!roleName?.trim()) {
     return false;
   }
@@ -72,8 +91,11 @@ export function canEditLtvValidation(roleName: string | null | undefined): boole
 
 /**
  * Loan Alias Assignment / Investor Alias Assignment:
- * editable only for Mortgage Super User.
+ * editable for Mortgage Super User; Admin has full access.
  */
 export function canEditAliasAssignment(roleName: string | null | undefined): boolean {
+  if (isAdminRole(roleName)) {
+    return true;
+  }
   return isMortgageSuperUserRole(roleName);
 }
