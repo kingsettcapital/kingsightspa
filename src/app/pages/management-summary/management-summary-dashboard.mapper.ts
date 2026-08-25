@@ -174,6 +174,7 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
     totalExposure: row.totalExposure ?? null,
     ltv: row.ltv ?? null,
     risk: row.risk ?? 'LOW',
+    isLtvConfirmed: Boolean(row.isLtvConfirmed),
   }));
 
   const kpis: ManagementSummaryKpis = {
@@ -293,6 +294,8 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
 
   return {
     asOfDisplay: formatAsOfDisplay(dto.asOfDate),
+    ltvAsOfDisplay: dto.ltvAsOfDate ? formatAsOfDisplay(dto.ltvAsOfDate) : '—',
+    isLtvConfirmed: Boolean(dto.isLtvConfirmed),
     reportPeriod: dto.reportPeriodLabel || '',
     kpis,
     outstanding,

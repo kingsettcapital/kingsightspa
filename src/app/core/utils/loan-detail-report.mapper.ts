@@ -23,6 +23,8 @@ const EMPTY_REPORT = (loanAlias: string): LoanDetailReportData => ({
     interestOffDate: '—',
     daysInDefault: 0,
     asOfDate: new Date().toISOString().slice(0, 10),
+    ltvAsOfDate: '—',
+    isLtvConfirmed: false,
   },
   propertyStats: {
     securityValue: 0,

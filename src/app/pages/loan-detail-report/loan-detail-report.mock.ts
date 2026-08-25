@@ -20,6 +20,8 @@ export const LOAN_DETAIL_REPORT_MOCK: LoanDetailReportData = {
     interestOffDate: '2024-11-01',
     daysInDefault: 503,
     asOfDate: '2026-03-18',
+    ltvAsOfDate: '2026-03-18',
+    isLtvConfirmed: true,
   },
   propertyStats: {
     securityValue: 222_100_000,

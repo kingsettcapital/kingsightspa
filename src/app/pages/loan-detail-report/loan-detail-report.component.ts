@@ -66,7 +66,11 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
       loanAlias: '—',
       header: {},
       reportDetails: {},
-      keyDates: { asOfDate: new Date().toISOString().slice(0, 10) },
+      keyDates: {
+        asOfDate: new Date().toISOString().slice(0, 10),
+        ltvAsOfDate: '—',
+        isLtvConfirmed: false,
+      },
       propertyStats: {},
       interestSummary: {},
       interestReserve: {},
