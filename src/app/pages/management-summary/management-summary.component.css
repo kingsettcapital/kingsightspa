@@ -405,6 +405,25 @@
   font-variant-numeric: tabular-nums;
 }
 
+.ms-table--loan-summary thead th {
+  vertical-align: top;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.15;
+  hyphens: auto;
+}
+
+/* Headers: center all except Loan Alias / Sponsor (left). Body .num cells stay right. */
+.ms-table--loan-summary thead th.num,
+.ms-table--loan-summary thead th.ms-col-center {
+  text-align: center;
+}
+
+.ms-table--loan-summary thead th.ms-col-left {
+  text-align: left;
+}
+
 .ms-table--loan-summary thead th.ms-sortable {
   cursor: pointer;
   user-select: none;
@@ -420,12 +439,6 @@
   font-size: 0.65rem;
   opacity: 0.85;
   white-space: nowrap;
-}
-
-.ms-table--loan-summary thead th.num {
-  white-space: normal;
-  line-height: 1.15;
-  hyphens: auto;
 }
 
 .ms-table .wrap {
@@ -955,22 +968,6 @@
 .ms-ltv--low {
   background: #dcfce7;
   color: #15803d;
-}
-
-.ms-count-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1rem;
-  height: 1rem;
-  margin-left: 0.25rem;
-  padding: 0 0.25rem;
-  border-radius: 999px;
-  background: #ef4444;
-  color: #fff;
-  font-size: 0.62rem;
-  font-weight: 700;
-  vertical-align: middle;
 }
 
 @media (max-width: 1100px) {
