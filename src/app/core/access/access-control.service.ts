@@ -1,7 +1,13 @@
 import { computed, inject, Injectable } from '@angular/core';
 
 import { CurrentAppUserService } from '../services/current-app-user.service';
-import { AppRole, displayAppRole, canEditLtvValidation, normalizeAppRole } from './access.model';
+import {
+  AppRole,
+  displayAppRole,
+  canEditAliasAssignment,
+  canEditLtvValidation,
+  normalizeAppRole,
+} from './access.model';
 
 /**
  * App access for now:
@@ -28,11 +34,13 @@ export class AccessControlService {
 
   readonly isAdmin = computed(() => this.appRole() === AppRole.Admin);
 
-  /**
-   * Admin sees/edits everything (including LTV lock/unlock).
-   * Mortgage Approver may edit LTV Validation; other roles are read-only there.
-   */
+  /** LTV Validation: all roles except Mortgage User. */
   readonly canEditLtvValidation = computed(() => canEditLtvValidation(this.appUser()?.roleName));
+
+  /** Loan / Investor Alias Assignment: Mortgage Super User only. */
+  readonly canEditAliasAssignment = computed(() =>
+    canEditAliasAssignment(this.appUser()?.roleName),
+  );
 
   /** Only active admin (user_master) may open User Management. */
   canAccessUserManagement(): boolean {

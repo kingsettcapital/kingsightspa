@@ -111,27 +111,30 @@
                 bindValue="value"
                 [searchable]="true"
                 [clearable]="true"
+                [disabled]="!canEditAliasAssignment()"
                 placeholder="— Select alias —"
                 [ngModel]="aliasSelectValue(row)"
                 (ngModelChange)="updateAlias(row.investorCode, $event)"
                 [ngModelOptions]="{ standalone: true }"
               >
-                <ng-template ng-footer-tmp>
-                  <button
-                    type="button"
-                    class="alias-add-btn"
-                    (click)="aliasSelect.close(); openAliasDialog(row.investorCode)"
-                  >
-                    + Add New Alias
-                  </button>
-                  <button
-                    type="button"
-                    class="alias-add-btn alias-add-btn--secondary"
-                    (click)="aliasSelect.close(); openAliasEditDialog(row.investorCode)"
-                  >
-                    ✎ Update Alias
-                  </button>
-                </ng-template>
+                @if (canEditAliasAssignment()) {
+                  <ng-template ng-footer-tmp>
+                    <button
+                      type="button"
+                      class="alias-add-btn"
+                      (click)="aliasSelect.close(); openAliasDialog(row.investorCode)"
+                    >
+                      + Add New Alias
+                    </button>
+                    <button
+                      type="button"
+                      class="alias-add-btn alias-add-btn--secondary"
+                      (click)="aliasSelect.close(); openAliasEditDialog(row.investorCode)"
+                    >
+                      ✎ Update Alias
+                    </button>
+                  </ng-template>
+                }
               </ng-select>
             </td>
             <td class="audit-col date-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
@@ -180,9 +183,11 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving()">
-      @if (isSaving()) { Saving… } @else { Save Changes }
-    </button>
+    @if (canEditAliasAssignment()) {
+      <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving()">
+        @if (isSaving()) { Saving… } @else { Save Changes }
+      </button>
+    }
   </div>
 
   @if (statusMessage()) {
