@@ -6,6 +6,7 @@ import {
   displayAppRole,
   canEditAliasAssignment,
   canEditLtvValidation,
+  isAdminRole,
   normalizeAppRole,
 } from './access.model';
 
@@ -32,15 +33,26 @@ export class AccessControlService {
 
   readonly roleLabel = computed(() => displayAppRole(this.appRole(), this.appUser()?.roleName));
 
-  readonly isAdmin = computed(() => this.appRole() === AppRole.Admin);
+  readonly isAdmin = computed(() => {
+    const roleName = this.appUser()?.roleName;
+    return isAdminRole(roleName) || this.appRole() === AppRole.Admin;
+  });
 
-  /** LTV Validation: all roles except Mortgage User. */
-  readonly canEditLtvValidation = computed(() => canEditLtvValidation(this.appUser()?.roleName));
+  /** LTV Validation: all roles except Mortgage User; Admin has full access. */
+  readonly canEditLtvValidation = computed(() => {
+    if (this.isAdmin()) {
+      return true;
+    }
+    return canEditLtvValidation(this.appUser()?.roleName);
+  });
 
-  /** Loan / Investor Alias Assignment: Mortgage Super User only. */
-  readonly canEditAliasAssignment = computed(() =>
-    canEditAliasAssignment(this.appUser()?.roleName),
-  );
+  /** Loan / Investor Alias Assignment: Mortgage Super User; Admin has full access. */
+  readonly canEditAliasAssignment = computed(() => {
+    if (this.isAdmin()) {
+      return true;
+    }
+    return canEditAliasAssignment(this.appUser()?.roleName);
+  });
 
   /** Only active admin (user_master) may open User Management. */
   canAccessUserManagement(): boolean {
