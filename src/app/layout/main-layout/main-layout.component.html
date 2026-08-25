@@ -78,22 +78,72 @@
         @if (isSidebarExpanded() && openDropdown() === 'Loans') {
           <div class="ks-sidebar__subnav">
             @if (showManagementSummary()) {
-              <a
-                routerLink="/mortgage/management-summary"
-                routerLinkActive="ks-sidebar__sublink--active"
-                class="ks-sidebar__sublink"
-              >Management Summary</a>
+              <div
+                class="ks-sidebar__subgroup"
+                [class.ks-sidebar__subgroup--expanded]="isMortgageSectionOpen('reporting')"
+              >
+                <button
+                  type="button"
+                  class="ks-sidebar__subgroup-btn"
+                  [attr.aria-expanded]="isMortgageSectionOpen('reporting')"
+                  (click)="toggleMortgageSection('reporting')"
+                >
+                  <span class="ks-sidebar__subgroup-label">Reporting</span>
+                  <lucide-icon
+                    class="ks-sidebar__chevron ks-sidebar__chevron--subgroup"
+                    [class.ks-sidebar__chevron--open]="isMortgageSectionOpen('reporting')"
+                    [img]="chevronDownIcon"
+                    color="currentColor"
+                    [size]="14"
+                  ></lucide-icon>
+                </button>
+                @if (isMortgageSectionOpen('reporting')) {
+                  <div class="ks-sidebar__subgroup-links">
+                    <a
+                      routerLink="/mortgage/management-summary"
+                      routerLinkActive="ks-sidebar__sublink--active"
+                      class="ks-sidebar__sublink"
+                    >Management Summary</a>
+                  </div>
+                }
+              </div>
             }
-            <a
-              routerLink="/mortgage/loan-alias-assignment"
-              routerLinkActive="ks-sidebar__sublink--active"
-              class="ks-sidebar__sublink"
-            >Loan Alias Assignment</a>
-            <a
-              routerLink="/mortgage/investor-alias-assignment"
-              routerLinkActive="ks-sidebar__sublink--active"
-              class="ks-sidebar__sublink"
-            >Investor Alias Assignment</a>
+
+            <div
+              class="ks-sidebar__subgroup"
+              [class.ks-sidebar__subgroup--expanded]="isMortgageSectionOpen('aliasManagement')"
+            >
+              <button
+                type="button"
+                class="ks-sidebar__subgroup-btn"
+                [attr.aria-expanded]="isMortgageSectionOpen('aliasManagement')"
+                (click)="toggleMortgageSection('aliasManagement')"
+              >
+                <span class="ks-sidebar__subgroup-label">Alias Management</span>
+                <lucide-icon
+                  class="ks-sidebar__chevron ks-sidebar__chevron--subgroup"
+                  [class.ks-sidebar__chevron--open]="isMortgageSectionOpen('aliasManagement')"
+                  [img]="chevronDownIcon"
+                  color="currentColor"
+                  [size]="14"
+                ></lucide-icon>
+              </button>
+              @if (isMortgageSectionOpen('aliasManagement')) {
+                <div class="ks-sidebar__subgroup-links">
+                  <a
+                    routerLink="/mortgage/loan-alias-assignment"
+                    routerLinkActive="ks-sidebar__sublink--active"
+                    class="ks-sidebar__sublink"
+                  >Loan Alias Assignment</a>
+                  <a
+                    routerLink="/mortgage/investor-alias-assignment"
+                    routerLinkActive="ks-sidebar__sublink--active"
+                    class="ks-sidebar__sublink"
+                  >Investor Alias Assignment</a>
+                </div>
+              }
+            </div>
+
             <a
               routerLink="/mortgage/loans-ranking"
               routerLinkActive="ks-sidebar__sublink--active"
@@ -139,6 +189,9 @@
               routerLinkActive="ks-sidebar__sublink--active"
               class="ks-sidebar__sublink"
             >File Upload</a>
+
+            <div class="ks-sidebar__subnav-separator" aria-hidden="true"></div>
+
             <a
               routerLink="/mortgage/notifications"
               routerLinkActive="ks-sidebar__sublink--active"

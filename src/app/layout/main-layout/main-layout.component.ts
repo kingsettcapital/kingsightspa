@@ -70,6 +70,11 @@ export class MainLayoutComponent implements OnInit {
   openDropdown = signal<string | null>(
     environment.showHomeCapitalAndDataExplorer === true ? null : 'Loans',
   );
+  /** Nested Mortgage subsections (Reporting / Alias Management). */
+  readonly openMortgageSections = signal<Record<string, boolean>>({
+    reporting: true,
+    aliasManagement: true,
+  });
   hideAppSidebar = signal(this.shouldHideAppChrome(this.router.url));
 
   ngOnInit(): void {
@@ -163,6 +168,17 @@ export class MainLayoutComponent implements OnInit {
     this.openDropdown.update((current) => (current === label ? null : label));
   }
 
+  isMortgageSectionOpen(section: string): boolean {
+    return this.openMortgageSections()[section] === true;
+  }
+
+  toggleMortgageSection(section: string): void {
+    this.openMortgageSections.update((current) => ({
+      ...current,
+      [section]: !current[section],
+    }));
+  }
+
   handleLogout(): void {
     void this.authService.logout();
   }
@@ -170,6 +186,12 @@ export class MainLayoutComponent implements OnInit {
   private syncDropdownToRoute(url: string): void {
     if (url.includes('/mortgage')) {
       this.openDropdown.set('Loans');
+      if (url.includes('/management-summary')) {
+        this.openMortgageSections.update((current) => ({ ...current, reporting: true }));
+      }
+      if (url.includes('/loan-alias-assignment') || url.includes('/investor-alias-assignment')) {
+        this.openMortgageSections.update((current) => ({ ...current, aliasManagement: true }));
+      }
     }
   }
 

@@ -214,7 +214,6 @@
             <th class="num">Other Costs</th>
             <th class="num">Total Exposure</th>
             <th class="num">LTV</th>
-            <th class="num">LTV Lock</th>
             <th class="num"># Mo. in Arrears</th>
           </tr>
         </thead>
@@ -235,7 +234,6 @@
               <td class="num">{{ formatCurrency(row.otherCosts) }}</td>
               <td class="num">{{ formatCurrency(row.totalExposure) }}</td>
               <td class="num">{{ formatLtv(row.ltv) }}</td>
-              <td class="num">{{ row.isLtvConfirmed ? 'Y' : 'N' }}</td>
               <td class="num">{{ row.monthsInArrears ?? '—' }}</td>
             </tr>
           }
@@ -252,7 +250,6 @@
             <td class="num">{{ formatCurrency(portfolioTotals().otherCosts) }}</td>
             <td class="num">{{ formatCurrency(portfolioTotals().totalExposure) }}</td>
             <td class="num" aria-label="LTV total not shown"></td>
-            <td></td>
             <td></td>
           </tr>
         </tfoot>
