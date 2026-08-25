@@ -152,7 +152,6 @@
             <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('ltv')">
               LTV <span class="ms-sort-icon">{{ loanSortIndicator('ltv') }}</span>
             </th>
-            <th class="ms-col-center">LTV Lock</th>
             <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('risk')">
               Risk <span class="ms-sort-icon">{{ loanSortIndicator('risk') }}</span>
             </th>
@@ -184,7 +183,6 @@
               <td class="num">{{ row.other | number: '1.0-0' }}</td>
               <td class="num">{{ row.totalExposure | number: '1.0-0' }}</td>
               <td class="ms-col-center">{{ row.ltv }}%</td>
-              <td class="ms-col-center">{{ formatLtvConfirmFlag(row.isLtvConfirmed) }}</td>
               <td class="ms-col-center"><span [class]="riskClass(row.risk)">{{ row.risk }}</span></td>
               <td class="ms-table__chevron-col">
                 <mat-icon aria-hidden="true">chevron_right</mat-icon>
