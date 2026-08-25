@@ -446,12 +446,7 @@
                 <td>
                   <span class="ms-legend-label">
                     <span class="ms-legend-swatch" [style.background]="chartSeriesColor(i)" aria-hidden="true"></span>
-                    <span>
-                      {{ row.sponsor }}
-                      @if (row.loanCount > 1) {
-                        <span class="ms-count-badge">{{ row.loanCount }}</span>
-                      }
-                    </span>
+                    <span>{{ row.sponsor }}</span>
                   </span>
                 </td>
                 <td class="num">{{ formatMillions(row.exposure) }}</td>
