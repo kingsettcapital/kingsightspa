@@ -93,6 +93,7 @@ Replace inline SVG paths with official artwork from brand guidelines when vector
 | `_brand-elements.scss` | Vertical line + gold bar, diamond pattern |
 | `_layout.scss` | App shell, sidebar, header, page layout |
 | `_components.scss` | Buttons, inputs, tables, badges, pagination |
+| `_form-page.scss` | Mortgage input screens (`.ks-fp`); laptop density below `$ks-bp-desktop` (1440px) |
 | `index.scss` | Entry point (loaded from `styles.scss`) |
 
 ## Tailwind CSS
