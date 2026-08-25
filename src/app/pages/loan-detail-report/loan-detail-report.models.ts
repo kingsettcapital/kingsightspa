@@ -18,6 +18,8 @@ export type LoanDetailKeyDates = {
   daysInDefault: number;
   /** Report as-of date (header only; not shown in Key Dates box). */
   asOfDate: string;
+  ltvAsOfDate?: string;
+  isLtvConfirmed?: boolean;
 };
 
 export type LoanDetailPropertyStats = {
@@ -66,6 +68,7 @@ export type LoanPortfolioDetailRow = {
   timesNsfd: number | null;
   /** Y/N (aggregate_flag); TOTALS only include Y rows. Grid still shows all rows. */
   aggregateFlag: string | null;
+  isLtvConfirmed?: boolean;
 };
 
 export type LoanDetailChartSlice = {

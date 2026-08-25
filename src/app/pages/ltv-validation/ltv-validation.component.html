@@ -4,8 +4,8 @@
       <div class="ks-page__heading">
         <h1 class="ks-page__title">LTV Validation</h1>
         <p class="ks-page__subtitle">
-          Review LTV values extracted by AI from QR slides. Save manual overrides.<br />
-          Confirm LTV once review is complete to send notification of review completion.
+          Review LTV values extracted by AI from QR slides. Admins and Mortgage Approvers may save
+          overrides, then lock LTV when review is complete.
         </p>
       </div>
 
@@ -106,8 +106,8 @@
             <col class="ltv-col--name" />
             <col class="ltv-col--alias" />
             <col class="ltv-col--investor" />
-            <col class="ltv-col--currency" />
-            <col class="ltv-col--currency" />
+            <col class="ltv-col--sec-value" />
+            <col class="ltv-col--exposure" />
             <col class="ltv-col--rank" />
             <col class="ltv-col--prior-ltv" />
             <col class="ltv-col--ltv" />
@@ -129,7 +129,12 @@
                     (click)="toggleSort(column.key)"
                     [attr.aria-label]="'Sort by ' + column.label"
                   >
-                    <span>{{ column.label }}</span>
+                    <span class="ltv-th-sort__text">
+                      <span class="ltv-th-sort__title">{{ column.label }}</span>
+                      @if (column.subLabel) {
+                        <span class="ltv-th-sort__sub">{{ column.subLabel }}</span>
+                      }
+                    </span>
                     <span class="ltv-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
                   </button>
                 </th>
@@ -159,7 +164,7 @@
                   [class]="columnClass('exposure')"
                   [attr.title]="currencyTitle(row.exposure)"
                 >
-                  {{ formatCompactCurrency(row.exposure) }}
+                  {{ formatExposure(row.exposure) }}
                 </td>
                 <td [class]="columnClass('ranking')">{{ formatRanking(row.ranking) }}</td>
                 <td [class]="columnClass('priorLtv')">{{ formatLtvDisplay(row.priorLtv) }}</td>
@@ -173,6 +178,7 @@
                       (ngModelChange)="updateLtv(row, $event)"
                       [ngModelOptions]="{ standalone: true }"
                       placeholder="—"
+                      [disabled]="!canEditRow(row)"
                       [attr.aria-label]="'Current LTV for ' + row.loanCode"
                     />
                     <span class="ltv-suffix">%</span>
@@ -188,6 +194,7 @@
                     [multiple]="true"
                     [closeOnSelect]="false"
                     [clearable]="true"
+                    [disabled]="!canEditRow(row)"
                     placeholder="Select reason(s)"
                     [ngModel]="row.updateReasons"
                     (ngModelChange)="updateUpdateReasons(row, $event)"
@@ -202,6 +209,7 @@
                     [value]="row.updateComment"
                     (input)="updateUpdateComment(row, $any($event.target).value)"
                     placeholder="Enter comment"
+                    [disabled]="!canEditRow(row)"
                   />
                 </td>
                 <td [class]="columnClass('aiConfidenceScore')">
@@ -329,14 +337,19 @@
         </div>
         <div class="pagination-right">
           <span class="page-range">{{ pageRangeLabel() }}</span>
-          <button type="button" class="pager-btn" (click)="goToPreviousPage()" [disabled]="currentPage() <= 1">
+          <button
+            type="button"
+            class="pager-btn"
+            (click)="goToPreviousPage(); $event.stopPropagation()"
+            [disabled]="currentPage() <= 1"
+          >
             Prev
           </button>
           <span class="page-index">Page {{ currentPage() }} / {{ totalPages() }}</span>
           <button
             type="button"
             class="pager-btn"
-            (click)="goToNextPage()"
+            (click)="goToNextPage(); $event.stopPropagation()"
             [disabled]="currentPage() >= totalPages()"
           >
             Next
@@ -345,27 +358,37 @@
       </div>
 
       <div class="actions">
-        <button
-          type="button"
-          class="ks-btn ks-btn--accent"
-          (click)="saveChanges()"
-          [disabled]="isSaving() || !rows().length"
-        >
-          @if (isSaving()) { Saving… } @else { Save Changes }
-        </button>
-        <button
-          type="button"
-          class="ks-btn ks-btn--accent"
-          (click)="confirmAiLtv()"
-          [disabled]="!canConfirmLtv()"
-          [attr.title]="
-            hasUnsavedChanges()
-              ? 'Save Changes before confirming LTV'
-              : null
-          "
-        >
-          @if (isConfirming()) { Confirming… } @else { Confirm LTV }
-        </button>
+        @if (canEditLtvValidation()) {
+          <button
+            type="button"
+            class="ks-btn ks-btn--accent"
+            (click)="saveChanges()"
+            [disabled]="!canSaveChanges()"
+          >
+            @if (isSaving()) { Saving… } @else { Save Changes }
+          </button>
+          <button
+            type="button"
+            class="ks-btn ks-btn--accent"
+            (click)="lockLtv()"
+            [disabled]="!canLockLtv()"
+            [attr.title]="
+              hasUnsavedChanges()
+                ? 'Save Changes before locking LTV'
+                : null
+            "
+          >
+            @if (isConfirming()) { Locking… } @else { Lock LTV }
+          </button>
+          <button
+            type="button"
+            class="ks-btn ks-btn--outline"
+            (click)="unlockLtv()"
+            [disabled]="!canUnlockLtv()"
+          >
+            @if (isUnlocking()) { Unlocking… } @else { Unlock LTV }
+          </button>
+        }
       </div>
     </div>
   </div>

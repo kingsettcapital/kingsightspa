@@ -24,6 +24,7 @@ export type LtvValidationRowDto = {
   qrSlideLink?: string | null;
   userUpdatedBy?: string | null;
   userUpdatedDate?: string | null;
+  isConfirmed?: boolean;
 };
 
 export type LtvValidationUpdatePayload = {
@@ -45,11 +46,15 @@ export type LtvValidationConfirmRequest = {
   userUpdatedBy: string;
 };
 
+export type LtvValidationUnlockRequest = LtvValidationConfirmRequest;
+
 export type LtvValidationColumnDatesDto = {
   /** Latest current LTV as_of_date (yyyy-MM-dd). */
   currentLtvAsOfDate?: string | null;
   /** Latest confirmed prior LTV as_of_date (yyyy-MM-dd). */
   priorLtvConfirmedDate?: string | null;
+  /** True when current LTV review is locked. */
+  isCurrentLtvConfirmed?: boolean;
 };
 
 @Injectable({
@@ -80,6 +85,10 @@ export class LtvValidationApiService {
 
   confirmAiLtv(request: LtvValidationConfirmRequest) {
     return this.http.post<void>(`${this.baseUrl}/confirm`, request);
+  }
+
+  unlockLtv(request: LtvValidationUnlockRequest) {
+    return this.http.post<void>(`${this.baseUrl}/unlock`, request);
   }
 
   getColumnDates() {

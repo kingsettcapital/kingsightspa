@@ -81,6 +81,8 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   private readonly reportRoot = viewChild<ElementRef<HTMLElement>>('reportRoot');
 
   readonly asOfDisplay = signal('');
+  readonly ltvAsOfDisplay = signal('—');
+  readonly isLtvConfirmed = signal(false);
   readonly reportPeriod = signal('');
   readonly filtersOpen = signal(false);
   readonly isLoading = signal(false);
@@ -385,6 +387,8 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
         next: (dto) => {
           const mapped = mapManagementSummaryDashboard(dto);
           this.asOfDisplay.set(mapped.asOfDisplay);
+          this.ltvAsOfDisplay.set(mapped.ltvAsOfDisplay);
+          this.isLtvConfirmed.set(mapped.isLtvConfirmed);
           this.reportPeriod.set(mapped.reportPeriod);
           this.kpis.set(mapped.kpis);
           this.outstanding.set(mapped.outstanding);
@@ -462,6 +466,10 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
       default:
         return 'ms-risk';
     }
+  }
+
+  formatLtvConfirmFlag(confirmed?: boolean): string {
+    return confirmed ? 'Y' : 'N';
   }
 
   sponsorLtvClass(ltv: number | null): string {

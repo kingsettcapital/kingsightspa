@@ -281,6 +281,47 @@ export class CmhcUploadComponent implements OnInit {
     return raw;
   }
 
+  /**
+   * Upload History sort: Uploaded Date desc → File Type A–Z → As Of desc.
+   */
+  private compareUploadHistoryRows(a: CmhcUploadHistoryRecord, b: CmhcUploadHistoryRecord): number {
+    const uploadedDiff =
+      this.parseHistoryDateMs(b.uploadedDate) - this.parseHistoryDateMs(a.uploadedDate);
+    if (uploadedDiff !== 0) {
+      return uploadedDiff;
+    }
+
+    const typeA = this.formatFileTypeLabel(a.fileType, a.filename).toLocaleLowerCase();
+    const typeB = this.formatFileTypeLabel(b.fileType, b.filename).toLocaleLowerCase();
+    const typeDiff = typeA.localeCompare(typeB);
+    if (typeDiff !== 0) {
+      return typeDiff;
+    }
+
+    return this.parseHistoryDateMs(b.asOfDate) - this.parseHistoryDateMs(a.asOfDate);
+  }
+
+  private parseHistoryDateMs(value: string | null | undefined): number {
+    if (!value?.trim()) {
+      return 0;
+    }
+
+    const trimmed = value.trim();
+    const dateOnly = trimmed.length >= 10 ? trimmed.slice(0, 10) : trimmed;
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateOnly)) {
+      const [year, month, day] = dateOnly.split('-').map(Number);
+      const parsed = Date.UTC(year, (month ?? 1) - 1, day ?? 1);
+      if (!Number.isNaN(parsed)) {
+        // Prefer full timestamp when present (uploaded_date).
+        const full = Date.parse(trimmed);
+        return Number.isNaN(full) ? parsed : full;
+      }
+    }
+
+    const ms = Date.parse(trimmed);
+    return Number.isNaN(ms) ? 0 : ms;
+  }
+
   private mapHistoryRecord(
     record: CmhcUploadHistoryRecord | Record<string, unknown>,
   ): CmhcUploadHistoryRecord {
@@ -309,10 +350,7 @@ export class CmhcUploadComponent implements OnInit {
         const sorted = records
           .map((record) => this.mapHistoryRecord(record))
           .filter((row) => row.fileId > 0 || row.filename.length > 0)
-          .sort(
-            (a, b) =>
-              new Date(b.uploadedDate).getTime() - new Date(a.uploadedDate).getTime(),
-          );
+          .sort((a, b) => this.compareUploadHistoryRows(a, b));
         this.history.set(sorted);
         this.isLoadingHistory.set(false);
       },

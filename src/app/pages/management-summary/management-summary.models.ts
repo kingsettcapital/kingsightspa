@@ -34,6 +34,7 @@ export type LoanAliasSummaryRow = {
   totalExposure: number | null;
   ltv: number | null;
   risk: 'HIGH' | 'ELEVATED' | 'MODERATE' | 'LOW' | string;
+  isLtvConfirmed?: boolean;
 };
 
 export type CmhcWatchlistRow = {

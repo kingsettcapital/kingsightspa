@@ -58,6 +58,8 @@ export type ChartSliceDto = {
 export type ManagementSummaryDashboardDto = {
   asOfDate: string;
   reportPeriodLabel: string;
+  ltvAsOfDate?: string | null;
+  isLtvConfirmed?: boolean;
   kpis: {
     numberOfLoans: number;
     totalOutstandingBalance: number;
@@ -92,6 +94,7 @@ export type ManagementSummaryDashboardDto = {
     totalExposure?: number | null;
     ltv?: number | null;
     risk?: string | null;
+    isLtvConfirmed?: boolean;
   }[];
   exposureAnalysisRows?: {
     loanAliasKey: number;
@@ -159,6 +162,8 @@ export type LoanDetailReportDashboardDto = {
     maturityDate?: string | null;
     interestOffDate?: string | null;
     asOfDate?: string | null;
+    ltvAsOfDate?: string | null;
+    isLtvConfirmed?: boolean;
   };
   propertyStats: {
     securityValue?: number | null;
@@ -201,6 +206,7 @@ export type LoanDetailReportDashboardDto = {
     monthsInArrears?: number | null;
     timesNsfd?: number | null;
     aggregateFlag?: string | null;
+    isLtvConfirmed?: boolean;
   }[];
   exposureByInvestor?: ChartSliceDto[];
   exposureComposition?: ChartSliceDto[];

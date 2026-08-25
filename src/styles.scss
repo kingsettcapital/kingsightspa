@@ -156,6 +156,32 @@
   background: var(--ks-color-surface, #fff);
 }
 
+/*
+ * LTV Validation — Update Reason list (appendTo=body).
+ * Wider panel + wrap so full reason labels show (no ellipsis).
+ */
+.ng-dropdown-panel.ltv-reason-select {
+  min-width: 16rem !important;
+  width: max-content !important;
+  max-width: min(22rem, 92vw);
+}
+
+.ng-dropdown-panel.ltv-reason-select .ng-option {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.35;
+  font-size: 0.75rem;
+  padding: 0.4rem 0.65rem;
+}
+
+.ng-dropdown-panel.ltv-reason-select .ng-option-label {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  display: block;
+}
+
 .ng-select.ng-select-opened.ng-select-bottom > .ng-select-container,
 .ng-select.ng-select-opened.ng-select-top > .ng-select-container {
   border-radius: 0 !important;

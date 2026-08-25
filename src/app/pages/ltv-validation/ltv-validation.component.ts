@@ -22,6 +22,7 @@ import {
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
+import { AccessControlService } from '../../core/access/access-control.service';
 import {
   CmhcUploadApiService,
   CmhcUploadHistoryRecord,
@@ -67,6 +68,7 @@ type LtvValidationRow = {
   qrSlideLabel: string;
   userUpdatedBy: string;
   userUpdatedDate: string;
+  isConfirmed: boolean;
 };
 
 type RowSnapshot = {
@@ -102,6 +104,8 @@ type LtvColumnKey =
 type LtvTableColumn = {
   key: LtvColumnKey;
   label: string;
+  /** Optional second header line (e.g. As Of date under Prior/Current LTV). */
+  subLabel?: string;
   audit?: boolean;
 };
 
@@ -147,6 +151,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly cmhcUploadApi = inject(CmhcUploadApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
+  private readonly accessControl = inject(AccessControlService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly apiConfig = inject(APP_API_CONFIG);
   private readonly defaultPageSize = 10;
@@ -159,6 +164,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   readonly qrSlideUploads = signal<CmhcUploadHistoryRecord[]>([]);
   readonly currentLtvAsOfDate = signal<string | null>(null);
   readonly priorLtvConfirmedDate = signal<string | null>(null);
+  readonly isCurrentLtvConfirmed = signal(false);
   readonly searchText = signal('');
   readonly selectedLoanAliasIds = signal<number[]>([]);
   /** Client-side loan filter for Search Loans (code / name). */
@@ -189,6 +195,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   readonly isLoadingGrid = signal(false);
   readonly isSaving = signal(false);
   readonly isConfirming = signal(false);
+  readonly isUnlocking = signal(false);
   readonly currentPage = signal(1);
   readonly pageSize = signal(this.defaultPageSize);
   /** Ignores the empty search emit ng-select fires right after selecting a chip. */
@@ -222,13 +229,17 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       if (column.key === 'priorLtv') {
         return {
           ...column,
-          label: priorAsOf ? `Prior LTV ${priorAsOf}` : 'Prior LTV',
+          label: 'Prior LTV',
+          subLabel: priorAsOf || undefined,
         };
       }
       if (column.key === 'ltv') {
+        const locked = this.isCurrentLtvConfirmed() ? 'Locked' : undefined;
+        const datePart = currentAsOf || undefined;
         return {
           ...column,
-          label: currentAsOf ? `Current LTV ${currentAsOf}` : 'Current LTV',
+          label: 'Current LTV',
+          subLabel: [datePart, locked].filter(Boolean).join(' · ') || undefined,
         };
       }
       return column;
@@ -356,28 +367,82 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     return `${start} - ${end} of ${total}`;
   });
 
-  readonly confirmableLoanKeys = computed(() =>
+  readonly canEditLtvValidation = this.accessControl.canEditLtvValidation;
+
+  readonly lockableLoanKeys = computed(() =>
     this.rows()
-      .filter((row) => !this.hasRowChanged(row))
+      .filter((row) => !row.isConfirmed && !this.hasRowChanged(row))
       .map((row) => row.loanKey)
       .filter((key) => key > 0),
   );
 
-  readonly confirmableLoanCodes = computed(() =>
+  readonly lockableLoanCodes = computed(() =>
     this.rows()
-      .filter((row) => !this.hasRowChanged(row))
+      .filter((row) => !row.isConfirmed && !this.hasRowChanged(row))
       .map((row) => row.loanCode?.trim() || '')
       .filter((code) => !!code && code !== '-'),
   );
 
-  /** Approvers may Confirm only when the grid has no pending edits. */
+  readonly unlockableLoanKeys = computed(() => {
+    const rows = this.rows();
+    const lockedRows = rows.filter((row) => row.isConfirmed && !this.hasRowChanged(row));
+    const source =
+      lockedRows.length > 0
+        ? lockedRows
+        : this.isCurrentLtvConfirmed()
+          ? rows.filter((row) => !this.hasRowChanged(row))
+          : [];
+    return source.map((row) => row.loanKey).filter((key) => key > 0);
+  });
+
+  readonly unlockableLoanCodes = computed(() => {
+    const rows = this.rows();
+    const lockedRows = rows.filter((row) => row.isConfirmed && !this.hasRowChanged(row));
+    const source =
+      lockedRows.length > 0
+        ? lockedRows
+        : this.isCurrentLtvConfirmed()
+          ? rows.filter((row) => !this.hasRowChanged(row))
+          : [];
+    return source
+      .map((row) => row.loanCode?.trim() || '')
+      .filter((code) => !!code && code !== '-');
+  });
+
+  /** Approvers may lock only when the grid has no pending edits. */
   readonly hasUnsavedChanges = computed(() => this.rows().some((row) => this.hasRowChanged(row)));
 
-  readonly canConfirmLtv = computed(
+  /**
+   * Lock when current review is unlocked (is_confirmed = N for latest upload batch).
+   * Unlock when current review is locked (is_confirmed = Y). Only one enabled at a time.
+   */
+  readonly canLockLtv = computed(
     () =>
+      this.canEditLtvValidation() &&
+      !this.isConfirming() &&
+      !this.isUnlocking() &&
+      !this.hasUnsavedChanges() &&
+      !this.isCurrentLtvConfirmed() &&
+      (this.lockableLoanCodes().length > 0 || this.lockableLoanKeys().length > 0),
+  );
+
+  readonly canUnlockLtv = computed(
+    () =>
+      this.canEditLtvValidation() &&
+      !this.isUnlocking() &&
       !this.isConfirming() &&
       !this.hasUnsavedChanges() &&
-      (this.confirmableLoanCodes().length > 0 || this.confirmableLoanKeys().length > 0),
+      this.isCurrentLtvConfirmed() &&
+      (this.unlockableLoanCodes().length > 0 || this.unlockableLoanKeys().length > 0),
+  );
+
+  readonly canSaveChanges = computed(
+    () =>
+      this.canEditLtvValidation() &&
+      !this.isSaving() &&
+      !this.isCurrentLtvConfirmed() &&
+      this.hasUnsavedChanges() &&
+      this.rows().some((row) => this.canEditRow(row) && this.hasRowChanged(row)),
   );
 
   readonly pdfPreviewUrl = computed(() => this.pdfPreviewBlobUrl());
@@ -515,21 +580,39 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
 
   sortIndicator(column: LtvColumnKey): string {
     if (this.sortColumn() !== column) {
-      return '↕';
+      return '';
     }
     return this.sortDirection() === 'asc' ? '↑' : '↓';
   }
 
+  canEditRow(row: LtvValidationRow): boolean {
+    // Mortgage Approver only; Current LTV editable only while unlocked (is_confirmed = N).
+    return (
+      this.canEditLtvValidation() &&
+      !this.isCurrentLtvConfirmed() &&
+      !row.isConfirmed
+    );
+  }
+
   updateLtv(row: LtvValidationRow, value: string): void {
+    if (!this.canEditRow(row)) {
+      return;
+    }
     const parsed = this.parsePercentInput(value);
     this.patchRow(row.rowTrackId, { ltv: parsed });
   }
 
   updateUpdateReasons(row: LtvValidationRow, values: string[] | null): void {
+    if (!this.canEditRow(row)) {
+      return;
+    }
     this.patchRow(row.rowTrackId, { updateReasons: values ? [...values] : [] });
   }
 
   updateUpdateComment(row: LtvValidationRow, value: string): void {
+    if (!this.canEditRow(row)) {
+      return;
+    }
     this.patchRow(row.rowTrackId, { updateComment: value });
   }
 
@@ -646,7 +729,10 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   }
 
   saveChanges(): void {
-    if (this.isSaving() || !this.rows().length) {
+    if (!this.canSaveChanges()) {
+      if (!this.canEditLtvValidation()) {
+        this.errorMessage.set('LTV Validation is read-only for your user role.');
+      }
       return;
     }
 
@@ -708,19 +794,19 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     });
   }
 
-  confirmAiLtv(): void {
-    if (!this.canConfirmLtv()) {
+  lockLtv(): void {
+    if (!this.canLockLtv()) {
       if (this.hasUnsavedChanges()) {
-        this.statusMessage.set('Save Changes before confirming LTV.');
+        this.statusMessage.set('Save Changes before locking LTV.');
         this.errorMessage.set('');
       }
       return;
     }
 
-    const loanCodes = this.confirmableLoanCodes();
-    const loanKeys = this.confirmableLoanKeys();
+    const loanCodes = this.lockableLoanCodes();
+    const loanKeys = this.lockableLoanKeys();
     if (!loanCodes.length && !loanKeys.length) {
-      this.statusMessage.set('No loans available to confirm.');
+      this.statusMessage.set('No loans available to lock.');
       this.errorMessage.set('');
       return;
     }
@@ -738,30 +824,78 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     this.ltvApi.confirmAiLtv({ loanKeys, loanCodes, userUpdatedBy }).subscribe({
       next: () => {
         const count = loanCodes.length || loanKeys.length;
-        this.statusMessage.set(`${count} loan(s) confirmed with AI-extracted LTV.`);
+        this.statusMessage.set(`${count} loan(s) locked. Current LTV is no longer editable.`);
         this.isConfirming.set(false);
         this.loadColumnDates();
         this.loadGrid();
       },
       error: (error) => {
-        this.errorMessage.set(this.extractBackendError(error, 'Failed to confirm AI LTV values.'));
+        this.errorMessage.set(this.extractBackendError(error, 'Failed to lock LTV values.'));
         this.isConfirming.set(false);
       },
     });
   }
 
+  unlockLtv(): void {
+    if (!this.canUnlockLtv()) {
+      return;
+    }
+
+    const loanCodes = this.unlockableLoanCodes();
+    const loanKeys = this.unlockableLoanKeys();
+    if (!loanCodes.length && !loanKeys.length) {
+      this.statusMessage.set('No locked loans available to unlock.');
+      this.errorMessage.set('');
+      return;
+    }
+
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
+    this.isUnlocking.set(true);
+    this.statusMessage.set('');
+    this.errorMessage.set('');
+
+    this.ltvApi.unlockLtv({ loanKeys, loanCodes, userUpdatedBy }).subscribe({
+      next: () => {
+        const count = loanCodes.length || loanKeys.length;
+        this.statusMessage.set(`${count} loan(s) unlocked. Current LTV may be edited again.`);
+        this.isUnlocking.set(false);
+        this.loadColumnDates();
+        this.loadGrid();
+      },
+      error: (error) => {
+        this.errorMessage.set(this.extractBackendError(error, 'Failed to unlock LTV values.'));
+        this.isUnlocking.set(false);
+      },
+    });
+  }
+
   goToPreviousPage(): void {
-    this.currentPage.set(Math.max(1, this.currentPage() - 1));
+    if (this.currentPage() <= 1) {
+      return;
+    }
+    this.currentPage.update((page) => Math.max(1, page - 1));
   }
 
   goToNextPage(): void {
-    this.currentPage.set(Math.min(this.totalPages(), this.currentPage() + 1));
+    const maxPage = this.totalPages();
+    if (this.currentPage() >= maxPage) {
+      return;
+    }
+    this.currentPage.update((page) => Math.min(maxPage, page + 1));
   }
 
   updatePageSize(value: string): void {
     const parsed = Number(value);
     const normalized =
       Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : this.defaultPageSize;
+    if (normalized === this.pageSize()) {
+      return;
+    }
     this.pageSize.set(normalized);
     this.currentPage.set(1);
   }
@@ -810,6 +944,26 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       }).format(value);
     }
     return this.formatCurrency(value);
+  }
+
+  /** Exposure: Millions → $XM, Thousands → $XK; rounded, no decimals. */
+  formatExposure(value: number | null): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '-';
+    }
+
+    const sign = value < 0 ? '-' : '';
+    const abs = Math.abs(value);
+    const formatWhole = (amount: number) =>
+      new Intl.NumberFormat('en-CA', { maximumFractionDigits: 0 }).format(amount);
+
+    if (abs >= 1_000_000) {
+      return `${sign}$${formatWhole(Math.round(abs / 1_000_000))}M`;
+    }
+    if (abs >= 1_000) {
+      return `${sign}$${formatWhole(Math.round(abs / 1_000))}K`;
+    }
+    return `${sign}$${formatWhole(Math.round(abs))}`;
   }
 
   currencyTitle(value: number | null): string | null {
@@ -918,8 +1072,10 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
         classes.push('ltv-col--investor');
         break;
       case 'securityValue':
+        classes.push('numeric-col', 'ltv-col--sec-value');
+        break;
       case 'exposure':
-        classes.push('numeric-col', 'ltv-col--currency');
+        classes.push('numeric-col', 'ltv-col--exposure');
         break;
       case 'ranking':
         classes.push('numeric-col', 'ltv-col--rank');
@@ -1010,6 +1166,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   private applyColumnDates(dates: LtvValidationColumnDatesDto | null): void {
     this.currentLtvAsOfDate.set(dates?.currentLtvAsOfDate?.trim() || null);
     this.priorLtvConfirmedDate.set(dates?.priorLtvConfirmedDate?.trim() || null);
+    this.isCurrentLtvConfirmed.set(Boolean(dates?.isCurrentLtvConfirmed));
   }
 
   /** Selected aliases only; empty = all aliases (API skips alias filter). */
@@ -1129,7 +1286,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       case 'securityValue':
         return this.formatCurrency(row.securityValue);
       case 'exposure':
-        return this.formatCurrency(row.exposure);
+        return this.formatExposure(row.exposure);
       case 'ranking':
         return this.formatRanking(row.ranking);
       case 'priorLtv':
@@ -1209,7 +1366,21 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       qrSlideLabel: this.buildQrSlideLabel(qrSlideLink, loanName, loanCode),
       userUpdatedBy: this.pickString(raw, 'userUpdatedBy', 'UserUpdatedBy') || '-',
       userUpdatedDate: this.pickString(raw, 'userUpdatedDate', 'UserUpdatedDate'),
+      isConfirmed: this.pickBoolean(raw, 'isConfirmed', 'IsConfirmed'),
     };
+  }
+
+  private pickBoolean(raw: Record<string, unknown>, ...keys: string[]): boolean {
+    for (const key of keys) {
+      const value = raw[key];
+      if (typeof value === 'boolean') {
+        return value;
+      }
+      if (value === 'Y' || value === 'y' || value === 1 || value === '1' || value === 'true') {
+        return true;
+      }
+    }
+    return false;
   }
 
   private rowSnapshot(row: LtvValidationRow): RowSnapshot {

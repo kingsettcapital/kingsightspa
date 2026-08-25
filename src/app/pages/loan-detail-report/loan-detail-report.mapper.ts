@@ -63,6 +63,8 @@ export function mapLoanDetailReportDashboard(dto: LoanDetailReportDashboardDto):
       interestOffDate: formatDate(dto.keyDates?.interestOffDate),
       daysInDefault: dto.keyDates?.daysInDefault ?? 0,
       asOfDate: formatAsOfDisplay(dto.keyDates?.asOfDate),
+      ltvAsOfDate: formatAsOfDisplay(dto.keyDates?.ltvAsOfDate),
+      isLtvConfirmed: Boolean(dto.keyDates?.isLtvConfirmed),
     },
     propertyStats: {
       securityValue: dto.propertyStats?.securityValue ?? 0,
@@ -105,6 +107,7 @@ export function mapLoanDetailReportDashboard(dto: LoanDetailReportDashboardDto):
       monthsInArrears: row.monthsInArrears ?? null,
       timesNsfd: row.timesNsfd ?? null,
       aggregateFlag: row.aggregateFlag ?? null,
+      isLtvConfirmed: Boolean(row.isLtvConfirmed),
     })),
     exposureByInvestor: (dto.exposureByInvestor ?? []).map(mapChartSlice),
     exposureComposition: (dto.exposureComposition ?? []).map(mapChartSlice),

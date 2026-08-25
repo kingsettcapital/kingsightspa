@@ -40,3 +40,22 @@ export function displayAppRole(role: AppRole, fallbackName?: string | null): str
       return fallbackName?.trim() || 'User';
   }
 }
+
+/** Mortgage Approver may lock/unlock LTV and edit Current LTV when unlocked. */
+export function isMortgageApproverRole(roleName: string | null | undefined): boolean {
+  const normalized = (roleName ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ');
+
+  return normalized === 'mortgage approver';
+}
+
+/** Admin sees everything; Mortgage Approver may edit/lock LTV. Other roles are read-only. */
+export function canEditLtvValidation(roleName: string | null | undefined): boolean {
+  if (normalizeAppRole(roleName) === AppRole.Admin) {
+    return true;
+  }
+  return isMortgageApproverRole(roleName);
+}
