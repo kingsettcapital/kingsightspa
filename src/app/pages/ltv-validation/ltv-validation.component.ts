@@ -21,8 +21,9 @@ import {
   normalizeStatusOptions,
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
-import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { AccessControlService } from '../../core/access/access-control.service';
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
+import { formatCurrencyCompactKm } from '../../core/utils/currency-compact-km.util';
 import {
   CmhcUploadApiService,
   CmhcUploadHistoryRecord,
@@ -923,47 +924,14 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     }).format(value);
   }
 
-  formatCompactCurrency(value: number | null): string {
-    if (value == null || !Number.isFinite(value)) {
-      return '-';
-    }
-    const abs = Math.abs(value);
-    if (abs >= 1_000_000) {
-      return new Intl.NumberFormat('en-CA', {
-        style: 'currency',
-        currency: 'CAD',
-        notation: 'compact',
-        maximumFractionDigits: 1,
-      }).format(value);
-    }
-    if (abs >= 10_000) {
-      return new Intl.NumberFormat('en-CA', {
-        style: 'currency',
-        currency: 'CAD',
-        maximumFractionDigits: 0,
-      }).format(value);
-    }
-    return this.formatCurrency(value);
+  /** Sec. Value: $XM / $XK; rounded whole numbers, no decimals. */
+  formatSecurityValue(value: number | null): string {
+    return formatCurrencyCompactKm(value, { withDollarSign: true });
   }
 
-  /** Exposure: Millions → $XM, Thousands → $XK; rounded, no decimals. */
+  /** Exposure: $XM / $XK; rounded whole numbers, no decimals. */
   formatExposure(value: number | null): string {
-    if (value == null || !Number.isFinite(value)) {
-      return '-';
-    }
-
-    const sign = value < 0 ? '-' : '';
-    const abs = Math.abs(value);
-    const formatWhole = (amount: number) =>
-      new Intl.NumberFormat('en-CA', { maximumFractionDigits: 0 }).format(amount);
-
-    if (abs >= 1_000_000) {
-      return `${sign}$${formatWhole(Math.round(abs / 1_000_000))}M`;
-    }
-    if (abs >= 1_000) {
-      return `${sign}$${formatWhole(Math.round(abs / 1_000))}K`;
-    }
-    return `${sign}$${formatWhole(Math.round(abs))}`;
+    return formatCurrencyCompactKm(value, { withDollarSign: true });
   }
 
   currencyTitle(value: number | null): string | null {
@@ -1284,7 +1252,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       case 'investorAliasName':
         return row.investorAliasName;
       case 'securityValue':
-        return this.formatCurrency(row.securityValue);
+        return this.formatSecurityValue(row.securityValue);
       case 'exposure':
         return this.formatExposure(row.exposure);
       case 'ranking':
