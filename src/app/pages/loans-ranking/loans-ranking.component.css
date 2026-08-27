@@ -19,7 +19,6 @@
 .ranking-input,
 .note-input,
 .dummy-link-select,
-.funding-status-select,
 .alias-select {
   width: 100%;
   min-width: 6rem;
@@ -36,7 +35,6 @@
 }
 
 .dummy-link-select,
-.funding-status-select,
 .alias-select {
   min-width: 8rem;
 }

@@ -4,7 +4,7 @@
       <div class="ks-page__heading">
         <h1 class="ks-page__title">Loan Attribute Assignment</h1>
         <p class="ks-page__subtitle">
-          Update Loan Ranking, Dummy Loan Links, Late Interest Eligibility and Funding Status
+          Update Loan Ranking, Dummy Loan Links, and Late Interest Eligibility
         </p>
       </div>
 
@@ -161,20 +161,7 @@
                 placeholder="Enter note"
               />
             </td>
-            <td>
-              <select
-                class="funding-status-select"
-                [ngModel]="row.fundingStatusKey"
-                (ngModelChange)="updateFundingStatus(row.loanCode, $event)"
-                [ngModelOptions]="{ standalone: true }"
-                [attr.aria-label]="'Funding status for ' + row.loanCode"
-              >
-                <option value="">— Select —</option>
-                @for (option of fundingStatusSelectOptions(); track option.value) {
-                  <option [value]="option.value">{{ option.label }}</option>
-                }
-              </select>
-            </td>
+            <td>{{ getCellDisplayValue(row, 'fundingStatus') }}</td>
             <td class="audit-col date-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
             <td class="audit-col date-cell">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>

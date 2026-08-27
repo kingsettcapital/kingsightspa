@@ -21,6 +21,7 @@ import {
   LoanSecurityValueApiService,
   LoanStatusFilterOption,
 } from '../../core/services/loan-security-value-api.service';
+import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 import {
   TaxArrearsCaptureApiService,
   TaxArrearsCaptureBulkUpdateRequest,
@@ -839,22 +840,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
   }
 
   formatModifiedDate(value: string): string {
-    if (!value?.trim()) {
-      return '—';
-    }
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return this.formatDisplayDate(value);
-    }
-    return parsed.toLocaleString('en-US', {
-      timeZone: 'America/New_York',
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
+    return formatAuditModifiedDate(value);
   }
 
   displayModifiedBy(value: string): string {

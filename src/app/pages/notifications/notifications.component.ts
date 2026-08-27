@@ -6,6 +6,7 @@ import {
   NotificationsApiService,
 } from '../../core/services/notifications-api.service';
 import { NotificationUnreadCountService } from '../../core/services/notification-unread-count.service';
+import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 
 @Component({
   selector: 'app-notifications',
@@ -85,22 +86,7 @@ export class NotificationsComponent implements OnInit {
   }
 
   formatModifiedDate(value: string): string {
-    if (!value?.trim()) {
-      return '—';
-    }
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-    return parsed.toLocaleString('en-US', {
-      timeZone: 'America/New_York',
-      month: 'numeric',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
+    return formatAuditModifiedDate(value);
   }
 
   private loadNotifications(): void {

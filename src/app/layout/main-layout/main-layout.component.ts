@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { AccessControlService } from '../../core/access/access-control.service';
@@ -57,7 +57,7 @@ import { ToastContainerComponent } from '../../shared/components/toast/toast-con
   ],
   templateUrl: './main-layout.component.html',
 })
-export class MainLayoutComponent implements OnInit {
+export class MainLayoutComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly accessControl = inject(AccessControlService);
   private readonly currentAppUser = inject(CurrentAppUserService);
@@ -78,7 +78,7 @@ export class MainLayoutComponent implements OnInit {
   hideAppSidebar = signal(this.shouldHideAppChrome(this.router.url));
 
   ngOnInit(): void {
-    this.notificationUnreadCount.refresh();
+    this.notificationUnreadCount.start();
     this.syncDropdownToRoute(this.router.url);
     this.hideAppSidebar.set(this.shouldHideAppChrome(this.router.url));
 
@@ -91,6 +91,10 @@ export class MainLayoutComponent implements OnInit {
         this.notificationUnreadCount.refresh();
         this.closeMobileNav();
       });
+  }
+
+  ngOnDestroy(): void {
+    this.notificationUnreadCount.stop();
   }
 
   readonly unreadNotificationCount = this.notificationUnreadCount.count;

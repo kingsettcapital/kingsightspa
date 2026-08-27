@@ -13,6 +13,7 @@ import {
 } from '../../core/utils/mortgage-currency-input.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
+import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 import {
   LoanSecurityValueApiService,
   LoanSecurityValueBulkUpdateRequest,
@@ -246,24 +247,7 @@ export class SecurityValueComponent implements OnInit {
   }
 
   formatModifiedDate(value: string): string {
-    if (!value?.trim() || value === '-') {
-      return '—';
-    }
-
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-
-    return parsed.toLocaleString('en-US', {
-      timeZone: 'America/New_York',
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
+    return formatAuditModifiedDate(value);
   }
 
   displayModifiedBy(value: string): string {
