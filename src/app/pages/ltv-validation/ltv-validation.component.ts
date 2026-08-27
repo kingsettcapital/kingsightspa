@@ -24,6 +24,7 @@ import {
 import { AccessControlService } from '../../core/access/access-control.service';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { formatCurrencyCompactKm } from '../../core/utils/currency-compact-km.util';
+import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 import {
   CmhcUploadApiService,
   CmhcUploadHistoryRecord,
@@ -39,6 +40,7 @@ import {
   LoanSecurityValueApiService,
   LoanStatusFilterOption,
 } from '../../core/services/loan-security-value-api.service';
+import { NotificationUnreadCountService } from '../../core/services/notification-unread-count.service';
 
 type AliasOption = {
   loanAliasId: number;
@@ -154,6 +156,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly accessControl = inject(AccessControlService);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly notificationUnreadCount = inject(NotificationUnreadCountService);
   private readonly apiConfig = inject(APP_API_CONFIG);
   private readonly defaultPageSize = 10;
 
@@ -827,6 +830,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
         const count = loanCodes.length || loanKeys.length;
         this.statusMessage.set(`${count} loan(s) locked. Current LTV is no longer editable.`);
         this.isConfirming.set(false);
+        this.notificationUnreadCount.refresh();
         this.loadColumnDates();
         this.loadGrid();
       },
@@ -994,22 +998,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   }
 
   formatModifiedDate(value: string): string {
-    if (!value?.trim()) {
-      return '—';
-    }
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-    return parsed.toLocaleString('en-US', {
-      timeZone: 'America/New_York',
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
+    return formatAuditModifiedDate(value);
   }
 
   displayModifiedBy(value: string): string {

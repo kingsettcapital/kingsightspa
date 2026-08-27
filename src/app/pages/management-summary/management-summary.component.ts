@@ -81,7 +81,6 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   private readonly reportRoot = viewChild<ElementRef<HTMLElement>>('reportRoot');
 
   readonly asOfDisplay = signal('');
-  readonly ltvAsOfDisplay = signal('—');
   readonly reportPeriod = signal('');
   readonly filtersOpen = signal(false);
   readonly isLoading = signal(false);
@@ -386,7 +385,6 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
         next: (dto) => {
           const mapped = mapManagementSummaryDashboard(dto);
           this.asOfDisplay.set(mapped.asOfDisplay);
-          this.ltvAsOfDisplay.set(mapped.ltvAsOfDisplay);
           this.reportPeriod.set(mapped.reportPeriod);
           this.kpis.set(mapped.kpis);
           this.outstanding.set(mapped.outstanding);

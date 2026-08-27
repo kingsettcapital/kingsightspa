@@ -8,6 +8,7 @@ import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search'
 import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import { AccessControlService } from '../../core/access/access-control.service';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
+import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 import {
   InvestorAlias,
   InvestorApiService,
@@ -263,24 +264,7 @@ export class InvestorComponent implements OnInit {
   }
 
   formatModifiedDate(value: string): string {
-    if (!value?.trim() || value === '-') {
-      return '—';
-    }
-
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-
-    return parsed.toLocaleString('en-US', {
-      timeZone: 'America/New_York',
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
+    return formatAuditModifiedDate(value);
   }
 
   displayModifiedBy(value: string): string {

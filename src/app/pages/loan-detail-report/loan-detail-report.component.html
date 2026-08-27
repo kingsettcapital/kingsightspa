@@ -22,9 +22,6 @@
         <h1>{{ report().loanAlias }} — Loan Portfolio Management Report</h1>
         <p class="ldr-header__subtitle">
           As of {{ report().keyDates.asOfDate }}
-          @if (report().keyDates.ltvAsOfDate) {
-            · LTV as of {{ report().keyDates.ltvAsOfDate }}
-          }
         </p>
       </div>
       <div class="ldr-header__actions ks-no-print">

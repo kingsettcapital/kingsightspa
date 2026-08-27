@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
+import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 import {
   InvestorAlias,
   InvestorAliasCreateRequest,
@@ -176,24 +177,7 @@ export class InvestorAliasComponent implements OnInit {
   }
 
   formatAuditDate(value: string | null | undefined): string {
-    if (!value?.trim()) {
-      return '—';
-    }
-
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-
-    return parsed.toLocaleString('en-US', {
-      timeZone: 'America/New_York',
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
+    return formatAuditModifiedDate(value);
   }
 
   displayUserName(value: string | null | undefined): string {

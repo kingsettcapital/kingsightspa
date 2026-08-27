@@ -10,6 +10,7 @@ import {
 import { ToastService } from '../../core/services/toast.service';
 import { RoleFormModalComponent, RoleFormSubmit } from './role-form-modal.component';
 import { UserFormModalComponent, UserFormSubmit } from './user-form-modal.component';
+import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 
 @Component({
   selector: 'app-user-management',
@@ -206,20 +207,7 @@ export class UserManagementComponent implements OnInit {
   }
 
   formatDate(value: string | null | undefined): string {
-    if (!value?.trim()) {
-      return '—';
-    }
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-    return parsed.toLocaleString('en-CA', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatAuditModifiedDate(value);
   }
 
   isRoleActive(status: string | null | undefined): boolean {

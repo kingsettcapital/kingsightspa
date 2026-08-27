@@ -11,6 +11,7 @@ import {
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
+import { NotificationUnreadCountService } from '../../core/services/notification-unread-count.service';
 import {
   DefaultDateCaptureApiService,
   DefaultDateCaptureBulkUpdateRequest,
@@ -21,6 +22,7 @@ import {
   LoanStatusFilterOption,
 } from '../../core/services/loan-security-value-api.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
+import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 
 type AliasOption = {
   loanAliasId: number;
@@ -76,6 +78,7 @@ export class DefaultDateCaptureComponent implements OnInit {
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
+  private readonly notificationUnreadCount = inject(NotificationUnreadCountService);
   private readonly defaultPageSize = 10;
 
   readonly tableColumns = DEFAULT_DATE_TABLE_COLUMNS;
@@ -320,22 +323,7 @@ export class DefaultDateCaptureComponent implements OnInit {
   }
 
   formatModifiedDate(value: string): string {
-    if (!value?.trim()) {
-      return '—';
-    }
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return this.formatDisplayDate(value);
-    }
-    return parsed.toLocaleString('en-US', {
-      timeZone: 'America/New_York',
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
+    return formatAuditModifiedDate(value);
   }
 
   displayModifiedBy(value: string): string {
@@ -411,6 +399,7 @@ export class DefaultDateCaptureComponent implements OnInit {
         this.statusMessage.set(`${changedRows.length} loan(s) updated successfully.`);
         this.errorMessage.set('');
         this.isSaving.set(false);
+        this.notificationUnreadCount.refresh();
       },
       error: (error) => {
         this.statusMessage.set('');

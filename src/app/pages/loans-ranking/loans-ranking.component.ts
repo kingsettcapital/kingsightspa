@@ -12,10 +12,12 @@ import {
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
+import { NotificationUnreadCountService } from '../../core/services/notification-unread-count.service';
 import {
   LoanSecurityValueApiService,
   LoanStatusFilterOption,
 } from '../../core/services/loan-security-value-api.service';
+import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 import {
   LoanAliasOptionDto,
   LoanAttributeUpdatePayload,
@@ -38,6 +40,7 @@ type LoanAttributeRow = {
   lateInterestApplicable: boolean;
   lateInterestOffNote: string;
   fundingStatusKey: string;
+  fundingStatusName: string;
   userUpdatedBy: string;
   userUpdatedDate: string;
 };
@@ -48,7 +51,6 @@ type RowSnapshot = {
   dummyLoanLink: string;
   lateInterestApplicable: boolean;
   lateInterestOffNote: string;
-  fundingStatusKey: string;
 };
 
 type LoanAttributeColumnKey =
@@ -82,7 +84,7 @@ const LOAN_ATTRIBUTE_TABLE_COLUMNS: LoanAttributeTableColumn[] = [
   { key: 'dummyLoanLink', label: 'Dummy Loan Link', editable: true },
   { key: 'lateInterestApplicable', label: 'Late Interest Applicable', editable: true },
   { key: 'lateInterestOffNote', label: 'Late Interest Off Note', editable: true },
-  { key: 'fundingStatus', label: 'Funding Status', editable: true },
+  { key: 'fundingStatus', label: 'Funding Status' },
   { key: 'userUpdatedBy', label: 'Modified By', audit: true },
   { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
 ];
@@ -98,6 +100,7 @@ export class LoansRankingComponent implements OnInit {
   private readonly loansApi = inject(LoansApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
+  private readonly notificationUnreadCount = inject(NotificationUnreadCountService);
   private readonly defaultPageSize = 10;
 
   readonly tableColumns = LOAN_ATTRIBUTE_TABLE_COLUMNS;
@@ -139,13 +142,6 @@ export class LoansRankingComponent implements OnInit {
   });
 
   readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
-
-  /** Row dropdown: dim_status keys only (exclude filter "(Not set)" sentinel). */
-  readonly fundingStatusSelectOptions = computed(() =>
-    toStatusSelectOptions(this.statusOptions()).filter(
-      (option) => option.value.length > 0 && option.value !== '(null)',
-    ),
-  );
 
   ngOnInit(): void {
     this.loadLoans();
@@ -308,24 +304,7 @@ export class LoansRankingComponent implements OnInit {
   }
 
   formatModifiedDate(value: string): string {
-    if (!value?.trim() || value === '-') {
-      return '—';
-    }
-
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-
-    return parsed.toLocaleString('en-US', {
-      timeZone: 'America/New_York',
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
+    return formatAuditModifiedDate(value);
   }
 
   displayModifiedBy(value: string): string {
@@ -352,12 +331,7 @@ export class LoansRankingComponent implements OnInit {
       case 'lateInterestOffNote':
         return row.lateInterestOffNote;
       case 'fundingStatus':
-        return (
-          this.fundingStatusSelectOptions().find((option) => option.value === row.fundingStatusKey)
-            ?.label ||
-          row.fundingStatusKey ||
-          '—'
-        );
+        return row.fundingStatusName.trim() || '—';
       case 'userUpdatedBy':
         return this.displayModifiedBy(row.userUpdatedBy);
       case 'userUpdatedDate':
@@ -415,10 +389,6 @@ export class LoansRankingComponent implements OnInit {
 
   updateLateInterestOffNote(loanCode: string, value: string): void {
     this.patchRow(loanCode, { lateInterestOffNote: value });
-  }
-
-  updateFundingStatus(loanCode: string, value: string | null): void {
-    this.patchRow(loanCode, { fundingStatusKey: (value ?? '').trim() });
   }
 
   clearSelection(): void {
@@ -526,6 +496,7 @@ export class LoansRankingComponent implements OnInit {
         this.statusMessage.set(`${rowsToSave.length} loan(s) updated successfully.`);
         this.errorMessage.set('');
         this.isSaving.set(false);
+        this.notificationUnreadCount.refresh();
       },
       error: (error) => {
         this.statusMessage.set('');
@@ -622,6 +593,7 @@ export class LoansRankingComponent implements OnInit {
         record.fundingStatusKey != null && Number.isFinite(Number(record.fundingStatusKey))
           ? String(record.fundingStatusKey)
           : '',
+      fundingStatusName: record.fundingStatusName?.trim() || '',
       userUpdatedBy: record.userUpdatedBy?.trim() ?? '',
       userUpdatedDate: record.userUpdatedDate ?? '',
     };
@@ -631,8 +603,6 @@ export class LoansRankingComponent implements OnInit {
     row: LoanAttributeRow,
     userUpdatedBy: string,
   ): LoanAttributeUpdatePayload {
-    const fundingStatusRaw = row.fundingStatusKey.trim();
-    const fundingStatusKey = fundingStatusRaw === '' ? NaN : Number(fundingStatusRaw);
     return {
       loanKey: row.loanKey,
       loanCode: row.loanCode,
@@ -641,7 +611,6 @@ export class LoansRankingComponent implements OnInit {
       dummyLoanLink: row.dummyLoanLink,
       isLoanInterestApplicable: row.lateInterestApplicable,
       lateInterestOffNote: row.lateInterestOffNote.trim(),
-      fundingStatusKey: Number.isFinite(fundingStatusKey) ? fundingStatusKey : null,
       userUpdatedBy,
     };
   }
@@ -669,7 +638,6 @@ export class LoansRankingComponent implements OnInit {
           dummyLoanLink: snapshot.dummyLoanLink,
           lateInterestApplicable: snapshot.lateInterestApplicable,
           lateInterestOffNote: snapshot.lateInterestOffNote,
-          fundingStatusKey: snapshot.fundingStatusKey,
         };
       }),
     );
@@ -684,7 +652,6 @@ export class LoansRankingComponent implements OnInit {
         dummyLoanLink: row.dummyLoanLink,
         lateInterestApplicable: row.lateInterestApplicable,
         lateInterestOffNote: row.lateInterestOffNote.trim(),
-        fundingStatusKey: row.fundingStatusKey,
       };
     }
     this.originalRowState.set(snapshot);
@@ -701,8 +668,7 @@ export class LoansRankingComponent implements OnInit {
       this.normalizeRanking(row.ranking) !== this.normalizeRanking(original.ranking) ||
       row.dummyLoanLink.trim() !== original.dummyLoanLink.trim() ||
       row.lateInterestApplicable !== original.lateInterestApplicable ||
-      row.lateInterestOffNote.trim() !== original.lateInterestOffNote.trim() ||
-      row.fundingStatusKey !== original.fundingStatusKey
+      row.lateInterestOffNote.trim() !== original.lateInterestOffNote.trim()
     );
   }
 
