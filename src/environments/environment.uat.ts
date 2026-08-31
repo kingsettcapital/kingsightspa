@@ -5,7 +5,7 @@ export const environment: Environment = {
   requireLogin: true,
   apiUrl: 'https://kingsightuatapi.kingsettcapital.com/',
   managementSummaryEnabled: true,
-  showHomeCapitalAndDataExplorer: false, // UAT only: mortgage-focused shell
+  showHomeCapitalAndDataExplorer: true,
   showAiAssistant: false, // UAT only
   showUserManagement: false, // UAT only
   azureConfig: {
