@@ -6,7 +6,7 @@ export const environment: Environment = {
   requireLogin: true,
   apiUrl: 'https://kingsightuatapi.kingsettcapital.com/',
   managementSummaryEnabled: false, // staging alias; UAT build uses environment.uat.ts
-  showHomeCapitalAndDataExplorer: false, // staging = UAT: mortgage-focused shell
+  showHomeCapitalAndDataExplorer: true,
   showAiAssistant: false, // staging = UAT
   showUserManagement: false, // staging = UAT
   azureConfig: {
