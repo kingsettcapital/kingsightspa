@@ -30,7 +30,10 @@ import {
   AssetsListSummaryDto,
   PropertyListItemDto,
   AssetFundHoldingTabRow,
+  AssetPropertyDetailTabRow,
+  AssetTypeSummaryRow,
 } from '../shared/models/api.models';
+import { AssetFinancialMetricsRow } from '../shared/mappers/asset-financial-metrics.mapper';
 import { FundInvestorTabRow } from '../shared/mappers/fund-investor.mapper';
 import {
   AssetDetailCacheEntry,
@@ -335,6 +338,11 @@ export interface AssetsDetailState {
   fundHoldings: AssetFundHoldingTabRow[];
   fundHoldingsLoading: boolean;
   fundHoldingsError: string | null;
+  propertyDetails: AssetPropertyDetailTabRow[];
+  propertyDetailsLoading: boolean;
+  propertyDetailsError: string | null;
+  assetTypeSummary: AssetTypeSummaryRow[];
+  financialMetrics: AssetFinancialMetricsRow | null;
   loading: boolean;
   error: string | null;
 }
@@ -704,6 +712,11 @@ function emptyAssetsDetail(): AssetsDetailState {
     fundHoldings: [],
     fundHoldingsLoading: false,
     fundHoldingsError: null,
+    propertyDetails: [],
+    propertyDetailsLoading: false,
+    propertyDetailsError: null,
+    assetTypeSummary: [],
+    financialMetrics: null,
     loading: false,
     error: null,
   };

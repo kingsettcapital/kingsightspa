@@ -19,6 +19,8 @@ import {
   InvestorDistributionTableTabRow,
   InvestorFundHoldingTabRow,
   AssetFundHoldingTabRow,
+  AssetPropertyDetailTabRow,
+  AssetTypeSummaryRow,
   InvestorInvestmentDto,
   InvestorIrrTabRow,
   InvestorCapitalObligationTabRow,
@@ -34,6 +36,7 @@ import {
   PropertyListItemDto,
 } from '../shared/models/api.models';
 import { FundInvestorTabRow } from '../shared/mappers/fund-investor.mapper';
+import { AssetFinancialMetricsRow } from '../shared/mappers/asset-financial-metrics.mapper';
 import { fundPeriodsCacheKey, FundPeriodSource } from '../shared/utils/fund-period.util';
 import {
   AssetsListCacheEntry,
@@ -1457,6 +1460,9 @@ export interface FundInvestorsPageCacheEntry {
 export interface AssetDetailCacheEntry {
   detail: PropertyDetailDto;
   leasingSummary: PropertyLeasingSummaryDto | null;
+  propertyDetails: AssetPropertyDetailTabRow[];
+  assetTypeSummary: AssetTypeSummaryRow[];
+  financialMetrics: AssetFinancialMetricsRow | null;
 }
 
 export function capitalDashboardAssetFundHoldingsCacheKey(propertyKey: number): string {

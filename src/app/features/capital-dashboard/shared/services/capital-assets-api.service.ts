@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { forkJoin, map, Observable, of, switchMap } from 'rxjs';
+import { catchError, forkJoin, map, Observable, of, switchMap } from 'rxjs';
 
 import { ApiService } from '../../../../core/services/api.service';
 import { LIST_PAGE_SIZE } from '../list-pagination.constants';
@@ -8,6 +8,9 @@ import {
   AssetsPagedResult,
   AssetsQueryParams,
   AssetFundHoldingDto,
+  AssetFinancialMetricsDto,
+  AssetPropertyDetailDto,
+  AssetTypeSummaryDto,
   PropertyDetailDto,
   PropertyLeasingSummaryDto,
   PropertyListItemDto,
@@ -52,6 +55,20 @@ export class CapitalAssetsApiService {
 
   getAssetFundHoldings(propertyKey: number): Observable<AssetFundHoldingDto[]> {
     return this.api.get<AssetFundHoldingDto[]>(`api/Assets/${propertyKey}/fund-holdings`);
+  }
+
+  getAssetPropertyDetails(propertyKey: number): Observable<AssetPropertyDetailDto[]> {
+    return this.api.get<AssetPropertyDetailDto[]>(`api/Assets/${propertyKey}/property-details`);
+  }
+
+  getAssetTypeSummary(propertyKey: number): Observable<AssetTypeSummaryDto[]> {
+    return this.api.get<AssetTypeSummaryDto[]>(`api/Assets/${propertyKey}/asset-type-summary`);
+  }
+
+  getAssetFinancialMetrics(propertyKey: number): Observable<AssetFinancialMetricsDto | null> {
+    return this.api.get<AssetFinancialMetricsDto>(`api/Assets/${propertyKey}/financial-metrics`).pipe(
+      catchError(() => of(null)),
+    );
   }
 
   getAssetsForFundPage(

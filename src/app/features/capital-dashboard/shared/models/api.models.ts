@@ -1102,6 +1102,144 @@ export interface AssetFundHoldingTabRow {
   fundStartDate: string;
 }
 
+export interface AssetPropertyDetailDto {
+  property_code?: string | null;
+  propertyCode?: string | null;
+  property_name?: string | null;
+  propertyName?: string | null;
+  asset_to_share_pct?: number | null;
+  assetToSharePct?: number | null;
+  asset_type?: string | null;
+  assetType?: string | null;
+  investment_type?: string | null;
+  investmentType?: string | null;
+  development_type?: string | null;
+  developmentType?: string | null;
+  gross_leasable_area_sqft?: number | null;
+  grossLeasableAreaSqft?: number | null;
+  committed_area_sqft?: number | null;
+  committedAreaSqft?: number | null;
+  vacant_area_sqft?: number | null;
+  vacantAreaSqft?: number | null;
+  occupancy_rate?: number | null;
+  occupancyRate?: number | null;
+  vacancy_rate?: number | null;
+  vacancyRate?: number | null;
+}
+
+export interface AssetPropertyDetailTabRow {
+  propertyCode: string;
+  propertyName: string;
+  assetToSharePct: number | null;
+  assetType: string;
+  investmentType: string;
+  developmentType: string;
+  grossLeasableAreaSqft: number | null;
+  committedAreaSqft: number | null;
+  vacantAreaSqft: number | null;
+  occupancyRate: number | null;
+  vacancyRate: number | null;
+}
+
+export interface AssetTypeSummaryDto {
+  consolidated_asset_key?: number | null;
+  consolidatedAssetKey?: number | null;
+  consolidated_asset_code?: string | null;
+  consolidatedAssetCode?: string | null;
+  consolidated_asset_name?: string | null;
+  consolidatedAssetName?: string | null;
+  asset_type?: string | null;
+  assetType?: string | null;
+  gross_leasable_area_sqft?: number | null;
+  grossLeasableAreaSqft?: number | null;
+  committed_area_sqft?: number | null;
+  committedAreaSqft?: number | null;
+  vacant_area_sqft?: number | null;
+  vacantAreaSqft?: number | null;
+  occupancy_rate?: number | null;
+  occupancyRate?: number | null;
+  vacancy_rate?: number | null;
+  vacancyRate?: number | null;
+}
+
+export interface AssetTypeSummaryRow {
+  assetType: string;
+  grossLeasableAreaSqft: number | null;
+  committedAreaSqft: number | null;
+  vacantAreaSqft: number | null;
+  occupancyRate: number | null;
+  vacancyRate: number | null;
+}
+
+export interface AssetFinancialMetricsDto {
+  fund_code?: string | null;
+  fundCode?: string | null;
+  asset_key?: number | null;
+  assetKey?: number | null;
+  asset_code?: string | null;
+  assetCode?: string | null;
+  asset_name?: string | null;
+  assetName?: string | null;
+  as_of_date?: string | null;
+  asOfDate?: string | null;
+  asset_ks_ownership_pct?: number | null;
+  assetKsOwnershipPct?: number | null;
+  asset_cash_at_quarter_end?: number | null;
+  assetCashAtQuarterEnd?: number | null;
+  asset_total_asset_value?: number | null;
+  assetTotalAssetValue?: number | null;
+  asset_debt?: number | null;
+  assetDebt?: number | null;
+  asset_equity?: number | null;
+  assetEquity?: number | null;
+  asset_noi?: number | null;
+  assetNoi?: number | null;
+  asset_ffo?: number | null;
+  assetFfo?: number | null;
+  asset_ncf?: number | null;
+  assetNcf?: number | null;
+  asset_capex?: number | null;
+  assetCapex?: number | null;
+  asset_nav_amount?: number | null;
+  assetNavAmount?: number | null;
+  asset_ebitda?: number | null;
+  assetEbitda?: number | null;
+  asset_revenue?: number | null;
+  assetRevenue?: number | null;
+  asset_expense?: number | null;
+  assetExpense?: number | null;
+  asset_gross_market_value?: number | null;
+  assetGrossMarketValue?: number | null;
+  asset_gav_amount?: number | null;
+  assetGavAmount?: number | null;
+  asset_ltv?: number | null;
+  assetLtv?: number | null;
+  asset_affo?: number | null;
+  assetAffo?: number | null;
+  asset_capex_pct_noi?: number | null;
+  assetCapexPctNoi?: number | null;
+  total_noi_growth_amount?: number | null;
+  totalNoiGrowthAmount?: number | null;
+  total_noi_growth_pct?: number | null;
+  totalNoiGrowthPct?: number | null;
+  same_store_noi_growth_amount?: number | null;
+  sameStoreNoiGrowthAmount?: number | null;
+  same_store_noi_growth_pct?: number | null;
+  sameStoreNoiGrowthPct?: number | null;
+  current_cost_amount?: number | null;
+  currentCostAmount?: number | null;
+  cost_basis_amount?: number | null;
+  costBasisAmount?: number | null;
+  budgeted_noi_current_year?: number | null;
+  budgetedNoiCurrentYear?: number | null;
+  forecasted_noi_current_year?: number | null;
+  forecastedNoiCurrentYear?: number | null;
+  budgeted_ffo?: number | null;
+  budgetedFfo?: number | null;
+  forecasted_ffo?: number | null;
+  forecastedFfo?: number | null;
+}
+
 export interface PropertyLeasingSummaryDto {
   property_key?: number | null;
   propertyKey?: number | null;

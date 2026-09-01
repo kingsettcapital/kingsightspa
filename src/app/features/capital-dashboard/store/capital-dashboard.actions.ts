@@ -34,11 +34,14 @@ import {
   PropertyDetailDto,
   PropertyLeasingSummaryDto,
   AssetFundHoldingTabRow,
+  AssetPropertyDetailTabRow,
+  AssetTypeSummaryRow,
   AssetsQueryParams,
   AssetsPagedResult,
   PropertyListItemDto,
 } from '../shared/models/api.models';
 import { FundInvestorTabRow } from '../shared/mappers/fund-investor.mapper';
+import { AssetFinancialMetricsRow } from '../shared/mappers/asset-financial-metrics.mapper';
 import { CapitalDashboardTab } from './capital-dashboard.state';
 
 export const CapitalDashboardShellActions = createActionGroup({
@@ -658,6 +661,9 @@ export const AssetsApiActions = createActionGroup({
       propertyKey: number;
       detail: PropertyDetailDto;
       leasingSummary: PropertyLeasingSummaryDto | null;
+      propertyDetails: AssetPropertyDetailTabRow[];
+      assetTypeSummary: AssetTypeSummaryRow[];
+      financialMetrics: AssetFinancialMetricsRow | null;
     }>(),
     'Load Detail Failure': props<{ error: string }>(),
     'Load Fund Holdings': props<{ propertyKey: number }>(),

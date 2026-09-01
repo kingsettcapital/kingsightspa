@@ -124,11 +124,13 @@
     [class.inv-detail-block--underlying-investments]="isUnderlyingInvestmentsVariant()"
     [class.inv-detail-block--communications]="isCommunicationsVariant()"
     [class.inv-detail-block--asset-transactions]="isAssetTransactionsVariant()"
+    [class.inv-detail-block--property-details]="isPropertyDetailsVariant()"
     [class.inv-detail-block--performance]="isPerformanceKpiRow()"
     [class.inv-detail-block--esg]="isEsgBlock()"
     [class.inv-detail-block--debt]="isDebtBlock()"
     [class.inv-detail-block--leasing]="isLeasingBlock()"
-    [class.inv-detail-block--risk]="isRiskBlock()"
+    [class.inv-detail-block--asset-type-summary]="isAssetTypeSummaryBlock()"
+    [class.inv-detail-block--risk]="isMetricsPanelBlock()"
     [class.inv-detail-block--entity-overview]="isEntityOverviewBlock()"
     [class.inv-detail-block--capital-account]="isCapitalAccountBlock()"
     [class.inv-detail-block--transactions]="isTransactionHubBlock()"
@@ -148,10 +150,10 @@
           <h2 class="inv-detail-block__title" [id]="'inv-detail-block-' + current.id">
             {{ current.title }}
           </h2>
-          @if (current.kind === 'table' && current.subtitle) {
+          @if ((current.kind === 'table' || current.kind === 'asset-type-summary') && current.subtitle) {
             <p class="inv-detail-block__subtitle">
               {{ current.subtitle }}
-              @if (current.subtitleAccent) {
+              @if (current.kind === 'table' && current.subtitleAccent) {
                 <span class="inv-detail-block__subtitle-accent">{{ current.subtitleAccent }}</span>
               }
             </p>
@@ -817,10 +819,14 @@
             <div
               class="inv-detail-table-wrap"
               [class.inv-detail-table-wrap--investments]="current.variant === 'investments'"
+              [class.inv-detail-table-wrap--property-details]="current.variant === 'property-details'"
+              [class.inv-detail-table-wrap--asset-fund-holdings]="current.variant === 'asset-fund-holdings'"
             >
               <table
                 class="inv-detail-table inv-detail-table--data-grid"
                 [class.inv-detail-table--investments]="current.variant === 'investments'"
+                [class.inv-detail-table--property-details]="current.variant === 'property-details'"
+                [class.inv-detail-table--asset-fund-holdings]="current.variant === 'asset-fund-holdings'"
               >
                 <thead>
                   <tr>
@@ -868,8 +874,8 @@
                   } @else {
                     @for (row of filteredTableRows(); track $index) {
                     <tr
-                      [class.inv-detail-table__row--clickable]="isFundExposureTable()"
-                      (click)="isFundExposureTable() && onFundExposureRowClick(row, $index)"
+                      [class.inv-detail-table__row--clickable]="canDrillDownTableRow(row)"
+                      (click)="canDrillDownTableRow(row) && onFundExposureRowClick(row, $index)"
                     >
                       @for (column of current.columns; track column.key) {
                         <td [class]="cellClass(column, row)">
@@ -1274,6 +1280,48 @@
             </div>
           }
 
+          @case ('asset-type-summary') {
+            <div class="inv-detail-block__asset-type-summary">
+              @if (current.rows.length) {
+                <div class="inv-detail-block__asset-type-summary-layout">
+                  <div class="inv-detail-table-wrap inv-detail-table-wrap--asset-type-summary">
+                    <table class="inv-detail-table inv-detail-table--data-grid inv-detail-table--asset-type-summary">
+                      <thead>
+                        <tr>
+                          <th class="inv-detail-table__head--assetType inv-detail-table__head--label">Asset Type</th>
+                          <th class="inv-detail-table__head--grossLeasableAreaSqft inv-detail-table__head--right">GLA (sf)</th>
+                          <th class="inv-detail-table__head--committedAreaSqft inv-detail-table__head--right">Committed (sf)</th>
+                          <th class="inv-detail-table__head--vacantAreaSqft inv-detail-table__head--right">Vacant (sf)</th>
+                          <th class="inv-detail-table__head--occupancyRate inv-detail-table__head--right">Occupancy %</th>
+                          <th class="inv-detail-table__head--vacancyRate inv-detail-table__head--right">Vacancy %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of current.rows; track row.assetType) {
+                          <tr>
+                            <td class="inv-detail-table__cell inv-detail-table__cell--assetType">{{ row.assetType }}</td>
+                            <td class="inv-detail-table__cell inv-detail-table__cell--right">{{ formatAssetTypeSqFt(row.grossLeasableAreaSqft) }}</td>
+                            <td class="inv-detail-table__cell inv-detail-table__cell--right">{{ formatAssetTypeSqFt(row.committedAreaSqft) }}</td>
+                            <td class="inv-detail-table__cell inv-detail-table__cell--right">{{ formatAssetTypeSqFt(row.vacantAreaSqft) }}</td>
+                            <td class="inv-detail-table__cell inv-detail-table__cell--right">{{ formatPercent(row.occupancyRate) }}</td>
+                            <td class="inv-detail-table__cell inv-detail-table__cell--right">{{ formatPercent(row.vacancyRate) }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="inv-detail-block__asset-type-summary-chart">
+                    <app-asset-type-summary-chart [rows]="current.rows" />
+                  </div>
+                </div>
+              } @else {
+                <div class="inv-detail-block__asset-type-summary-empty" role="status">
+                  <p>No asset type summary available.</p>
+                </div>
+              }
+            </div>
+          }
+
           @case ('leasing-summary') {
             <div class="inv-detail-block__leasing">
               <div class="inv-detail-block__leasing-metrics">
@@ -1310,6 +1358,36 @@
                     }
                   </ul>
                 }
+              </div>
+            </div>
+          }
+
+          @case ('financial-metrics') {
+            <div class="inv-detail-block__risk">
+              <div class="inv-detail-block__risk-column inv-detail-block__risk-column--coverage">
+                <h3 class="inv-detail-block__risk-column-title">{{ current.leftTitle }}</h3>
+                <dl class="inv-detail-block__risk-list">
+                  @for (item of current.leftItems; track item.label) {
+                    <div class="inv-detail-block__risk-item inv-detail-block__risk-item--stacked">
+                      <dt>{{ item.label }}</dt>
+                      <dd>{{ item.value }}</dd>
+                    </div>
+                  }
+                </dl>
+              </div>
+              <div class="inv-detail-block__risk-column inv-detail-block__risk-column--flags">
+                <h3 class="inv-detail-block__risk-column-title">{{ current.rightTitle }}</h3>
+                @if (current.banner) {
+                  <p [class]="bannerClass(current.banner.tone)">{{ current.banner.message }}</p>
+                }
+                <dl class="inv-detail-block__risk-list">
+                  @for (item of current.rightItems; track item.label) {
+                    <div class="inv-detail-block__risk-item">
+                      <dt>{{ item.label }}</dt>
+                      <dd [class]="riskFlagClass(item.tone)">{{ item.value }}</dd>
+                    </div>
+                  }
+                </dl>
               </div>
             </div>
           }

@@ -1880,6 +1880,121 @@
   }
 }
 
+.inv-detail-block__asset-type-summary-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.inv-detail-table-wrap--asset-type-summary {
+  overflow-x: auto;
+  border-top: 1px solid #edf2f7;
+  min-width: 0;
+}
+
+.inv-detail-table--asset-type-summary {
+  width: 100%;
+  min-width: 36rem;
+
+  thead th {
+    padding: 0.625rem 0.75rem;
+    font-size: var(--inv-detail-font-subheading);
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: 0.625rem 0.75rem;
+    font-size: var(--inv-detail-font-data);
+    vertical-align: top;
+  }
+
+  tbody td.inv-detail-table__cell--right {
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+
+.inv-detail-block__asset-type-summary-chart {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 1100px) {
+  .inv-detail-block__asset-type-summary-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .inv-detail-block__asset-type-summary-chart {
+    max-width: 20rem;
+    margin-inline: auto;
+  }
+}
+
+.inv-detail-block__asset-type-summary-empty {
+  padding: 1.5rem 0;
+  color: #64748b;
+  font-size: var(--inv-detail-font-data);
+  text-align: center;
+}
+
+.inv-detail-table-wrap--property-details,
+.inv-detail-table-wrap--asset-fund-holdings {
+  overflow-x: auto;
+  border-top: 1px solid #edf2f7;
+}
+
+.inv-detail-table--property-details,
+.inv-detail-table--asset-fund-holdings {
+  width: 100%;
+
+  thead th {
+    padding: 0.625rem 0.75rem;
+    font-size: var(--inv-detail-font-subheading);
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: 0.625rem 0.75rem;
+    font-size: var(--inv-detail-font-data);
+    vertical-align: top;
+  }
+}
+
+.inv-detail-table--property-details {
+  min-width: 64rem;
+
+  .inv-detail-table__cell--propertyName {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    min-width: 8rem;
+    max-width: 14rem;
+  }
+
+  .inv-detail-table__head--propertyName {
+    min-width: 8rem;
+  }
+}
+
+.inv-detail-table--asset-fund-holdings {
+  min-width: 36rem;
+
+  .inv-detail-table__cell--fund {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    min-width: 12rem;
+    max-width: 22rem;
+  }
+
+  .inv-detail-table__head--fund {
+    min-width: 12rem;
+  }
+}
+
 .inv-detail-block__fund-holdings-overlay {
   position: absolute;
   inset: 0;
