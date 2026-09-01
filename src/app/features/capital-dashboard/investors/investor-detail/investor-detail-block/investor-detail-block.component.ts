@@ -608,6 +608,14 @@ export class InvestorDetailBlockComponent {
     return this.block().kind === 'risk-insurance';
   }
 
+  isFinancialMetricsBlock(): boolean {
+    return this.block().kind === 'financial-metrics';
+  }
+
+  isMetricsPanelBlock(): boolean {
+    return this.isRiskBlock() || this.isFinancialMetricsBlock();
+  }
+
   isAssetTransactionsVariant(): boolean {
     const block = this.block();
     return block.kind === 'table' && block.variant === 'asset-transactions';

@@ -169,6 +169,7 @@ export class AssetDetailComponent {
       state.fundHoldings,
       state.propertyDetails,
       state.assetTypeSummary,
+      state.financialMetrics,
     );
   });
 

@@ -255,6 +255,19 @@ export interface InvestorDetailRiskInsuranceBlock {
   riskFlags: InvestorDetailRiskFlag[];
 }
 
+export interface InvestorDetailFinancialMetricsBlock {
+  kind: 'financial-metrics';
+  id: string;
+  title: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  leftTitle: string;
+  leftItems: InvestorDetailFieldItem[];
+  rightTitle: string;
+  banner?: { message: string; tone: 'positive' | 'warning' };
+  rightItems: InvestorDetailRiskFlag[];
+}
+
 export type InvestorDetailBlock =
   | InvestorDetailTableBlock
   | InvestorDetailFieldGridBlock
@@ -266,6 +279,7 @@ export type InvestorDetailBlock =
   | InvestorDetailLeasingSummaryBlock
   | InvestorDetailAssetTypeSummaryBlock
   | InvestorDetailRiskInsuranceBlock
+  | InvestorDetailFinancialMetricsBlock
   | InvestorDetailTransactionHubBlock;
 
 export interface InvestorDetailSectionBlock {

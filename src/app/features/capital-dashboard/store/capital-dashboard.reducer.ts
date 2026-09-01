@@ -4170,6 +4170,7 @@ export const capitalDashboardFeature = createFeature({
               propertyDetailsLoading: false,
               propertyDetailsError: null,
               assetTypeSummary: [...(cached.assetTypeSummary ?? [])],
+              financialMetrics: cached.financialMetrics ?? null,
               ...fundHoldingsReset,
               loading: false,
               error: null,
@@ -4189,6 +4190,7 @@ export const capitalDashboardFeature = createFeature({
             propertyDetailsLoading: true,
             propertyDetailsError: null,
             assetTypeSummary: [],
+            financialMetrics: null,
             ...fundHoldingsReset,
             loading: true,
             error: null,
@@ -4196,7 +4198,7 @@ export const capitalDashboardFeature = createFeature({
         },
       };
     }),
-    on(AssetsApiActions.loadDetailSuccess, (state, { propertyKey, detail, leasingSummary, propertyDetails, assetTypeSummary }) => ({
+    on(AssetsApiActions.loadDetailSuccess, (state, { propertyKey, detail, leasingSummary, propertyDetails, assetTypeSummary, financialMetrics }) => ({
       ...state,
       assets: {
         ...state.assets,
@@ -4209,6 +4211,7 @@ export const capitalDashboardFeature = createFeature({
           propertyDetailsLoading: false,
           propertyDetailsError: null,
           assetTypeSummary: [...assetTypeSummary],
+          financialMetrics,
           loading: false,
           error: null,
         },
@@ -4221,6 +4224,7 @@ export const capitalDashboardFeature = createFeature({
               leasingSummary,
               propertyDetails: [...propertyDetails],
               assetTypeSummary: [...assetTypeSummary],
+              financialMetrics,
             },
           },
         },
@@ -4237,6 +4241,7 @@ export const capitalDashboardFeature = createFeature({
           propertyDetails: [],
           propertyDetailsLoading: false,
           assetTypeSummary: [],
+          financialMetrics: null,
           loading: false,
           error,
         },

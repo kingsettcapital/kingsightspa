@@ -12,10 +12,12 @@ import {
   InvestorDetailEsgMetricsBlock,
   InvestorDetailFieldGridBlock,
   InvestorDetailAssetTypeSummaryBlock,
+  InvestorDetailFinancialMetricsBlock,
   InvestorDetailLeasingSummaryBlock,
   InvestorDetailRiskInsuranceBlock,
   InvestorDetailTableBlock,
 } from '../../../investors/investor-detail/models/investor-detail-block.models';
+import { AssetFinancialMetricsRow } from '../../../shared/mappers/asset-financial-metrics.mapper';
 import {
   INVESTOR_DETAIL_CELL_TONES_KEY,
   InvestorDetailTableColumn,
@@ -42,7 +44,7 @@ export type AssetDetailSectionId =
   | 'asset-type-summary'
   | 'property-details'
   | 'leasing'
-  | 'valuation'
+  | 'financial-metrics'
   | 'fund-holdings'
   | 'transactions'
   | 'documents'
@@ -358,43 +360,63 @@ function buildLeasingSummary(
   };
 }
 
-function buildValuationGrid(
-  detail: PropertyDetailDto | null,
-  kpi: AssetDetailKpiCards,
-): InvestorDetailFieldGridBlock {
+function buildFinancialMetricsBlock(
+  metrics: AssetFinancialMetricsRow | null,
+): InvestorDetailFinancialMetricsBlock {
+  const currency = (value: number | null | undefined) => formatAssetDisplayCurrency(value, true);
+  const percent = (value: number | null | undefined) => formatAssetDisplayPercent(value);
+  const text = (value: string | null | undefined) => formatAssetDisplayString(value ?? '');
+
+  const bannerMessage =
+    metrics?.asOfDate && metrics.fundCode
+      ? `As of ${metrics.asOfDate} · ${metrics.fundCode}`
+      : metrics?.asOfDate
+        ? `As of ${metrics.asOfDate}`
+        : metrics?.fundCode
+          ? `Fund: ${metrics.fundCode}`
+          : null;
+
   return {
-    kind: 'field-grid',
-    id: 'valuation',
-    title: 'Valuation & Financial Metrics',
+    kind: 'financial-metrics',
+    id: 'financial-metrics',
+    title: 'Financial Metrics',
     collapsible: true,
     defaultExpanded: true,
-    layout: 'paired-rows',
-    columns: [
-      {
-        fields: [
-          {
-            label: 'Est. Market Value',
-            value: formatAssetDisplayCurrency(kpi.marketValue, true),
-          },
-          { label: 'Going-in Cap Rate', value: ASSET_DETAIL_EMPTY },
-          {
-            label: 'Est. Annual NOI',
-            value: formatAssetDisplayCurrency(
-              readPropertyDetailNumber(detail, 'est_annual_noi', 'estAnnualNoi'),
-              true,
-            ),
-          },
-          { label: 'Price / sf', value: ASSET_DETAIL_EMPTY },
-        ],
-      },
-      {
-        fields: [
-          { label: 'Last Appraisal', value: ASSET_DETAIL_EMPTY },
-          { label: 'Appraiser', value: ASSET_DETAIL_EMPTY },
-          { label: 'Debt Outstanding', value: ASSET_DETAIL_EMPTY },
-          { label: 'LTV', value: ASSET_DETAIL_EMPTY },
-        ],
-      },
+    leftTitle: 'Valuation & Balance Sheet',
+    leftItems: [
+      { label: 'As of Date', value: text(metrics?.asOfDate) },
+      { label: 'KS Ownership %', value: percent(metrics?.assetKsOwnershipPct) },
+      { label: 'Gross Market Value', value: currency(metrics?.assetGrossMarketValue) },
+      { label: 'Total Asset Value', value: currency(metrics?.assetTotalAssetValue) },
+      { label: 'GAV Amount', value: currency(metrics?.assetGavAmount) },
+      { label: 'NAV Amount', value: currency(metrics?.assetNavAmount) },
+      { label: 'Debt', value: currency(metrics?.assetDebt) },
+      { label: 'Equity', value: currency(metrics?.assetEquity) },
+      { label: 'LTV', value: percent(metrics?.assetLtv) },
+      { label: 'Cash at Quarter End', value: currency(metrics?.assetCashAtQuarterEnd) },
+      { label: 'Current Cost', value: currency(metrics?.currentCostAmount) },
+      { label: 'Cost Basis', value: currency(metrics?.costBasisAmount) },
+    ],
+    rightTitle: 'Income & Growth',
+    banner: bannerMessage ? { message: bannerMessage, tone: 'positive' } : undefined,
+    rightItems: [
+      { label: 'NOI', value: currency(metrics?.assetNoi) },
+      { label: 'FFO', value: currency(metrics?.assetFfo) },
+      { label: 'AFFO', value: currency(metrics?.assetAffo) },
+      { label: 'NCF', value: currency(metrics?.assetNcf) },
+      { label: 'EBITDA', value: currency(metrics?.assetEbitda) },
+      { label: 'Revenue', value: currency(metrics?.assetRevenue) },
+      { label: 'Expense', value: currency(metrics?.assetExpense) },
+      { label: 'CapEx', value: currency(metrics?.assetCapex) },
+      { label: 'CapEx % NOI', value: percent(metrics?.assetCapexPctNoi) },
+      { label: 'Total NOI Growth', value: currency(metrics?.totalNoiGrowthAmount) },
+      { label: 'Total NOI Growth %', value: percent(metrics?.totalNoiGrowthPct) },
+      { label: 'Same Store NOI Growth', value: currency(metrics?.sameStoreNoiGrowthAmount) },
+      { label: 'Same Store NOI Growth %', value: percent(metrics?.sameStoreNoiGrowthPct) },
+      { label: 'Budgeted NOI (Current Year)', value: currency(metrics?.budgetedNoiCurrentYear) },
+      { label: 'Forecasted NOI (Current Year)', value: currency(metrics?.forecastedNoiCurrentYear) },
+      { label: 'Budgeted FFO', value: currency(metrics?.budgetedFfo) },
+      { label: 'Forecasted FFO', value: currency(metrics?.forecastedFfo) },
     ],
   };
 }
@@ -552,6 +574,7 @@ export function buildBlocksForSection(
   fundHoldings: AssetFundHoldingTabRow[],
   propertyDetails: AssetPropertyDetailTabRow[],
   assetTypeSummary: AssetTypeSummaryRow[],
+  financialMetrics: AssetFinancialMetricsRow | null,
 ): InvestorDetailBlock[] {
   switch (sectionId) {
     case 'overview':
@@ -564,8 +587,8 @@ export function buildBlocksForSection(
       return [buildPropertyDetailsTable(propertyDetails)];
     case 'leasing':
       return [buildLeasingSummary(leasingSummary)];
-    case 'valuation':
-      return [buildValuationGrid(detail, kpi)];
+    case 'financial-metrics':
+      return [buildFinancialMetricsBlock(financialMetrics)];
     case 'fund-holdings':
       return [buildAssetFundHoldingsTable(fundHoldings)];
     case 'transactions':
@@ -589,6 +612,7 @@ export function buildFlatAssetBlocks(
   fundHoldings: AssetFundHoldingTabRow[],
   propertyDetails: AssetPropertyDetailTabRow[],
   assetTypeSummary: AssetTypeSummaryRow[],
+  financialMetrics: AssetFinancialMetricsRow | null,
 ): AssetDetailFlatBlock[] {
   const sections = ASSET_DETAIL_SIDEBAR_SECTIONS.flatMap((section) =>
     section.items.map((item) => ({
@@ -602,6 +626,7 @@ export function buildFlatAssetBlocks(
         fundHoldings,
         propertyDetails,
         assetTypeSummary,
+        financialMetrics,
       ),
     })),
   );
