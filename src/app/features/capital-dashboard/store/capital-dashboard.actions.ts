@@ -34,6 +34,8 @@ import {
   PropertyDetailDto,
   PropertyLeasingSummaryDto,
   AssetFundHoldingTabRow,
+  AssetPropertyDetailTabRow,
+  AssetTypeSummaryRow,
   AssetsQueryParams,
   AssetsPagedResult,
   PropertyListItemDto,
@@ -658,6 +660,8 @@ export const AssetsApiActions = createActionGroup({
       propertyKey: number;
       detail: PropertyDetailDto;
       leasingSummary: PropertyLeasingSummaryDto | null;
+      propertyDetails: AssetPropertyDetailTabRow[];
+      assetTypeSummary: AssetTypeSummaryRow[];
     }>(),
     'Load Detail Failure': props<{ error: string }>(),
     'Load Fund Holdings': props<{ propertyKey: number }>(),

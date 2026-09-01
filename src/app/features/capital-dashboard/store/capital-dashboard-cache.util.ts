@@ -19,6 +19,8 @@ import {
   InvestorDistributionTableTabRow,
   InvestorFundHoldingTabRow,
   AssetFundHoldingTabRow,
+  AssetPropertyDetailTabRow,
+  AssetTypeSummaryRow,
   InvestorInvestmentDto,
   InvestorIrrTabRow,
   InvestorCapitalObligationTabRow,
@@ -1457,6 +1459,8 @@ export interface FundInvestorsPageCacheEntry {
 export interface AssetDetailCacheEntry {
   detail: PropertyDetailDto;
   leasingSummary: PropertyLeasingSummaryDto | null;
+  propertyDetails: AssetPropertyDetailTabRow[];
+  assetTypeSummary: AssetTypeSummaryRow[];
 }
 
 export function capitalDashboardAssetFundHoldingsCacheKey(propertyKey: number): string {

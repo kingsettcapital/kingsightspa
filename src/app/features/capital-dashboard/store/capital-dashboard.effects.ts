@@ -36,6 +36,8 @@ import {
 } from '../shared/mappers/investor-transaction-tables.mapper';
 import { mapInvestorFundHoldingsResponse } from '../shared/mappers/investor-fund-holdings.mapper';
 import { mapAssetFundHoldingsToTabRows } from '../shared/mappers/asset-fund-holdings.mapper';
+import { mapAssetPropertyDetailsToTabRows } from '../shared/mappers/asset-property-details.mapper';
+import { mapAssetTypeSummaryToRows } from '../shared/mappers/asset-type-summary.mapper';
 import { mapInvestorUnderlyingInvestmentsToTabRows } from '../shared/mappers/investor-underlying-investments.mapper';
 import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
 import {
@@ -1574,13 +1576,35 @@ export class CapitalDashboardEffects {
       withLatestFrom(this.store.select(selectAssets)),
       switchMap(([request, assets]) => {
         const cached = assets.cache.details[request.propertyKey];
-        if (cached) {
+        if (cached?.propertyDetails?.length && cached?.assetTypeSummary?.length) {
           return of(
             AssetsApiActions.loadDetailSuccess({
               propertyKey: request.propertyKey,
               detail: cached.detail,
               leasingSummary: cached.leasingSummary,
+              propertyDetails: cached.propertyDetails,
+              assetTypeSummary: cached.assetTypeSummary,
             }),
+          );
+        }
+        if (cached) {
+          return forkJoin({
+            propertyDetails: this.assetsApi.getAssetPropertyDetails(request.propertyKey).pipe(
+              catchError(() => of([])),
+            ),
+            assetTypeSummary: this.assetsApi.getAssetTypeSummary(request.propertyKey).pipe(
+              catchError(() => of([])),
+            ),
+          }).pipe(
+            map(({ propertyDetails, assetTypeSummary }) =>
+              AssetsApiActions.loadDetailSuccess({
+                propertyKey: request.propertyKey,
+                detail: cached.detail,
+                leasingSummary: cached.leasingSummary,
+                propertyDetails: mapAssetPropertyDetailsToTabRows(propertyDetails),
+                assetTypeSummary: mapAssetTypeSummaryToRows(assetTypeSummary),
+              }),
+            ),
           );
         }
         return forkJoin({
@@ -1588,12 +1612,20 @@ export class CapitalDashboardEffects {
           leasingSummary: this.assetsApi.getAssetLeasingSummary(request.propertyKey).pipe(
             catchError(() => of(null)),
           ),
+          propertyDetails: this.assetsApi.getAssetPropertyDetails(request.propertyKey).pipe(
+            catchError(() => of([])),
+          ),
+          assetTypeSummary: this.assetsApi.getAssetTypeSummary(request.propertyKey).pipe(
+            catchError(() => of([])),
+          ),
         }).pipe(
-          map(({ detail, leasingSummary }) =>
+          map(({ detail, leasingSummary, propertyDetails, assetTypeSummary }) =>
             AssetsApiActions.loadDetailSuccess({
               propertyKey: request.propertyKey,
               detail,
               leasingSummary,
+              propertyDetails: mapAssetPropertyDetailsToTabRows(propertyDetails),
+              assetTypeSummary: mapAssetTypeSummaryToRows(assetTypeSummary),
             }),
           ),
           catchError(() =>

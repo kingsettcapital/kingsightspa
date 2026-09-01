@@ -12,6 +12,8 @@ export type InvestorDetailTableVariant =
   | 'communications'
   | 'investments'
   | 'asset-transactions'
+  | 'property-details'
+  | 'asset-fund-holdings'
   | 'fund-holdings'
   | 'underlying-investments';
 
@@ -151,6 +153,25 @@ export interface InvestorDetailLeasingSummaryBlock {
   leaseExpirySchedule: InvestorDetailDebtMaturityBar[];
 }
 
+export interface InvestorDetailAssetTypeSummaryBlock {
+  kind: 'asset-type-summary';
+  id: string;
+  title: string;
+  subtitle?: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  rows: InvestorDetailAssetTypeSummaryRow[];
+}
+
+export interface InvestorDetailAssetTypeSummaryRow {
+  assetType: string;
+  grossLeasableAreaSqft: number | null;
+  committedAreaSqft: number | null;
+  vacantAreaSqft: number | null;
+  occupancyRate: number | null;
+  vacancyRate: number | null;
+}
+
 export interface InvestorDetailKpiCard {
   label: string;
   value: string;
@@ -243,6 +264,7 @@ export type InvestorDetailBlock =
   | InvestorDetailDocumentListBlock
   | InvestorDetailDebtFinancingBlock
   | InvestorDetailLeasingSummaryBlock
+  | InvestorDetailAssetTypeSummaryBlock
   | InvestorDetailRiskInsuranceBlock
   | InvestorDetailTransactionHubBlock;
 

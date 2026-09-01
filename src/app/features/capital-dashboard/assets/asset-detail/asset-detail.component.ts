@@ -167,6 +167,8 @@ export class AssetDetailComponent {
       this.kpiCards(),
       this.listRow(),
       state.fundHoldings,
+      state.propertyDetails,
+      state.assetTypeSummary,
     );
   });
 
@@ -297,9 +299,16 @@ export class AssetDetailComponent {
   }
 
   tableLoadingForBlock(block: InvestorDetailBlock): boolean {
-    return block.kind === 'table' && block.id === 'asset-fund-holdings'
-      ? this.detailState().fundHoldingsLoading
-      : false;
+    if (block.kind !== 'table') {
+      return false;
+    }
+    if (block.id === 'asset-fund-holdings') {
+      return this.detailState().fundHoldingsLoading;
+    }
+    if (block.id === 'property-details') {
+      return this.detailState().propertyDetailsLoading;
+    }
+    return false;
   }
 
   openFundFromHoldings(event: { row: InvestorDetailTableRow; rowIndex: number }): void {

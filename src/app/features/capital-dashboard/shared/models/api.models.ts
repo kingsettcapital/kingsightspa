@@ -1102,6 +1102,75 @@ export interface AssetFundHoldingTabRow {
   fundStartDate: string;
 }
 
+export interface AssetPropertyDetailDto {
+  property_code?: string | null;
+  propertyCode?: string | null;
+  property_name?: string | null;
+  propertyName?: string | null;
+  asset_to_share_pct?: number | null;
+  assetToSharePct?: number | null;
+  asset_type?: string | null;
+  assetType?: string | null;
+  investment_type?: string | null;
+  investmentType?: string | null;
+  development_type?: string | null;
+  developmentType?: string | null;
+  gross_leasable_area_sqft?: number | null;
+  grossLeasableAreaSqft?: number | null;
+  committed_area_sqft?: number | null;
+  committedAreaSqft?: number | null;
+  vacant_area_sqft?: number | null;
+  vacantAreaSqft?: number | null;
+  occupancy_rate?: number | null;
+  occupancyRate?: number | null;
+  vacancy_rate?: number | null;
+  vacancyRate?: number | null;
+}
+
+export interface AssetPropertyDetailTabRow {
+  propertyCode: string;
+  propertyName: string;
+  assetToSharePct: number | null;
+  assetType: string;
+  investmentType: string;
+  developmentType: string;
+  grossLeasableAreaSqft: number | null;
+  committedAreaSqft: number | null;
+  vacantAreaSqft: number | null;
+  occupancyRate: number | null;
+  vacancyRate: number | null;
+}
+
+export interface AssetTypeSummaryDto {
+  consolidated_asset_key?: number | null;
+  consolidatedAssetKey?: number | null;
+  consolidated_asset_code?: string | null;
+  consolidatedAssetCode?: string | null;
+  consolidated_asset_name?: string | null;
+  consolidatedAssetName?: string | null;
+  asset_type?: string | null;
+  assetType?: string | null;
+  gross_leasable_area_sqft?: number | null;
+  grossLeasableAreaSqft?: number | null;
+  committed_area_sqft?: number | null;
+  committedAreaSqft?: number | null;
+  vacant_area_sqft?: number | null;
+  vacantAreaSqft?: number | null;
+  occupancy_rate?: number | null;
+  occupancyRate?: number | null;
+  vacancy_rate?: number | null;
+  vacancyRate?: number | null;
+}
+
+export interface AssetTypeSummaryRow {
+  assetType: string;
+  grossLeasableAreaSqft: number | null;
+  committedAreaSqft: number | null;
+  vacantAreaSqft: number | null;
+  occupancyRate: number | null;
+  vacancyRate: number | null;
+}
+
 export interface PropertyLeasingSummaryDto {
   property_key?: number | null;
   propertyKey?: number | null;

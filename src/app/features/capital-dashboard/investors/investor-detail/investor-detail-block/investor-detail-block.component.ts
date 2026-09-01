@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 
 import { KsCurrencyPipe } from '../../../../../shared/pipes/ks-currency.pipe';
+import { AssetTypeSummaryChartComponent } from '../../../assets/asset-detail/asset-type-summary-chart/asset-type-summary-chart.component';
 import {
   InvestorDetailBlock,
   InvestorDetailFieldColumn,
@@ -26,7 +27,7 @@ import {
 @Component({
   selector: 'app-investor-detail-block',
   standalone: true,
-  imports: [FormsModule, MatIconModule, KsCurrencyPipe],
+  imports: [FormsModule, MatIconModule, KsCurrencyPipe, AssetTypeSummaryChartComponent],
   templateUrl: './investor-detail-block.component.html',
   styleUrl: './investor-detail-block.component.scss',
 })
@@ -201,6 +202,11 @@ export class InvestorDetailBlockComponent {
     return block.kind === 'table' && block.variant === 'fund-holdings';
   }
 
+  isAssetFundHoldingsVariant(): boolean {
+    const block = this.block();
+    return block.kind === 'table' && block.variant === 'asset-fund-holdings';
+  }
+
   isUnderlyingInvestmentsVariant(): boolean {
     const block = this.block();
     return block.kind === 'table' && block.variant === 'underlying-investments';
@@ -259,6 +265,7 @@ export class InvestorDetailBlockComponent {
     }
     const allowsDrillDown =
       this.isFundExposureTable() ||
+      this.isAssetFundHoldingsVariant() ||
       (this.isFundHoldingsVariant() && this.fundHoldingsShowsRowDrillDown());
     if (!allowsDrillDown) {
       return;
@@ -292,8 +299,7 @@ export class InvestorDetailBlockComponent {
       if (this.tableSearchActive() || this.searchQuery().trim()) {
         return 'No fund holdings match your filters.';
       }
-      const block = this.block();
-      if (block.kind === 'table' && block.id === 'asset-fund-holdings') {
+      if (this.isAssetFundHoldingsVariant()) {
         return 'No fund holdings found for this asset.';
       }
       return 'No fund holdings found for the selected date range.';
@@ -431,6 +437,13 @@ export class InvestorDetailBlockComponent {
     return `${value.toFixed(1)}%`;
   }
 
+  formatAssetTypeSqFt(value: number | null | undefined): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '—';
+    }
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
+  }
+
   amountValue(value: InvestorDetailTableCellValue): number | null {
     if (typeof value === 'number' && Number.isFinite(value)) {
       return value;
@@ -470,6 +483,17 @@ export class InvestorDetailBlockComponent {
         break;
     }
     return classes.join(' ');
+  }
+
+  canDrillDownTableRow(row: InvestorDetailTableRow): boolean {
+    if (
+      !this.isFundExposureTable() &&
+      !this.isAssetFundHoldingsVariant() &&
+      !(this.isFundHoldingsVariant() && this.fundHoldingsShowsRowDrillDown())
+    ) {
+      return false;
+    }
+    return this.canDrillDownFundHoldingsRow(row);
   }
 
   canDrillDownFundHoldingsRow(row: InvestorDetailTableRow): boolean {
@@ -576,6 +600,10 @@ export class InvestorDetailBlockComponent {
     return this.block().kind === 'leasing-summary';
   }
 
+  isAssetTypeSummaryBlock(): boolean {
+    return this.block().kind === 'asset-type-summary';
+  }
+
   isRiskBlock(): boolean {
     return this.block().kind === 'risk-insurance';
   }
@@ -583,6 +611,11 @@ export class InvestorDetailBlockComponent {
   isAssetTransactionsVariant(): boolean {
     const block = this.block();
     return block.kind === 'table' && block.variant === 'asset-transactions';
+  }
+
+  isPropertyDetailsVariant(): boolean {
+    const block = this.block();
+    return block.kind === 'table' && block.variant === 'property-details';
   }
 
   isPairedFieldGrid(): boolean {

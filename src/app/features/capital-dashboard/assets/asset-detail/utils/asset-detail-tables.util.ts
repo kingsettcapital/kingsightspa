@@ -2,6 +2,8 @@ import {
   PropertyDetailDto,
   PropertyLeasingSummaryDto,
   AssetFundHoldingTabRow,
+  AssetPropertyDetailTabRow,
+  AssetTypeSummaryRow,
 } from '../../../shared/models/api.models';
 import { AssetTableRow } from '../../../shared/utils/asset-list-row.util';
 import {
@@ -9,6 +11,7 @@ import {
   InvestorDetailDocumentListBlock,
   InvestorDetailEsgMetricsBlock,
   InvestorDetailFieldGridBlock,
+  InvestorDetailAssetTypeSummaryBlock,
   InvestorDetailLeasingSummaryBlock,
   InvestorDetailRiskInsuranceBlock,
   InvestorDetailTableBlock,
@@ -36,6 +39,8 @@ import {
 export type AssetDetailSectionId =
   | 'overview'
   | 'area-summary'
+  | 'asset-type-summary'
+  | 'property-details'
   | 'leasing'
   | 'valuation'
   | 'fund-holdings'
@@ -198,6 +203,19 @@ function buildAreaSummaryGrid(
         ],
       },
     ],
+  };
+}
+
+function buildAssetTypeSummaryBlock(
+  rows: AssetTypeSummaryRow[],
+): InvestorDetailAssetTypeSummaryBlock {
+  return {
+    kind: 'asset-type-summary',
+    id: 'asset-type-summary',
+    title: 'GLA share by asset type',
+    collapsible: true,
+    defaultExpanded: true,
+    rows: rows.map((row) => ({ ...row })),
   };
 }
 
@@ -381,6 +399,48 @@ function buildValuationGrid(
   };
 }
 
+function buildPropertyDetailsTable(
+  rows: AssetPropertyDetailTabRow[],
+): InvestorDetailTableBlock {
+  const columns: InvestorDetailTableColumn[] = [
+    { key: 'propertyCode', label: 'Property Code', type: 'text', align: 'left', tone: 'muted' },
+    { key: 'propertyName', label: 'Property Name', type: 'text', align: 'left' },
+    { key: 'assetToSharePct', label: 'Asset to Share %', type: 'percent', align: 'right' },
+    { key: 'assetType', label: 'Asset Type', type: 'text', align: 'left' },
+    { key: 'investmentType', label: 'Investment Type', type: 'text', align: 'left' },
+    { key: 'developmentType', label: 'Development Type', type: 'text', align: 'left' },
+    { key: 'grossLeasableAreaSqft', label: 'GLA (sf)', type: 'number', align: 'right' },
+    { key: 'committedAreaSqft', label: 'Committed (sf)', type: 'number', align: 'right' },
+    { key: 'vacantAreaSqft', label: 'Vacant (sf)', type: 'number', align: 'right' },
+    { key: 'occupancyRate', label: 'Occupancy %', type: 'percent', align: 'right' },
+    { key: 'vacancyRate', label: 'Vacancy %', type: 'percent', align: 'right' },
+  ];
+
+  const tableRows: InvestorDetailTableRow[] = rows.map((row) => ({
+    propertyCode: row.propertyCode,
+    propertyName: row.propertyName,
+    assetToSharePct: row.assetToSharePct,
+    assetType: row.assetType,
+    investmentType: row.investmentType,
+    developmentType: row.developmentType,
+    grossLeasableAreaSqft: row.grossLeasableAreaSqft,
+    committedAreaSqft: row.committedAreaSqft,
+    vacantAreaSqft: row.vacantAreaSqft,
+    occupancyRate: row.occupancyRate,
+    vacancyRate: row.vacancyRate,
+  }));
+
+  return tableBlock({
+    id: 'property-details',
+    title: 'Property Details',
+    columns,
+    rows: tableRows,
+    collapsible: true,
+    defaultExpanded: true,
+    variant: 'property-details',
+  });
+}
+
 function buildTransactionsTable(): InvestorDetailTableBlock {
   const columns: InvestorDetailTableColumn[] = [
     { key: 'date', label: 'Date', type: 'date', align: 'left', tone: 'muted' },
@@ -438,7 +498,7 @@ function buildAssetFundHoldingsTable(
     title: 'Fund Holdings',
     columns,
     rows: tableRows,
-    variant: 'fund-holdings',
+    variant: 'asset-fund-holdings',
     collapsible: true,
     defaultExpanded: true,
   });
@@ -490,12 +550,18 @@ export function buildBlocksForSection(
   kpi: AssetDetailKpiCards,
   listRow: AssetTableRow | null,
   fundHoldings: AssetFundHoldingTabRow[],
+  propertyDetails: AssetPropertyDetailTabRow[],
+  assetTypeSummary: AssetTypeSummaryRow[],
 ): InvestorDetailBlock[] {
   switch (sectionId) {
     case 'overview':
       return [];
     case 'area-summary':
       return [buildAreaSummaryGrid(detail, kpi, listRow)];
+    case 'asset-type-summary':
+      return [buildAssetTypeSummaryBlock(assetTypeSummary)];
+    case 'property-details':
+      return [buildPropertyDetailsTable(propertyDetails)];
     case 'leasing':
       return [buildLeasingSummary(leasingSummary)];
     case 'valuation':
@@ -521,6 +587,8 @@ export function buildFlatAssetBlocks(
   kpi: AssetDetailKpiCards,
   listRow: AssetTableRow | null,
   fundHoldings: AssetFundHoldingTabRow[],
+  propertyDetails: AssetPropertyDetailTabRow[],
+  assetTypeSummary: AssetTypeSummaryRow[],
 ): AssetDetailFlatBlock[] {
   const sections = ASSET_DETAIL_SIDEBAR_SECTIONS.flatMap((section) =>
     section.items.map((item) => ({
@@ -532,6 +600,8 @@ export function buildFlatAssetBlocks(
         kpi,
         listRow,
         fundHoldings,
+        propertyDetails,
+        assetTypeSummary,
       ),
     })),
   );
