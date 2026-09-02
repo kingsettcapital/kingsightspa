@@ -12,12 +12,16 @@ import {
   InvestorDetailEsgMetricsBlock,
   InvestorDetailFieldGridBlock,
   InvestorDetailAssetTypeSummaryBlock,
+  InvestorDetailAcquisitionSaleBlock,
   InvestorDetailFinancialMetricsBlock,
   InvestorDetailLeasingSummaryBlock,
   InvestorDetailRiskInsuranceBlock,
   InvestorDetailTableBlock,
 } from '../../../investors/investor-detail/models/investor-detail-block.models';
 import { AssetFinancialMetricsRow } from '../../../shared/mappers/asset-financial-metrics.mapper';
+import {
+  AssetAcquisitionSaleRow,
+} from '../../../shared/mappers/asset-acquisition-sale.mapper';
 import {
   INVESTOR_DETAIL_CELL_TONES_KEY,
   InvestorDetailTableColumn,
@@ -41,6 +45,7 @@ import {
 export type AssetDetailSectionId =
   | 'overview'
   | 'area-summary'
+  | 'acquisition-sale'
   | 'asset-type-summary'
   | 'property-details'
   | 'leasing'
@@ -136,7 +141,7 @@ function buildAreaSummaryGrid(
   return {
     kind: 'field-grid',
     id: 'area-summary',
-    title: 'Property Overview',
+    title: 'Asset Overview',
     collapsible: true,
     defaultExpanded: true,
     columns: [
@@ -360,6 +365,47 @@ function buildLeasingSummary(
   };
 }
 
+function buildAcquisitionSaleBlock(
+  data: AssetAcquisitionSaleRow | null,
+): InvestorDetailAcquisitionSaleBlock {
+  const currency = (value: number | null | undefined) => formatAssetDisplayCurrency(value, true);
+  const percent = (value: number | null | undefined) => formatAssetDisplayPercent(value);
+  const text = (value: string | null | undefined) => formatAssetDisplayString(value ?? '');
+  const acquisition = data?.acquisition ?? null;
+  const sale = data?.sale ?? null;
+
+  return {
+    kind: 'acquisition-sale',
+    id: 'acquisition-sale',
+    title: 'Acquisition & Sale',
+    collapsible: true,
+    defaultExpanded: true,
+    leftTitle: 'Acquisition',
+    leftItems: [
+      { label: 'Fund Name', value: text(acquisition?.fundName) },
+      { label: 'Fund Code', value: text(acquisition?.fundCode) },
+      { label: 'Acquisition Date', value: text(acquisition?.acquisitionDate) },
+      { label: 'Debt', value: currency(acquisition?.atAcquisitionDebt) },
+      { label: 'Equity', value: currency(acquisition?.atAcquisitionEquity) },
+      { label: 'Total Asset Value', value: currency(acquisition?.atAcquisitionTotalAssetValue) },
+      { label: 'Purchase Costs', value: currency(acquisition?.atAcquisitionPurchaseCosts) },
+      { label: 'LTV', value: percent(acquisition?.atAcquisitionLtv) },
+    ],
+    rightTitle: 'At Sale',
+    rightItems: [
+      { label: 'Fund Name', value: text(sale?.fundName) },
+      { label: 'Fund Code', value: text(sale?.fundCode) },
+      { label: 'Sale Date', value: text(sale?.saleDate) },
+      { label: 'Debt', value: currency(sale?.atSaleDebt) },
+      { label: 'Equity', value: currency(sale?.atSaleEquity) },
+      { label: 'Total Asset Value', value: currency(sale?.atSaleTotalAssetValue) },
+      { label: 'Selling Costs', value: currency(sale?.atSaleSellingCosts) },
+      { label: 'LTV', value: percent(sale?.atSaleLtv) },
+      { label: 'NOI', value: currency(sale?.atSaleNoi) },
+    ],
+  };
+}
+
 function buildFinancialMetricsBlock(
   metrics: AssetFinancialMetricsRow | null,
 ): InvestorDetailFinancialMetricsBlock {
@@ -367,23 +413,14 @@ function buildFinancialMetricsBlock(
   const percent = (value: number | null | undefined) => formatAssetDisplayPercent(value);
   const text = (value: string | null | undefined) => formatAssetDisplayString(value ?? '');
 
-  const bannerMessage =
-    metrics?.asOfDate && metrics.fundCode
-      ? `As of ${metrics.asOfDate} · ${metrics.fundCode}`
-      : metrics?.asOfDate
-        ? `As of ${metrics.asOfDate}`
-        : metrics?.fundCode
-          ? `Fund: ${metrics.fundCode}`
-          : null;
-
   return {
     kind: 'financial-metrics',
     id: 'financial-metrics',
     title: 'Financial Metrics',
     collapsible: true,
     defaultExpanded: true,
-    leftTitle: 'Valuation & Balance Sheet',
     leftItems: [
+      { label: 'Fund Code', value: text(metrics?.fundCode) },
       { label: 'As of Date', value: text(metrics?.asOfDate) },
       { label: 'KS Ownership %', value: percent(metrics?.assetKsOwnershipPct) },
       { label: 'Gross Market Value', value: currency(metrics?.assetGrossMarketValue) },
@@ -397,8 +434,6 @@ function buildFinancialMetricsBlock(
       { label: 'Current Cost', value: currency(metrics?.currentCostAmount) },
       { label: 'Cost Basis', value: currency(metrics?.costBasisAmount) },
     ],
-    rightTitle: 'Income & Growth',
-    banner: bannerMessage ? { message: bannerMessage, tone: 'positive' } : undefined,
     rightItems: [
       { label: 'NOI', value: currency(metrics?.assetNoi) },
       { label: 'FFO', value: currency(metrics?.assetFfo) },
@@ -575,12 +610,15 @@ export function buildBlocksForSection(
   propertyDetails: AssetPropertyDetailTabRow[],
   assetTypeSummary: AssetTypeSummaryRow[],
   financialMetrics: AssetFinancialMetricsRow | null,
+  acquisitionSale: AssetAcquisitionSaleRow | null,
 ): InvestorDetailBlock[] {
   switch (sectionId) {
     case 'overview':
       return [];
     case 'area-summary':
       return [buildAreaSummaryGrid(detail, kpi, listRow)];
+    case 'acquisition-sale':
+      return [buildAcquisitionSaleBlock(acquisitionSale)];
     case 'asset-type-summary':
       return [buildAssetTypeSummaryBlock(assetTypeSummary)];
     case 'property-details':
@@ -613,6 +651,7 @@ export function buildFlatAssetBlocks(
   propertyDetails: AssetPropertyDetailTabRow[],
   assetTypeSummary: AssetTypeSummaryRow[],
   financialMetrics: AssetFinancialMetricsRow | null,
+  acquisitionSale: AssetAcquisitionSaleRow | null,
 ): AssetDetailFlatBlock[] {
   const sections = ASSET_DETAIL_SIDEBAR_SECTIONS.flatMap((section) =>
     section.items.map((item) => ({
@@ -627,6 +666,7 @@ export function buildFlatAssetBlocks(
         propertyDetails,
         assetTypeSummary,
         financialMetrics,
+        acquisitionSale,
       ),
     })),
   );

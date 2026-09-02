@@ -37,6 +37,7 @@ import {
 } from '../shared/models/api.models';
 import { FundInvestorTabRow } from '../shared/mappers/fund-investor.mapper';
 import { AssetFinancialMetricsRow } from '../shared/mappers/asset-financial-metrics.mapper';
+import { AssetAcquisitionSaleRow } from '../shared/mappers/asset-acquisition-sale.mapper';
 import { fundPeriodsCacheKey, FundPeriodSource } from '../shared/utils/fund-period.util';
 import {
   AssetsListCacheEntry,
@@ -1463,6 +1464,7 @@ export interface AssetDetailCacheEntry {
   propertyDetails: AssetPropertyDetailTabRow[];
   assetTypeSummary: AssetTypeSummaryRow[];
   financialMetrics: AssetFinancialMetricsRow | null;
+  acquisitionSale: AssetAcquisitionSaleRow | null;
 }
 
 export function capitalDashboardAssetFundHoldingsCacheKey(propertyKey: number): string {

@@ -42,6 +42,7 @@ import {
 } from '../shared/models/api.models';
 import { FundInvestorTabRow } from '../shared/mappers/fund-investor.mapper';
 import { AssetFinancialMetricsRow } from '../shared/mappers/asset-financial-metrics.mapper';
+import { AssetAcquisitionSaleRow } from '../shared/mappers/asset-acquisition-sale.mapper';
 import { CapitalDashboardTab } from './capital-dashboard.state';
 
 export const CapitalDashboardShellActions = createActionGroup({
@@ -664,6 +665,7 @@ export const AssetsApiActions = createActionGroup({
       propertyDetails: AssetPropertyDetailTabRow[];
       assetTypeSummary: AssetTypeSummaryRow[];
       financialMetrics: AssetFinancialMetricsRow | null;
+      acquisitionSale: AssetAcquisitionSaleRow | null;
     }>(),
     'Load Detail Failure': props<{ error: string }>(),
     'Load Fund Holdings': props<{ propertyKey: number }>(),

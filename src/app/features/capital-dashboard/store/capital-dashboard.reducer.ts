@@ -4171,6 +4171,7 @@ export const capitalDashboardFeature = createFeature({
               propertyDetailsError: null,
               assetTypeSummary: [...(cached.assetTypeSummary ?? [])],
               financialMetrics: cached.financialMetrics ?? null,
+              acquisitionSale: cached.acquisitionSale ?? null,
               ...fundHoldingsReset,
               loading: false,
               error: null,
@@ -4191,6 +4192,7 @@ export const capitalDashboardFeature = createFeature({
             propertyDetailsError: null,
             assetTypeSummary: [],
             financialMetrics: null,
+            acquisitionSale: null,
             ...fundHoldingsReset,
             loading: true,
             error: null,
@@ -4198,7 +4200,7 @@ export const capitalDashboardFeature = createFeature({
         },
       };
     }),
-    on(AssetsApiActions.loadDetailSuccess, (state, { propertyKey, detail, leasingSummary, propertyDetails, assetTypeSummary, financialMetrics }) => ({
+    on(AssetsApiActions.loadDetailSuccess, (state, { propertyKey, detail, leasingSummary, propertyDetails, assetTypeSummary, financialMetrics, acquisitionSale }) => ({
       ...state,
       assets: {
         ...state.assets,
@@ -4212,6 +4214,7 @@ export const capitalDashboardFeature = createFeature({
           propertyDetailsError: null,
           assetTypeSummary: [...assetTypeSummary],
           financialMetrics,
+          acquisitionSale,
           loading: false,
           error: null,
         },
@@ -4225,6 +4228,7 @@ export const capitalDashboardFeature = createFeature({
               propertyDetails: [...propertyDetails],
               assetTypeSummary: [...assetTypeSummary],
               financialMetrics,
+              acquisitionSale,
             },
           },
         },
@@ -4242,6 +4246,7 @@ export const capitalDashboardFeature = createFeature({
           propertyDetailsLoading: false,
           assetTypeSummary: [],
           financialMetrics: null,
+          acquisitionSale: null,
           loading: false,
           error,
         },

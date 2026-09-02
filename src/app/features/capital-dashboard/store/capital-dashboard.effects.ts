@@ -39,6 +39,7 @@ import { mapAssetFundHoldingsToTabRows } from '../shared/mappers/asset-fund-hold
 import { mapAssetPropertyDetailsToTabRows } from '../shared/mappers/asset-property-details.mapper';
 import { mapAssetTypeSummaryToRows } from '../shared/mappers/asset-type-summary.mapper';
 import { mapAssetFinancialMetricsToRow } from '../shared/mappers/asset-financial-metrics.mapper';
+import { mapAssetAcquisitionSaleToRow } from '../shared/mappers/asset-acquisition-sale.mapper';
 import { mapInvestorUnderlyingInvestmentsToTabRows } from '../shared/mappers/investor-underlying-investments.mapper';
 import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
 import {
@@ -1578,10 +1579,14 @@ export class CapitalDashboardEffects {
       switchMap(([request, assets]) => {
         const cached = assets.cache.details[request.propertyKey];
         const financialMetrics$ = this.assetsApi.getAssetFinancialMetrics(request.propertyKey);
+        const acquisitionSale$ = this.assetsApi.getAssetAcquisitionSale(request.propertyKey);
 
         if (cached?.propertyDetails?.length && cached?.assetTypeSummary?.length) {
-          return financialMetrics$.pipe(
-            map((financialMetrics) =>
+          return forkJoin({
+            financialMetrics: financialMetrics$,
+            acquisitionSale: acquisitionSale$,
+          }).pipe(
+            map(({ financialMetrics, acquisitionSale }) =>
               AssetsApiActions.loadDetailSuccess({
                 propertyKey: request.propertyKey,
                 detail: cached.detail,
@@ -1589,6 +1594,7 @@ export class CapitalDashboardEffects {
                 propertyDetails: cached.propertyDetails,
                 assetTypeSummary: cached.assetTypeSummary,
                 financialMetrics: mapAssetFinancialMetricsToRow(financialMetrics),
+                acquisitionSale: mapAssetAcquisitionSaleToRow(acquisitionSale),
               }),
             ),
           );
@@ -1602,8 +1608,9 @@ export class CapitalDashboardEffects {
               catchError(() => of([])),
             ),
             financialMetrics: financialMetrics$,
+            acquisitionSale: acquisitionSale$,
           }).pipe(
-            map(({ propertyDetails, assetTypeSummary, financialMetrics }) =>
+            map(({ propertyDetails, assetTypeSummary, financialMetrics, acquisitionSale }) =>
               AssetsApiActions.loadDetailSuccess({
                 propertyKey: request.propertyKey,
                 detail: cached.detail,
@@ -1611,6 +1618,7 @@ export class CapitalDashboardEffects {
                 propertyDetails: mapAssetPropertyDetailsToTabRows(propertyDetails),
                 assetTypeSummary: mapAssetTypeSummaryToRows(assetTypeSummary),
                 financialMetrics: mapAssetFinancialMetricsToRow(financialMetrics),
+                acquisitionSale: mapAssetAcquisitionSaleToRow(acquisitionSale),
               }),
             ),
           );
@@ -1626,17 +1634,27 @@ export class CapitalDashboardEffects {
           assetTypeSummary: this.assetsApi.getAssetTypeSummary(request.propertyKey).pipe(
             catchError(() => of([])),
           ),
-          financialMetrics: this.assetsApi.getAssetFinancialMetrics(request.propertyKey),
+          financialMetrics: financialMetrics$,
+          acquisitionSale: acquisitionSale$,
         }).pipe(
-          map(({ detail, leasingSummary, propertyDetails, assetTypeSummary, financialMetrics }) =>
-            AssetsApiActions.loadDetailSuccess({
-              propertyKey: request.propertyKey,
+          map(
+            ({
               detail,
               leasingSummary,
-              propertyDetails: mapAssetPropertyDetailsToTabRows(propertyDetails),
-              assetTypeSummary: mapAssetTypeSummaryToRows(assetTypeSummary),
-              financialMetrics: mapAssetFinancialMetricsToRow(financialMetrics),
-            }),
+              propertyDetails,
+              assetTypeSummary,
+              financialMetrics,
+              acquisitionSale,
+            }) =>
+              AssetsApiActions.loadDetailSuccess({
+                propertyKey: request.propertyKey,
+                detail,
+                leasingSummary,
+                propertyDetails: mapAssetPropertyDetailsToTabRows(propertyDetails),
+                assetTypeSummary: mapAssetTypeSummaryToRows(assetTypeSummary),
+                financialMetrics: mapAssetFinancialMetricsToRow(financialMetrics),
+                acquisitionSale: mapAssetAcquisitionSaleToRow(acquisitionSale),
+              }),
           ),
           catchError(() =>
             of(AssetsApiActions.loadDetailFailure({ error: 'Unable to load asset details.' })),

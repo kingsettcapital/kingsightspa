@@ -170,6 +170,7 @@ export class AssetDetailComponent {
       state.propertyDetails,
       state.assetTypeSummary,
       state.financialMetrics,
+      state.acquisitionSale,
     );
   });
 

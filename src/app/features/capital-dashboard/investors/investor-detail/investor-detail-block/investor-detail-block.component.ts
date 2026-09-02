@@ -612,8 +612,12 @@ export class InvestorDetailBlockComponent {
     return this.block().kind === 'financial-metrics';
   }
 
+  isAcquisitionSaleBlock(): boolean {
+    return this.block().kind === 'acquisition-sale';
+  }
+
   isMetricsPanelBlock(): boolean {
-    return this.isRiskBlock() || this.isFinancialMetricsBlock();
+    return this.isRiskBlock() || this.isFinancialMetricsBlock() || this.isAcquisitionSaleBlock();
   }
 
   isAssetTransactionsVariant(): boolean {

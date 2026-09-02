@@ -1240,6 +1240,67 @@ export interface AssetFinancialMetricsDto {
   forecastedFfo?: number | null;
 }
 
+export interface AssetAcquisitionDto {
+  fund_key?: number | null;
+  fundKey?: number | null;
+  fund_code?: string | null;
+  fundCode?: string | null;
+  fund_name?: string | null;
+  fundName?: string | null;
+  asset_key?: number | null;
+  assetKey?: number | null;
+  asset_code?: string | null;
+  assetCode?: string | null;
+  asset_name?: string | null;
+  assetName?: string | null;
+  acquisition_date?: string | null;
+  acquisitionDate?: string | null;
+  at_acquisition_debt?: number | null;
+  atAcquisitionDebt?: number | null;
+  at_acquisition_equity?: number | null;
+  atAcquisitionEquity?: number | null;
+  at_acquisition_total_asset_value?: number | null;
+  atAcquisitionTotalAssetValue?: number | null;
+  at_acquisition_purchase_costs?: number | null;
+  atAcquisitionPurchaseCosts?: number | null;
+  at_acquisition_ltv?: number | null;
+  atAcquisitionLtv?: number | null;
+}
+
+export interface AssetSaleDto {
+  fund_key?: number | null;
+  fundKey?: number | null;
+  fund_code?: string | null;
+  fundCode?: string | null;
+  fund_name?: string | null;
+  fundName?: string | null;
+  asset_key?: number | null;
+  assetKey?: number | null;
+  asset_code?: string | null;
+  assetCode?: string | null;
+  asset_name?: string | null;
+  assetName?: string | null;
+  sale_date?: string | null;
+  saleDate?: string | null;
+  at_sale_debt?: number | null;
+  atSaleDebt?: number | null;
+  at_sale_equity?: number | null;
+  atSaleEquity?: number | null;
+  at_sale_total_asset_value?: number | null;
+  atSaleTotalAssetValue?: number | null;
+  at_sale_selling_costs?: number | null;
+  atSaleSellingCosts?: number | null;
+  at_sale_ltv?: number | null;
+  atSaleLtv?: number | null;
+  at_sale_noi?: number | null;
+  atSaleNoi?: number | null;
+}
+
+export interface AssetAcquisitionSaleDto {
+  acquisition?: AssetAcquisitionDto | null;
+  sale?: AssetSaleDto | null;
+}
+
 export interface PropertyLeasingSummaryDto {
   property_key?: number | null;
   propertyKey?: number | null;
