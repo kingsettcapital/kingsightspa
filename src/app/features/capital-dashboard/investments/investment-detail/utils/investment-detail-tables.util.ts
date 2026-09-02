@@ -318,7 +318,8 @@ export function kpiCardsFromListRow(
     timeframe === 'ltd'
       ? row?.netDistributed ?? dummy.netDistributed.ltd
       : netDistributedForTimeframe(timeframe);
-  const reserved = row?.reservedUncalled ?? dummy.reservedUncalled;
+  // List row carries unfunded, not reserved — wait for fund detail for Reserved KPI.
+  const reserved = dummy.reservedUncalled;
   const investedPct =
     commitment > 0
       ? (netInvested / commitment) * 100
@@ -769,8 +770,6 @@ function capitalObligationRowsToTableRows(
 
 function netAssetRowsToTableRows(rows: FundInvestorNetAssetTabRow[]): InvestorDetailTableRow[] {
   return rows.map((row) => ({
-    investorCode: row.investorCode,
-    investorName: row.investorName,
     period: row.period,
     nav: row.nav,
   }));
@@ -899,10 +898,17 @@ export function buildNetAssetsTable(
   periodLabel: string,
 ): InvestorDetailTableBlock {
   const tableRows = netAssetRowsToTableRows(rows);
-  const columns = fundTransactionInvestorColumns(
-    [{ key: 'nav', label: 'NAV', type: 'amount', align: 'right', sortBy: 'nav' }],
-    tableRows,
-  );
+  const columns: InvestorDetailTableColumn[] = [
+    {
+      key: 'period',
+      label: 'Period',
+      type: 'text',
+      align: 'left',
+      sortBy: 'period',
+      tone: 'muted',
+    },
+    { key: 'nav', label: 'NAV', type: 'amount', align: 'right', sortBy: 'nav' },
+  ];
 
   return fundToolbarTableBlock({
     id: 'net-assets',
@@ -911,7 +917,7 @@ export function buildNetAssetsTable(
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorName', `Total — ${tableRows.length}`) : null,
+    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'period', `Total — ${tableRows.length}`) : null,
   });
 }
 

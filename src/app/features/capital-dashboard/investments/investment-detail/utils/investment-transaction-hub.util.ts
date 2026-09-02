@@ -207,7 +207,8 @@ export function buildFundTransactionHubBlock(
   const table = buildCategoryTable(categoryId, state, periodSummary);
   const rows = table.rows;
   const pagination = categoryPagination(categoryId, state);
-  const totals = rows.length ? buildTableTotalsRow(table.columns, rows, 'investorName') : null;
+  const totalsLabelKey = categoryId === 'net-assets' ? 'period' : 'investorName';
+  const totals = rows.length ? buildTableTotalsRow(table.columns, rows, totalsLabelKey) : null;
   const categories = buildFundTransactionCategories(state, showNetAssets);
   const activeCategoryId = categories.some((category) => category.id === categoryId)
     ? categoryId

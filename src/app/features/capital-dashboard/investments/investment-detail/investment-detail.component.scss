@@ -138,6 +138,12 @@ h1.inv-detail__title {
   color: #004a99;
 }
 
+.inv-detail__chip--period {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #3730a3;
+}
+
 p.inv-detail__subtitle {
   margin: 0;
   font-family: var(--cdt-font-sans, 'Open Sans', Arial, sans-serif);

@@ -154,7 +154,7 @@ export class CapitalDashboardInvestmentsComponent {
       commitment: rows.reduce((sum, row) => sum + row.commitment, 0),
       netInvestedCapital: rows.reduce((sum, row) => sum + row.netInvestedCapital, 0),
       netDistributed: rows.reduce((sum, row) => sum + row.netDistributed, 0),
-      reservedUncalled: rows.reduce((sum, row) => sum + row.reservedUncalled, 0),
+      unfunded: rows.reduce((sum, row) => sum + row.unfunded, 0),
     };
   });
 
@@ -168,7 +168,7 @@ export class CapitalDashboardInvestmentsComponent {
         totalCommitment: summary.totalCommitment ?? 0,
         netInvestedCapital: summary.netInvestedCapital ?? 0,
         netDistributed: summary.netDistributed ?? 0,
-        reservedUncalled: summary.reservedUncalled ?? 0,
+        unfunded: summary.unfunded ?? 0,
       };
     }
 
@@ -178,7 +178,7 @@ export class CapitalDashboardInvestmentsComponent {
       totalCommitment: rows.reduce((sum, row) => sum + row.commitment, 0),
       netInvestedCapital: rows.reduce((sum, row) => sum + row.netInvestedCapital, 0),
       netDistributed: rows.reduce((sum, row) => sum + row.netDistributed, 0),
-      reservedUncalled: rows.reduce((sum, row) => sum + row.reservedUncalled, 0),
+      unfunded: rows.reduce((sum, row) => sum + row.unfunded, 0),
     };
   });
 
@@ -310,7 +310,13 @@ export class CapitalDashboardInvestmentsComponent {
 
   openInvestment(row: FundTableRow): void {
     void this.router.navigate(['/capital-dashboard/investment', row.fundKey], {
-      state: { fundRow: row },
+      state: {
+        fundRow: row,
+        reportingPeriod: this.periodLabel(),
+        listView: this.timeframe(),
+        listQuarter: this.quarter(),
+        listYear: this.year(),
+      },
     });
   }
 
@@ -334,7 +340,7 @@ export class CapitalDashboardInvestmentsComponent {
         { header: 'Commitment', value: (row) => row.commitment },
         { header: 'Net Invested Capital', value: (row) => row.netInvestedCapital },
         { header: this.distributedColumnLabel(), value: (row) => row.netDistributed },
-        { header: 'Reserved / Uncalled', value: (row) => row.reservedUncalled },
+        { header: 'Unfunded', value: (row) => row.unfunded },
         { header: 'Released Capital', value: (row) => row.releasedCapital ?? '—' },
       ],
       rows,

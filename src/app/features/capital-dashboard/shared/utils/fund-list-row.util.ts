@@ -13,7 +13,7 @@ export interface FundTableRow {
   investedPercent: number | null;
   netInvestedCapital: number;
   netDistributed: number;
-  reservedUncalled: number;
+  unfunded: number;
   releasedCapital: number;
 }
 
@@ -140,12 +140,13 @@ export function mapFundListItemToRow(dto: FundListItemDto, index: number): FundT
     'NetDistributed',
     'net_distributed',
   );
-  const reservedUncalled = readNumber(
+  const unfunded = readNumber(
     record,
-    'reserved_amount',
-    'reservedUncalled',
-    'ReservedUncalled',
-    'reserved_uncalled',
+    'unfunded_amount',
+    'unfundedAmount',
+    'UnfundedAmount',
+    'unfunded',
+    'Unfunded',
   );
   const releasedCapital =
     readNullableNumber(
@@ -179,7 +180,7 @@ export function mapFundListItemToRow(dto: FundListItemDto, index: number): FundT
     investedPercent,
     netInvestedCapital,
     netDistributed,
-    reservedUncalled,
+    unfunded,
     releasedCapital,
   };
 }
@@ -191,7 +192,7 @@ export function fundTableRowFromFundExposure(input: {
   commitment: number;
   netInvestedCapital: number;
   netDistributed: number;
-  reservedUncalled: number;
+  unfunded: number;
   releasedCapital: number;
   fundType?: string | null;
   strategy?: string | null;
@@ -212,7 +213,7 @@ export function fundTableRowFromFundExposure(input: {
     investedPercent: computeInvestedPercent(commitment, input.netInvestedCapital),
     netInvestedCapital: input.netInvestedCapital,
     netDistributed: input.netDistributed,
-    reservedUncalled: input.reservedUncalled,
+    unfunded: input.unfunded,
     releasedCapital: input.releasedCapital,
   };
 }
@@ -238,19 +239,14 @@ export function extractFundsListSummary(result: unknown): FundsListSummaryDto | 
     'NetInvestedCapital',
   );
   const netDistributed = readNumber(s, 'net_distributed', 'netDistributed', 'NetDistributed');
-  const reservedUncalled = readNumber(
-    s,
-    'reserved_uncalled',
-    'reservedUncalled',
-    'ReservedUncalled',
-  );
+  const unfunded = readNumber(s, 'unfunded', 'Unfunded', 'unfunded_amount', 'unfundedAmount');
 
   return {
     ...(totalFunds > 0 ? { totalFunds } : {}),
     totalCommitment,
     netInvestedCapital,
     netDistributed,
-    reservedUncalled,
+    unfunded,
   };
 }
 
@@ -260,7 +256,7 @@ export type FundsTableSortColumn =
   | 'commitment'
   | 'netInvestedCapital'
   | 'netDistributed'
-  | 'reservedUncalled'
+  | 'unfunded'
   | 'releasedCapital';
 
 export type FundsTableSortDirection = 'asc' | 'desc';
@@ -272,7 +268,7 @@ export const FUNDS_TABLE_SORT_API_FIELDS: Record<FundsTableSortColumn, string> =
   commitment: 'commitment_amount',
   netInvestedCapital: 'net_invested_capital_amount',
   netDistributed: 'net_distributed_amount',
-  reservedUncalled: 'reserved_amount',
+  unfunded: 'unfunded_amount',
   releasedCapital: 'released_capital_amount',
 };
 
@@ -280,7 +276,7 @@ const NUMERIC_FUNDS_SORT_COLUMNS = new Set<FundsTableSortColumn>([
   'commitment',
   'netInvestedCapital',
   'netDistributed',
-  'reservedUncalled',
+  'unfunded',
   'releasedCapital',
 ]);
 

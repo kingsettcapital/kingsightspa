@@ -274,6 +274,7 @@ export interface FundsListSummaryDto {
   netInvestedCapital?: number;
   netDistributed?: number;
   reservedUncalled?: number;
+  unfunded?: number;
 }
 
 export interface FundListItemDto {
@@ -291,6 +292,9 @@ export interface FundListItemDto {
   netInvestedCapital?: number | null;
   netDistributed?: number | null;
   reservedUncalled?: number | null;
+  unfunded_amount?: number | null;
+  unfundedAmount?: number | null;
+  unfunded?: number | null;
   releasedCapital?: number | null;
 }
 
