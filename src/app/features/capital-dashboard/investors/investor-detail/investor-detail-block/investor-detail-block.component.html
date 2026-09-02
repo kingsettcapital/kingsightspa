@@ -1362,8 +1362,8 @@
             </div>
           }
 
-          @case ('financial-metrics') {
-            <div class="inv-detail-block__risk">
+          @case ('acquisition-sale') {
+            <div class="inv-detail-block__risk inv-detail-block__acquisition-sale">
               <div class="inv-detail-block__risk-column inv-detail-block__risk-column--coverage">
                 <h3 class="inv-detail-block__risk-column-title">{{ current.leftTitle }}</h3>
                 <dl class="inv-detail-block__risk-list">
@@ -1377,9 +1377,31 @@
               </div>
               <div class="inv-detail-block__risk-column inv-detail-block__risk-column--flags">
                 <h3 class="inv-detail-block__risk-column-title">{{ current.rightTitle }}</h3>
-                @if (current.banner) {
-                  <p [class]="bannerClass(current.banner.tone)">{{ current.banner.message }}</p>
-                }
+                <dl class="inv-detail-block__risk-list">
+                  @for (item of current.rightItems; track item.label) {
+                    <div class="inv-detail-block__risk-item inv-detail-block__risk-item--stacked">
+                      <dt>{{ item.label }}</dt>
+                      <dd>{{ item.value }}</dd>
+                    </div>
+                  }
+                </dl>
+              </div>
+            </div>
+          }
+
+          @case ('financial-metrics') {
+            <div class="inv-detail-block__risk">
+              <div class="inv-detail-block__risk-column inv-detail-block__risk-column--coverage">
+                <dl class="inv-detail-block__risk-list">
+                  @for (item of current.leftItems; track item.label) {
+                    <div class="inv-detail-block__risk-item inv-detail-block__risk-item--stacked">
+                      <dt>{{ item.label }}</dt>
+                      <dd>{{ item.value }}</dd>
+                    </div>
+                  }
+                </dl>
+              </div>
+              <div class="inv-detail-block__risk-column inv-detail-block__risk-column--flags">
                 <dl class="inv-detail-block__risk-list">
                   @for (item of current.rightItems; track item.label) {
                     <div class="inv-detail-block__risk-item">

@@ -261,11 +261,20 @@ export interface InvestorDetailFinancialMetricsBlock {
   title: string;
   collapsible?: boolean;
   defaultExpanded?: boolean;
+  leftItems: InvestorDetailFieldItem[];
+  rightItems: InvestorDetailRiskFlag[];
+}
+
+export interface InvestorDetailAcquisitionSaleBlock {
+  kind: 'acquisition-sale';
+  id: string;
+  title: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
   leftTitle: string;
   leftItems: InvestorDetailFieldItem[];
   rightTitle: string;
-  banner?: { message: string; tone: 'positive' | 'warning' };
-  rightItems: InvestorDetailRiskFlag[];
+  rightItems: InvestorDetailFieldItem[];
 }
 
 export type InvestorDetailBlock =
@@ -280,6 +289,7 @@ export type InvestorDetailBlock =
   | InvestorDetailAssetTypeSummaryBlock
   | InvestorDetailRiskInsuranceBlock
   | InvestorDetailFinancialMetricsBlock
+  | InvestorDetailAcquisitionSaleBlock
   | InvestorDetailTransactionHubBlock;
 
 export interface InvestorDetailSectionBlock {

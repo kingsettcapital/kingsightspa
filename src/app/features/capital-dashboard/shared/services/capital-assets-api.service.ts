@@ -9,6 +9,7 @@ import {
   AssetsQueryParams,
   AssetFundHoldingDto,
   AssetFinancialMetricsDto,
+  AssetAcquisitionSaleDto,
   AssetPropertyDetailDto,
   AssetTypeSummaryDto,
   PropertyDetailDto,
@@ -67,6 +68,12 @@ export class CapitalAssetsApiService {
 
   getAssetFinancialMetrics(propertyKey: number): Observable<AssetFinancialMetricsDto | null> {
     return this.api.get<AssetFinancialMetricsDto>(`api/Assets/${propertyKey}/financial-metrics`).pipe(
+      catchError(() => of(null)),
+    );
+  }
+
+  getAssetAcquisitionSale(propertyKey: number): Observable<AssetAcquisitionSaleDto | null> {
+    return this.api.get<AssetAcquisitionSaleDto>(`api/Assets/${propertyKey}/acquisition-sale`).pipe(
       catchError(() => of(null)),
     );
   }

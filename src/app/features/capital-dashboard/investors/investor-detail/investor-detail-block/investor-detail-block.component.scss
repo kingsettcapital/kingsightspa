@@ -3355,6 +3355,11 @@
   padding: 0 1.25rem 1.25rem;
 }
 
+.inv-detail-block__acquisition-sale {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
 .inv-detail-block__risk-column-title {
   margin: 0 0 1rem;
   font-size: var(--inv-detail-font-subheading);

@@ -34,6 +34,7 @@ import {
   AssetTypeSummaryRow,
 } from '../shared/models/api.models';
 import { AssetFinancialMetricsRow } from '../shared/mappers/asset-financial-metrics.mapper';
+import { AssetAcquisitionSaleRow } from '../shared/mappers/asset-acquisition-sale.mapper';
 import { FundInvestorTabRow } from '../shared/mappers/fund-investor.mapper';
 import {
   AssetDetailCacheEntry,
@@ -343,6 +344,7 @@ export interface AssetsDetailState {
   propertyDetailsError: string | null;
   assetTypeSummary: AssetTypeSummaryRow[];
   financialMetrics: AssetFinancialMetricsRow | null;
+  acquisitionSale: AssetAcquisitionSaleRow | null;
   loading: boolean;
   error: string | null;
 }
@@ -717,6 +719,7 @@ function emptyAssetsDetail(): AssetsDetailState {
     propertyDetailsError: null,
     assetTypeSummary: [],
     financialMetrics: null,
+    acquisitionSale: null,
     loading: false,
     error: null,
   };
