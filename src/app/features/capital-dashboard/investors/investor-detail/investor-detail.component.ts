@@ -217,12 +217,12 @@ export class InvestorDetailComponent {
     if (this.timeframe() === 'quarterly') {
       const year = this.year();
       if (this.quarterScope() === 'all') {
-        return year != null ? `All Quarters ${year}` : 'Quarterly';
+        return year != null ? `All · ${year}` : 'Quarterly';
       }
 
       const quarter = this.quarterScope();
       if (typeof quarter !== 'number' || year == null) {
-        return 'Quarterly';
+        return year != null ? `All · ${year}` : 'Quarterly';
       }
 
       const period = this.quarterlyPeriodOptions().find(
@@ -282,6 +282,8 @@ export class InvestorDetailComponent {
   private lastTransactionHubFilterPeriodLoadKey = '';
 
   private lastHubResetKey = '';
+  /** List period to restore after hub reset (reset otherwise forces quarterScope=all). */
+  private pendingListPeriod: { quarter: number | null; year: number | null } | null = null;
 
   private readonly transactionHubFilterOptions = signal<
     Record<InvestorTransactionCategoryId, InvestorTransactionFilterOption[]>
@@ -403,10 +405,17 @@ export class InvestorDetailComponent {
         this.loadInvestorData(investorKey);
       });
 
-    const navigationState = (history.state ?? {}) as { investorRow?: InvestorTableRow };
+    const navigationState = (history.state ?? {}) as {
+      investorRow?: InvestorTableRow;
+      reportingPeriod?: string;
+      listView?: 'ltd' | 'quarterly' | 'daily';
+      listQuarter?: number | null;
+      listYear?: number | null;
+    };
     if (navigationState.investorRow) {
       this.listRow.set(navigationState.investorRow);
     }
+    this.applyListReportingPeriod(navigationState);
 
     this.destroyRef.onDestroy(() => {
       this.store.dispatch(InvestorsApiActions.clearDetail());
@@ -421,7 +430,11 @@ export class InvestorDetailComponent {
         if (resetKey !== this.lastHubResetKey) {
           this.lastHubResetKey = resetKey;
           this.transactionSort.set({});
-          this.quarterScope.set('all');
+          if (investorKey != null) {
+            this.applyPendingListPeriodOrDefaultAll();
+          } else if (!this.pendingListPeriod) {
+            this.quarterScope.set('all');
+          }
           this.lastTransactionHubPeriodLoadKey = '';
           this.lastTransactionHubFilterPeriodLoadKey = '';
           this.transactionHubFilterOptions.set({
@@ -747,6 +760,10 @@ export class InvestorDetailComponent {
           strategy: null,
           index: event.rowIndex,
         }),
+        reportingPeriod: this.periodLabel(),
+        listView: this.timeframe(),
+        listQuarter: this.quarter(),
+        listYear: this.year(),
         ...(investorKey != null && investorKey > 0
           ? {
               returnToInvestor: {
@@ -1092,6 +1109,48 @@ export class InvestorDetailComponent {
     const first = periods[0];
     this.quarter.set(first.quarter);
     this.year.set(first.calendarYear);
+  }
+
+  private applyListReportingPeriod(state: {
+    listView?: 'ltd' | 'quarterly' | 'daily';
+    listQuarter?: number | null;
+    listYear?: number | null;
+  }): void {
+    const view = state.listView;
+    if (view !== 'ltd' && view !== 'quarterly' && view !== 'daily') {
+      return;
+    }
+
+    if (view === 'quarterly') {
+      this.pendingListPeriod = {
+        quarter: state.listQuarter ?? null,
+        year: state.listYear ?? null,
+      };
+    } else {
+      this.pendingListPeriod = null;
+    }
+
+    this.timeframe.set(view);
+  }
+
+  private applyPendingListPeriodOrDefaultAll(): void {
+    const pending = this.pendingListPeriod;
+    this.pendingListPeriod = null;
+
+    if (!pending) {
+      this.quarterScope.set('all');
+      return;
+    }
+
+    if (pending.quarter != null) {
+      this.quarterScope.set(pending.quarter);
+      this.quarter.set(pending.quarter);
+    } else {
+      this.quarterScope.set('all');
+    }
+    if (pending.year != null) {
+      this.year.set(pending.year);
+    }
   }
 
   private alignYearForQuarterScope(quarter: number): void {

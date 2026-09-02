@@ -314,7 +314,13 @@ export class CapitalDashboardInvestorsComponent {
 
   openInvestor(row: InvestorTableRow): void {
     void this.router.navigate(['/capital-dashboard/investor', row.investorKey], {
-      state: { investorRow: row },
+      state: {
+        investorRow: row,
+        reportingPeriod: this.reportingPeriodTitle(),
+        listView: this.timeframe(),
+        listQuarter: this.quarter(),
+        listYear: this.year(),
+      },
     });
   }
 

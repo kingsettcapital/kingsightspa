@@ -352,7 +352,13 @@ export class CapitalDashboardAssetsComponent {
 
   openAsset(row: AssetTableRow): void {
     void this.router.navigate(['/capital-dashboard/asset', row.propertyKey], {
-      state: { assetRow: row },
+      state: {
+        assetRow: row,
+        reportingPeriod: this.reportingPeriodTitle(),
+        listView: this.timeframe(),
+        listQuarter: this.quarter(),
+        listYear: this.year(),
+      },
     });
   }
 

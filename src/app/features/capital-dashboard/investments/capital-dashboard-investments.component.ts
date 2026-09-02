@@ -310,7 +310,13 @@ export class CapitalDashboardInvestmentsComponent {
 
   openInvestment(row: FundTableRow): void {
     void this.router.navigate(['/capital-dashboard/investment', row.fundKey], {
-      state: { fundRow: row },
+      state: {
+        fundRow: row,
+        reportingPeriod: this.periodLabel(),
+        listView: this.timeframe(),
+        listQuarter: this.quarter(),
+        listYear: this.year(),
+      },
     });
   }
 

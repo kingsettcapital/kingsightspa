@@ -71,6 +71,10 @@ export class AssetDetailComponent {
   private readonly scrollSpyPaused = signal(false);
   readonly propertyKey = signal<number | null>(null);
   readonly listRow = signal<AssetTableRow | null>(null);
+  readonly reportingPeriod = signal('ITD');
+  private readonly listView = signal<'ltd' | 'quarterly'>('ltd');
+  private readonly listQuarter = signal<number | null>(null);
+  private readonly listYear = signal<number | null>(null);
 
   private readonly detailState = this.store.selectSignal(selectAssetsDetail);
 
@@ -193,9 +197,28 @@ export class AssetDetailComponent {
         this.store.dispatch(AssetsApiActions.loadFundHoldings({ propertyKey }));
       });
 
-    const navigationState = (history.state ?? {}) as { assetRow?: AssetTableRow };
+    const navigationState = (history.state ?? {}) as {
+      assetRow?: AssetTableRow;
+      reportingPeriod?: string;
+      listView?: 'ltd' | 'quarterly';
+      listQuarter?: number | null;
+      listYear?: number | null;
+    };
     if (navigationState.assetRow) {
       this.listRow.set(navigationState.assetRow);
+    }
+    const period = navigationState.reportingPeriod?.trim();
+    if (period) {
+      this.reportingPeriod.set(period);
+    }
+    if (navigationState.listView === 'ltd' || navigationState.listView === 'quarterly') {
+      this.listView.set(navigationState.listView);
+    }
+    if (navigationState.listQuarter != null) {
+      this.listQuarter.set(navigationState.listQuarter);
+    }
+    if (navigationState.listYear != null) {
+      this.listYear.set(navigationState.listYear);
     }
 
     this.destroyRef.onDestroy(() => {
@@ -339,12 +362,17 @@ export class AssetDetailComponent {
           strategy,
           index: event.rowIndex,
         }),
+        reportingPeriod: this.reportingPeriod(),
+        listView: this.listView(),
+        listQuarter: this.listQuarter(),
+        listYear: this.listYear(),
         ...(propertyKey != null && propertyKey > 0
           ? {
               returnToAsset: {
                 propertyKey,
                 propertyName: this.propertyName(),
                 assetRow: this.listRow(),
+                reportingPeriod: this.reportingPeriod(),
               },
             }
           : {}),
