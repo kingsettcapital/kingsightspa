@@ -51,7 +51,7 @@ export class InvestorDetailBlockComponent {
   readonly transactionHubPageChange = output<number>();
   readonly hubFundFilterChange = output<string>();
   readonly hubTimeframe = input<'ltd' | 'quarterly' | 'daily'>('ltd');
-  readonly hubShowDailyTimeframe = input(true);
+  readonly hubShowDailyTimeframe = input(false);
   readonly hubTimeframeChange = output<'ltd' | 'quarterly' | 'daily'>();
   readonly hubQuarterChange = output<number>();
   readonly hubYearChange = output<number>();

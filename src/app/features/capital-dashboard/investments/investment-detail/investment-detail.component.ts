@@ -580,6 +580,9 @@ export class InvestmentDetailComponent {
   }
 
   setTimeframe(view: InvestmentDetailTimeframe): void {
+    if (view === 'daily') {
+      view = 'ltd';
+    }
     this.timeframe.set(view);
     if (view === 'quarterly') {
       this.quarterScope.set('all');
@@ -1095,7 +1098,9 @@ export class InvestmentDetailComponent {
       return;
     }
 
-    if (view === 'quarterly') {
+    const normalizedView = view === 'daily' ? 'ltd' : view;
+
+    if (normalizedView === 'quarterly') {
       // Hub reset runs when timeframe changes and would wipe quarterScope — seed after reset.
       this.pendingListPeriod = {
         quarter: state.listQuarter ?? null,
@@ -1105,7 +1110,7 @@ export class InvestmentDetailComponent {
       this.pendingListPeriod = null;
     }
 
-    this.timeframe.set(view);
+    this.timeframe.set(normalizedView);
   }
 
   private applyPendingListPeriodOrDefaultAll(): void {

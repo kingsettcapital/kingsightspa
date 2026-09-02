@@ -525,6 +525,9 @@ export class InvestorDetailComponent {
   }
 
   setTimeframe(view: DetailTimeframe): void {
+    if (view === 'daily') {
+      view = 'ltd';
+    }
     this.timeframe.set(view);
     if (view === 'quarterly') {
       this.quarterScope.set('all');
@@ -1121,7 +1124,9 @@ export class InvestorDetailComponent {
       return;
     }
 
-    if (view === 'quarterly') {
+    const normalizedView = view === 'daily' ? 'ltd' : view;
+
+    if (normalizedView === 'quarterly') {
       this.pendingListPeriod = {
         quarter: state.listQuarter ?? null,
         year: state.listYear ?? null,
@@ -1130,7 +1135,7 @@ export class InvestorDetailComponent {
       this.pendingListPeriod = null;
     }
 
-    this.timeframe.set(view);
+    this.timeframe.set(normalizedView);
   }
 
   private applyPendingListPeriodOrDefaultAll(): void {
