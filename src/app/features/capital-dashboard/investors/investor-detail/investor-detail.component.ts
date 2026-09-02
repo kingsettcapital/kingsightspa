@@ -741,7 +741,7 @@ export class InvestorDetailComponent {
           commitment: readAmount('commitment'),
           netInvestedCapital: readAmount('netInvestedCapital') || readAmount('netInvested'),
           netDistributed: readAmount('netDistributed') || readAmount('distributed'),
-          reservedUncalled: readAmount('reserved') || readAmount('reservedUncalled'),
+          unfunded: readAmount('unfunded') || readAmount('unfundedAmount'),
           releasedCapital: readAmount('releasedCapital'),
           fundType: null,
           strategy: null,

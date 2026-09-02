@@ -109,9 +109,9 @@
       <p class="cdt-kpi__hint">Cash returned</p>
     </article>
     <article class="cdt-kpi cdt-kpi--slate">
-      <p class="cdt-kpi__label">Reserved / Uncalled</p>
-      <p class="cdt-kpi__value">{{ kpiCards().reservedUncalled | ksCurrency: 'USD' : 3 : true }}</p>
-      <p class="cdt-kpi__hint">Unfunded</p>
+      <p class="cdt-kpi__label">Unfunded</p>
+      <p class="cdt-kpi__value">{{ kpiCards().unfunded | ksCurrency: 'USD' : 3 : true }}</p>
+      <p class="cdt-kpi__hint">Open commitment</p>
     </article>
   </div>
 
@@ -208,7 +208,7 @@
                 <th class="cdt-table__num">Commitment</th>
                 <th class="cdt-table__num">Net Invested<br>Capital</th>
                 <th class="cdt-table__num">{{ distributedColumnLabel() }}</th>
-                <th class="cdt-table__num">Reserved /<br>Uncalled</th>
+                <th class="cdt-table__num">Unfunded</th>
                 <th class="cdt-table__num">Released<br>Capital</th>
                 <th class="cdt-table__chevron-col" aria-hidden="true"></th>
               </tr>
@@ -270,7 +270,7 @@
                     {{ row.netDistributed | ksCurrency: 'USD' : 2 : true }}
                   </td>
                   <td class="cdt-table__num cdt-table__num--warning">
-                    {{ row.reservedUncalled | ksCurrency: 'USD' : 2 : true }}
+                    {{ row.unfunded | ksCurrency: 'USD' : 2 : true }}
                   </td>
                   <td class="cdt-table__num cdt-table__muted">
                     @if (row.releasedCapital != null) {
@@ -303,7 +303,7 @@
                   {{ pageTotals().netDistributed | ksCurrency: 'USD' : 2 : true }}
                 </td>
                 <td class="cdt-table__num cdt-table__num--warning">
-                  {{ pageTotals().reservedUncalled | ksCurrency: 'USD' : 2 : true }}
+                  {{ pageTotals().unfunded | ksCurrency: 'USD' : 2 : true }}
                 </td>
                 <td class="cdt-table__num cdt-table__muted" aria-hidden="true"></td>
                 <td class="cdt-table__chevron-col" aria-hidden="true"></td>

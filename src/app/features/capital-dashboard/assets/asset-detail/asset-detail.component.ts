@@ -333,7 +333,7 @@ export class AssetDetailComponent {
           commitment: 0,
           netInvestedCapital: 0,
           netDistributed: 0,
-          reservedUncalled: 0,
+          unfunded: 0,
           releasedCapital: 0,
           fundType,
           strategy,

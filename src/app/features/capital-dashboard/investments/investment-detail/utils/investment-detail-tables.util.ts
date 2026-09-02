@@ -318,7 +318,8 @@ export function kpiCardsFromListRow(
     timeframe === 'ltd'
       ? row?.netDistributed ?? dummy.netDistributed.ltd
       : netDistributedForTimeframe(timeframe);
-  const reserved = row?.reservedUncalled ?? dummy.reservedUncalled;
+  // List row carries unfunded, not reserved — wait for fund detail for Reserved KPI.
+  const reserved = dummy.reservedUncalled;
   const investedPct =
     commitment > 0
       ? (netInvested / commitment) * 100
