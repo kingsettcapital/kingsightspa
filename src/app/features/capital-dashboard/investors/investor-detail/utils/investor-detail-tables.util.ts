@@ -756,11 +756,13 @@ export function buildFundExposureTable(
     const called = lookupAmount(calledMap, ...keys);
     const releasedCapital = hasDistribution ? distributionRow!.released : OVERVIEW_EMPTY;
 
-    let reserved: number | string = OVERVIEW_EMPTY;
+    const reserved = hasDistribution ? distributionRow!.reserved : OVERVIEW_EMPTY;
+
+    // let reserved: number | string = OVERVIEW_EMPTY;
     if (typeof commitment === 'number') {
       const netInvested = typeof netInvestedCapital === 'number' ? netInvestedCapital : 0;
       const unfunded = typeof unfundedAmount === 'number' ? unfundedAmount : 0;
-      reserved = called > 0 ? commitment - called : commitment - netInvested - unfunded;
+      // reserved = called > 0 ? commitment - called : commitment - netInvested - unfunded;
     }
 
     return {
