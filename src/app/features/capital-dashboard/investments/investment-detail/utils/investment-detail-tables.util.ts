@@ -169,10 +169,32 @@ function formatCurrencyCompact(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) {
     return FUND_OVERVIEW_EMPTY;
   }
+  const negative = value < 0;
+  const abs = Math.abs(value);
+  const units: ReadonlyArray<{ threshold: number; suffix: string }> = [
+    { threshold: 1_000_000_000_000, suffix: 'T' },
+    { threshold: 1_000_000_000, suffix: 'B' },
+    { threshold: 1_000_000, suffix: 'M' },
+    { threshold: 1_000, suffix: 'K' },
+  ];
+
+  for (const { threshold, suffix } of units) {
+    if (abs >= threshold) {
+      const scaled = abs / threshold;
+      // Match ksCurrency compact behavior: truncate, do not round up.
+      const truncated = Math.trunc(scaled * 100) / 100;
+      const numberPart = truncated.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      return `${negative ? '-' : ''}$${numberPart}${suffix}`;
+    }
+  }
+
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    notation: 'compact',
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
 }

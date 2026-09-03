@@ -1173,7 +1173,7 @@ export function buildIrrsTable(
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'fundCode', `Total — ${tableRows.length}`) : null,
+    totals: null,
   });
 }
 
@@ -1240,7 +1240,7 @@ export function buildNetAssetsTable(
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'fundCode', `Total — ${tableRows.length}`) : null,
+    totals: null,
   });
 }
 
