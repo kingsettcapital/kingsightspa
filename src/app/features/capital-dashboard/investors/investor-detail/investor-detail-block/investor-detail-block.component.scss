@@ -2842,7 +2842,7 @@
   padding: 1.25rem 1.25rem 0;
 }
 
-.inv-detail-block__entity-overview--investor {
+.inv-detail-block__entity-overview--investor:not(.inv-detail-block__entity-overview--profile) {
   .inv-detail-block__entity-overview-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 3rem;
@@ -3095,7 +3095,7 @@
     align-items: center;
   }
 
-  &--investor .inv-detail-block__field {
+  &--investor:not(.inv-detail-block__entity-overview--profile) .inv-detail-block__field {
     align-items: center;
   }
 

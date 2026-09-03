@@ -95,6 +95,7 @@ export interface InvestmentDetailKpiCards {
   netInvestedCapital: number;
   netDistributed: number;
   reservedUncalled: number | null;
+  unfunded: number | null;
   releasedCapital: number;
   investedPercent: number;
   tvpi: number | null;
@@ -352,6 +353,7 @@ export function kpiCardsFromListRow(
     netInvestedCapital: netInvested,
     netDistributed: distributed,
     reservedUncalled: reserved,
+    unfunded: row?.unfunded ?? null,
     releasedCapital: row?.releasedCapital ?? 0,
     investedPercent: investedPct,
     tvpi: null,
@@ -370,6 +372,8 @@ export function kpiCardsFromFundDetail(detail: FundDetailDto | null): Investment
     readFundDetailNumber(detail, 'net_distributed', 'netDistributed') ?? 0;
   const reservedUncalled =
     readFundDetailNumber(detail, 'reserved_uncalled', 'reservedUncalled');
+  const unfunded =
+    readFundDetailNumber(detail, 'unfunded', 'unfunded_amount', 'unfundedAmount');
   const releasedCapital =
     readFundDetailNumber(detail, 'released_capital', 'releasedCapital') ?? 0;
   const capitalDeployed =
@@ -391,6 +395,7 @@ export function kpiCardsFromFundDetail(detail: FundDetailDto | null): Investment
     netInvestedCapital,
     netDistributed,
     reservedUncalled,
+    unfunded,
     releasedCapital,
     investedPercent: investedPct,
     tvpi,
@@ -465,17 +470,6 @@ function buildFundOverviewBlock(
   const startDate = readOverviewStartDate(detail, overview.startDate);
   const status = readOverviewStatus(detail, overview.status);
 
-  const tvpi = kpi.tvpi;
-  const dpi = kpi.dpi;
-  const rvpi = kpi.rvpi;
-
-  const deployedPct =
-    kpi.investedPercent > 0
-      ? Math.min(100, Math.max(0, kpi.investedPercent))
-      : kpi.totalCommitment > 0 && kpi.netInvestedCapital > 0
-        ? Math.min(100, (kpi.netInvestedCapital / kpi.totalCommitment) * 100)
-        : 0;
-
   const reservedLabel = formatReservedUncalledDisplay(kpi.reservedUncalled);
   const releasedLabel = formatOverviewCurrencyDisplay(kpi.releasedCapital, true);
 
@@ -490,11 +484,6 @@ function buildFundOverviewBlock(
       {
         title: '',
         fields: [
-          // { label: 'Fund Name', value: fundName },
-          // {
-          //   label: 'Fund ID',
-          //   value: fundId != null ? String(fundId) : FUND_OVERVIEW_DASH,
-          // },
           { label: 'Fund Type', value: fundType },
           { label: 'Strategy', value: strategy },
           { label: 'Start Date', value: startDate },
@@ -529,27 +518,6 @@ function buildFundOverviewBlock(
         ],
       },
     ],
-    performanceMiniKpis: [
-      { label: 'TVPI', value: formatPerformanceMultipleDisplay(tvpi) },
-      { label: 'DPI', value: formatPerformanceMultipleDisplay(dpi) },
-      { label: 'Invested', value: formatOverviewPercentDisplay(deployedPct) },
-      { label: 'Reserved', value: reservedLabel },
-    ],
-    deploymentBar: {
-      label: 'Deployment',
-      percent: deployedPct,
-      leftLabel:
-        kpi.netInvestedCapital > 0
-          ? `${formatCurrencyCompact(kpi.netInvestedCapital)} invested`
-          : `${FUND_OVERVIEW_DASH} invested`,
-      rightLabel: deploymentBarRightLabel(
-        deployedPct,
-        kpi.reservedUncalled,
-        kpi.totalCommitment,
-        kpi.netInvestedCapital,
-      ),
-    },
-    deploymentBarPlacement: 'performance-column',
   };
 }
 
@@ -873,7 +841,7 @@ export function buildIrrsTable(rows: FundInvestorIrrTabRow[], periodLabel: strin
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorName', `Total — ${tableRows.length}`) : null,
+    totals: null,
   });
 }
 
@@ -939,7 +907,7 @@ export function buildNetAssetsTable(
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'period', `Total — ${tableRows.length}`) : null,
+    totals: null,
   });
 }
 

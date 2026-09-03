@@ -346,6 +346,9 @@ export interface FundDetailDto {
   netDistributed?: number | null;
   reserved_uncalled?: number | null;
   reservedUncalled?: number | null;
+  unfunded?: number | null;
+  unfunded_amount?: number | null;
+  unfundedAmount?: number | null;
   released_capital?: number | null;
   releasedCapital?: number | null;
   capital_deployed?: number | null;
