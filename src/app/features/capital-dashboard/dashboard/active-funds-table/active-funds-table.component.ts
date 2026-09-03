@@ -7,6 +7,7 @@ import { FundsListQueryParams } from '../../shared/models/api.models';
 import { CapitalFundsApiService } from '../../shared/services/capital-funds-api.service';
 import { mapFundListItemToActiveFundRow } from '../dashboard-active-table.util';
 import { ActiveFundRow } from '../dashboard.mock-data';
+import { formatCurrency } from '../../shared/utils/format-currency.util';
 
 @Component({
   selector: 'app-active-funds-table',
@@ -26,6 +27,11 @@ export class ActiveFundsTableComponent {
   readonly subtitleText = computed(() => {
     const count = this.totalCount();
     return `${count} fund${count === 1 ? '' : 's'} under management`;
+  });
+
+  readonly totalEum = computed(() => {
+    const sum = this.rows().reduce((total, row) => total + row.eumAmount, 0);
+    return formatCurrency(sum, { compact: true });
   });
 
   constructor() {

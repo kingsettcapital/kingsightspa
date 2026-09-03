@@ -29,7 +29,14 @@ function readNumber(record: Record<string, unknown>, ...keys: string[]): number 
 export function mapFundListItemToActiveFundRow(dto: FundListItemDto, index: number): ActiveFundRow {
   const record = readRecord(dto);
   const name = readString(record, 'fundName', 'FundName', 'fund_name') || '—';
-  const currentValue = readNumber(record, 'currentValue', 'CurrentValue') ?? dto.currentValue ?? 0;
+  const currentValue =
+    readNumber(
+      record,
+      'currentValue',
+      'CurrentValue',
+      'net_invested_capital_amount',
+      'netInvestedCapitalAmount',
+    ) ?? dto.currentValue ?? 0;
   const totalReturn =
     readNumber(record, 'totalReturnPercent', 'TotalReturnPercent', 'total_return_percent') ??
     dto.totalReturnPercent;
@@ -42,6 +49,7 @@ export function mapFundListItemToActiveFundRow(dto: FundListItemDto, index: numb
     rank: index + 1,
     name,
     aum: formatCurrency(currentValue, { compact: true }),
+    eumAmount: currentValue,
     q3Return: totalReturn != null ? formatPercent(totalReturn) : '—',
     q3ReturnPositive: totalReturn == null || totalReturn >= 0,
     investors: investors ?? 0,

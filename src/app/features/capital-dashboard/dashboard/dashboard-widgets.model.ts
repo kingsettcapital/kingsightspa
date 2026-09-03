@@ -23,7 +23,7 @@ export interface DashboardWidgetDefinition {
 export const DASHBOARD_WIDGET_MAX = 5;
 
 export const DASHBOARD_WIDGETS: DashboardWidgetDefinition[] = [
-  { id: 'portfolio-value', label: 'Portfolio Value', icon: 'payments', kind: 'metric', displayOrder: 1 },
+  { id: 'portfolio-value', label: 'Total Equity Under Management', icon: 'payments', kind: 'metric', displayOrder: 1 },
   { id: 'total-aum', label: 'Total AUM', icon: 'show_chart', kind: 'metric', displayOrder: 2 },
   { id: 'ytd-returns', label: 'YTD Returns', icon: 'percent', kind: 'metric', displayOrder: 3 },
   { id: 'investor-count', label: 'Total Investors', icon: 'groups', kind: 'metric', displayOrder: 4 },

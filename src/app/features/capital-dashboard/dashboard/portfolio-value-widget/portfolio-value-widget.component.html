@@ -1,8 +1,7 @@
 <article class="cdt-dashboard-kpi cdt-dashboard-kpi--navy">
-  <p class="cdt-dashboard-kpi__label">Total Portfolio Value</p>
-  <!-- <p class="cdt-dashboard-kpi__value">{{ metric()?.value ?? '—' }}</p> -->
-  <p class="cdt-dashboard-kpi__value">$19B</p>
-  <!-- @if (metric()?.change) {
+  <p class="cdt-dashboard-kpi__label">Total Equity Under Management</p>
+  <p class="cdt-dashboard-kpi__value">{{ metric()?.value ?? '—' }}</p>
+  @if (metric()?.change) {
     <p
       class="cdt-dashboard-kpi__change"
       [class.cdt-dashboard-kpi__change--positive]="metric()?.changePositive"
@@ -11,8 +10,8 @@
       <mat-icon aria-hidden="true">{{ metric()?.changePositive ? 'north_east' : 'south_east' }}</mat-icon>
       {{ metric()?.change }}
     </p>
-  } -->
-  <!-- @if (metric()?.hint) {
-    <p class="cdt-dashboard-kpi__hint">{{ metric()?.hint }}</p> -->
-  <!-- } -->
+  }
+  @if (metric()?.hint) {
+    <p class="cdt-dashboard-kpi__hint">{{ metric()?.hint }}</p>
+  }
 </article>
