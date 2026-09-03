@@ -101,7 +101,7 @@ export function kpiCardsFromInvestorDetail(detail: InvestorDetailDto | null): In
       readInvestorDetailNumber(detail, 'net_distributed', 'netDistributed') ?? 0,
     reservedUncalled:
       readInvestorDetailNumber(detail, 'reserved_uncalled', 'reservedUncalled') ?? 0,
-    unfunded: 0,
+    unfunded: readInvestorDetailNumber(detail, 'unfunded', 'unfunded_amount', 'unfundedAmount') ?? 0,
     releasedCapital:
       readInvestorDetailNumber(detail, 'released_capital', 'releasedCapital') ?? 0,
     fundsCount: readInvestorDetailNumber(detail, 'fund_count', 'fundCount') ?? detail?.funds?.length ?? 0,

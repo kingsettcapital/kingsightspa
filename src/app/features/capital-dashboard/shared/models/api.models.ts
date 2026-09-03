@@ -202,6 +202,9 @@ export interface InvestorDetailDto {
   netDistributed?: number | null;
   reserved_uncalled?: number | null;
   reservedUncalled?: number | null;
+  unfunded?: number | null;
+  unfunded_amount?: number | null;
+  unfundedAmount?: number | null;
   released_capital?: number | null;
   releasedCapital?: number | null;
   fund_count?: number | null;
@@ -723,6 +726,7 @@ export interface InvestorDistributionTableDto {
   return_of_capital?: number | null;
   returnOfCapital?: number | null;
   released?: number | null;
+  reserved?: number | null;
   type?: string | null;
   period?: string | null;
 }
@@ -739,6 +743,7 @@ export interface InvestorDistributionTableTabRow {
   preferredReturn: number;
   returnOfCapital: number;
   released: number;
+  reserved: number;
 }
 
 /** GET api/CapitalInvestors/{investorKey}/irr */
