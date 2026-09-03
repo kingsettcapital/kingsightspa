@@ -137,6 +137,20 @@
   tbody tr:last-child td {
     border-bottom: 0;
   }
+
+  tfoot td {
+    padding: 0.875rem 1.25rem;
+    border-top: 1px solid var(--cdt-border);
+    background: #f8fafc;
+    color: var(--cdt-title-color);
+    font-weight: 700;
+    vertical-align: middle;
+  }
+
+  tfoot td.cdt-dashboard-table__num-col {
+    text-align: right;
+    white-space: nowrap;
+  }
 }
 
 .cdt-dashboard-table__rank-col {
