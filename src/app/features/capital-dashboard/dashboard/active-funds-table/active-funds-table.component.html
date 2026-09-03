@@ -43,7 +43,7 @@
             <th class="cdt-dashboard-table__rank-col">#</th>
             <th>Fund Name</th>
             <th class="cdt-dashboard-table__num-col">EUM</th>
-            <th class="cdt-dashboard-table__num-col">Q3 Return</th>
+            <!-- <th class="cdt-dashboard-table__num-col">Q3 Return</th> -->
             <th class="cdt-dashboard-table__num-col">Investors</th>
             <th class="cdt-dashboard-table__num-col">Assets</th>
             <th>Status</th>
@@ -56,12 +56,12 @@
                 <td class="cdt-dashboard-table__rank-col">{{ row.rank }}</td>
                 <td class="cdt-dashboard-table__name">{{ row.name }}</td>
                 <td class="cdt-dashboard-table__num-col">{{ row.aum }}</td>
-                <td
+                <!-- <td
                   class="cdt-dashboard-table__num-col"
                   [class.cdt-dashboard-table__num-col--positive]="row.q3ReturnPositive"
                 >
                   {{ row.q3Return }}
-                </td>
+                </td> -->
                 <td class="cdt-dashboard-table__num-col">{{ row.investors }}</td>
                 <td class="cdt-dashboard-table__num-col">{{ row.assets }}</td>
                 <td class="cdt-dashboard-table__status cdt-dashboard-table__status--positive">

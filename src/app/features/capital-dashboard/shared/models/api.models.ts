@@ -723,6 +723,7 @@ export interface InvestorDistributionTableDto {
   return_of_capital?: number | null;
   returnOfCapital?: number | null;
   released?: number | null;
+  reserved?: number | null;
   type?: string | null;
   period?: string | null;
 }
@@ -739,6 +740,7 @@ export interface InvestorDistributionTableTabRow {
   preferredReturn: number;
   returnOfCapital: number;
   released: number;
+  reserved: number;
 }
 
 /** GET api/CapitalInvestors/{investorKey}/irr */

@@ -75,6 +75,7 @@ export function mapInvestorDistributionTableToTabRows(
     gainDist: num(dto.gain_dist ?? dto.gainDist),
     returnOfCapital: num(dto.return_of_capital ?? dto.returnOfCapital),
     released: num(dto.released),
+    reserved: num(dto.reserved),
   }));
 }
 
