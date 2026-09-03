@@ -458,7 +458,12 @@
                             </tr>
                           }
                       </tbody>
-                      @if (current.totals && current.rows.length) {
+                      @if (
+                        current.totals &&
+                        current.rows.length &&
+                        current.activeCategoryId !== 'irrs' &&
+                        current.activeCategoryId !== 'net-assets'
+                      ) {
                         <tfoot>
                           <tr class="inv-detail-table__total-row">
                             @for (column of current.columns; track column.key) {
@@ -968,7 +973,8 @@
                 current.variant === 'investor' && !!current.highlights
               "
               [class.inv-detail-block__entity-overview--profile]="
-                current.variant === 'fund' && !current.performanceMiniKpis?.length
+                (current.variant === 'fund' && !current.performanceMiniKpis?.length) ||
+                (current.variant === 'investor' && !current.highlights)
               "
               [class.inv-detail-block__entity-overview--fund-expanded]="
                 current.variant === 'fund' && !!current.performanceMiniKpis?.length

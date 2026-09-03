@@ -55,12 +55,42 @@ function readNumber(source: object, snake: string, camel: string): number | null
 }
 
 function formatDate(value: unknown): string | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const text = String(Math.trunc(value));
+    if (/^\d{8}$/.test(text)) {
+      const parsed = Date.parse(
+        `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`,
+      );
+      if (Number.isFinite(parsed)) {
+        return new Date(parsed).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
+      }
+    }
+    return null;
+  }
+
   if (typeof value !== 'string' || !value.trim()) {
     return null;
   }
-  const parsed = Date.parse(value);
+  const trimmed = value.trim();
+  if (/^\d{8}$/.test(trimmed)) {
+    const parsedKey = Date.parse(
+      `${trimmed.slice(0, 4)}-${trimmed.slice(4, 6)}-${trimmed.slice(6, 8)}`,
+    );
+    if (Number.isFinite(parsedKey)) {
+      return new Date(parsedKey).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+  }
+  const parsed = Date.parse(trimmed);
   if (!Number.isFinite(parsed)) {
-    return value.trim();
+    return trimmed;
   }
   return new Date(parsed).toLocaleDateString('en-US', {
     year: 'numeric',

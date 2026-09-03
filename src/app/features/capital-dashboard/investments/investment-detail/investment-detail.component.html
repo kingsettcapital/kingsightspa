@@ -59,10 +59,10 @@
         <p class="cdt-kpi__value">{{ formatInvestedPercent(kpiCards().investedPercent) }}</p>
         <p class="cdt-kpi__hint">of commitment</p>
       </article>
-      <article class="cdt-kpi cdt-kpi--navy">
-        <p class="cdt-kpi__label">TVPI</p>
-        <p class="cdt-kpi__value">{{ formatTvpi(kpiCards().tvpi) }}</p>
-        <p class="cdt-kpi__hint">Total value mult.</p>
+      <article class="cdt-kpi cdt-kpi--metric-unfunded">
+        <p class="cdt-kpi__label">Unfunded</p>
+        <p class="cdt-kpi__value">{{ (kpiCards().unfunded ?? 0) | ksCurrency: 'USD' : 2 : true }}</p>
+        <p class="cdt-kpi__hint"></p>
       </article>
     </div>
     </div>

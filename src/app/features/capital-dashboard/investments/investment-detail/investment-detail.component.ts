@@ -299,7 +299,12 @@ export class InvestmentDetailComponent {
   readonly kpiCards = computed(() => {
     const detail = this.detail();
     if (fundDetailHasProfileData(detail)) {
-      return kpiCardsFromFundDetail(detail);
+      const fromDetail = kpiCardsFromFundDetail(detail);
+      if (fromDetail.unfunded != null) {
+        return fromDetail;
+      }
+      const fromList = kpiCardsFromListRow(this.listRow(), this.timeframe());
+      return { ...fromDetail, unfunded: fromList.unfunded ?? 0 };
     }
     return kpiCardsFromListRow(this.listRow(), this.timeframe());
   });

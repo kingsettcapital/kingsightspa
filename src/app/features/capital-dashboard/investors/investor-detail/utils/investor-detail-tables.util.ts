@@ -28,7 +28,6 @@ import {
   InvestorDetailKpiRowBlock,
   InvestorDetailSectionBlock,
   InvestorDetailTableBlock,
-  InvestorOverviewHighlightMetric,
 } from '../models/investor-detail-block.models';
 import {
   fundMembershipFromInvestorDetail,
@@ -325,38 +324,6 @@ function resolveInvestorContactDisplay(
   );
   const joined = [first, last].filter(Boolean).join(' ').trim();
   return { name: joined || '—', email: emailFromProfile };
-}
-
-function buildInvestorContactHighlightMetric(
-  detail: InvestorDetailDto | null,
-  overview: InvestorOverviewInput,
-  address: string,
-): InvestorOverviewHighlightMetric {
-  const contactDisplay = resolveInvestorContactDisplay(detail, overview);
-  const contactNameRaw = formatOverviewText(contactDisplay.name);
-  const contactName =
-    contactNameRaw === OVERVIEW_EMPTY || contactNameRaw === '—' ? '' : contactNameRaw;
-  const contactEmail = contactDisplay.email.trim();
-  const contactAddress = address === OVERVIEW_EMPTY ? '' : address.trim();
-  const hasName = !!contactName;
-  const hasEmail = !!contactEmail;
-  const hasAddress = !!contactAddress;
-  const hasDetails = hasName || hasEmail || hasAddress;
-
-  const contactDetails = hasDetails
-    ? {
-        ...(hasName ? { name: contactName } : {}),
-        ...(hasEmail ? { email: contactEmail } : {}),
-        ...(hasAddress ? { address: contactAddress } : {}),
-      }
-    : undefined;
-
-  return {
-    label: 'Contact',
-    value: hasName ? contactName : hasEmail ? contactEmail : OVERVIEW_EMPTY,
-    valueTone: hasDetails ? 'default' : 'muted',
-    contactDetails,
-  };
 }
 
 function resolveInvestmentFundName(
@@ -847,14 +814,21 @@ function buildInvestorOverviewBlock(
     detail?.summary?.status?.trim() ||
     OVERVIEW_EMPTY;
 
-  const statusTone = status.toLowerCase() === 'active' ? 'info' : 'default';
+  const statusTone = status.toLowerCase() === 'active' ? 'default' : 'muted';
   const address = formatOverviewText(overview.address, formatInvestorAddress(detail));
   const relationship = formatOverviewText(
     overview.relationship,
     readInvestorDetailString(detail, 'relationship', 'relationship_name', 'relationshipName', 'Relationship'),
     detail?.summary?.relationshipName,
   );
-  const contactHighlight = buildInvestorContactHighlightMetric(detail, overview, address);
+  const contactDisplay = resolveInvestorContactDisplay(detail, overview);
+  const contactNameRaw = formatOverviewText(contactDisplay.name);
+  const contactName =
+    contactNameRaw === OVERVIEW_EMPTY || contactNameRaw === '—' ? '' : contactNameRaw;
+  const contactEmail = contactDisplay.email.trim();
+  const contactAddress = address === OVERVIEW_EMPTY ? '' : address.trim();
+  const contactLines = [contactName, contactEmail, contactAddress].filter(Boolean);
+  const contactValue = contactLines.length ? contactLines.join('\n') : OVERVIEW_EMPTY;
 
   return {
     kind: 'entity-overview',
@@ -863,28 +837,34 @@ function buildInvestorOverviewBlock(
     variant: 'investor',
     collapsible: true,
     defaultExpanded: true,
-    columns: [],
-    highlights: {
-      topRow: [
-        {
-          label: 'Investor Type',
-          value: investorType,
-          valueTone: investorType === OVERVIEW_EMPTY ? 'muted' : 'accent',
-        },
-        {
-          label: 'Status',
-          value: status,
-          valueTone: statusTone,
-        },
-        {
-          label: 'Relationship',
-          value: relationship,
-          valueTone: relationship === OVERVIEW_EMPTY ? 'muted' : 'default',
-        },
-        contactHighlight,
-      ],
-      bottomRow: [],
-    },
+    columns: [
+      {
+        title: '',
+        fields: [
+          {
+            label: 'Investor Type',
+            value: investorType,
+            tone: investorType === OVERVIEW_EMPTY ? 'muted' : 'default',
+          },
+          {
+            label: 'Status',
+            value: status,
+            tone: statusTone,
+          },
+          {
+            label: 'Relationship',
+            value: relationship,
+            tone: relationship === OVERVIEW_EMPTY ? 'muted' : 'default',
+          },
+          {
+            label: 'Contact',
+            value: contactValue,
+            tone: contactValue === OVERVIEW_EMPTY ? 'muted' : 'default',
+            multiline: contactLines.length > 1,
+          },
+        ],
+      },
+    ],
   };
 }
 
