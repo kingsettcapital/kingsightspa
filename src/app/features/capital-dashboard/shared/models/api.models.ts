@@ -202,6 +202,9 @@ export interface InvestorDetailDto {
   netDistributed?: number | null;
   reserved_uncalled?: number | null;
   reservedUncalled?: number | null;
+  unfunded?: number | null;
+  unfunded_amount?: number | null;
+  unfundedAmount?: number | null;
   released_capital?: number | null;
   releasedCapital?: number | null;
   fund_count?: number | null;
