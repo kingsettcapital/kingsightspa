@@ -54,7 +54,7 @@ function readNumber(source: object, snake: string, camel: string): number | null
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function formatDate(value: unknown): string | null {
+function formatPeriodLabel(value: unknown): string | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
     const text = String(Math.trunc(value));
     if (/^\d{8}$/.test(text)) {
@@ -75,7 +75,18 @@ function formatDate(value: unknown): string | null {
   if (typeof value !== 'string' || !value.trim()) {
     return null;
   }
+
   const trimmed = value.trim();
+  if (!trimmed || trimmed === '—') {
+    return null;
+  }
+
+  // Warehouse date keys are often quarter labels (e.g. "2017-Q3").
+  const quarterMatch = /^(\d{4})[- ]?Q([1-4])$/i.exec(trimmed);
+  if (quarterMatch) {
+    return `Q${quarterMatch[2]} ${quarterMatch[1]}`;
+  }
+
   if (/^\d{8}$/.test(trimmed)) {
     const parsedKey = Date.parse(
       `${trimmed.slice(0, 4)}-${trimmed.slice(4, 6)}-${trimmed.slice(6, 8)}`,
@@ -88,6 +99,7 @@ function formatDate(value: unknown): string | null {
       });
     }
   }
+
   const parsed = Date.parse(trimmed);
   if (!Number.isFinite(parsed)) {
     return trimmed;
@@ -110,7 +122,7 @@ function mapAcquisition(dto: AssetAcquisitionDto | null | undefined): AssetAcqui
     assetKey: readNumber(dto, 'asset_key', 'assetKey'),
     assetCode: readString(dto, 'asset_code', 'assetCode'),
     assetName: readString(dto, 'asset_name', 'assetName'),
-    acquisitionDate: formatDate(asRecord(dto)['acquisition_date'] ?? asRecord(dto)['acquisitionDate']),
+    acquisitionDate: formatPeriodLabel(asRecord(dto)['acquisition_date'] ?? asRecord(dto)['acquisitionDate']),
     atAcquisitionDebt: readNumber(dto, 'at_acquisition_debt', 'atAcquisitionDebt'),
     atAcquisitionEquity: readNumber(dto, 'at_acquisition_equity', 'atAcquisitionEquity'),
     atAcquisitionTotalAssetValue: readNumber(
@@ -138,7 +150,7 @@ function mapSale(dto: AssetSaleDto | null | undefined): AssetSaleRow | null {
     assetKey: readNumber(dto, 'asset_key', 'assetKey'),
     assetCode: readString(dto, 'asset_code', 'assetCode'),
     assetName: readString(dto, 'asset_name', 'assetName'),
-    saleDate: formatDate(asRecord(dto)['sale_date'] ?? asRecord(dto)['saleDate']),
+    saleDate: formatPeriodLabel(asRecord(dto)['sale_date'] ?? asRecord(dto)['saleDate']),
     atSaleDebt: readNumber(dto, 'at_sale_debt', 'atSaleDebt'),
     atSaleEquity: readNumber(dto, 'at_sale_equity', 'atSaleEquity'),
     atSaleTotalAssetValue: readNumber(dto, 'at_sale_total_asset_value', 'atSaleTotalAssetValue'),
