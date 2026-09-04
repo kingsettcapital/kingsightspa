@@ -332,22 +332,22 @@ export function kpiCardsFromListRow(
   timeframe: InvestmentDetailTimeframe,
 ): InvestmentDetailKpiCards {
   const dummy = INVESTMENT_DETAIL_DUMMY;
-  const commitment = row?.commitment ?? dummy.totalCommitment;
+  const commitment = row?.commitment ?? 0;
   const netInvested =
     timeframe === 'ltd'
-      ? row?.netInvestedCapital ?? dummy.netInvestedCapitalLtd
-      : row?.netInvestedCapital ?? dummy.netInvestedCapitalAdjusted;
+      ? row?.netInvestedCapital ?? 0
+      : row?.netInvestedCapital ?? 0;
   const distributed =
     timeframe === 'ltd'
-      ? row?.netDistributed ?? dummy.netDistributed.ltd
+      ? row?.netDistributed ?? 0
       : netDistributedForTimeframe(timeframe);
   // List row carries unfunded, not reserved — wait for fund detail for Reserved KPI.
   const reserved = dummy.reservedUncalled;
   const investedPct =
     commitment > 0
-      ? (netInvested / commitment) * 100
+      // ? (netInvested / commitment) * 100
+      ? (commitment - (row?.unfunded ?? 0)) / commitment * 100
       : investedPercentForTimeframe(timeframe);
-
   return {
     totalCommitment: commitment,
     netInvestedCapital: netInvested,
@@ -380,11 +380,12 @@ export function kpiCardsFromFundDetail(detail: FundDetailDto | null): Investment
     readFundDetailNumber(detail, 'capital_deployed', 'capitalDeployed');
 
   let investedPct = 0;
-  if (totalCommitment > 0 && netInvestedCapital > 0) {
-    investedPct = Math.min(100, Math.max(0, (netInvestedCapital / totalCommitment) * 100));
-  } else if (totalCommitment > 0 && capitalDeployed != null && capitalDeployed > 0) {
-    investedPct = Math.min(100, Math.max(0, (capitalDeployed / totalCommitment) * 100));
-  }
+  investedPct = Math.min(100, Math.max(0, (totalCommitment - (unfunded ?? 0)) / totalCommitment * 100));
+  // if (totalCommitment > 0 && netInvestedCapital > 0) {
+  //   investedPct = Math.min(100, Math.max(0, (netInvestedCapital / totalCommitment) * 100));
+  // } else if (totalCommitment > 0 && capitalDeployed != null && capitalDeployed > 0) {
+  //   investedPct = Math.min(100, Math.max(0, (capitalDeployed / totalCommitment) * 100));
+  // }
 
   const tvpi = readFundDetailNumber(detail, 'tvpi', 'TVPI');
   const dpi = readFundDetailNumber(detail, 'dpi', 'DPI');

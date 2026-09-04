@@ -69,18 +69,29 @@ export function strategyColor(strategy: string): string {
   const key = strategy.trim().toLowerCase();
   return STRATEGY_COLORS[key] ?? DEFAULT_STRATEGY_COLOR;
 }
-
 export function computeInvestedPercent(
   commitment: number,
-  netInvestedCapital: number,
+  unfunded: number,
 ): number | null {
   if (!Number.isFinite(commitment) || commitment <= 0) {
     return null;
   }
 
-  const raw = (netInvestedCapital / commitment) * 100;
+  const raw = (commitment - unfunded) / commitment * 100;
   return Math.min(100, Math.max(0, raw));
 }
+
+// export function computeInvestedPercent(
+//   commitment: number,
+//   netInvestedCapital: number,
+// ): number | null {
+//   if (!Number.isFinite(commitment) || commitment <= 0) {
+//     return null;
+//   }
+
+//   const raw = (netInvestedCapital / commitment) * 100;
+//   return Math.min(100, Math.max(0, raw));
+// }
 
 export function formatInvestedPercent(value: number | null): string | null {
   if (value == null || !Number.isFinite(value)) {
@@ -158,7 +169,7 @@ export function mapFundListItemToRow(dto: FundListItemDto, index: number): FundT
     ) ?? 0;
   const resolvedCommitment = commitment || netInvestedCapital;
   const investedPercent =
-    computeInvestedPercent(resolvedCommitment, netInvestedCapital) ??
+     computeInvestedPercent(resolvedCommitment, unfunded) ??
     readNullableNumber(
       record,
       'invested_percent',
@@ -167,6 +178,16 @@ export function mapFundListItemToRow(dto: FundListItemDto, index: number): FundT
       'deployment_percent',
       'deploymentPercent',
     );
+
+    // computeInvestedPercent(resolvedCommitment, netInvestedCapital) ??
+    // readNullableNumber(
+    //   record,
+    //   'invested_percent',
+    //   'investedPercent',
+    //   'InvestedPercent',
+    //   'deployment_percent',
+    //   'deploymentPercent',
+    // );
 
   return {
     fundKey: dto.fundKey,
