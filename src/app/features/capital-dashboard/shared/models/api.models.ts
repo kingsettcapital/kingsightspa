@@ -1076,6 +1076,8 @@ export interface PropertyDetailDto {
   occupancyRate?: number | null;
   vacancy_rate?: number | null;
   vacancyRate?: number | null;
+  total_jv_partners?: number | null;
+  totalJvPartners?: number | null;
   est_market_value?: number | null;
   estMarketValue?: number | null;
   est_annual_noi?: number | null;
@@ -1252,6 +1254,57 @@ export interface AssetFinancialMetricsDto {
   budgetedFfo?: number | null;
   forecasted_ffo?: number | null;
   forecastedFfo?: number | null;
+}
+
+export interface FundFinancialMetricsDto {
+  fund_key?: number | null;
+  fundKey?: number | null;
+  fund_code?: string | null;
+  fundCode?: string | null;
+  as_of_date?: string | null;
+  asOfDate?: string | null;
+  quarter_year?: string | null;
+  quarterYear?: string | null;
+  fund_cash_at_quarter_end?: number | null;
+  fundCashAtQuarterEnd?: number | null;
+  fund_total_asset_value?: number | null;
+  fundTotalAssetValue?: number | null;
+  fund_debt?: number | null;
+  fundDebt?: number | null;
+  fund_equity?: number | null;
+  fundEquity?: number | null;
+  fund_noi?: number | null;
+  fundNoi?: number | null;
+  fund_ffo?: number | null;
+  fundFfo?: number | null;
+  fund_ncf?: number | null;
+  fundNcf?: number | null;
+  fund_capex?: number | null;
+  fundCapex?: number | null;
+  fund_nav_amount?: number | null;
+  fundNavAmount?: number | null;
+  fund_ebitda?: number | null;
+  fundEbitda?: number | null;
+  fund_revenue?: number | null;
+  fundRevenue?: number | null;
+  fund_expense?: number | null;
+  fundExpense?: number | null;
+  fund_gross_market_value?: number | null;
+  fundGrossMarketValue?: number | null;
+  fund_gav_amount?: number | null;
+  fundGavAmount?: number | null;
+  fund_ltv?: number | null;
+  fundLtv?: number | null;
+  jv_partners_count?: number | null;
+  jvPartnersCount?: number | null;
+  jv_investments_amount?: number | null;
+  jvInvestmentsAmount?: number | null;
+  jv_investments_pct_of_gav?: number | null;
+  jvInvestmentsPctOfGav?: number | null;
+  asset_held_count?: number | null;
+  assetHeldCount?: number | null;
+  property_held_count?: number | null;
+  propertyHeldCount?: number | null;
 }
 
 export interface AssetAcquisitionDto {

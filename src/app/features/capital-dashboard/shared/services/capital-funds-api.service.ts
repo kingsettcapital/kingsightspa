@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 
 import { ApiService } from '../../../../core/services/api.service';
 import {
@@ -7,6 +7,7 @@ import {
   FundCommitmentsQueryParams,
   fundTimeGranularityFromTimeframe,
   FundDetailDto,
+  FundFinancialMetricsDto,
   FundGranularRowDto,
   FundListItemDto,
   FundsFilterOptionsDto,
@@ -68,6 +69,19 @@ export class CapitalFundsApiService {
 
   getFund(fundKey: number): Observable<FundDetailDto> {
     return this.api.get<FundDetailDto>(`api/Funds/${fundKey}`);
+  }
+
+  getFundFinancialMetrics(
+    fundKey: number,
+    params: { view: 'ltd' | 'quarterly'; dateKey?: number | null } = { view: 'ltd' },
+  ): Observable<FundFinancialMetricsDto | null> {
+    const query: Record<string, string | number> = { view: params.view };
+    if (params.view === 'quarterly' && params.dateKey != null) {
+      query['dateKey'] = params.dateKey;
+    }
+    return this.api.get<FundFinancialMetricsDto>(`api/Funds/${fundKey}/financial-metrics`, query as any).pipe(
+      catchError(() => of(null)),
+    );
   }
 
   getFundUnderlyingAssetsPage(

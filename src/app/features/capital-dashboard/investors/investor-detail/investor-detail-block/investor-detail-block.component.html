@@ -161,6 +161,26 @@
         </div>
 
         <div class="inv-detail-block__header-actions">
+        @if (current.kind === 'financial-metrics') {
+          <div class="cdt-toggle cdt-toggle--compact" role="group" aria-label="Financial metrics share basis">
+            <button
+              type="button"
+              class="cdt-toggle__btn"
+              [class.cdt-toggle__btn--active]="financialMetricsShareBasis() === 'at-share'"
+              (click)="setFinancialMetricsShareBasis('at-share')"
+            >
+              At Share
+            </button>
+            <button
+              type="button"
+              class="cdt-toggle__btn"
+              [class.cdt-toggle__btn--active]="financialMetricsShareBasis() === 'full'"
+              (click)="setFinancialMetricsShareBasis('full')"
+            >
+              100%
+            </button>
+          </div>
+        }
         @if (current.kind === 'transaction-hub') {
           <div class="inv-detail-transactions__toolbar-group">
             <div class="cdt-toggle cdt-toggle--compact" role="group" aria-label="Transaction period">
@@ -1402,7 +1422,7 @@
                   @for (item of current.leftItems; track item.label) {
                     <div class="inv-detail-block__risk-item inv-detail-block__risk-item--stacked">
                       <dt>{{ item.label }}</dt>
-                      <dd>{{ item.value }}</dd>
+                      <dd>{{ financialMetricDisplayValue(item) }}</dd>
                     </div>
                   }
                 </dl>
@@ -1412,7 +1432,7 @@
                   @for (item of current.rightItems; track item.label) {
                     <div class="inv-detail-block__risk-item">
                       <dt>{{ item.label }}</dt>
-                      <dd [class]="riskFlagClass(item.tone)">{{ item.value }}</dd>
+                      <dd [class]="riskFlagClass(item.tone)">{{ financialMetricDisplayValue(item) }}</dd>
                     </div>
                   }
                 </dl>

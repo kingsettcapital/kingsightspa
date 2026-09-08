@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 
 import { KsCurrencyPipe } from '../../../../../shared/pipes/ks-currency.pipe';
 import { AssetTypeSummaryChartComponent } from '../../../assets/asset-detail/asset-type-summary-chart/asset-type-summary-chart.component';
+import { formatAssetDisplayCurrency } from '../../../assets/asset-detail/utils/asset-detail-api.util';
 import {
   InvestorDetailBlock,
   InvestorDetailFieldColumn,
@@ -91,6 +92,8 @@ export class InvestorDetailBlockComponent {
   ];
 
   readonly expanded = signal(true);
+  /** Financial Metrics: At Share (stored) vs grossed-up 100%. Default At Share. */
+  readonly financialMetricsShareBasis = signal<'at-share' | 'full'>('at-share');
 
   constructor() {
     effect(() => {
@@ -110,7 +113,54 @@ export class InvestorDetailBlockComponent {
       this.expandScopeKey();
       const block = this.block();
       this.expanded.set(block.defaultExpanded !== false);
+      this.financialMetricsShareBasis.set('at-share');
     });
+  }
+
+  setFinancialMetricsShareBasis(basis: 'at-share' | 'full'): void {
+    this.financialMetricsShareBasis.set(basis);
+  }
+
+  financialMetricDisplayValue(item: {
+    value: string;
+    atShareAmount?: number | null;
+    scaleWithOwnership?: boolean;
+  }): string {
+    if (
+      this.financialMetricsShareBasis() !== 'full' ||
+      !item.scaleWithOwnership ||
+      item.atShareAmount == null ||
+      !Number.isFinite(item.atShareAmount)
+    ) {
+      return item.value;
+    }
+
+    const block = this.block();
+    if (block.kind !== 'financial-metrics') {
+      return item.value;
+    }
+
+    const ownershipFraction = this.ownershipFraction(block.ownershipPct);
+    if (ownershipFraction == null) {
+      return item.value;
+    }
+
+    return formatAssetDisplayCurrency(item.atShareAmount / ownershipFraction, true);
+  }
+
+  /**
+   * Ownership may arrive as display percent (37.5) or fraction (0.375).
+   * Returns the fraction used as the 100% divisor, or null when scaling is not possible.
+   */
+  private ownershipFraction(ownershipPct: number | null): number | null {
+    if (ownershipPct == null || !Number.isFinite(ownershipPct) || ownershipPct === 0) {
+      return null;
+    }
+    const fraction = Math.abs(ownershipPct) > 1 ? ownershipPct / 100 : ownershipPct;
+    if (!Number.isFinite(fraction) || fraction <= 0) {
+      return null;
+    }
+    return fraction;
   }
 
   onTransactionSearchInput(value: string): void {
