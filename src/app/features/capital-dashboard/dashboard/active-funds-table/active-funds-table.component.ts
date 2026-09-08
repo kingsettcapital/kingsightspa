@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { catchError, of } from 'rxjs';
 
@@ -18,6 +18,7 @@ import { formatCurrency } from '../../shared/utils/format-currency.util';
 })
 export class ActiveFundsTableComponent {
   private readonly fundsApi = inject(CapitalFundsApiService);
+  private readonly router = inject(Router);
 
   readonly rows = signal<ActiveFundRow[]>([]);
   readonly totalCount = signal(0);
@@ -40,6 +41,18 @@ export class ActiveFundsTableComponent {
 
   retryLoad(): void {
     this.loadFunds();
+  }
+
+  openFund(row: ActiveFundRow): void {
+    if (!row.fundKey || row.fundKey <= 0) {
+      return;
+    }
+    void this.router.navigate(['/capital-dashboard/investment', row.fundKey], {
+      state: {
+        reportingPeriod: 'ITD',
+        listView: 'ltd',
+      },
+    });
   }
 
   private loadFunds(): void {

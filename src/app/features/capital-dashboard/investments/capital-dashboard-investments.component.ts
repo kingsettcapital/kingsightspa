@@ -4,11 +4,15 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { catchError, debounceTime, distinctUntilChanged, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, finalize, of, take } from 'rxjs';
 
 import { ExcelService } from '../../../core/services/excel.service';
 import { KsCurrencyPipe } from '../../../shared/pipes/ks-currency.pipe';
-import { FUNDS_LIST_PAGE_SIZE } from '../shared/list-pagination.constants';
+import {
+  FUNDS_LIST_PAGE_SIZE,
+  LIST_PAGE_SIZE_OPTIONS,
+  ListPageSizeOption,
+} from '../shared/list-pagination.constants';
 import { FundsListQueryParams } from '../shared/models/api.models';
 import { CapitalFundsApiService } from '../shared/services/capital-funds-api.service';
 import { CapitalDashboardRouteSearchSync } from '../shared/utils/capital-dashboard-route-search.util';
@@ -61,12 +65,15 @@ export class CapitalDashboardInvestmentsComponent {
   readonly sortColumn = signal<FundsTableSortColumn | null>(null);
   readonly sortDir = signal<FundsTableSortDirection>('desc');
   readonly currentPage = signal(1);
+  readonly pageSize = signal<ListPageSizeOption>(FUNDS_LIST_PAGE_SIZE);
+  readonly pageSizeOptions = LIST_PAGE_SIZE_OPTIONS;
+  readonly exporting = signal(false);
 
   readonly listLoading = computed(() => this.listState().loading);
   readonly listError = computed(() => this.listState().error);
   readonly totalCount = computed(() => this.listState().totalCount);
   readonly totalPages = computed(() =>
-    Math.max(1, Math.ceil(this.totalCount() / FUNDS_LIST_PAGE_SIZE)),
+    Math.max(1, Math.ceil(this.totalCount() / this.pageSize())),
   );
 
   readonly quarterlyPeriodOptions = computed(() => this.filterOptions().quarterlyPeriods);
@@ -202,11 +209,11 @@ export class CapitalDashboardInvestmentsComponent {
   });
 
   readonly showingFrom = computed(() =>
-    this.totalCount() === 0 ? 0 : (this.currentPage() - 1) * FUNDS_LIST_PAGE_SIZE + 1,
+    this.totalCount() === 0 ? 0 : (this.currentPage() - 1) * this.pageSize() + 1,
   );
 
   readonly showingTo = computed(() =>
-    Math.min(this.currentPage() * FUNDS_LIST_PAGE_SIZE, this.totalCount()),
+    Math.min(this.currentPage() * this.pageSize(), this.totalCount()),
   );
 
   readonly formatInvestedPercent = formatInvestedPercent;
@@ -235,6 +242,7 @@ export class CapitalDashboardInvestmentsComponent {
       this.sortColumn();
       this.sortDir();
       this.currentPage();
+      this.pageSize();
       if (this.timeframe() === 'quarterly' && this.dateKey() == null) {
         return;
       }
@@ -308,6 +316,15 @@ export class CapitalDashboardInvestmentsComponent {
     this.currentPage.set(page);
   }
 
+  setPageSize(size: ListPageSizeOption | string): void {
+    const next = Number(size) as ListPageSizeOption;
+    if (!LIST_PAGE_SIZE_OPTIONS.includes(next) || next === this.pageSize()) {
+      return;
+    }
+    this.pageSize.set(next);
+    this.currentPage.set(1);
+  }
+
   openInvestment(row: FundTableRow): void {
     void this.router.navigate(['/capital-dashboard/investment', row.fundKey], {
       state: {
@@ -325,26 +342,55 @@ export class CapitalDashboardInvestmentsComponent {
   }
 
   downloadTable(): void {
-    const rows = this.rows();
-    if (!rows.length) {
+    if (this.exporting() || this.totalCount() === 0) {
       return;
     }
 
-    this.excel.export<FundTableRow>({
-      filename: 'investments',
-      sheetName: 'Investments',
-      columns: [
-        { header: 'Fund Name', value: (row) => row.name },
-        { header: 'Strategy', value: (row) => row.strategy },
-        { header: 'Fund Type', value: (row) => row.fundType },
-        { header: 'Commitment', value: (row) => row.commitment },
-        { header: 'Net Invested Capital', value: (row) => row.netInvestedCapital },
-        { header: this.distributedColumnLabel(), value: (row) => row.netDistributed },
-        { header: 'Unfunded', value: (row) => row.unfunded },
-        { header: 'Released Capital', value: (row) => row.releasedCapital ?? '—' },
-      ],
-      rows,
-    });
+    this.exporting.set(true);
+    this.fundsApi
+      .getAllFunds(this.buildListQueryParams())
+      .pipe(
+        take(1),
+        catchError(() => of([])),
+        finalize(() => this.exporting.set(false)),
+      )
+      .subscribe((items) => {
+        const rows = items.map((item, index) => mapFundListItemToRow(item, index));
+        if (!rows.length) {
+          return;
+        }
+        this.excel.export<FundTableRow>({
+          filename: 'investments',
+          sheetName: 'Investments',
+          columns: [
+            { header: 'Fund Name', value: (row) => row.name },
+            { header: 'Strategy', value: (row) => row.strategy },
+            { header: 'Fund Type', value: (row) => row.fundType },
+            { header: 'Commitment', value: (row) => row.commitment },
+            { header: 'Net Invested Capital', value: (row) => row.netInvestedCapital },
+            { header: this.distributedColumnLabel(), value: (row) => row.netDistributed },
+            { header: 'Unfunded', value: (row) => row.unfunded },
+            { header: 'Released Capital', value: (row) => row.releasedCapital ?? '—' },
+          ],
+          rows,
+        });
+      });
+  }
+
+  private buildListQueryParams(): FundsListQueryParams {
+    const activeSortColumn = this.sortColumn();
+    const sortBy = activeSortColumn ? FUNDS_TABLE_SORT_API_FIELDS[activeSortColumn] : undefined;
+    const sortDir = activeSortColumn ? this.sortDir() : undefined;
+    const activeDateKey = this.timeframe() === 'quarterly' ? this.dateKey() : null;
+
+    return {
+      view: this.timeframe(),
+      search: this.tableSearch().trim() || undefined,
+      ...(sortBy && sortDir ? { sortBy, sortDir } : {}),
+      ...(activeDateKey != null ? { dateKey: activeDateKey } : {}),
+      ...(this.fundTypeFilter() !== 'all' ? { fundType: this.fundTypeFilter() } : {}),
+      ...(this.strategyFilter() !== 'all' ? { strategy: this.strategyFilter() } : {}),
+    };
   }
 
   private dispatchLoad(replace: boolean): void {
@@ -360,17 +406,13 @@ export class CapitalDashboardInvestmentsComponent {
       strategy: this.strategyFilter(),
       sortBy: sortBy ?? null,
       sortDir: sortDir ?? null,
+      pageSize: this.pageSize(),
     });
 
     const apiParams: FundsListQueryParams = {
-      view: this.timeframe(),
+      ...this.buildListQueryParams(),
       page: this.currentPage(),
-      pageSize: FUNDS_LIST_PAGE_SIZE,
-      search: this.tableSearch().trim() || undefined,
-      ...(sortBy && sortDir ? { sortBy, sortDir } : {}),
-      ...(activeDateKey != null ? { dateKey: activeDateKey } : {}),
-      ...(this.fundTypeFilter() !== 'all' ? { fundType: this.fundTypeFilter() } : {}),
-      ...(this.strategyFilter() !== 'all' ? { strategy: this.strategyFilter() } : {}),
+      pageSize: this.pageSize(),
     };
 
     this.store.dispatch(

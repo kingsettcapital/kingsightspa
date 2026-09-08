@@ -22,6 +22,7 @@ export interface AssetsFilterOptions {
   investmentTypes: AssetsFilterOption[];
   geographies: AssetsFilterOption[];
   statuses: AssetsFilterOption[];
+  fundCodes: AssetsFilterOption[];
   quarterlyPeriods: AssetsQuarterlyPeriodOption[];
 }
 
@@ -30,6 +31,7 @@ export const EMPTY_ASSETS_FILTER_OPTIONS: AssetsFilterOptions = {
   investmentTypes: [],
   geographies: [],
   statuses: [],
+  fundCodes: [],
   quarterlyPeriods: [],
 };
 
@@ -109,6 +111,9 @@ export function normalizeAssetsFilterOptions(
       record['geographies'] as AssetsFilterOptionDto[] | null | undefined,
     ),
     statuses: mapFilterOptions(record['statuses'] as AssetsFilterOptionDto[] | null | undefined),
+    fundCodes: mapFilterOptions(
+      (record['fund_codes'] ?? record['fundCodes']) as AssetsFilterOptionDto[] | null | undefined,
+    ),
     quarterlyPeriods: mapQuarterlyPeriods(
       (record['quarterly_periods'] ?? record['quarterlyPeriods']) as
         | InvestorsQuarterlyPeriodDto[]

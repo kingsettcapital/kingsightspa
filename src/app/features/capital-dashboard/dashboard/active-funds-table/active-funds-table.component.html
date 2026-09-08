@@ -51,10 +51,26 @@
         </thead>
         @if (!loading() && !error() && rows().length) {
           <tbody>
-            @for (row of rows(); track row.rank) {
-              <tr>
+            @for (row of rows(); track row.fundKey || row.rank) {
+              <tr
+                class="cdt-dashboard-table__row"
+                [class.cdt-dashboard-table__row--clickable]="row.fundKey > 0"
+                (click)="openFund(row)"
+              >
                 <td class="cdt-dashboard-table__rank-col">{{ row.rank }}</td>
-                <td class="cdt-dashboard-table__name">{{ row.name }}</td>
+                <td class="cdt-dashboard-table__name">
+                  @if (row.fundKey > 0) {
+                    <button
+                      type="button"
+                      class="cdt-dashboard-table__name-link"
+                      (click)="openFund(row); $event.stopPropagation()"
+                    >
+                      {{ row.name }}
+                    </button>
+                  } @else {
+                    {{ row.name }}
+                  }
+                </td>
                 <td class="cdt-dashboard-table__num-col">{{ row.aum }}</td>
                 <!-- <td
                   class="cdt-dashboard-table__num-col"

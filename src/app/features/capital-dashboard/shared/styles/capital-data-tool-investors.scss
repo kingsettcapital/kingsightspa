@@ -923,10 +923,38 @@ body[data-ks-capital-dashboard] {
     background: var(--cdt-surface);
   }
 
+  .cdt-pagination__meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
   .cdt-pagination__summary {
     margin: 0;
     font-size: 0.8125rem;
     color: var(--cdt-text-muted);
+  }
+
+  .cdt-pagination__page-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--cdt-text-muted);
+  }
+
+  .cdt-pagination__page-size select {
+    min-width: 4.25rem;
+    height: 2rem;
+    padding: 0 0.5rem;
+    border: 1px solid var(--cdt-border);
+    border-radius: var(--cdt-radius);
+    background: var(--cdt-surface);
+    color: var(--cdt-text);
+    font-family: var(--cdt-font-sans);
+    font-size: 0.8125rem;
   }
 
   .cdt-pagination__nav {

@@ -71,6 +71,8 @@ export interface AssetsFilterOptionsDto {
   investmentTypes?: AssetsFilterOptionDto[] | null;
   geographies?: AssetsFilterOptionDto[] | null;
   statuses?: AssetsFilterOptionDto[] | null;
+  fund_codes?: AssetsFilterOptionDto[] | null;
+  fundCodes?: AssetsFilterOptionDto[] | null;
   quarterly_periods?: InvestorsQuarterlyPeriodDto[] | null;
   quarterlyPeriods?: InvestorsQuarterlyPeriodDto[] | null;
 }

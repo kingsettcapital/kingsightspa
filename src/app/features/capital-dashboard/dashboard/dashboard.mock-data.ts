@@ -2,6 +2,7 @@ export type DashboardPeriod = 'ltd' | 'quarterly';
 
 export interface ActiveFundRow {
   rank: number;
+  fundKey: number;
   name: string;
   aum: string;
   eumAmount: number;
@@ -79,6 +80,7 @@ export const GEOGRAPHIC_DISTRIBUTION_DATA = [48, 22, 14, 10, 6];
 export const ACTIVE_FUNDS_ROWS: ActiveFundRow[] = [
   {
     rank: 1,
+    fundKey: 1,
     name: 'KingSett Canadian Real Estate Income Fund LP',
     aum: '$4.82B',
     eumAmount: 4_820_000_000,
@@ -90,6 +92,7 @@ export const ACTIVE_FUNDS_ROWS: ActiveFundRow[] = [
   },
   {
     rank: 2,
+    fundKey: 2,
     name: 'KingSett CRE Income Fund LP',
     aum: '$2.14B',
     eumAmount: 2_140_000_000,
@@ -101,6 +104,7 @@ export const ACTIVE_FUNDS_ROWS: ActiveFundRow[] = [
   },
   {
     rank: 3,
+    fundKey: 3,
     name: 'KingSett Growth Fund LP',
     aum: '$1.67B',
     eumAmount: 1_670_000_000,
@@ -112,6 +116,7 @@ export const ACTIVE_FUNDS_ROWS: ActiveFundRow[] = [
   },
   {
     rank: 4,
+    fundKey: 4,
     name: 'KingSett Mortgage Fund LP',
     aum: '$980M',
     eumAmount: 980_000_000,
@@ -123,6 +128,7 @@ export const ACTIVE_FUNDS_ROWS: ActiveFundRow[] = [
   },
   {
     rank: 5,
+    fundKey: 5,
     name: 'KingSett High Yield Fund LP',
     aum: '$720M',
     eumAmount: 720_000_000,

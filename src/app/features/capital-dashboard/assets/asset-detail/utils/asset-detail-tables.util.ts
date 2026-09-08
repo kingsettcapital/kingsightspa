@@ -621,8 +621,6 @@ export function buildBlocksForSection(
       return [buildAcquisitionSaleBlock(acquisitionSale)];
     case 'asset-type-summary':
       return [buildAssetTypeSummaryBlock(assetTypeSummary)];
-    case 'property-details':
-      return [buildPropertyDetailsTable(propertyDetails)];
     case 'leasing':
       return [buildLeasingSummary(leasingSummary)];
     case 'financial-metrics':

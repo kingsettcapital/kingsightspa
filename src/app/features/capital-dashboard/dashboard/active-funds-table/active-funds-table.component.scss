@@ -164,6 +164,35 @@
   color: var(--cdt-title-color);
 }
 
+.cdt-dashboard-table__row--clickable {
+  cursor: pointer;
+}
+
+.cdt-dashboard-table__row--clickable:hover {
+  background: color-mix(in srgb, var(--cdt-surface) 88%, var(--cdt-title-color));
+}
+
+.cdt-dashboard-table__name-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.15em;
+}
+
+.cdt-dashboard-table__name-link:hover,
+.cdt-dashboard-table__row--clickable:hover .cdt-dashboard-table__name-link {
+  text-decoration-color: currentColor;
+  color: var(--cdt-link, var(--cdt-title-color));
+}
+
 .cdt-dashboard-table__num-col {
   text-align: right;
   font-weight: 600;
