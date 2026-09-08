@@ -330,9 +330,6 @@ export class AssetDetailComponent {
     if (block.id === 'asset-fund-holdings') {
       return this.detailState().fundHoldingsLoading;
     }
-    if (block.id === 'property-details') {
-      return this.detailState().propertyDetailsLoading;
-    }
     return false;
   }
 

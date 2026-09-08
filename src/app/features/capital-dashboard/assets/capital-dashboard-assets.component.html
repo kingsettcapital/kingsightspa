@@ -53,7 +53,12 @@
             }
           </button>
 
-          <button type="button" class="cdt-btn cdt-btn--download" (click)="downloadTable()">
+          <button
+            type="button"
+            class="cdt-btn cdt-btn--download"
+            [disabled]="exporting() || totalCount() === 0"
+            (click)="downloadTable()"
+          >
             <span class="cdt-btn__icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                 stroke-linejoin="round">
@@ -62,7 +67,7 @@
                 <path d="m7 10 5 5 5-5" />
               </svg>
             </span>
-            Download
+            {{ exporting() ? 'Downloading…' : 'Download' }}
           </button>
         </div>
       </header>
@@ -151,6 +156,20 @@
                 aria-label="Status">
                 <option value="all">All Statuses</option>
                 @for (option of statusOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+              <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+            </div>
+          </label>
+
+          <label class="cdt-filters-bar__field">
+            <span class="cdt-filters-bar__label">FUND CODE</span>
+            <div class="cdt-filters-bar__select">
+              <select [ngModel]="fundCodeFilter()" (ngModelChange)="fundCodeFilter.set($event); currentPage.set(1)"
+                aria-label="Fund code">
+                <option value="all">All Funds</option>
+                @for (option of fundCodeOptions(); track option.value) {
                 <option [value]="option.value">{{ option.label }}</option>
                 }
               </select>
@@ -266,12 +285,26 @@
         </div>
 
         <footer class="cdt-pagination">
-          <p class="cdt-pagination__summary">
-            Showing
-            <strong>{{ showingFrom() }}-{{ showingTo() }}</strong>
-            of
-            <strong>{{ totalCount() }}</strong>
-          </p>
+          <div class="cdt-pagination__meta">
+            <p class="cdt-pagination__summary">
+              Showing
+              <strong>{{ showingFrom() }}-{{ showingTo() }}</strong>
+              of
+              <strong>{{ totalCount() }}</strong>
+            </p>
+            <label class="cdt-pagination__page-size">
+              <span>Rows</span>
+              <select
+                [ngModel]="pageSize()"
+                (ngModelChange)="setPageSize($event)"
+                aria-label="Rows per page"
+              >
+                @for (size of pageSizeOptions; track size) {
+                <option [ngValue]="size">{{ size }}</option>
+                }
+              </select>
+            </label>
+          </div>
           <nav class="cdt-pagination__nav" aria-label="Assets pagination">
             <button type="button" class="cdt-pagination__arrow" [disabled]="currentPage() <= 1"
               (click)="goToPage(currentPage() - 1)" aria-label="Previous page">

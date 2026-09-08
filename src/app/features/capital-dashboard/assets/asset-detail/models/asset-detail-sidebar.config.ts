@@ -14,7 +14,6 @@ export const ASSET_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] = [
       { id: 'leasing', label: 'Leasing' },
       { id: 'financial-metrics', label: 'Financial Metrics' },
       { id: 'asset-type-summary', label: 'GLA share by asset type' },
-      { id: 'property-details', label: 'Property Details' },
     ],
   },
 ];

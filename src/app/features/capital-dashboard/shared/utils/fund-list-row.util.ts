@@ -312,6 +312,7 @@ export function buildFundsListCacheKey(filters: {
   strategy: string;
   sortBy: string | null;
   sortDir: FundsTableSortDirection | null;
+  pageSize?: number;
 }): string {
   return [
     filters.view,
@@ -320,5 +321,6 @@ export function buildFundsListCacheKey(filters: {
     filters.strategy,
     filters.sortBy ?? '',
     filters.sortDir ?? '',
+    filters.pageSize ?? '',
   ].join('|');
 }

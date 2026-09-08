@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { forkJoin, map, Observable, of, switchMap } from 'rxjs';
 
 import { ApiService } from '../../../../core/services/api.service';
 import {
@@ -47,6 +47,25 @@ export class CapitalInvestorsApiService {
 
   getInvestors(params: InvestorsListQueryParams = {}): Observable<InvestorsPagedResult> {
     return this.api.get<InvestorsPagedResult>('api/CapitalInvestors', params as any);
+  }
+
+  getAllInvestors(params: InvestorsListQueryParams = {}): Observable<InvestorListItemDto[]> {
+    const pageSize = params.pageSize ?? LIST_PAGE_SIZE;
+    return this.getInvestors({ ...params, page: 1, pageSize }).pipe(
+      switchMap((first) => {
+        const items = [...(first.items ?? [])];
+        if (!first.hasNextPage) {
+          return of(items);
+        }
+
+        const pages: Observable<InvestorsPagedResult>[] = [];
+        for (let page = 2; page <= first.totalPages; page++) {
+          pages.push(this.getInvestors({ ...params, page, pageSize }));
+        }
+
+        return forkJoin(pages).pipe(map((rest) => items.concat(...rest.flatMap((page) => page.items ?? []))));
+      }),
+    );
   }
 
   getFilterOptions(): Observable<InvestorsFilterOptionsDto> {

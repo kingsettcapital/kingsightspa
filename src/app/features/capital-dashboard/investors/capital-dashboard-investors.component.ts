@@ -4,11 +4,15 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { catchError, debounceTime, distinctUntilChanged, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, finalize, of, take } from 'rxjs';
 
 import { ExcelService } from '../../../core/services/excel.service';
 import { KsCurrencyPipe } from '../../../shared/pipes/ks-currency.pipe';
-import { INVESTORS_LIST_PAGE_SIZE } from '../shared/list-pagination.constants';
+import {
+  INVESTORS_LIST_PAGE_SIZE,
+  LIST_PAGE_SIZE_OPTIONS,
+  ListPageSizeOption,
+} from '../shared/list-pagination.constants';
 import { InvestorsListQueryParams } from '../shared/models/api.models';
 import { CapitalInvestorsApiService } from '../shared/services/capital-investors-api.service';
 import { CapitalDashboardRouteSearchSync } from '../shared/utils/capital-dashboard-route-search.util';
@@ -60,12 +64,15 @@ export class CapitalDashboardInvestorsComponent {
   readonly sortColumn = signal<InvestorsTableSortColumn | null>(null);
   readonly sortDir = signal<InvestorsTableSortDirection>('desc');
   readonly currentPage = signal(1);
+  readonly pageSize = signal<ListPageSizeOption>(INVESTORS_LIST_PAGE_SIZE);
+  readonly pageSizeOptions = LIST_PAGE_SIZE_OPTIONS;
+  readonly exporting = signal(false);
 
   readonly listLoading = computed(() => this.listState().loading);
   readonly listError = computed(() => this.listState().error);
   readonly totalCount = computed(() => this.listState().totalCount);
   readonly totalPages = computed(() =>
-    Math.max(1, Math.ceil(this.totalCount() / INVESTORS_LIST_PAGE_SIZE)),
+    Math.max(1, Math.ceil(this.totalCount() / this.pageSize())),
   );
 
   readonly quarterlyPeriodOptions = computed(() => this.filterOptions().quarterlyPeriods);
@@ -204,11 +211,11 @@ export class CapitalDashboardInvestorsComponent {
   });
 
   readonly showingFrom = computed(() =>
-    this.totalCount() === 0 ? 0 : (this.currentPage() - 1) * INVESTORS_LIST_PAGE_SIZE + 1,
+    this.totalCount() === 0 ? 0 : (this.currentPage() - 1) * this.pageSize() + 1,
   );
 
   readonly showingTo = computed(() =>
-    Math.min(this.currentPage() * INVESTORS_LIST_PAGE_SIZE, this.totalCount()),
+    Math.min(this.currentPage() * this.pageSize(), this.totalCount()),
   );
 
   constructor() {
@@ -235,6 +242,7 @@ export class CapitalDashboardInvestorsComponent {
       this.sortColumn();
       this.sortDir();
       this.currentPage();
+      this.pageSize();
       if (this.timeframe() === 'quarterly' && this.dateKey() == null) {
         return;
       }
@@ -308,6 +316,15 @@ export class CapitalDashboardInvestorsComponent {
     this.currentPage.set(page);
   }
 
+  setPageSize(size: ListPageSizeOption | string): void {
+    const next = Number(size) as ListPageSizeOption;
+    if (!LIST_PAGE_SIZE_OPTIONS.includes(next) || next === this.pageSize()) {
+      return;
+    }
+    this.pageSize.set(next);
+    this.currentPage.set(1);
+  }
+
   retryLoad(): void {
     this.dispatchLoad(true);
   }
@@ -325,52 +342,53 @@ export class CapitalDashboardInvestorsComponent {
   }
 
   downloadTable(): void {
-    const rows = this.rows();
-    if (!rows.length) {
+    if (this.exporting() || this.totalCount() === 0) {
       return;
     }
 
-    this.excel.export<InvestorTableRow>({
-      filename: 'investors',
-      sheetName: 'Investors',
-      columns: [
-        { header: 'Investor Name', value: (row) => row.name },
-        { header: 'Type', value: (row) => row.investorType },
-        { header: 'Relationship', value: (row) => row.relationship },
-        { header: 'Funds', value: (row) => row.fundsCount },
-        { header: 'Commitment', value: (row) => row.commitment },
-        { header: 'Net Invested Capital', value: (row) => row.netInvestedCapital },
-        { header: this.distributedColumnLabel, value: (row) => row.netDistributed },
-        { header: 'Reserved', value: (row) => row.reservedUncalled },
-        { header: 'Unfunded', value: (row) => row.unfunded },
-        { header: 'Released Capital', value: (row) => row.releasedCapital ?? '—' },
-      ],
-      rows,
-    });
+    this.exporting.set(true);
+    this.investorsApi
+      .getAllInvestors(this.buildListQueryParams())
+      .pipe(
+        take(1),
+        catchError(() => of([])),
+        finalize(() => this.exporting.set(false)),
+      )
+      .subscribe((items) => {
+        const rows = items.map((item, index) => mapInvestorListItemToRow(item, index));
+        if (!rows.length) {
+          return;
+        }
+        this.excel.export<InvestorTableRow>({
+          filename: 'investors',
+          sheetName: 'Investors',
+          columns: [
+            { header: 'Investor Name', value: (row) => row.name },
+            { header: 'Type', value: (row) => row.investorType },
+            { header: 'Relationship', value: (row) => row.relationship },
+            { header: 'Funds', value: (row) => row.fundsCount },
+            { header: 'Commitment', value: (row) => row.commitment },
+            { header: 'Net Invested Capital', value: (row) => row.netInvestedCapital },
+            { header: this.distributedColumnLabel, value: (row) => row.netDistributed },
+            { header: 'Reserved', value: (row) => row.reservedUncalled },
+            { header: 'Unfunded', value: (row) => row.unfunded },
+            { header: 'Released Capital', value: (row) => row.releasedCapital ?? '—' },
+          ],
+          rows,
+        });
+      });
   }
 
-  private dispatchLoad(replace: boolean): void {
+  private buildListQueryParams(): InvestorsListQueryParams {
     const activeSortColumn = this.sortColumn();
     const sortBy = activeSortColumn
       ? INVESTORS_TABLE_SORT_API_FIELDS[activeSortColumn]
       : undefined;
     const sortDir = activeSortColumn ? this.sortDir() : undefined;
-
     const activeDateKey = this.timeframe() === 'quarterly' ? this.dateKey() : null;
 
-    const cacheKey = buildInvestorsListCacheKey({
+    return {
       view: this.timeframe(),
-      dateKey: activeDateKey,
-      investorType: this.investorTypeFilter(),
-      relationship: this.relationshipFilter(),
-      sortBy: sortBy ?? null,
-      sortDir: sortDir ?? null,
-    });
-
-    const apiParams: InvestorsListQueryParams = {
-      view: this.timeframe(),
-      page: this.currentPage(),
-      pageSize: INVESTORS_LIST_PAGE_SIZE,
       search: this.tableSearch().trim() || undefined,
       ...(sortBy && sortDir ? { sortBy, sortDir } : {}),
       ...(activeDateKey != null ? { dateKey: activeDateKey } : {}),
@@ -380,6 +398,31 @@ export class CapitalDashboardInvestorsComponent {
       ...(this.relationshipFilter() !== 'all'
         ? { relationship: this.relationshipFilter() }
         : {}),
+    };
+  }
+
+  private dispatchLoad(replace: boolean): void {
+    const activeSortColumn = this.sortColumn();
+    const sortBy = activeSortColumn
+      ? INVESTORS_TABLE_SORT_API_FIELDS[activeSortColumn]
+      : undefined;
+    const sortDir = activeSortColumn ? this.sortDir() : undefined;
+    const activeDateKey = this.timeframe() === 'quarterly' ? this.dateKey() : null;
+
+    const cacheKey = buildInvestorsListCacheKey({
+      view: this.timeframe(),
+      dateKey: activeDateKey,
+      investorType: this.investorTypeFilter(),
+      relationship: this.relationshipFilter(),
+      sortBy: sortBy ?? null,
+      sortDir: sortDir ?? null,
+      pageSize: this.pageSize(),
+    });
+
+    const apiParams: InvestorsListQueryParams = {
+      ...this.buildListQueryParams(),
+      page: this.currentPage(),
+      pageSize: this.pageSize(),
     };
 
     this.store.dispatch(

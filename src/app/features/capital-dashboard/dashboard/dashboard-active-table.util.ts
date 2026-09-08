@@ -28,6 +28,8 @@ function readNumber(record: Record<string, unknown>, ...keys: string[]): number 
 
 export function mapFundListItemToActiveFundRow(dto: FundListItemDto, index: number): ActiveFundRow {
   const record = readRecord(dto);
+  const fundKey =
+    readNumber(record, 'fundKey', 'FundKey', 'fund_key') ?? dto.fundKey ?? 0;
   const name = readString(record, 'fundName', 'FundName', 'fund_name') || '—';
   const currentValue =
     readNumber(
@@ -47,6 +49,7 @@ export function mapFundListItemToActiveFundRow(dto: FundListItemDto, index: numb
 
   return {
     rank: index + 1,
+    fundKey,
     name,
     aum: formatCurrency(currentValue, { compact: true }),
     eumAmount: currentValue,

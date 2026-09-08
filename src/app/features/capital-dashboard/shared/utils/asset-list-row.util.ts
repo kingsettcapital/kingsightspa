@@ -333,8 +333,10 @@ export function buildAssetsListCacheKey(filters: {
   investmentType: string;
   geography: string;
   status: string;
+  fundCode?: string;
   sortBy: string | null;
   sortDir: AssetsTableSortDirection | null;
+  pageSize?: number;
 }): string {
   return [
     filters.view,
@@ -343,7 +345,9 @@ export function buildAssetsListCacheKey(filters: {
     filters.investmentType,
     filters.geography,
     filters.status,
+    filters.fundCode ?? 'all',
     filters.sortBy ?? '',
     filters.sortDir ?? '',
+    filters.pageSize ?? '',
   ].join('|');
 }

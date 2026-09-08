@@ -292,6 +292,7 @@ export function buildInvestorsListCacheKey(filters: {
   relationship: string;
   sortBy: string | null;
   sortDir: InvestorsTableSortDirection | null;
+  pageSize?: number;
 }): string {
   return [
     filters.view,
@@ -300,5 +301,6 @@ export function buildInvestorsListCacheKey(filters: {
     filters.relationship,
     filters.sortBy ?? '',
     filters.sortDir ?? '',
+    filters.pageSize ?? '',
   ].join('|');
 }
