@@ -47,6 +47,10 @@ export interface InvestorDetailFieldItem {
   value: string;
   tone?: 'default' | 'warning' | 'positive' | 'negative' | 'muted';
   multiline?: boolean;
+  /** Raw at-share amount used when Financial Metrics is toggled to 100%. */
+  atShareAmount?: number | null;
+  /** When true, 100% mode shows atShareAmount / (ownershipPct / 100). */
+  scaleWithOwnership?: boolean;
 }
 
 export interface InvestorDetailFieldColumn {
@@ -240,6 +244,10 @@ export interface InvestorDetailRiskFlag {
   label: string;
   value: string;
   tone?: 'default' | 'positive' | 'warning';
+  /** Raw at-share amount used when Financial Metrics is toggled to 100%. */
+  atShareAmount?: number | null;
+  /** When true, 100% mode shows atShareAmount / (ownershipPct / 100). */
+  scaleWithOwnership?: boolean;
 }
 
 export interface InvestorDetailRiskInsuranceBlock {
@@ -261,6 +269,11 @@ export interface InvestorDetailFinancialMetricsBlock {
   title: string;
   collapsible?: boolean;
   defaultExpanded?: boolean;
+  /**
+   * KS ownership as a display percent (e.g. 37.5 for 37.5%).
+   * Used by the At Share / 100% toggle to gross up scalable currency fields.
+   */
+  ownershipPct: number | null;
   leftItems: InvestorDetailFieldItem[];
   rightItems: InvestorDetailRiskFlag[];
 }

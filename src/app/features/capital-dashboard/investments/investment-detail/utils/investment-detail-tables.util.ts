@@ -18,10 +18,18 @@ import {
   InvestorDetailEntityOverviewBlock,
   // InvestorDetailEsgMetricsBlock,
   InvestorDetailFieldGridBlock,
+  InvestorDetailFinancialMetricsBlock,
   InvestorDetailKpiRowBlock,
   InvestorDetailSectionBlock,
   InvestorDetailTableBlock,
 } from '../../../investors/investor-detail/models/investor-detail-block.models';
+import { FundFinancialMetricsRow } from '../../../shared/mappers/fund-financial-metrics.mapper';
+import {
+  formatAssetDisplayCount,
+  formatAssetDisplayCurrency,
+  formatAssetDisplayPercent,
+  formatAssetDisplayString,
+} from '../../../assets/asset-detail/utils/asset-detail-api.util';
 import {
   INVESTOR_DETAIL_CELL_TONES_KEY,
   InvestorDetailColumnTone,
@@ -85,6 +93,7 @@ export type InvestmentDetailSectionId =
   | 'capital-account'
   | 'performance'
   | 'assets'
+  | 'financial-metrics'
   | 'fund-transactions'
   | 'documents';
   // | 'esg-reporting'
@@ -912,6 +921,56 @@ export function buildNetAssetsTable(
   });
 }
 
+function buildFundFinancialMetricsBlock(
+  metrics: FundFinancialMetricsRow | null,
+): InvestorDetailFinancialMetricsBlock {
+  const currency = (value: number | null | undefined) => formatAssetDisplayCurrency(value, true);
+  const percent = (value: number | null | undefined) => formatAssetDisplayPercent(value);
+  const text = (value: string | null | undefined) => formatAssetDisplayString(value ?? '');
+  const count = (value: number | null | undefined) => formatAssetDisplayCount(value);
+  const scalableCurrency = (label: string, amount: number | null | undefined) => ({
+    label,
+    value: currency(amount),
+    atShareAmount: amount ?? null,
+    scaleWithOwnership: true,
+  });
+
+  return {
+    kind: 'financial-metrics',
+    id: 'financial-metrics',
+    title: 'Financial Metrics',
+    collapsible: true,
+    defaultExpanded: true,
+    ownershipPct: null,
+    leftItems: [
+      { label: 'Fund Code', value: text(metrics?.fundCode) },
+      { label: 'As of Date', value: text(metrics?.asOfDate) },
+      scalableCurrency('Gross Market Value', metrics?.fundGrossMarketValue),
+      scalableCurrency('Total Asset Value', metrics?.fundTotalAssetValue),
+      scalableCurrency('GAV Amount', metrics?.fundGavAmount),
+      scalableCurrency('NAV Amount', metrics?.fundNavAmount),
+      scalableCurrency('Debt', metrics?.fundDebt),
+      scalableCurrency('Equity', metrics?.fundEquity),
+      { label: 'LTV', value: percent(metrics?.fundLtv) },
+      scalableCurrency('Cash at Quarter End', metrics?.fundCashAtQuarterEnd),
+      { label: 'Total Number JV Partners', value: count(metrics?.jvPartnersCount) },
+      scalableCurrency('JV Investments Amount', metrics?.jvInvestmentsAmount),
+      { label: 'JV Investments % of GAV', value: percent(metrics?.jvInvestmentsPctOfGav) },
+    ],
+    rightItems: [
+      scalableCurrency('NOI', metrics?.fundNoi),
+      scalableCurrency('FFO', metrics?.fundFfo),
+      scalableCurrency('NCF', metrics?.fundNcf),
+      scalableCurrency('EBITDA', metrics?.fundEbitda),
+      scalableCurrency('Revenue', metrics?.fundRevenue),
+      scalableCurrency('Expense', metrics?.fundExpense),
+      scalableCurrency('CapEx', metrics?.fundCapex),
+      { label: 'Assets Held', value: count(metrics?.assetHeldCount) },
+      { label: 'Properties Held', value: count(metrics?.propertyHeldCount) },
+    ],
+  };
+}
+
 function buildDocumentsList(detail: FundDetailDto | null): InvestorDetailDocumentListBlock {
   const count = detail?.summary?.assets ?? detail?.asset_count ?? detail?.assetCount ?? 0;
   const documents =
@@ -979,6 +1038,7 @@ export function buildBlocksForSection(
   timeframe: InvestmentDetailTimeframe,
   periodLabel: string,
   overview?: FundOverviewInput,
+  financialMetrics: FundFinancialMetricsRow | null = null,
 ): InvestorDetailBlock[] {
   switch (sectionId) {
     case 'overview':
@@ -1011,6 +1071,8 @@ export function buildBlocksForSection(
       return [buildPerformanceKpiRow(kpi)];
     case 'assets':
       return [mapAssetsTable(assets, assetsPagination)];
+    case 'financial-metrics':
+      return [buildFundFinancialMetricsBlock(financialMetrics)];
     case 'fund-transactions':
       return [
         {
@@ -1067,6 +1129,7 @@ export function buildFlatInvestmentBlocks(
   timeframe: InvestmentDetailTimeframe,
   periodLabel: string,
   overview?: FundOverviewInput,
+  financialMetrics: FundFinancialMetricsRow | null = null,
 ): InvestmentDetailFlatBlock[] {
   const sections = buildAllSectionBlocks(
     detail,
@@ -1079,6 +1142,7 @@ export function buildFlatInvestmentBlocks(
     timeframe,
     periodLabel,
     overview,
+    financialMetrics,
   );
 
   const flat: InvestmentDetailFlatBlock[] = [];
@@ -1115,6 +1179,7 @@ export function buildAllSectionBlocks(
   timeframe: InvestmentDetailTimeframe,
   periodLabel: string,
   overview?: FundOverviewInput,
+  financialMetrics: FundFinancialMetricsRow | null = null,
 ): InvestorDetailSectionBlock[] {
   return INVESTMENT_DETAIL_SIDEBAR_SECTIONS.flatMap((section) =>
     section.items.map((item) => ({
@@ -1131,6 +1196,7 @@ export function buildAllSectionBlocks(
         timeframe,
         periodLabel,
         overview,
+        financialMetrics,
       ),
     })),
   );

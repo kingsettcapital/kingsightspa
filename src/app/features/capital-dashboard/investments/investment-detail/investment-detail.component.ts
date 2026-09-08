@@ -14,11 +14,15 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { Store } from '@ngrx/store';
-import { catchError, debounceTime, distinctUntilChanged, map, Observable, of, Subject } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, map, Observable, of, Subject, take } from 'rxjs';
 
 import { KsCurrencyPipe } from '../../../../shared/pipes/ks-currency.pipe';
 import { CapitalFundsApiService } from '../../shared/services/capital-funds-api.service';
 import { InvestorTransactionTableFiltersDto } from '../../shared/models/api.models';
+import {
+  FundFinancialMetricsRow,
+  mapFundFinancialMetricsToRow,
+} from '../../shared/mappers/fund-financial-metrics.mapper';
 import { FundTableRow } from '../../shared/utils/fund-list-row.util';
 import { InvestorTableRow } from '../../shared/utils/investor-list-row.util';
 import {
@@ -116,6 +120,8 @@ export class InvestmentDetailComponent {
   readonly fundKey = signal<number | null>(null);
   readonly listRow = signal<FundTableRow | null>(null);
   readonly returnToInvestor = signal<InvestorReturnContext | null>(null);
+  readonly financialMetrics = signal<FundFinancialMetricsRow | null>(null);
+  private lastFinancialMetricsLoadKey = '';
 
   readonly backLinkLabel = computed(() => {
     const investor = this.returnToInvestor();
@@ -388,6 +394,7 @@ export class InvestmentDetailComponent {
       this.timeframe(),
       this.periodLabel(),
       overview,
+      this.financialMetrics(),
     );
 
     return base.map((item) => {
@@ -535,6 +542,32 @@ export class InvestmentDetailComponent {
       }
       this.lastTransactionHubPeriodLoadKey = loadKey;
       untracked(() => this.loadAllTransactionHubTables());
+    });
+
+    effect(() => {
+      const fundKey = this.fundKey();
+      const view = this.timeframe();
+      if (fundKey == null) {
+        return;
+      }
+
+      const metricsView = view === 'quarterly' ? 'quarterly' : 'ltd';
+      const dateKey =
+        metricsView === 'quarterly' && this.quarterScope() !== 'all' ? this.dateKey() : null;
+
+      if (metricsView === 'quarterly' && this.year() == null) {
+        return;
+      }
+      if (metricsView === 'quarterly' && this.quarterScope() !== 'all' && dateKey == null) {
+        return;
+      }
+
+      const loadKey = `${fundKey}|${metricsView}|${dateKey ?? ''}`;
+      if (loadKey === this.lastFinancialMetricsLoadKey) {
+        return;
+      }
+      this.lastFinancialMetricsLoadKey = loadKey;
+      untracked(() => this.loadFinancialMetrics(fundKey, metricsView, dateKey));
     });
 
     effect((onCleanup) => {
@@ -835,6 +868,20 @@ export class InvestmentDetailComponent {
   private loadFundData(fundKey: number): void {
     this.store.dispatch(FundsApiActions.loadDetail({ fundKey }));
     this.loadFundAssetsPage(1);
+    this.lastFinancialMetricsLoadKey = '';
+  }
+
+  private loadFinancialMetrics(
+    fundKey: number,
+    view: 'ltd' | 'quarterly',
+    dateKey: number | null,
+  ): void {
+    this.fundsApi
+      .getFundFinancialMetrics(fundKey, { view, dateKey })
+      .pipe(take(1))
+      .subscribe((dto) => {
+        this.financialMetrics.set(mapFundFinancialMetricsToRow(dto));
+      });
   }
 
   private loadFundAssetsPage(page: number): void {

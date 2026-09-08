@@ -14,6 +14,7 @@ export const INVESTMENT_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] 
     title: 'Data',
     items: [
       { id: 'assets', label: 'Assets' },
+      { id: 'financial-metrics', label: 'Financial Metrics' },
     ],
   },
   // {
