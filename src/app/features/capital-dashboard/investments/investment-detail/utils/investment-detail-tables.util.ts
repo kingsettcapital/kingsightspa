@@ -505,38 +505,38 @@ function buildCapitalAccountGrid(kpi: InvestmentDetailKpiCards): InvestorDetailF
   };
 }
 
-function buildPerformanceKpiRow(kpi: InvestmentDetailKpiCards): InvestorDetailKpiRowBlock {
-  return {
-    kind: 'kpi-row',
-    id: 'performance-metrics',
-    title: 'Performance Metrics',
-    collapsible: true,
-    defaultExpanded: true,
-    display: 'performance',
-    cards: [
-      {
-        label: 'TVPI',
-        value: formatApiMultiple(kpi.tvpi),
-        hint: 'Total value / paid-in',
-      },
-      {
-        label: 'DPI',
-        value: formatApiMultiple(kpi.dpi),
-        hint: 'Distributions / paid-in',
-      },
-      {
-        label: 'RVPI',
-        value: formatApiMultiple(kpi.rvpi),
-        hint: 'Net invested / paid-in',
-      },
-      {
-        label: 'Deploy Rate',
-        value: formatOverviewPercent(kpi.investedPercent),
-        hint: 'of total commitment',
-      },
-    ],
-  };
-}
+// function buildPerformanceKpiRow(kpi: InvestmentDetailKpiCards): InvestorDetailKpiRowBlock {
+//   return {
+//     kind: 'kpi-row',
+//     id: 'performance-metrics',
+//     title: 'Performance Metrics',
+//     collapsible: true,
+//     defaultExpanded: true,
+//     display: 'performance',
+//     cards: [
+//       {
+//         label: 'TVPI',
+//         value: formatApiMultiple(kpi.tvpi),
+//         hint: 'Total value / paid-in',
+//       },
+//       {
+//         label: 'DPI',
+//         value: formatApiMultiple(kpi.dpi),
+//         hint: 'Distributions / paid-in',
+//       },
+//       {
+//         label: 'RVPI',
+//         value: formatApiMultiple(kpi.rvpi),
+//         hint: 'Net invested / paid-in',
+//       },
+//       {
+//         label: 'Deploy Rate',
+//         value: formatOverviewPercent(kpi.investedPercent),
+//         hint: 'of total commitment',
+//       },
+//     ],
+//   };
+// }
 
 function mapAssetsTable(
   assets: FundAssetTabRow[],
@@ -986,7 +986,7 @@ export function buildBlocksForSection(
     case 'capital-account':
       return [buildCapitalAccountGrid(kpi)];
     case 'performance':
-      return [buildPerformanceKpiRow(kpi)];
+      return [];
     case 'assets':
       return [mapAssetsTable(assets, assetsPagination)];
     case 'financial-metrics':
