@@ -213,6 +213,10 @@ export interface InvestorDetailDocumentItem {
   category: string;
   date: string;
   size: string;
+  year?: number | null;
+  quarter?: string | null;
+  /** Opens the document (SharePoint web URL). */
+  webUrl?: string | null;
 }
 
 export interface InvestorDetailDocumentListBlock {

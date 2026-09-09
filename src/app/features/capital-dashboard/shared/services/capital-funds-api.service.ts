@@ -7,6 +7,7 @@ import {
   FundCommitmentsQueryParams,
   fundTimeGranularityFromTimeframe,
   FundDetailDto,
+  FundDocumentsResultDto,
   FundFinancialMetricsDto,
   FundGranularRowDto,
   FundListItemDto,
@@ -80,6 +81,12 @@ export class CapitalFundsApiService {
       query['dateKey'] = params.dateKey;
     }
     return this.api.get<FundFinancialMetricsDto>(`api/Funds/${fundKey}/financial-metrics`, query as any).pipe(
+      catchError(() => of(null)),
+    );
+  }
+
+  getFundDocuments(fundKey: number): Observable<FundDocumentsResultDto | null> {
+    return this.api.get<FundDocumentsResultDto>(`api/Funds/${fundKey}/documents`).pipe(
       catchError(() => of(null)),
     );
   }
