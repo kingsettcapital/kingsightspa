@@ -161,7 +161,7 @@
         </div>
 
         <div class="inv-detail-block__header-actions">
-        @if (current.kind === 'financial-metrics') {
+        @if (current.kind === 'financial-metrics' && current.ownershipPct != null) {
           <div class="cdt-toggle cdt-toggle--compact" role="group" aria-label="Financial metrics share basis">
             <button
               type="button"
@@ -992,9 +992,12 @@
               [class.inv-detail-block__entity-overview--investor-highlights]="
                 current.variant === 'investor' && !!current.highlights
               "
+              [class.inv-detail-block__entity-overview--fund-highlights]="
+                current.variant === 'fund' && !!current.highlights
+              "
               [class.inv-detail-block__entity-overview--profile]="
-                (current.variant === 'fund' && !current.performanceMiniKpis?.length) ||
-                (current.variant === 'investor' && !current.highlights)
+                !current.highlights &&
+                !(current.variant === 'fund' && current.performanceMiniKpis?.length)
               "
               [class.inv-detail-block__entity-overview--fund-expanded]="
                 current.variant === 'fund' && !!current.performanceMiniKpis?.length
@@ -1005,7 +1008,7 @@
                 isFundOverviewTwoColumnLayout(current.columns)
               "
             >
-              @if (current.variant === 'investor' && current.highlights; as highlights) {
+              @if (current.highlights; as highlights) {
                 <div class="inv-detail-block__overview-highlights">
                   <div class="inv-detail-block__overview-highlights-row">
                     @for (metric of highlights.topRow; track metric.label) {
