@@ -38,7 +38,7 @@ import {
 } from '../../shared/utils/transaction-table-period.util';
 import { InvestorDetailSidebarComponent } from '../../investors/investor-detail/investor-detail-sidebar/investor-detail-sidebar.component';
 import { InvestorDetailBlockComponent } from '../../investors/investor-detail/investor-detail-block/investor-detail-block.component';
-import { InvestorDetailBlock } from '../../investors/investor-detail/models/investor-detail-block.models';
+import { InvestorDetailBlock, InvestorDetailDocumentItem } from '../../investors/investor-detail/models/investor-detail-block.models';
 import { FundsApiActions } from '../../store';
 import { selectFundsDetail } from '../../store/capital-dashboard.selectors';
 import {
@@ -53,6 +53,7 @@ import {
   InvestmentDetailTimeframe,
   kpiCardsFromListRow,
   kpiCardsFromFundDetail,
+  mapFundDocumentsToItems,
   pickOverviewLabel,
   readFundDetailSummaryString,
 } from './utils/investment-detail-tables.util';
@@ -121,6 +122,7 @@ export class InvestmentDetailComponent {
   readonly listRow = signal<FundTableRow | null>(null);
   readonly returnToInvestor = signal<InvestorReturnContext | null>(null);
   readonly financialMetrics = signal<FundFinancialMetricsRow | null>(null);
+  readonly fundDocuments = signal<InvestorDetailDocumentItem[]>([]);
   private lastFinancialMetricsLoadKey = '';
 
   readonly backLinkLabel = computed(() => {
@@ -395,6 +397,7 @@ export class InvestmentDetailComponent {
       this.periodLabel(),
       overview,
       this.financialMetrics(),
+      this.fundDocuments(),
     );
 
     return base.map((item) => {
@@ -868,6 +871,7 @@ export class InvestmentDetailComponent {
   private loadFundData(fundKey: number): void {
     this.store.dispatch(FundsApiActions.loadDetail({ fundKey }));
     this.loadFundAssetsPage(1);
+    this.loadFundDocuments(fundKey);
     this.lastFinancialMetricsLoadKey = '';
   }
 
@@ -881,6 +885,16 @@ export class InvestmentDetailComponent {
       .pipe(take(1))
       .subscribe((dto) => {
         this.financialMetrics.set(mapFundFinancialMetricsToRow(dto));
+      });
+  }
+
+  private loadFundDocuments(fundKey: number): void {
+    this.fundDocuments.set([]);
+    this.fundsApi
+      .getFundDocuments(fundKey)
+      .pipe(take(1))
+      .subscribe((result) => {
+        this.fundDocuments.set(mapFundDocumentsToItems(result));
       });
   }
 

@@ -673,6 +673,7 @@
 
 .inv-detail-documents {
   display: block;
+  --inv-detail-documents-list-max-height: 24rem;
 }
 
 .inv-detail-documents__card {
@@ -741,6 +742,10 @@
 .inv-detail-documents .inv-detail-block__documents {
   padding: 0 1.25rem 1.25rem;
   border-top: 0;
+  max-height: var(--inv-detail-documents-list-max-height);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .inv-detail-block__table-card {
@@ -2657,6 +2662,15 @@
   font-weight: 600;
   color: #111827;
   line-height: 1.35;
+
+  &--link {
+    color: #004a99;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 }
 
 .inv-detail-block__document-meta {
@@ -2679,6 +2693,7 @@
   color: #64748b;
   cursor: pointer;
   flex-shrink: 0;
+  text-decoration: none;
 
   svg {
     width: 1.125rem;
@@ -2686,8 +2701,15 @@
   }
 
   &:hover {
-    background: #f1f5f9;
     color: #004a99;
+    background: #eef2f7;
+  }
+
+  &[disabled],
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 }
 

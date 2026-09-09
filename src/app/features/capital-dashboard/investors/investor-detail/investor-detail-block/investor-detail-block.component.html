@@ -98,18 +98,45 @@
               <mat-icon>description</mat-icon>
             </span>
             <div class="inv-detail-block__document-body">
-              <p class="inv-detail-block__document-name">{{ doc.name }}</p>
+              @if (doc.webUrl) {
+                <a
+                  class="inv-detail-block__document-name inv-detail-block__document-name--link"
+                  [href]="doc.webUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ doc.name }}
+                </a>
+              } @else {
+                <p class="inv-detail-block__document-name">{{ doc.name }}</p>
+              }
               <p class="inv-detail-block__document-meta">
                 {{ doc.category }} · {{ doc.date }} · {{ doc.size }}
               </p>
             </div>
-            <button type="button" class="inv-detail-block__document-download" aria-label="Download document">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 15V3" />
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <path d="m7 10 5 5 5-5" />
-              </svg>
-            </button>
+            @if (doc.webUrl) {
+              <a
+                class="inv-detail-block__document-download"
+                [href]="doc.webUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                [attr.aria-label]="'Open ' + doc.name"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 15V3" />
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <path d="m7 10 5 5 5-5" />
+                </svg>
+              </a>
+            } @else {
+              <button type="button" class="inv-detail-block__document-download" aria-label="Download document" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 15V3" />
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <path d="m7 10 5 5 5-5" />
+                </svg>
+              </button>
+            }
           </li>
         }
       </ul>
