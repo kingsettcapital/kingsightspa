@@ -3,8 +3,8 @@ import type { Environment } from '../app/core/interfaces/environment.interfaces'
 export const environment: Environment = {
   production: false,
   requireLogin: true,
-  apiUrl: 'http://localhost:7140/',
-  // apiUrl: 'https://kingsightdevapi.kingsettcapital.com/',
+  apiUrl: 'https://kingsightdevapi.kingsettcapital.com/',
+  // apiUrl: 'http://localhost:7140/',
   managementSummaryEnabled: true,
   showHomeCapitalAndDataExplorer: true,
   showAiAssistant: true,
