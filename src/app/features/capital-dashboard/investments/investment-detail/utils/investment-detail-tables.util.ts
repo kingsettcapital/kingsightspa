@@ -243,72 +243,11 @@ function formatPercentValue(value: number | null | undefined): string {
   return `${value.toFixed(1)}%`;
 }
 
-function formatOverviewCurrencyDisplay(value: number | null | undefined, dashWhenZero = false): string {
-  if (value == null || !Number.isFinite(value)) {
-    return FUND_OVERVIEW_DASH;
-  }
-  if (dashWhenZero && value === 0) {
-    return FUND_OVERVIEW_DASH;
-  }
-  return formatCurrencyCompact(value);
-}
-
-function formatOverviewPercentDisplay(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) {
-    return FUND_OVERVIEW_DASH;
-  }
-  return `${value.toFixed(1)}%`;
-}
-
-function formatPerformanceMultipleDisplay(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value) || value <= 0) {
-    return FUND_OVERVIEW_EMPTY;
-  }
-  return `${value.toFixed(2)}X`;
-}
-
 function formatApiMultiple(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value) || value <= 0) {
     return FUND_OVERVIEW_EMPTY;
   }
   return `${value.toFixed(2)}x`;
-}
-
-function formatReservedUncalledDisplay(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) {
-    return FUND_OVERVIEW_DASH;
-  }
-  if (value === 0) {
-    return FUND_OVERVIEW_DASH;
-  }
-  return formatCurrencyCompact(value);
-}
-
-function deploymentBarRightLabel(
-  deployedPct: number,
-  reservedUncalled: number | null | undefined,
-  totalCommitment: number,
-  netInvestedCapital: number,
-): string {
-  if (reservedUncalled != null && Number.isFinite(reservedUncalled) && reservedUncalled !== 0) {
-    const amount = formatCurrencyCompact(reservedUncalled);
-    return reservedUncalled > 0 ? `${amount} remaining` : `${amount} reserved`;
-  }
-
-  if (deployedPct >= 100) {
-    return 'Fully deployed';
-  }
-
-  const fallbackRemaining = Math.max(0, totalCommitment - netInvestedCapital);
-  if (fallbackRemaining > 0) {
-    return `${formatCurrencyCompact(fallbackRemaining)} remaining`;
-  }
-
-  return 'Fully deployed';
-}
-
-function overviewDisplayTone(value: string): 'default' | 'muted' | undefined {
-  return value === FUND_OVERVIEW_DASH ? 'muted' : 'default';
 }
 
 function pickOverviewDisplayLabel(...candidates: Array<string | null | undefined>): string {
@@ -458,16 +397,8 @@ function readOverviewStatus(detail: FundDetailDto | null, overviewStatus?: strin
 function buildFundOverviewBlock(
   detail: FundDetailDto | null,
   overview: FundOverviewInput,
-  kpi: InvestmentDetailKpiCards,
+  _kpi: InvestmentDetailKpiCards,
 ): InvestorDetailEntityOverviewBlock {
-  const fundName = pickOverviewDisplayLabel(
-    overview.fundName,
-    readFundDetailString(detail, 'fund_name', 'fundName'),
-    detail?.summary?.fundName,
-  );
-  const fundId =
-    readFundDetailKey(detail) ??
-    (typeof overview.fundId === 'number' ? overview.fundId : null);
   const fundType = pickOverviewDisplayLabel(
     overview.fundType,
     readFundDetailString(detail, 'fund_type', 'fundType', 'FundType'),
@@ -480,8 +411,7 @@ function buildFundOverviewBlock(
   const startDate = readOverviewStartDate(detail, overview.startDate);
   const status = readOverviewStatus(detail, overview.status);
 
-  const reservedLabel = formatReservedUncalledDisplay(kpi.reservedUncalled);
-  const releasedLabel = formatOverviewCurrencyDisplay(kpi.releasedCapital, true);
+  const statusTone = status.toLowerCase() === 'active' ? 'info' : 'default';
 
   return {
     kind: 'entity-overview',
@@ -490,44 +420,32 @@ function buildFundOverviewBlock(
     variant: 'fund',
     collapsible: true,
     defaultExpanded: true,
-    columns: [
-      {
-        title: '',
-        fields: [
-          { label: 'Fund Type', value: fundType },
-          { label: 'Strategy', value: strategy },
-          { label: 'Start Date', value: startDate },
-          { label: 'Status', value: status },
-        ],
-      },
-      {
-        title: 'Capital Structure',
-        fields: [
-          {
-            label: 'Total Commitment',
-            value: formatOverviewCurrencyDisplay(kpi.totalCommitment),
-          },
-          {
-            label: 'Net Invested Capital',
-            value: formatOverviewCurrencyDisplay(kpi.netInvestedCapital),
-          },
-          {
-            label: 'Reserved / Uncalled',
-            value: reservedLabel,
-            tone: overviewDisplayTone(reservedLabel),
-          },
-          {
-            label: 'Net Distributed',
-            value: formatOverviewCurrencyDisplay(kpi.netDistributed),
-          },
-          {
-            label: 'Released Capital',
-            value: releasedLabel,
-            tone: overviewDisplayTone(releasedLabel),
-          },
-        ],
-      },
-    ],
+    columns: [],
+    highlights: {
+      topRow: [
+        {
+          label: 'Fund Type',
+          value: fundType,
+          valueTone: fundType === FUND_OVERVIEW_DASH || !fundType ? 'muted' : 'accent',
+        },
+        {
+          label: 'Status',
+          value: status,
+          valueTone: statusTone,
+        },
+        {
+          label: 'Strategy',
+          value: strategy,
+          valueTone: strategy === FUND_OVERVIEW_DASH || !strategy ? 'muted' : 'accent',
+        },
+        {
+          label: 'Start Date',
+          value: startDate,
+          valueTone: startDate === FUND_OVERVIEW_DASH || !startDate ? 'muted' : 'info',
+        },
+      ],
+      bottomRow: [],
+    },
   };
 }
 
