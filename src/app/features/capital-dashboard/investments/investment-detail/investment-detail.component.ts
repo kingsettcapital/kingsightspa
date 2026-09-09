@@ -871,7 +871,9 @@ export class InvestmentDetailComponent {
   private loadFundData(fundKey: number): void {
     this.store.dispatch(FundsApiActions.loadDetail({ fundKey }));
     this.loadFundAssetsPage(1);
-    this.loadFundDocuments(fundKey);
+    // Documents section hidden — skip SharePoint fetch until re-enabled in sidebar config.
+    // this.loadFundDocuments(fundKey);
+    this.fundDocuments.set([]);
     this.lastFinancialMetricsLoadKey = '';
   }
 

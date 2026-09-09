@@ -9,7 +9,7 @@ export const INVESTMENT_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] 
       { id: 'financial-metrics', label: 'Financial Metrics' },
       { id: 'fund-transactions', label: 'Transactions' },
       { id: 'capital-account', label: 'Capital Account' },
-      { id: 'documents', label: 'Documents' },
+      // { id: 'documents', label: 'Documents' },
       // { id: 'performance', label: 'Performance' },
     ],
   },
