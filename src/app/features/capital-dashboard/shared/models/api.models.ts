@@ -1307,6 +1307,20 @@ export interface FundFinancialMetricsDto {
   propertyHeldCount?: number | null;
 }
 
+export interface FundAssetOverviewDto {
+  fund_key?: number | null;
+  fundKey?: number | null;
+  fund?: string | null;
+  gla_sf?: number | null;
+  glaSf?: number | null;
+  occupied_sf?: number | null;
+  occupiedSf?: number | null;
+  committed_sf?: number | null;
+  committedSf?: number | null;
+  vacant_sf?: number | null;
+  vacantSf?: number | null;
+}
+
 export interface FundDocumentItemDto {
   id?: string | null;
   name?: string | null;

@@ -1,9 +1,12 @@
 import {
   FundAmountTabRow,
+  FundAssetOverviewDto,
   FundAssetTabRow,
   FundCommitmentTabRow,
   FundDetailDto,
   FundDistributionGroupTabRow,
+  FundDocumentItemDto,
+  FundDocumentsResultDto,
   FundInvestorCapitalActivityTabRow,
   FundInvestorCapitalObligationTabRow,
   FundInvestorNetAssetTabRow,
@@ -25,10 +28,7 @@ import {
   InvestorDetailTableBlock,
 } from '../../../investors/investor-detail/models/investor-detail-block.models';
 import { FundFinancialMetricsRow } from '../../../shared/mappers/fund-financial-metrics.mapper';
-import {
-  FundDocumentItemDto,
-  FundDocumentsResultDto,
-} from '../../../shared/models/api.models';
+import { formatSquareFeet } from '../../../shared/utils/asset-list-row.util';
 import {
   formatAssetDisplayCount,
   formatAssetDisplayCurrency,
@@ -447,6 +447,72 @@ function buildFundOverviewBlock(
           label: 'Start Date',
           value: startDate,
           valueTone: startDate === FUND_OVERVIEW_DASH || !startDate ? 'muted' : 'info',
+        },
+      ],
+      bottomRow: [],
+    },
+  };
+}
+
+function readAssetOverviewArea(
+  overview: FundAssetOverviewDto | null | undefined,
+  ...keys: string[]
+): number | null {
+  if (!overview) {
+    return null;
+  }
+  const record = overview as unknown as Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function buildAssetOverviewBlock(
+  overview: FundAssetOverviewDto | null | undefined,
+): InvestorDetailEntityOverviewBlock {
+  const gla = readAssetOverviewArea(overview, 'gla_sf', 'glaSf');
+  const occupied = readAssetOverviewArea(overview, 'occupied_sf', 'occupiedSf');
+  const committed = readAssetOverviewArea(overview, 'committed_sf', 'committedSf');
+  const vacant = readAssetOverviewArea(overview, 'vacant_sf', 'vacantSf');
+
+  const toneOrMuted = (
+    value: number | null,
+    tone: 'accent' | 'info' | 'positive' | 'default',
+  ): 'muted' | 'accent' | 'info' | 'positive' | 'default' => (value == null ? 'muted' : tone);
+
+  return {
+    kind: 'entity-overview',
+    id: 'asset-overview',
+    title: 'Asset Overview',
+    variant: 'fund',
+    collapsible: true,
+    defaultExpanded: true,
+    columns: [],
+    highlights: {
+      topRow: [
+        {
+          label: 'GLA (SF)',
+          value: formatSquareFeet(gla),
+          valueTone: toneOrMuted(gla, 'accent'),
+        },
+        {
+          label: 'Occupied (SF)',
+          value: formatSquareFeet(occupied),
+          valueTone: toneOrMuted(occupied, 'positive'),
+        },
+        {
+          label: 'Committed (SF)',
+          value: formatSquareFeet(committed),
+          valueTone: toneOrMuted(committed, 'info'),
+        },
+        {
+          label: 'Vacant (SF)',
+          value: formatSquareFeet(vacant),
+          valueTone: toneOrMuted(vacant, 'default'),
         },
       ],
       bottomRow: [],
@@ -883,10 +949,6 @@ function buildFundFinancialMetricsBlock(
     rightItems: [
       scalableCurrency('NOI', metrics?.fundNoi),
       scalableCurrency('FFO', metrics?.fundFfo),
-      scalableCurrency('NCF', metrics?.fundNcf),
-      scalableCurrency('EBITDA', metrics?.fundEbitda),
-      scalableCurrency('Revenue', metrics?.fundRevenue),
-      scalableCurrency('Expense', metrics?.fundExpense),
       scalableCurrency('CapEx', metrics?.fundCapex),
       { label: 'Assets Held', value: count(metrics?.assetHeldCount) },
       { label: 'Properties Held', value: count(metrics?.propertyHeldCount) },
@@ -1020,6 +1082,7 @@ export function buildBlocksForSection(
   overview?: FundOverviewInput,
   financialMetrics: FundFinancialMetricsRow | null = null,
   documents: InvestorDetailDocumentItem[] = [],
+  assetOverview: FundAssetOverviewDto | null = null,
 ): InvestorDetailBlock[] {
   switch (sectionId) {
     case 'overview':
@@ -1045,6 +1108,7 @@ export function buildBlocksForSection(
           },
           detail ? kpiCardsFromFundDetail(detail) : kpi,
         ),
+        buildAssetOverviewBlock(assetOverview),
       ];
     case 'capital-account':
       return [buildCapitalAccountGrid(kpi)];
@@ -1112,6 +1176,7 @@ export function buildFlatInvestmentBlocks(
   overview?: FundOverviewInput,
   financialMetrics: FundFinancialMetricsRow | null = null,
   documents: InvestorDetailDocumentItem[] = [],
+  assetOverview: FundAssetOverviewDto | null = null,
 ): InvestmentDetailFlatBlock[] {
   const sections = buildAllSectionBlocks(
     detail,
@@ -1126,6 +1191,7 @@ export function buildFlatInvestmentBlocks(
     overview,
     financialMetrics,
     documents,
+    assetOverview,
   );
 
   const flat: InvestmentDetailFlatBlock[] = [];
@@ -1164,6 +1230,7 @@ export function buildAllSectionBlocks(
   overview?: FundOverviewInput,
   financialMetrics: FundFinancialMetricsRow | null = null,
   documents: InvestorDetailDocumentItem[] = [],
+  assetOverview: FundAssetOverviewDto | null = null,
 ): InvestorDetailSectionBlock[] {
   return INVESTMENT_DETAIL_SIDEBAR_SECTIONS.flatMap((section) =>
     section.items.map((item) => ({
@@ -1182,6 +1249,7 @@ export function buildAllSectionBlocks(
         overview,
         financialMetrics,
         documents,
+        assetOverview,
       ),
     })),
   );

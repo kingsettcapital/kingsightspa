@@ -9,6 +9,7 @@ import {
   FundDetailDto,
   FundDocumentsResultDto,
   FundFinancialMetricsDto,
+  FundAssetOverviewDto,
   FundGranularRowDto,
   FundListItemDto,
   FundsFilterOptionsDto,
@@ -81,6 +82,12 @@ export class CapitalFundsApiService {
       query['dateKey'] = params.dateKey;
     }
     return this.api.get<FundFinancialMetricsDto>(`api/Funds/${fundKey}/financial-metrics`, query as any).pipe(
+      catchError(() => of(null)),
+    );
+  }
+
+  getFundAssetOverview(fundKey: number): Observable<FundAssetOverviewDto | null> {
+    return this.api.get<FundAssetOverviewDto>(`api/Funds/${fundKey}/asset-overview`).pipe(
       catchError(() => of(null)),
     );
   }
