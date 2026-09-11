@@ -1319,6 +1319,10 @@ export interface FundAssetOverviewDto {
   committedSf?: number | null;
   vacant_sf?: number | null;
   vacantSf?: number | null;
+  occupancy_rate?: number | null;
+  occupancyRate?: number | null;
+  vacancy_rate?: number | null;
+  vacancyRate?: number | null;
 }
 
 export interface FundDocumentItemDto {

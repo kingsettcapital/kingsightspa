@@ -478,6 +478,8 @@ function buildAssetOverviewBlock(
   const occupied = readAssetOverviewArea(overview, 'occupied_sf', 'occupiedSf');
   const committed = readAssetOverviewArea(overview, 'committed_sf', 'committedSf');
   const vacant = readAssetOverviewArea(overview, 'vacant_sf', 'vacantSf');
+  const occupancyRate = readAssetOverviewArea(overview, 'occupancy_rate', 'occupancyRate');
+  const vacancyRate = readAssetOverviewArea(overview, 'vacancy_rate', 'vacancyRate');
 
   const toneOrMuted = (
     value: number | null,
@@ -515,7 +517,20 @@ function buildAssetOverviewBlock(
           valueTone: toneOrMuted(vacant, 'default'),
         },
       ],
-      bottomRow: [],
+      bottomRow: [
+        {
+          label: 'Occupancy Rate',
+          value: formatOverviewPercent(occupancyRate),
+          valueTone: toneOrMuted(occupancyRate, 'positive'),
+          gridColumn: 1,
+        },
+        {
+          label: 'Vacancy Rate',
+          value: formatOverviewPercent(vacancyRate),
+          valueTone: toneOrMuted(vacancyRate, 'accent'),
+          gridColumn: 2,
+        },
+      ],
     },
   };
 }
