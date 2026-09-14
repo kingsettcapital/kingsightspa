@@ -18,7 +18,7 @@ import { catchError, debounceTime, distinctUntilChanged, map, Observable, of, Su
 
 import { KsCurrencyPipe } from '../../../../shared/pipes/ks-currency.pipe';
 import { CapitalFundsApiService } from '../../shared/services/capital-funds-api.service';
-import { InvestorTransactionTableFiltersDto } from '../../shared/models/api.models';
+import { InvestorTransactionTableFiltersDto, FundAssetOverviewDto } from '../../shared/models/api.models';
 import {
   FundFinancialMetricsRow,
   mapFundFinancialMetricsToRow,
@@ -123,6 +123,7 @@ export class InvestmentDetailComponent {
   readonly returnToInvestor = signal<InvestorReturnContext | null>(null);
   readonly financialMetrics = signal<FundFinancialMetricsRow | null>(null);
   readonly fundDocuments = signal<InvestorDetailDocumentItem[]>([]);
+  readonly assetOverview = signal<FundAssetOverviewDto | null>(null);
   private lastFinancialMetricsLoadKey = '';
 
   readonly backLinkLabel = computed(() => {
@@ -398,6 +399,7 @@ export class InvestmentDetailComponent {
       overview,
       this.financialMetrics(),
       this.fundDocuments(),
+      this.assetOverview(),
     );
 
     return base.map((item) => {
@@ -871,9 +873,8 @@ export class InvestmentDetailComponent {
   private loadFundData(fundKey: number): void {
     this.store.dispatch(FundsApiActions.loadDetail({ fundKey }));
     this.loadFundAssetsPage(1);
-    // Documents section hidden — skip SharePoint fetch until re-enabled in sidebar config.
-    // this.loadFundDocuments(fundKey);
-    this.fundDocuments.set([]);
+    this.loadFundDocuments(fundKey);
+    this.loadFundAssetOverview(fundKey);
     this.lastFinancialMetricsLoadKey = '';
   }
 
@@ -887,6 +888,16 @@ export class InvestmentDetailComponent {
       .pipe(take(1))
       .subscribe((dto) => {
         this.financialMetrics.set(mapFundFinancialMetricsToRow(dto));
+      });
+  }
+
+  private loadFundAssetOverview(fundKey: number): void {
+    this.assetOverview.set(null);
+    this.fundsApi
+      .getFundAssetOverview(fundKey)
+      .pipe(take(1))
+      .subscribe((dto) => {
+        this.assetOverview.set(dto);
       });
   }
 
