@@ -26,6 +26,7 @@ import {
   InvestorDetailKpiRowBlock,
   InvestorDetailSectionBlock,
   InvestorDetailTableBlock,
+  FundDocumentCategoryId,
 } from '../../../investors/investor-detail/models/investor-detail-block.models';
 import { FundFinancialMetricsRow } from '../../../shared/mappers/fund-financial-metrics.mapper';
 import { formatSquareFeet } from '../../../shared/utils/asset-list-row.util';
@@ -1013,8 +1014,10 @@ export function mapFundDocumentsToItems(
       }
       const quarter = (item.quarter ?? '').trim();
       const year = item.year;
+      const boardBook = (item.board_book ?? item.boardBook ?? '').trim();
       const categoryParts = [
         category,
+        boardBook || null,
         quarter || null,
         year != null && Number.isFinite(year) ? String(year) : null,
       ].filter(Boolean);
@@ -1035,15 +1038,34 @@ export function mapFundDocumentsToItems(
 function buildDocumentsList(
   documents: InvestorDetailDocumentItem[],
   loading = false,
+  activeCategoryId: FundDocumentCategoryId = 'interim',
+  interimCount = 0,
+  advisoryCount = 0,
 ): InvestorDetailDocumentListBlock {
+  const isAdvisory = activeCategoryId === 'advisory';
   return {
     kind: 'document-list',
     id: 'documents',
     title: 'Documents',
-    subtitle: 'Interim / Annual Reports from SharePoint',
+    subtitle: isAdvisory
+      ? 'Advisory Board Books from SharePoint'
+      : 'Interim / Annual Reports from SharePoint',
     collapsible: true,
     defaultExpanded: true,
     loading,
+    activeCategoryId,
+    categories: [
+      {
+        id: 'interim',
+        label: 'Interim/Annual Reports',
+        count: interimCount,
+      },
+      {
+        id: 'advisory',
+        label: 'Advisory Board Books',
+        count: advisoryCount,
+      },
+    ],
     documents: [...documents],
   };
 }
@@ -1101,6 +1123,9 @@ export function buildBlocksForSection(
   documents: InvestorDetailDocumentItem[] = [],
   assetOverview: FundAssetOverviewDto | null = null,
   documentsLoading = false,
+  documentCategory: FundDocumentCategoryId = 'interim',
+  interimDocumentCount = 0,
+  advisoryDocumentCount = 0,
 ): InvestorDetailBlock[] {
   switch (sectionId) {
     case 'overview':
@@ -1164,7 +1189,15 @@ export function buildBlocksForSection(
         },
       ];
     case 'documents':
-      return [buildDocumentsList(documents, documentsLoading)];
+      return [
+        buildDocumentsList(
+          documents,
+          documentsLoading,
+          documentCategory,
+          interimDocumentCount,
+          advisoryDocumentCount,
+        ),
+      ];
     // case 'esg-reporting':
     //   return [buildEsgMetricsBlock()];
     // case 'debt-financing':
@@ -1196,6 +1229,9 @@ export function buildFlatInvestmentBlocks(
   documents: InvestorDetailDocumentItem[] = [],
   assetOverview: FundAssetOverviewDto | null = null,
   documentsLoading = false,
+  documentCategory: FundDocumentCategoryId = 'interim',
+  interimDocumentCount = 0,
+  advisoryDocumentCount = 0,
 ): InvestmentDetailFlatBlock[] {
   const sections = buildAllSectionBlocks(
     detail,
@@ -1212,6 +1248,9 @@ export function buildFlatInvestmentBlocks(
     documents,
     assetOverview,
     documentsLoading,
+    documentCategory,
+    interimDocumentCount,
+    advisoryDocumentCount,
   );
 
   const flat: InvestmentDetailFlatBlock[] = [];
@@ -1252,6 +1291,9 @@ export function buildAllSectionBlocks(
   documents: InvestorDetailDocumentItem[] = [],
   assetOverview: FundAssetOverviewDto | null = null,
   documentsLoading = false,
+  documentCategory: FundDocumentCategoryId = 'interim',
+  interimDocumentCount = 0,
+  advisoryDocumentCount = 0,
 ): InvestorDetailSectionBlock[] {
   const blocksBySectionId = new Map(
     INVESTMENT_DETAIL_SIDEBAR_SECTIONS.flatMap((section) =>
@@ -1277,6 +1319,9 @@ export function buildAllSectionBlocks(
               documents,
               assetOverview,
               documentsLoading,
+              documentCategory,
+              interimDocumentCount,
+              advisoryDocumentCount,
             ),
           },
         ] as const;
