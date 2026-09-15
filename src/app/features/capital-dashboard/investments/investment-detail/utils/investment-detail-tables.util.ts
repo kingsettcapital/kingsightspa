@@ -43,7 +43,7 @@ import {
 } from '../../../investors/investor-detail/models/investor-detail-table.models';
 import { createDetailTableBlock } from '../../../shared/utils/investor-detail-table-block.util';
 import { withOptionalPeriodColumn } from '../../../shared/utils/transaction-table-period.util';
-import { INVESTMENT_DETAIL_SIDEBAR_SECTIONS } from '../models/investment-detail-sidebar.config';
+import { INVESTMENT_DETAIL_PAGE_SECTION_IDS, INVESTMENT_DETAIL_SIDEBAR_SECTIONS } from '../models/investment-detail-sidebar.config';
 import {
   FUND_OVERVIEW_EMPTY,
   readFundDetailKey,
@@ -1034,6 +1034,7 @@ export function mapFundDocumentsToItems(
 
 function buildDocumentsList(
   documents: InvestorDetailDocumentItem[],
+  loading = false,
 ): InvestorDetailDocumentListBlock {
   return {
     kind: 'document-list',
@@ -1042,6 +1043,7 @@ function buildDocumentsList(
     subtitle: 'Interim / Annual Reports from SharePoint',
     collapsible: true,
     defaultExpanded: true,
+    loading,
     documents: [...documents],
   };
 }
@@ -1098,6 +1100,7 @@ export function buildBlocksForSection(
   financialMetrics: FundFinancialMetricsRow | null = null,
   documents: InvestorDetailDocumentItem[] = [],
   assetOverview: FundAssetOverviewDto | null = null,
+  documentsLoading = false,
 ): InvestorDetailBlock[] {
   switch (sectionId) {
     case 'overview':
@@ -1161,7 +1164,7 @@ export function buildBlocksForSection(
         },
       ];
     case 'documents':
-      return [buildDocumentsList(documents)];
+      return [buildDocumentsList(documents, documentsLoading)];
     // case 'esg-reporting':
     //   return [buildEsgMetricsBlock()];
     // case 'debt-financing':
@@ -1192,6 +1195,7 @@ export function buildFlatInvestmentBlocks(
   financialMetrics: FundFinancialMetricsRow | null = null,
   documents: InvestorDetailDocumentItem[] = [],
   assetOverview: FundAssetOverviewDto | null = null,
+  documentsLoading = false,
 ): InvestmentDetailFlatBlock[] {
   const sections = buildAllSectionBlocks(
     detail,
@@ -1207,6 +1211,7 @@ export function buildFlatInvestmentBlocks(
     financialMetrics,
     documents,
     assetOverview,
+    documentsLoading,
   );
 
   const flat: InvestmentDetailFlatBlock[] = [];
@@ -1246,26 +1251,41 @@ export function buildAllSectionBlocks(
   financialMetrics: FundFinancialMetricsRow | null = null,
   documents: InvestorDetailDocumentItem[] = [],
   assetOverview: FundAssetOverviewDto | null = null,
+  documentsLoading = false,
 ): InvestorDetailSectionBlock[] {
-  return INVESTMENT_DETAIL_SIDEBAR_SECTIONS.flatMap((section) =>
-    section.items.map((item) => ({
-      sectionId: item.id,
-      blocks: buildBlocksForSection(
-        item.id as InvestmentDetailSectionId,
-        detail,
-        assets,
-        assetsPagination,
-        capitalActivities,
-        distributionTable,
-        irr,
-        kpi,
-        timeframe,
-        periodLabel,
-        overview,
-        financialMetrics,
-        documents,
-        assetOverview,
-      ),
-    })),
+  const blocksBySectionId = new Map(
+    INVESTMENT_DETAIL_SIDEBAR_SECTIONS.flatMap((section) =>
+      section.items.map((item) => {
+        const sectionId = item.id as InvestmentDetailSectionId;
+        return [
+          sectionId,
+          {
+            sectionId: item.id,
+            blocks: buildBlocksForSection(
+              sectionId,
+              detail,
+              assets,
+              assetsPagination,
+              capitalActivities,
+              distributionTable,
+              irr,
+              kpi,
+              timeframe,
+              periodLabel,
+              overview,
+              financialMetrics,
+              documents,
+              assetOverview,
+              documentsLoading,
+            ),
+          },
+        ] as const;
+      }),
+    ),
   );
+
+  return INVESTMENT_DETAIL_PAGE_SECTION_IDS.flatMap((sectionId) => {
+    const section = blocksBySectionId.get(sectionId as InvestmentDetailSectionId);
+    return section ? [section] : [];
+  });
 }

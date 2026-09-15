@@ -226,6 +226,7 @@ export interface InvestorDetailDocumentListBlock {
   subtitle?: string;
   collapsible?: boolean;
   defaultExpanded?: boolean;
+  loading?: boolean;
   documents: InvestorDetailDocumentItem[];
 }
 
