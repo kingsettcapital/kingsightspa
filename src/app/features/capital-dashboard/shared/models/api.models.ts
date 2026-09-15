@@ -1340,6 +1340,8 @@ export interface FundDocumentItemDto {
   webUrl?: string | null;
   server_relative_url?: string | null;
   serverRelativeUrl?: string | null;
+  board_book?: string | null;
+  boardBook?: string | null;
 }
 
 export interface FundDocumentsResultDto {

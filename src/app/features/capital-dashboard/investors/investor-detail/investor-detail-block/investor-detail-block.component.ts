@@ -7,12 +7,14 @@ import { AssetTypeSummaryChartComponent } from '../../../assets/asset-detail/ass
 import { formatAssetDisplayCurrency } from '../../../assets/asset-detail/utils/asset-detail-api.util';
 import {
   InvestorDetailBlock,
+  InvestorDetailDocumentItem,
   InvestorDetailFieldColumn,
   InvestorDetailFieldGridBlock,
   InvestorDetailFieldItem,
   InvestorDetailFundMembership,
   InvestorDetailFundMembershipItem,
   InvestorOverviewHighlightMetric,
+  FundDocumentCategoryId,
 } from '../models/investor-detail-block.models';
 import {
   InvestorTransactionCategoryId,
@@ -66,6 +68,7 @@ export class InvestorDetailBlockComponent {
   readonly hubAvailableQuarters = input<number[]>([]);
   readonly hubAvailableYears = input<number[]>([]);
   readonly underlyingInvestmentsPageChange = output<number>();
+  readonly documentCategoryChange = output<FundDocumentCategoryId>();
 
   readonly Math = Math;
 

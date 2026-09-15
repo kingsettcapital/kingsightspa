@@ -219,6 +219,14 @@ export interface InvestorDetailDocumentItem {
   webUrl?: string | null;
 }
 
+export type FundDocumentCategoryId = 'interim' | 'advisory';
+
+export interface InvestorDetailDocumentCategory {
+  id: FundDocumentCategoryId;
+  label: string;
+  count: number;
+}
+
 export interface InvestorDetailDocumentListBlock {
   kind: 'document-list';
   id: string;
@@ -227,6 +235,8 @@ export interface InvestorDetailDocumentListBlock {
   collapsible?: boolean;
   defaultExpanded?: boolean;
   loading?: boolean;
+  categories?: InvestorDetailDocumentCategory[];
+  activeCategoryId?: FundDocumentCategoryId;
   documents: InvestorDetailDocumentItem[];
 }
 

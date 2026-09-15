@@ -28,6 +28,22 @@
         }
       </header>
 
+      @if (current.categories?.length) {
+        <nav class="inv-detail-documents__categories" aria-label="Document categories">
+          @for (category of current.categories; track category.id) {
+            <button
+              type="button"
+              class="inv-detail-documents__category"
+              [class.inv-detail-documents__category--active]="category.id === current.activeCategoryId"
+              (click)="documentCategoryChange.emit(category.id)"
+            >
+              <span>{{ category.label }}</span>
+              <span class="inv-detail-documents__category-count">{{ category.count }}</span>
+            </button>
+          }
+        </nav>
+      }
+
       @if (isExpanded()) {
       @if (current.loading) {
         <div
@@ -51,55 +67,9 @@
               aria-label="Search documents"
             />
           </label>
-          <button
-            type="button"
-            class="cdt-btn cdt-btn--filters inv-detail-block__filter-btn"
-            [class.cdt-btn--filters-active]="documentsFiltersActive()"
-            (click)="toggleFiltersPanel()"
-            [attr.aria-expanded]="filtersPanelVisible()"
-          >
-            <mat-icon aria-hidden="true">filter_alt</mat-icon>
-            <span>Filter</span>
-            @if (documentActiveFilterCount() > 0) {
-              <span class="cdt-btn__badge">{{ documentActiveFilterCount() }}</span>
-            }
-          </button>
         </div>
         <span class="inv-detail-block__count">{{ filteredDocuments().length }} documents</span>
       </div>
-
-      @if (filtersPanelVisible()) {
-        <div class="inv-detail-documents__filters">
-          <div class="cdt-filters-panel">
-            <div class="cdt-filters-bar">
-              <label class="cdt-filters-bar__field">
-                <span class="cdt-filters-bar__label">DOCUMENT TYPE</span>
-                <div class="cdt-filters-bar__select">
-                  <select
-                    [ngModel]="documentTypeFilter()"
-                    (ngModelChange)="documentTypeFilter.set($event)"
-                    aria-label="Document type"
-                  >
-                    @for (option of documentTypeOptions; track option) {
-                      <option [value]="option === 'All Types' ? 'all' : option">{{ option }}</option>
-                    }
-                  </select>
-                  <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
-                </div>
-              </label>
-              @if (documentActiveFilterCount() > 0) {
-                <button
-                  type="button"
-                  class="cdt-filters-bar__clear"
-                  (click)="clearDocumentFilters()"
-                >
-                  × Clear
-                </button>
-              }
-            </div>
-          </div>
-        </div>
-      }
 
       <ul class="inv-detail-block__documents">
         @for (doc of filteredDocuments(); track doc.name) {
@@ -147,6 +117,10 @@
                 </svg>
               </button>
             }
+          </li>
+        } @empty {
+          <li class="inv-detail-documents__empty" role="status">
+            No documents found for this fund.
           </li>
         }
       </ul>

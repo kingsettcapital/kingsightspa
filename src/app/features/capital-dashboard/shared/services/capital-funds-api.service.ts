@@ -92,10 +92,13 @@ export class CapitalFundsApiService {
     );
   }
 
-  getFundDocuments(fundKey: number): Observable<FundDocumentsResultDto | null> {
-    return this.api.get<FundDocumentsResultDto>(`api/Funds/${fundKey}/documents`).pipe(
-      catchError(() => of(null)),
-    );
+  getFundDocuments(
+    fundKey: number,
+    category: 'interim' | 'advisory' = 'interim',
+  ): Observable<FundDocumentsResultDto | null> {
+    return this.api
+      .get<FundDocumentsResultDto>(`api/Funds/${fundKey}/documents`, { category })
+      .pipe(catchError(() => of(null)));
   }
 
   getFundUnderlyingAssetsPage(

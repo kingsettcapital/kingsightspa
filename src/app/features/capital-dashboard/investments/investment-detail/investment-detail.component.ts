@@ -38,7 +38,7 @@ import {
 } from '../../shared/utils/transaction-table-period.util';
 import { InvestorDetailSidebarComponent } from '../../investors/investor-detail/investor-detail-sidebar/investor-detail-sidebar.component';
 import { InvestorDetailBlockComponent } from '../../investors/investor-detail/investor-detail-block/investor-detail-block.component';
-import { InvestorDetailBlock, InvestorDetailDocumentItem } from '../../investors/investor-detail/models/investor-detail-block.models';
+import { InvestorDetailBlock, InvestorDetailDocumentItem, FundDocumentCategoryId } from '../../investors/investor-detail/models/investor-detail-block.models';
 import { FundsApiActions } from '../../store';
 import { selectFundsDetail } from '../../store/capital-dashboard.selectors';
 import {
@@ -122,10 +122,23 @@ export class InvestmentDetailComponent {
   readonly listRow = signal<FundTableRow | null>(null);
   readonly returnToInvestor = signal<InvestorReturnContext | null>(null);
   readonly financialMetrics = signal<FundFinancialMetricsRow | null>(null);
-  readonly fundDocuments = signal<InvestorDetailDocumentItem[]>([]);
-  readonly fundDocumentsLoading = signal(false);
+  readonly documentCategory = signal<FundDocumentCategoryId>('interim');
+  readonly interimDocuments = signal<InvestorDetailDocumentItem[]>([]);
+  readonly advisoryDocuments = signal<InvestorDetailDocumentItem[]>([]);
+  readonly interimDocumentsLoading = signal(false);
+  readonly advisoryDocumentsLoading = signal(false);
   readonly assetOverview = signal<FundAssetOverviewDto | null>(null);
   private lastFinancialMetricsLoadKey = '';
+
+  readonly activeDocuments = computed(() =>
+    this.documentCategory() === 'advisory' ? this.advisoryDocuments() : this.interimDocuments(),
+  );
+
+  readonly activeDocumentsLoading = computed(() =>
+    this.documentCategory() === 'advisory'
+      ? this.advisoryDocumentsLoading()
+      : this.interimDocumentsLoading(),
+  );
 
   readonly backLinkLabel = computed(() => {
     const investor = this.returnToInvestor();
@@ -399,9 +412,12 @@ export class InvestmentDetailComponent {
       this.periodLabel(),
       overview,
       this.financialMetrics(),
-      this.fundDocuments(),
+      this.activeDocuments(),
       this.assetOverview(),
-      this.fundDocumentsLoading(),
+      this.activeDocumentsLoading(),
+      this.documentCategory(),
+      this.interimDocuments().length,
+      this.advisoryDocuments().length,
     );
 
     return base.map((item) => {
@@ -875,6 +891,7 @@ export class InvestmentDetailComponent {
   private loadFundData(fundKey: number): void {
     this.store.dispatch(FundsApiActions.loadDetail({ fundKey }));
     this.loadFundAssetsPage(1);
+    this.documentCategory.set('interim');
     this.loadFundDocuments(fundKey);
     this.loadFundAssetOverview(fundKey);
     this.lastFinancialMetricsLoadKey = '';
@@ -904,21 +921,36 @@ export class InvestmentDetailComponent {
   }
 
   private loadFundDocuments(fundKey: number): void {
-    this.fundDocuments.set([]);
-    this.fundDocumentsLoading.set(true);
+    this.loadDocumentsCategory(fundKey, 'interim');
+    this.loadDocumentsCategory(fundKey, 'advisory');
+  }
+
+  private loadDocumentsCategory(fundKey: number, category: FundDocumentCategoryId): void {
+    const loading = category === 'advisory' ? this.advisoryDocumentsLoading : this.interimDocumentsLoading;
+    const docs = category === 'advisory' ? this.advisoryDocuments : this.interimDocuments;
+
+    docs.set([]);
+    loading.set(true);
     this.fundsApi
-      .getFundDocuments(fundKey)
+      .getFundDocuments(fundKey, category)
       .pipe(take(1))
       .subscribe({
         next: (result) => {
-          this.fundDocuments.set(mapFundDocumentsToItems(result));
-          this.fundDocumentsLoading.set(false);
+          docs.set(mapFundDocumentsToItems(result));
+          loading.set(false);
         },
         error: () => {
-          this.fundDocuments.set([]);
-          this.fundDocumentsLoading.set(false);
+          docs.set([]);
+          loading.set(false);
         },
       });
+  }
+
+  onDocumentCategoryChange(categoryId: FundDocumentCategoryId): void {
+    if (this.documentCategory() === categoryId) {
+      return;
+    }
+    this.documentCategory.set(categoryId);
   }
 
   private loadFundAssetsPage(page: number): void {
