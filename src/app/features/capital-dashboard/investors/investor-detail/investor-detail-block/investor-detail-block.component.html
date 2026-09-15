@@ -29,6 +29,16 @@
       </header>
 
       @if (isExpanded()) {
+      @if (current.loading) {
+        <div
+          class="inv-detail-documents__loading"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="inv-detail-table__spinner" aria-hidden="true"></div>
+          <p>Documents loading…</p>
+        </div>
+      } @else {
       <div class="inv-detail-documents__toolbar-row">
         <div class="inv-detail-documents__toolbar-main">
           <label class="inv-detail-block__search inv-detail-block__search--pill inv-detail-block__search--documents">
@@ -140,6 +150,7 @@
           </li>
         }
       </ul>
+      }
       }
     </div>
   </section>

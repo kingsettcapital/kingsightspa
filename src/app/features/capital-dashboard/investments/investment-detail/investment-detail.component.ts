@@ -123,6 +123,7 @@ export class InvestmentDetailComponent {
   readonly returnToInvestor = signal<InvestorReturnContext | null>(null);
   readonly financialMetrics = signal<FundFinancialMetricsRow | null>(null);
   readonly fundDocuments = signal<InvestorDetailDocumentItem[]>([]);
+  readonly fundDocumentsLoading = signal(false);
   readonly assetOverview = signal<FundAssetOverviewDto | null>(null);
   private lastFinancialMetricsLoadKey = '';
 
@@ -400,6 +401,7 @@ export class InvestmentDetailComponent {
       this.financialMetrics(),
       this.fundDocuments(),
       this.assetOverview(),
+      this.fundDocumentsLoading(),
     );
 
     return base.map((item) => {
@@ -903,11 +905,19 @@ export class InvestmentDetailComponent {
 
   private loadFundDocuments(fundKey: number): void {
     this.fundDocuments.set([]);
+    this.fundDocumentsLoading.set(true);
     this.fundsApi
       .getFundDocuments(fundKey)
       .pipe(take(1))
-      .subscribe((result) => {
-        this.fundDocuments.set(mapFundDocumentsToItems(result));
+      .subscribe({
+        next: (result) => {
+          this.fundDocuments.set(mapFundDocumentsToItems(result));
+          this.fundDocumentsLoading.set(false);
+        },
+        error: () => {
+          this.fundDocuments.set([]);
+          this.fundDocumentsLoading.set(false);
+        },
       });
   }
 
