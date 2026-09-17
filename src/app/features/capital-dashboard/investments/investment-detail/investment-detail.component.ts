@@ -902,8 +902,11 @@ export class InvestmentDetailComponent {
     view: 'ltd' | 'quarterly',
     dateKey: number | null,
   ): void {
+    // TVF expects 'ITD' or a single quarter label (e.g. 'Q2 2026').
+    const period =
+      view === 'quarterly' && dateKey != null ? this.periodLabel() : 'ITD';
     this.fundsApi
-      .getFundFinancialMetrics(fundKey, { view, dateKey })
+      .getFundFinancialMetrics(fundKey, { view, dateKey, period })
       .pipe(take(1))
       .subscribe((dto) => {
         this.financialMetrics.set(mapFundFinancialMetricsToRow(dto));

@@ -1464,6 +1464,7 @@ export interface AssetDetailCacheEntry {
   propertyDetails: AssetPropertyDetailTabRow[];
   assetTypeSummary: AssetTypeSummaryRow[];
   financialMetrics: AssetFinancialMetricsRow | null;
+  financialMetricsAt100: AssetFinancialMetricsRow | null;
   acquisitionSale: AssetAcquisitionSaleRow | null;
 }
 

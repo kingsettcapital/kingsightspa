@@ -11,10 +11,12 @@ import {
   InvestorDetailDocumentListBlock,
   InvestorDetailEsgMetricsBlock,
   InvestorDetailFieldGridBlock,
+  InvestorDetailFieldItem,
   InvestorDetailAssetTypeSummaryBlock,
   InvestorDetailAcquisitionSaleBlock,
   InvestorDetailFinancialMetricsBlock,
   InvestorDetailLeasingSummaryBlock,
+  InvestorDetailRiskFlag,
   InvestorDetailRiskInsuranceBlock,
   InvestorDetailTableBlock,
 } from '../../../investors/investor-detail/models/investor-detail-block.models';
@@ -375,7 +377,12 @@ function buildAcquisitionSaleBlock(
   data: AssetAcquisitionSaleRow | null,
 ): InvestorDetailAcquisitionSaleBlock {
   const currency = (value: number | null | undefined) => formatAssetDisplayCurrency(value, true);
-  const percent = (value: number | null | undefined) => formatAssetDisplayPercent(value);
+  const ratioPercent = (value: number | null | undefined) => {
+    if (value == null || !Number.isFinite(value)) {
+      return formatAssetDisplayPercent(value);
+    }
+    return formatAssetDisplayPercent(Math.abs(value) <= 1 ? value * 100 : value);
+  };
   const text = (value: string | null | undefined) => formatAssetDisplayString(value ?? '');
   const acquisition = data?.acquisition ?? null;
   const sale = data?.sale ?? null;
@@ -395,7 +402,7 @@ function buildAcquisitionSaleBlock(
       { label: 'Equity', value: currency(acquisition?.atAcquisitionEquity) },
       { label: 'Total Asset Value', value: currency(acquisition?.atAcquisitionTotalAssetValue) },
       { label: 'Purchase Costs', value: currency(acquisition?.atAcquisitionPurchaseCosts) },
-      { label: 'LTV', value: percent(acquisition?.atAcquisitionLtv) },
+      { label: 'LTV', value: ratioPercent(acquisition?.atAcquisitionLtv) },
     ],
     rightTitle: 'At Sale',
     rightItems: [
@@ -406,7 +413,7 @@ function buildAcquisitionSaleBlock(
       { label: 'Equity', value: currency(sale?.atSaleEquity) },
       { label: 'Total Asset Value', value: currency(sale?.atSaleTotalAssetValue) },
       { label: 'Selling Costs', value: currency(sale?.atSaleSellingCosts) },
-      { label: 'LTV', value: percent(sale?.atSaleLtv) },
+      { label: 'LTV', value: ratioPercent(sale?.atSaleLtv) },
       { label: 'NOI', value: currency(sale?.atSaleNoi) },
     ],
   };
@@ -414,16 +421,12 @@ function buildAcquisitionSaleBlock(
 
 function buildFinancialMetricsBlock(
   metrics: AssetFinancialMetricsRow | null,
+  metricsAt100: AssetFinancialMetricsRow | null = null,
 ): InvestorDetailFinancialMetricsBlock {
-  const currency = (value: number | null | undefined) => formatAssetDisplayCurrency(value, true);
-  const percent = (value: number | null | undefined) => formatAssetDisplayPercent(value);
-  const text = (value: string | null | undefined) => formatAssetDisplayString(value ?? '');
-  const scalableCurrency = (label: string, amount: number | null | undefined) => ({
-    label,
-    value: currency(amount),
-    atShareAmount: amount ?? null,
-    scaleWithOwnership: true,
-  });
+  const atShare = buildFinancialMetricsFieldSets(metrics);
+  const at100 = buildFinancialMetricsFieldSets(metricsAt100);
+  const ownershipPct =
+    metrics?.assetKsOwnershipPct ?? metricsAt100?.assetKsOwnershipPct ?? null;
 
   return {
     kind: 'financial-metrics',
@@ -431,33 +434,64 @@ function buildFinancialMetricsBlock(
     title: 'Financial Metrics',
     collapsible: true,
     defaultExpanded: true,
-    ownershipPct: metrics?.assetKsOwnershipPct ?? null,
+    ownershipPct,
+    showShareToggle: true,
+    /** Prefer warehouse TVF pairs over client-side gross-up. */
+    shareVariants:
+      metrics != null || metricsAt100 != null
+        ? {
+            atShare,
+            at100,
+          }
+        : undefined,
+    leftItems: atShare.leftItems,
+    rightItems: atShare.rightItems,
+  };
+}
+
+function buildFinancialMetricsFieldSets(metrics: AssetFinancialMetricsRow | null): {
+  leftItems: InvestorDetailFieldItem[];
+  rightItems: InvestorDetailRiskFlag[];
+} {
+  const currency = (value: number | null | undefined) => formatAssetDisplayCurrency(value, true);
+  const percent = (value: number | null | undefined) => formatAssetDisplayPercent(value);
+  const ratioPercent = (value: number | null | undefined) => {
+    if (value == null || !Number.isFinite(value)) {
+      return formatAssetDisplayPercent(value);
+    }
+    return formatAssetDisplayPercent(Math.abs(value) <= 1 ? value * 100 : value);
+  };
+  const text = (value: string | null | undefined) => formatAssetDisplayString(value ?? '');
+
+  return {
     leftItems: [
       { label: 'Fund Code', value: text(metrics?.fundCode) },
       { label: 'As of Date', value: text(metrics?.asOfDate) },
       { label: 'KS Ownership %', value: percent(metrics?.assetKsOwnershipPct) },
-      scalableCurrency('Gross Market Value', metrics?.assetGrossMarketValue),
-      scalableCurrency('Total Asset Value', metrics?.assetTotalAssetValue),
-      scalableCurrency('GAV Amount', metrics?.assetGavAmount),
-      scalableCurrency('NAV Amount', metrics?.assetNavAmount),
-      scalableCurrency('Debt', metrics?.assetDebt),
-      scalableCurrency('Equity', metrics?.assetEquity),
-      { label: 'LTV', value: percent(metrics?.assetLtv) },
-      scalableCurrency('Cash at Quarter End', metrics?.assetCashAtQuarterEnd),
-      scalableCurrency('Current Cost', metrics?.currentCostAmount),
-      scalableCurrency('Cost Basis', metrics?.costBasisAmount),
+      { label: 'JV Partner', value: text(metrics?.assetJvPartner) },
+      { label: 'JV %', value: ratioPercent(metrics?.assetJvPct) },
+      { label: 'Gross Market Value', value: currency(metrics?.assetGrossMarketValue) },
+      { label: 'Total Asset Value', value: currency(metrics?.assetTotalAssetValue) },
+      { label: 'GAV Amount', value: currency(metrics?.assetGavAmount) },
+      { label: 'NAV Amount', value: currency(metrics?.assetNavAmount) },
+      { label: 'Debt', value: currency(metrics?.assetDebt) },
+      { label: 'Equity', value: currency(metrics?.assetEquity) },
+      { label: 'LTV', value: ratioPercent(metrics?.assetLtv) },
+      { label: 'Cash at Quarter End', value: currency(metrics?.assetCashAtQuarterEnd) },
+      { label: 'Current Cost (Book)', value: currency(metrics?.currentCostAmount) },
     ],
     rightItems: [
-      scalableCurrency('NOI', metrics?.assetNoi),
-      scalableCurrency('FFO', metrics?.assetFfo),
-      scalableCurrency('CapEx', metrics?.assetCapex),
-      { label: 'CapEx % NOI', value: percent(metrics?.assetCapexPctNoi) },
-      scalableCurrency('Total NOI Growth', metrics?.totalNoiGrowthAmount),
-      { label: 'Total NOI Growth %', value: percent(metrics?.totalNoiGrowthPct) },
-      scalableCurrency('Budgeted NOI (Current Year)', metrics?.budgetedNoiCurrentYear),
-      scalableCurrency('Forecasted NOI (Current Year)', metrics?.forecastedNoiCurrentYear),
-      scalableCurrency('Budgeted FFO', metrics?.budgetedFfo),
-      scalableCurrency('Forecasted FFO', metrics?.forecastedFfo),
+      { label: 'NOI', value: currency(metrics?.assetNoi) },
+      { label: 'Prior Year Same Period', value: currency(metrics?.assetPriorYearSamePeriod) },
+      { label: 'Prior Year End NOI', value: currency(metrics?.assetPriorYearEndNoi) },
+      { label: 'FFO', value: currency(metrics?.assetFfo) },
+      { label: 'CapEx', value: currency(metrics?.assetCapex) },
+      { label: 'CapEx % NOI', value: ratioPercent(metrics?.assetCapexPctNoi) },
+      { label: 'Net Income', value: currency(metrics?.assetNetIncome) },
+      { label: 'Total NOI Growth', value: currency(metrics?.totalNoiGrowthAmount) },
+      { label: 'Total NOI Growth %', value: ratioPercent(metrics?.totalNoiGrowthPct) },
+      { label: 'Budgeted NOI (Current Year)', value: currency(metrics?.budgetedNoiCurrentYear) },
+      { label: 'Forecasted NOI (Current Year)', value: currency(metrics?.forecastedNoiCurrentYear) },
     ],
   };
 }
@@ -616,6 +650,7 @@ export function buildBlocksForSection(
   propertyDetails: AssetPropertyDetailTabRow[],
   assetTypeSummary: AssetTypeSummaryRow[],
   financialMetrics: AssetFinancialMetricsRow | null,
+  financialMetricsAt100: AssetFinancialMetricsRow | null,
   acquisitionSale: AssetAcquisitionSaleRow | null,
 ): InvestorDetailBlock[] {
   switch (sectionId) {
@@ -630,7 +665,7 @@ export function buildBlocksForSection(
     case 'leasing':
       return [buildLeasingSummary(leasingSummary)];
     case 'financial-metrics':
-      return [buildFinancialMetricsBlock(financialMetrics)];
+      return [buildFinancialMetricsBlock(financialMetrics, financialMetricsAt100)];
     case 'fund-holdings':
       return [buildAssetFundHoldingsTable(fundHoldings)];
     case 'transactions':
@@ -655,6 +690,7 @@ export function buildFlatAssetBlocks(
   propertyDetails: AssetPropertyDetailTabRow[],
   assetTypeSummary: AssetTypeSummaryRow[],
   financialMetrics: AssetFinancialMetricsRow | null,
+  financialMetricsAt100: AssetFinancialMetricsRow | null,
   acquisitionSale: AssetAcquisitionSaleRow | null,
 ): AssetDetailFlatBlock[] {
   const sections = ASSET_DETAIL_SIDEBAR_SECTIONS.flatMap((section) =>
@@ -670,6 +706,7 @@ export function buildFlatAssetBlocks(
         propertyDetails,
         assetTypeSummary,
         financialMetrics,
+        financialMetricsAt100,
         acquisitionSale,
       ),
     })),

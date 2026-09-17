@@ -174,6 +174,7 @@ export class AssetDetailComponent {
       state.propertyDetails,
       state.assetTypeSummary,
       state.financialMetrics,
+      state.financialMetricsAt100,
       state.acquisitionSale,
     );
   });
@@ -181,22 +182,6 @@ export class AssetDetailComponent {
   readonly formatAssetKpiHint = formatAssetKpiHint;
 
   constructor() {
-    this.route.paramMap
-      .pipe(
-        map((params) => Number(params.get('propertyKey'))),
-        takeUntilDestroyed(),
-      )
-      .subscribe((propertyKey) => {
-        if (!Number.isFinite(propertyKey) || propertyKey <= 0) {
-          void this.router.navigate(['/capital-dashboard/asset']);
-          return;
-        }
-
-        this.propertyKey.set(propertyKey);
-        this.store.dispatch(AssetsApiActions.loadDetail({ propertyKey }));
-        this.store.dispatch(AssetsApiActions.loadFundHoldings({ propertyKey }));
-      });
-
     const navigationState = (history.state ?? {}) as {
       assetRow?: AssetTableRow;
       reportingPeriod?: string;
@@ -220,6 +205,27 @@ export class AssetDetailComponent {
     if (navigationState.listYear != null) {
       this.listYear.set(navigationState.listYear);
     }
+
+    this.route.paramMap
+      .pipe(
+        map((params) => Number(params.get('propertyKey'))),
+        takeUntilDestroyed(),
+      )
+      .subscribe((propertyKey) => {
+        if (!Number.isFinite(propertyKey) || propertyKey <= 0) {
+          void this.router.navigate(['/capital-dashboard/asset']);
+          return;
+        }
+
+        this.propertyKey.set(propertyKey);
+        this.store.dispatch(
+          AssetsApiActions.loadDetail({
+            propertyKey,
+            period: this.reportingPeriod(),
+          }),
+        );
+        this.store.dispatch(AssetsApiActions.loadFundHoldings({ propertyKey }));
+      });
 
     this.destroyRef.onDestroy(() => {
       this.store.dispatch(AssetsApiActions.clearDetail());

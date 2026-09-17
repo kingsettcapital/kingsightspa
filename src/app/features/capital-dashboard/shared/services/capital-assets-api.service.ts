@@ -66,16 +66,56 @@ export class CapitalAssetsApiService {
     return this.api.get<AssetTypeSummaryDto[]>(`api/Assets/${propertyKey}/asset-type-summary`);
   }
 
-  getAssetFinancialMetrics(propertyKey: number): Observable<AssetFinancialMetricsDto | null> {
-    return this.api.get<AssetFinancialMetricsDto>(`api/Assets/${propertyKey}/financial-metrics`).pipe(
-      catchError(() => of(null)),
-    );
+  getAssetFinancialMetrics(
+    propertyKey: number,
+    options: {
+      period?: string | null;
+      view?: 'ltd' | 'quarterly';
+      dateKey?: number | null;
+      shareBasis?: 'ks' | 'full';
+    } = {},
+  ): Observable<AssetFinancialMetricsDto | null> {
+    const query: Record<string, string | number> = {};
+    const period = options.period?.trim();
+    if (period) {
+      query['period'] = period;
+    }
+    if (options.view) {
+      query['view'] = options.view;
+    }
+    if (options.dateKey != null && options.dateKey > 0) {
+      query['dateKey'] = options.dateKey;
+    }
+    if (options.shareBasis) {
+      query['shareBasis'] = options.shareBasis;
+    }
+    return this.api
+      .get<AssetFinancialMetricsDto>(`api/Assets/${propertyKey}/financial-metrics`, query as any)
+      .pipe(catchError(() => of(null)));
   }
 
-  getAssetAcquisitionSale(propertyKey: number): Observable<AssetAcquisitionSaleDto | null> {
-    return this.api.get<AssetAcquisitionSaleDto>(`api/Assets/${propertyKey}/acquisition-sale`).pipe(
-      catchError(() => of(null)),
-    );
+  getAssetAcquisitionSale(
+    propertyKey: number,
+    options: {
+      period?: string | null;
+      view?: 'ltd' | 'quarterly';
+      dateKey?: number | null;
+    } = {},
+  ): Observable<AssetAcquisitionSaleDto | null> {
+    const query: Record<string, string | number> = {};
+    const period = options.period?.trim();
+    if (period) {
+      query['period'] = period;
+    }
+    if (options.view) {
+      query['view'] = options.view;
+    }
+    if (options.dateKey != null && options.dateKey > 0) {
+      query['dateKey'] = options.dateKey;
+    }
+    return this.api
+      .get<AssetAcquisitionSaleDto>(`api/Assets/${propertyKey}/acquisition-sale`, query as any)
+      .pipe(catchError(() => of(null)));
   }
 
   getAssetsForFundPage(

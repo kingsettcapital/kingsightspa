@@ -286,9 +286,29 @@ export interface InvestorDetailFinancialMetricsBlock {
   defaultExpanded?: boolean;
   /**
    * KS ownership as a display percent (e.g. 37.5 for 37.5%).
-   * Used by the At Share / 100% toggle to gross up scalable currency fields.
+   * Used by the At Share / 100% toggle to gross up scalable currency fields
+   * when warehouse shareVariants are not provided.
    */
   ownershipPct: number | null;
+  /**
+   * When true, always show KS Share / At 100% toggle (asset drill-down).
+   * Fund financial metrics set this false — only one warehouse basis exists.
+   */
+  showShareToggle?: boolean;
+  /**
+   * Optional warehouse-backed KS Share vs At 100% field sets
+   * (<c>fn_asset_financial_ks</c> / <c>fn_asset_financial_100pct</c>).
+   */
+  shareVariants?: {
+    atShare: {
+      leftItems: InvestorDetailFieldItem[];
+      rightItems: InvestorDetailRiskFlag[];
+    };
+    at100: {
+      leftItems: InvestorDetailFieldItem[];
+      rightItems: InvestorDetailRiskFlag[];
+    };
+  };
   leftItems: InvestorDetailFieldItem[];
   rightItems: InvestorDetailRiskFlag[];
 }

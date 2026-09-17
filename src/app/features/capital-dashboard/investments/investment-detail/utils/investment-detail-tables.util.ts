@@ -933,12 +933,6 @@ function buildFundFinancialMetricsBlock(
   const percent = (value: number | null | undefined) => formatAssetDisplayPercent(value);
   const text = (value: string | null | undefined) => formatAssetDisplayString(value ?? '');
   const count = (value: number | null | undefined) => formatAssetDisplayCount(value);
-  const scalableCurrency = (label: string, amount: number | null | undefined) => ({
-    label,
-    value: currency(amount),
-    atShareAmount: amount ?? null,
-    scaleWithOwnership: true,
-  });
 
   return {
     kind: 'financial-metrics',
@@ -947,25 +941,27 @@ function buildFundFinancialMetricsBlock(
     collapsible: true,
     defaultExpanded: true,
     ownershipPct: null,
+    showShareToggle: false,
     leftItems: [
       { label: 'Fund Code', value: text(metrics?.fundCode) },
       { label: 'As of Date', value: text(metrics?.asOfDate) },
-      scalableCurrency('Gross Market Value', metrics?.fundGrossMarketValue),
-      scalableCurrency('Total Asset Value', metrics?.fundTotalAssetValue),
-      scalableCurrency('GAV Amount', metrics?.fundGavAmount),
-      scalableCurrency('NAV Amount', metrics?.fundNavAmount),
-      scalableCurrency('Debt', metrics?.fundDebt),
-      scalableCurrency('Equity', metrics?.fundEquity),
+      { label: 'Gross Market Value', value: currency(metrics?.fundGrossMarketValue) },
+      { label: 'Total Asset Value', value: currency(metrics?.fundTotalAssetValue) },
+      { label: 'GAV Amount', value: currency(metrics?.fundGavAmount) },
+      { label: 'NAV Amount', value: currency(metrics?.fundNavAmount) },
+      { label: 'Debt', value: currency(metrics?.fundDebt) },
+      { label: 'Equity', value: currency(metrics?.fundEquity) },
       { label: 'LTV', value: percent(metrics?.fundLtv) },
-      scalableCurrency('Cash at Quarter End', metrics?.fundCashAtQuarterEnd),
+      { label: 'Cash at Quarter End', value: currency(metrics?.fundCashAtQuarterEnd) },
       { label: 'Total Number JV Partners', value: count(metrics?.jvPartnersCount) },
-      scalableCurrency('JV Investments Amount', metrics?.jvInvestmentsAmount),
+      { label: 'JV Investments Amount', value: currency(metrics?.jvInvestmentsAmount) },
       { label: 'JV Investments % of GAV', value: percent(metrics?.jvInvestmentsPctOfGav) },
     ],
     rightItems: [
-      scalableCurrency('NOI', metrics?.fundNoi),
-      scalableCurrency('FFO', metrics?.fundFfo),
-      scalableCurrency('CapEx', metrics?.fundCapex),
+      { label: 'NOI', value: currency(metrics?.fundNoi) },
+      { label: 'FFO', value: currency(metrics?.fundFfo) },
+      { label: 'CapEx', value: currency(metrics?.fundCapex) },
+      { label: 'Net Income', value: currency(metrics?.fundNetIncome) },
       { label: 'Assets Held', value: count(metrics?.assetHeldCount) },
       { label: 'Properties Held', value: count(metrics?.propertyHeldCount) },
     ],
