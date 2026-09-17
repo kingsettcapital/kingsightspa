@@ -657,7 +657,7 @@ export const AssetsApiActions = createActionGroup({
     'Load List Success': props<{ result: AssetsPagedResult; replace: boolean }>(),
     'Load List Failure': props<{ error: string }>(),
     'Load List More': emptyProps(),
-    'Load Detail': props<{ propertyKey: number }>(),
+    'Load Detail': props<{ propertyKey: number; period?: string | null }>(),
     'Load Detail Success': props<{
       propertyKey: number;
       detail: PropertyDetailDto;
@@ -665,6 +665,7 @@ export const AssetsApiActions = createActionGroup({
       propertyDetails: AssetPropertyDetailTabRow[];
       assetTypeSummary: AssetTypeSummaryRow[];
       financialMetrics: AssetFinancialMetricsRow | null;
+      financialMetricsAt100: AssetFinancialMetricsRow | null;
       acquisitionSale: AssetAcquisitionSaleRow | null;
     }>(),
     'Load Detail Failure': props<{ error: string }>(),

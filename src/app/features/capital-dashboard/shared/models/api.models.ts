@@ -1198,8 +1198,14 @@ export interface AssetFinancialMetricsDto {
   assetName?: string | null;
   as_of_date?: string | null;
   asOfDate?: string | null;
+  quarter_year?: string | null;
+  quarterYear?: string | null;
   asset_ks_ownership_pct?: number | null;
   assetKsOwnershipPct?: number | null;
+  asset_jv_partner?: string | null;
+  assetJvPartner?: string | null;
+  asset_jv_pct?: number | null;
+  assetJvPct?: number | null;
   asset_cash_at_quarter_end?: number | null;
   assetCashAtQuarterEnd?: number | null;
   asset_total_asset_value?: number | null;
@@ -1210,6 +1216,10 @@ export interface AssetFinancialMetricsDto {
   assetEquity?: number | null;
   asset_noi?: number | null;
   assetNoi?: number | null;
+  asset_prior_year_same_period?: number | null;
+  assetPriorYearSamePeriod?: number | null;
+  asset_prior_year_end_noi?: number | null;
+  assetPriorYearEndNoi?: number | null;
   asset_ffo?: number | null;
   assetFfo?: number | null;
   asset_ncf?: number | null;
@@ -1228,6 +1238,8 @@ export interface AssetFinancialMetricsDto {
   assetGrossMarketValue?: number | null;
   asset_gav_amount?: number | null;
   assetGavAmount?: number | null;
+  asset_net_income?: number | null;
+  assetNetIncome?: number | null;
   asset_ltv?: number | null;
   assetLtv?: number | null;
   asset_affo?: number | null;
@@ -1244,6 +1256,8 @@ export interface AssetFinancialMetricsDto {
   sameStoreNoiGrowthPct?: number | null;
   current_cost_amount?: number | null;
   currentCostAmount?: number | null;
+  current_cost_book_value?: number | null;
+  currentCostBookValue?: number | null;
   cost_basis_amount?: number | null;
   costBasisAmount?: number | null;
   budgeted_noi_current_year?: number | null;
@@ -1283,6 +1297,8 @@ export interface FundFinancialMetricsDto {
   fundCapex?: number | null;
   fund_nav_amount?: number | null;
   fundNavAmount?: number | null;
+  fund_net_income?: number | null;
+  fundNetIncome?: number | null;
   fund_ebitda?: number | null;
   fundEbitda?: number | null;
   fund_revenue?: number | null;

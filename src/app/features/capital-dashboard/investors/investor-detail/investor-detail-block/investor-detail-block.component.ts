@@ -124,11 +124,55 @@ export class InvestorDetailBlockComponent {
     this.financialMetricsShareBasis.set(basis);
   }
 
+  financialMetricsLeftItems(): Array<{
+    label: string;
+    value: string;
+    atShareAmount?: number | null;
+    scaleWithOwnership?: boolean;
+  }> {
+    const block = this.block();
+    if (block.kind !== 'financial-metrics') {
+      return [];
+    }
+    const variants = block.shareVariants;
+    if (!variants) {
+      return block.leftItems;
+    }
+    return this.financialMetricsShareBasis() === 'full'
+      ? variants.at100.leftItems
+      : variants.atShare.leftItems;
+  }
+
+  financialMetricsRightItems(): Array<{
+    label: string;
+    value: string;
+    tone?: string;
+    atShareAmount?: number | null;
+    scaleWithOwnership?: boolean;
+  }> {
+    const block = this.block();
+    if (block.kind !== 'financial-metrics') {
+      return [];
+    }
+    const variants = block.shareVariants;
+    if (!variants) {
+      return block.rightItems;
+    }
+    return this.financialMetricsShareBasis() === 'full'
+      ? variants.at100.rightItems
+      : variants.atShare.rightItems;
+  }
+
   financialMetricDisplayValue(item: {
     value: string;
     atShareAmount?: number | null;
     scaleWithOwnership?: boolean;
   }): string {
+    const block = this.block();
+    if (block.kind === 'financial-metrics' && block.shareVariants != null) {
+      return item.value;
+    }
+
     if (
       this.financialMetricsShareBasis() !== 'full' ||
       !item.scaleWithOwnership ||
@@ -138,7 +182,6 @@ export class InvestorDetailBlockComponent {
       return item.value;
     }
 
-    const block = this.block();
     if (block.kind !== 'financial-metrics') {
       return item.value;
     }

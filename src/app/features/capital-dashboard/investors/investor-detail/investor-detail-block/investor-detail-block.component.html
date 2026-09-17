@@ -173,7 +173,7 @@
         </div>
 
         <div class="inv-detail-block__header-actions">
-        @if (current.kind === 'financial-metrics' && current.ownershipPct != null) {
+        @if (current.kind === 'financial-metrics' && current.showShareToggle === true) {
           <div class="cdt-toggle cdt-toggle--compact" role="group" aria-label="Financial metrics share basis">
             <button
               type="button"
@@ -181,7 +181,7 @@
               [class.cdt-toggle__btn--active]="financialMetricsShareBasis() === 'at-share'"
               (click)="setFinancialMetricsShareBasis('at-share')"
             >
-              At Share
+              KS Share
             </button>
             <button
               type="button"
@@ -189,7 +189,7 @@
               [class.cdt-toggle__btn--active]="financialMetricsShareBasis() === 'full'"
               (click)="setFinancialMetricsShareBasis('full')"
             >
-              100%
+              At 100%
             </button>
           </div>
         }
@@ -1434,7 +1434,7 @@
             <div class="inv-detail-block__risk">
               <div class="inv-detail-block__risk-column inv-detail-block__risk-column--coverage">
                 <dl class="inv-detail-block__risk-list">
-                  @for (item of current.leftItems; track item.label) {
+                  @for (item of financialMetricsLeftItems(); track item.label) {
                     <div class="inv-detail-block__risk-item inv-detail-block__risk-item--stacked">
                       <dt>{{ item.label }}</dt>
                       <dd>{{ financialMetricDisplayValue(item) }}</dd>
@@ -1444,7 +1444,7 @@
               </div>
               <div class="inv-detail-block__risk-column inv-detail-block__risk-column--flags">
                 <dl class="inv-detail-block__risk-list">
-                  @for (item of current.rightItems; track item.label) {
+                  @for (item of financialMetricsRightItems(); track item.label) {
                     <div class="inv-detail-block__risk-item">
                       <dt>{{ item.label }}</dt>
                       <dd [class]="riskFlagClass(item.tone)">{{ financialMetricDisplayValue(item) }}</dd>

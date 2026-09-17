@@ -4171,6 +4171,7 @@ export const capitalDashboardFeature = createFeature({
               propertyDetailsError: null,
               assetTypeSummary: [...(cached.assetTypeSummary ?? [])],
               financialMetrics: cached.financialMetrics ?? null,
+              financialMetricsAt100: cached.financialMetricsAt100 ?? null,
               acquisitionSale: cached.acquisitionSale ?? null,
               ...fundHoldingsReset,
               loading: false,
@@ -4192,6 +4193,7 @@ export const capitalDashboardFeature = createFeature({
             propertyDetailsError: null,
             assetTypeSummary: [],
             financialMetrics: null,
+            financialMetricsAt100: null,
             acquisitionSale: null,
             ...fundHoldingsReset,
             loading: true,
@@ -4200,7 +4202,7 @@ export const capitalDashboardFeature = createFeature({
         },
       };
     }),
-    on(AssetsApiActions.loadDetailSuccess, (state, { propertyKey, detail, leasingSummary, propertyDetails, assetTypeSummary, financialMetrics, acquisitionSale }) => ({
+    on(AssetsApiActions.loadDetailSuccess, (state, { propertyKey, detail, leasingSummary, propertyDetails, assetTypeSummary, financialMetrics, financialMetricsAt100, acquisitionSale }) => ({
       ...state,
       assets: {
         ...state.assets,
@@ -4214,6 +4216,7 @@ export const capitalDashboardFeature = createFeature({
           propertyDetailsError: null,
           assetTypeSummary: [...assetTypeSummary],
           financialMetrics,
+          financialMetricsAt100,
           acquisitionSale,
           loading: false,
           error: null,
@@ -4228,6 +4231,7 @@ export const capitalDashboardFeature = createFeature({
               propertyDetails: [...propertyDetails],
               assetTypeSummary: [...assetTypeSummary],
               financialMetrics,
+              financialMetricsAt100,
               acquisitionSale,
             },
           },
@@ -4246,6 +4250,7 @@ export const capitalDashboardFeature = createFeature({
           propertyDetailsLoading: false,
           assetTypeSummary: [],
           financialMetrics: null,
+          financialMetricsAt100: null,
           acquisitionSale: null,
           loading: false,
           error,

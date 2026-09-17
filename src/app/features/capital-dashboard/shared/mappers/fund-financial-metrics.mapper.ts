@@ -14,6 +14,7 @@ export interface FundFinancialMetricsRow {
   fundNcf: number | null;
   fundCapex: number | null;
   fundNavAmount: number | null;
+  fundNetIncome: number | null;
   fundEbitda: number | null;
   fundRevenue: number | null;
   fundExpense: number | null;
@@ -90,6 +91,7 @@ export function mapFundFinancialMetricsToRow(
     fundNcf: readNumber(dto, 'fund_ncf', 'fundNcf'),
     fundCapex: readNumber(dto, 'fund_capex', 'fundCapex'),
     fundNavAmount: readNumber(dto, 'fund_nav_amount', 'fundNavAmount'),
+    fundNetIncome: readNumber(dto, 'fund_net_income', 'fundNetIncome'),
     fundEbitda: readNumber(dto, 'fund_ebitda', 'fundEbitda'),
     fundRevenue: readNumber(dto, 'fund_revenue', 'fundRevenue'),
     fundExpense: readNumber(dto, 'fund_expense', 'fundExpense'),

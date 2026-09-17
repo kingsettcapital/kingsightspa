@@ -344,6 +344,7 @@ export interface AssetsDetailState {
   propertyDetailsError: string | null;
   assetTypeSummary: AssetTypeSummaryRow[];
   financialMetrics: AssetFinancialMetricsRow | null;
+  financialMetricsAt100: AssetFinancialMetricsRow | null;
   acquisitionSale: AssetAcquisitionSaleRow | null;
   loading: boolean;
   error: string | null;
@@ -719,6 +720,7 @@ function emptyAssetsDetail(): AssetsDetailState {
     propertyDetailsError: null,
     assetTypeSummary: [],
     financialMetrics: null,
+    financialMetricsAt100: null,
     acquisitionSale: null,
     loading: false,
     error: null,

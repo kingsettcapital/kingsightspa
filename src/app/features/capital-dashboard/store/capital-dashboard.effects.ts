@@ -1577,15 +1577,28 @@ export class CapitalDashboardEffects {
       withLatestFrom(this.store.select(selectAssets)),
       switchMap(([request, assets]) => {
         const cached = assets.cache.details[request.propertyKey];
-        const financialMetrics$ = this.assetsApi.getAssetFinancialMetrics(request.propertyKey);
-        const acquisitionSale$ = this.assetsApi.getAssetAcquisitionSale(request.propertyKey);
+        const period = request.period?.trim() || 'ITD';
+        const periodOpts = { period };
+        const financialMetricsKs$ = this.assetsApi.getAssetFinancialMetrics(request.propertyKey, {
+          ...periodOpts,
+          shareBasis: 'ks',
+        });
+        const financialMetricsAt100$ = this.assetsApi.getAssetFinancialMetrics(request.propertyKey, {
+          ...periodOpts,
+          shareBasis: 'full',
+        });
+        const acquisitionSale$ = this.assetsApi.getAssetAcquisitionSale(
+          request.propertyKey,
+          periodOpts,
+        );
 
         if (cached?.assetTypeSummary?.length) {
           return forkJoin({
-            financialMetrics: financialMetrics$,
+            financialMetrics: financialMetricsKs$,
+            financialMetricsAt100: financialMetricsAt100$,
             acquisitionSale: acquisitionSale$,
           }).pipe(
-            map(({ financialMetrics, acquisitionSale }) =>
+            map(({ financialMetrics, financialMetricsAt100, acquisitionSale }) =>
               AssetsApiActions.loadDetailSuccess({
                 propertyKey: request.propertyKey,
                 detail: cached.detail,
@@ -1593,6 +1606,7 @@ export class CapitalDashboardEffects {
                 propertyDetails: [],
                 assetTypeSummary: cached.assetTypeSummary,
                 financialMetrics: mapAssetFinancialMetricsToRow(financialMetrics),
+                financialMetricsAt100: mapAssetFinancialMetricsToRow(financialMetricsAt100),
                 acquisitionSale: mapAssetAcquisitionSaleToRow(acquisitionSale),
               }),
             ),
@@ -1603,10 +1617,11 @@ export class CapitalDashboardEffects {
             assetTypeSummary: this.assetsApi.getAssetTypeSummary(request.propertyKey).pipe(
               catchError(() => of([])),
             ),
-            financialMetrics: financialMetrics$,
+            financialMetrics: financialMetricsKs$,
+            financialMetricsAt100: financialMetricsAt100$,
             acquisitionSale: acquisitionSale$,
           }).pipe(
-            map(({ assetTypeSummary, financialMetrics, acquisitionSale }) =>
+            map(({ assetTypeSummary, financialMetrics, financialMetricsAt100, acquisitionSale }) =>
               AssetsApiActions.loadDetailSuccess({
                 propertyKey: request.propertyKey,
                 detail: cached.detail,
@@ -1614,6 +1629,7 @@ export class CapitalDashboardEffects {
                 propertyDetails: [],
                 assetTypeSummary: mapAssetTypeSummaryToRows(assetTypeSummary),
                 financialMetrics: mapAssetFinancialMetricsToRow(financialMetrics),
+                financialMetricsAt100: mapAssetFinancialMetricsToRow(financialMetricsAt100),
                 acquisitionSale: mapAssetAcquisitionSaleToRow(acquisitionSale),
               }),
             ),
@@ -1627,7 +1643,8 @@ export class CapitalDashboardEffects {
           assetTypeSummary: this.assetsApi.getAssetTypeSummary(request.propertyKey).pipe(
             catchError(() => of([])),
           ),
-          financialMetrics: financialMetrics$,
+          financialMetrics: financialMetricsKs$,
+          financialMetricsAt100: financialMetricsAt100$,
           acquisitionSale: acquisitionSale$,
         }).pipe(
           map(
@@ -1636,6 +1653,7 @@ export class CapitalDashboardEffects {
               leasingSummary,
               assetTypeSummary,
               financialMetrics,
+              financialMetricsAt100,
               acquisitionSale,
             }) =>
               AssetsApiActions.loadDetailSuccess({
@@ -1645,6 +1663,7 @@ export class CapitalDashboardEffects {
                 propertyDetails: [],
                 assetTypeSummary: mapAssetTypeSummaryToRows(assetTypeSummary),
                 financialMetrics: mapAssetFinancialMetricsToRow(financialMetrics),
+                financialMetricsAt100: mapAssetFinancialMetricsToRow(financialMetricsAt100),
                 acquisitionSale: mapAssetAcquisitionSaleToRow(acquisitionSale),
               }),
           ),

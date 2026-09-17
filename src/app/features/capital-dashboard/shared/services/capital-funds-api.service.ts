@@ -75,11 +75,19 @@ export class CapitalFundsApiService {
 
   getFundFinancialMetrics(
     fundKey: number,
-    params: { view: 'ltd' | 'quarterly'; dateKey?: number | null } = { view: 'ltd' },
+    params: {
+      view: 'ltd' | 'quarterly';
+      dateKey?: number | null;
+      period?: string | null;
+    } = { view: 'ltd' },
   ): Observable<FundFinancialMetricsDto | null> {
     const query: Record<string, string | number> = { view: params.view };
     if (params.view === 'quarterly' && params.dateKey != null) {
       query['dateKey'] = params.dateKey;
+    }
+    const period = params.period?.trim();
+    if (period) {
+      query['period'] = period;
     }
     return this.api.get<FundFinancialMetricsDto>(`api/Funds/${fundKey}/financial-metrics`, query as any).pipe(
       catchError(() => of(null)),

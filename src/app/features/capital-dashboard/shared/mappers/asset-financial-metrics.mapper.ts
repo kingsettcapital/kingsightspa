@@ -6,34 +6,30 @@ export interface AssetFinancialMetricsRow {
   assetCode: string;
   assetName: string;
   asOfDate: string | null;
+  quarterYear: string | null;
   assetKsOwnershipPct: number | null;
+  assetJvPartner: string;
+  assetJvPct: number | null;
   assetCashAtQuarterEnd: number | null;
   assetTotalAssetValue: number | null;
   assetDebt: number | null;
   assetEquity: number | null;
   assetNoi: number | null;
+  assetPriorYearSamePeriod: number | null;
+  assetPriorYearEndNoi: number | null;
   assetFfo: number | null;
-  assetNcf: number | null;
   assetCapex: number | null;
   assetNavAmount: number | null;
-  assetEbitda: number | null;
-  assetRevenue: number | null;
-  assetExpense: number | null;
   assetGrossMarketValue: number | null;
   assetGavAmount: number | null;
+  assetNetIncome: number | null;
   assetLtv: number | null;
-  assetAffo: number | null;
   assetCapexPctNoi: number | null;
   totalNoiGrowthAmount: number | null;
   totalNoiGrowthPct: number | null;
-  sameStoreNoiGrowthAmount: number | null;
-  sameStoreNoiGrowthPct: number | null;
   currentCostAmount: number | null;
-  costBasisAmount: number | null;
   budgetedNoiCurrentYear: number | null;
   forecastedNoiCurrentYear: number | null;
-  budgetedFfo: number | null;
-  forecastedFfo: number | null;
 }
 
 function readString(dto: AssetFinancialMetricsDto, snake: string, camel: string): string {
@@ -81,41 +77,39 @@ export function mapAssetFinancialMetricsToRow(
     assetCode: readString(dto, 'asset_code', 'assetCode'),
     assetName: readString(dto, 'asset_name', 'assetName'),
     asOfDate: readDate(dto),
+    quarterYear: readString(dto, 'quarter_year', 'quarterYear') || null,
     assetKsOwnershipPct: readNumber(dto, 'asset_ks_ownership_pct', 'assetKsOwnershipPct'),
+    assetJvPartner: readString(dto, 'asset_jv_partner', 'assetJvPartner'),
+    assetJvPct: readNumber(dto, 'asset_jv_pct', 'assetJvPct'),
     assetCashAtQuarterEnd: readNumber(dto, 'asset_cash_at_quarter_end', 'assetCashAtQuarterEnd'),
     assetTotalAssetValue: readNumber(dto, 'asset_total_asset_value', 'assetTotalAssetValue'),
     assetDebt: readNumber(dto, 'asset_debt', 'assetDebt'),
     assetEquity: readNumber(dto, 'asset_equity', 'assetEquity'),
     assetNoi: readNumber(dto, 'asset_noi', 'assetNoi'),
+    assetPriorYearSamePeriod: readNumber(
+      dto,
+      'asset_prior_year_same_period',
+      'assetPriorYearSamePeriod',
+    ),
+    assetPriorYearEndNoi: readNumber(dto, 'asset_prior_year_end_noi', 'assetPriorYearEndNoi'),
     assetFfo: readNumber(dto, 'asset_ffo', 'assetFfo'),
-    assetNcf: readNumber(dto, 'asset_ncf', 'assetNcf'),
     assetCapex: readNumber(dto, 'asset_capex', 'assetCapex'),
     assetNavAmount: readNumber(dto, 'asset_nav_amount', 'assetNavAmount'),
-    assetEbitda: readNumber(dto, 'asset_ebitda', 'assetEbitda'),
-    assetRevenue: readNumber(dto, 'asset_revenue', 'assetRevenue'),
-    assetExpense: readNumber(dto, 'asset_expense', 'assetExpense'),
     assetGrossMarketValue: readNumber(dto, 'asset_gross_market_value', 'assetGrossMarketValue'),
     assetGavAmount: readNumber(dto, 'asset_gav_amount', 'assetGavAmount'),
+    assetNetIncome: readNumber(dto, 'asset_net_income', 'assetNetIncome'),
     assetLtv: readNumber(dto, 'asset_ltv', 'assetLtv'),
-    assetAffo: readNumber(dto, 'asset_affo', 'assetAffo'),
     assetCapexPctNoi: readNumber(dto, 'asset_capex_pct_noi', 'assetCapexPctNoi'),
     totalNoiGrowthAmount: readNumber(dto, 'total_noi_growth_amount', 'totalNoiGrowthAmount'),
     totalNoiGrowthPct: readNumber(dto, 'total_noi_growth_pct', 'totalNoiGrowthPct'),
-    sameStoreNoiGrowthAmount: readNumber(
-      dto,
-      'same_store_noi_growth_amount',
-      'sameStoreNoiGrowthAmount',
-    ),
-    sameStoreNoiGrowthPct: readNumber(dto, 'same_store_noi_growth_pct', 'sameStoreNoiGrowthPct'),
-    currentCostAmount: readNumber(dto, 'current_cost_amount', 'currentCostAmount'),
-    costBasisAmount: readNumber(dto, 'cost_basis_amount', 'costBasisAmount'),
+    currentCostAmount:
+      readNumber(dto, 'current_cost_amount', 'currentCostAmount') ??
+      readNumber(dto, 'current_cost_book_value', 'currentCostBookValue'),
     budgetedNoiCurrentYear: readNumber(dto, 'budgeted_noi_current_year', 'budgetedNoiCurrentYear'),
     forecastedNoiCurrentYear: readNumber(
       dto,
       'forecasted_noi_current_year',
       'forecastedNoiCurrentYear',
     ),
-    budgetedFfo: readNumber(dto, 'budgeted_ffo', 'budgetedFfo'),
-    forecastedFfo: readNumber(dto, 'forecasted_ffo', 'forecastedFfo'),
   };
 }
