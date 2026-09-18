@@ -71,35 +71,27 @@ export function strategyColor(strategy: string): string {
 }
 export function computeInvestedPercent(
   commitment: number,
-  unfunded: number,
+  netInvestedCapital: number,
 ): number | null {
   if (!Number.isFinite(commitment) || commitment <= 0) {
     return null;
   }
+  if (!Number.isFinite(netInvestedCapital)) {
+    return null;
+  }
 
-  const raw = (commitment - unfunded) / commitment * 100;
+  const raw = (netInvestedCapital / commitment) * 100;
   return Math.min(100, Math.max(0, raw));
 }
-
-// export function computeInvestedPercent(
-//   commitment: number,
-//   netInvestedCapital: number,
-// ): number | null {
-//   if (!Number.isFinite(commitment) || commitment <= 0) {
-//     return null;
-//   }
-
-//   const raw = (netInvestedCapital / commitment) * 100;
-//   return Math.min(100, Math.max(0, raw));
-// }
 
 export function formatInvestedPercent(value: number | null): string | null {
   if (value == null || !Number.isFinite(value)) {
     return null;
   }
 
-  const rounded = Math.round(value);
-  return `${rounded}% invested`;
+  const rounded = Math.round(value * 10) / 10;
+  const label = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return `${label}% invested`;
 }
 
 export function mapFundListItemToRow(dto: FundListItemDto, index: number): FundTableRow {
@@ -169,7 +161,7 @@ export function mapFundListItemToRow(dto: FundListItemDto, index: number): FundT
     ) ?? 0;
   const resolvedCommitment = commitment || netInvestedCapital;
   const investedPercent =
-     computeInvestedPercent(resolvedCommitment, unfunded) ??
+    computeInvestedPercent(resolvedCommitment, netInvestedCapital) ??
     readNullableNumber(
       record,
       'invested_percent',
@@ -178,16 +170,6 @@ export function mapFundListItemToRow(dto: FundListItemDto, index: number): FundT
       'deployment_percent',
       'deploymentPercent',
     );
-
-    // computeInvestedPercent(resolvedCommitment, netInvestedCapital) ??
-    // readNullableNumber(
-    //   record,
-    //   'invested_percent',
-    //   'investedPercent',
-    //   'InvestedPercent',
-    //   'deployment_percent',
-    //   'deploymentPercent',
-    // );
 
   return {
     fundKey: dto.fundKey,
