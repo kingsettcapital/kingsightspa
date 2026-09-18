@@ -247,20 +247,7 @@
                     </span>
                   </td>
                   <td>{{ row.fundType }}</td>
-                  <td class="cdt-table__num">
-                    <span class="cdt-commitment-cell">
-                      <span class="cdt-commitment-cell__amount">{{ row.commitment | ksCurrency: 'USD' : 2 : true }}</span>
-                      @if (row.investedPercent != null) {
-                        <span class="cdt-commitment-cell__bar" aria-hidden="true">
-                          <span
-                            class="cdt-commitment-cell__bar-fill"
-                            [style.width.%]="row.investedPercent"
-                          ></span>
-                        </span>
-                        <span class="cdt-commitment-cell__meta">{{ formatInvestedPercent(row.investedPercent) }}</span>
-                      }
-                    </span>
-                  </td>
+                  <td class="cdt-table__num">{{ row.commitment | ksCurrency: 'USD' : 2 : true }}</td>
                   <td class="cdt-table__num">{{ row.netInvestedCapital | ksCurrency: 'USD' : 2 : true }}</td>
                   <td
                     class="cdt-table__num"
