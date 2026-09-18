@@ -26,17 +26,6 @@
       </a>
       <a
         class="cdt-subnav__link"
-        routerLink="./investor"
-        [queryParams]="tabClearQueryParams"
-        queryParamsHandling="merge"
-        replaceUrl="true"
-        routerLinkActive="cdt-subnav__link--active"
-        [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
-      >
-        <span class="captilize">Investors</span>
-      </a>
-      <a
-        class="cdt-subnav__link"
         routerLink="./investment"
         [queryParams]="tabClearQueryParams"
         queryParamsHandling="merge"
@@ -45,6 +34,17 @@
         [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
       >
         <span class="captilize">Investments</span>
+      </a>
+      <a
+        class="cdt-subnav__link"
+        routerLink="./investor"
+        [queryParams]="tabClearQueryParams"
+        queryParamsHandling="merge"
+        replaceUrl="true"
+        routerLinkActive="cdt-subnav__link--active"
+        [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
+      >
+        <span class="captilize">Investors</span>
       </a>
       <a
         class="cdt-subnav__link"
