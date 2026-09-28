@@ -35,7 +35,9 @@ export function createManagementSummaryDefaultFilters(): ManagementSummaryFilter
 
 /**
  * Keeps Management Summary filters for the active report session.
- * First open → prior month-end. Drill to loan detail and back → retained.
+ * First open → prior month-end. Drill to loan detail → MS filters stay here;
+ * Loan Detail uses its own local filters (As Of only carried over).
+ * Back to MS → prior MS filters restored from this session.
  * Leave /mortgage/management-summary* → cleared so the next open redefaults.
  */
 @Injectable({ providedIn: 'root' })

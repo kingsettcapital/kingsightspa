@@ -30,6 +30,7 @@ import {
   InvestorsTableSortDirection,
   mapInvestorListItemToRow,
 } from '../shared/utils/investor-list-row.util';
+import { formatActiveFundAsOfDate } from '../dashboard/dashboard-active-table.util';
 import { InvestorsApiActions } from '../store';
 import { selectInvestorsList } from '../store/capital-dashboard.selectors';
 
@@ -124,9 +125,15 @@ export class CapitalDashboardInvestorsComponent {
     return period?.label ?? period?.quarterYear ?? `Q${quarter} ${year}`;
   });
 
-  readonly reportingPeriodTitle = computed(() =>
-    this.timeframe() === 'quarterly' ? this.periodLabel() : 'ITD',
-  );
+  readonly reportingPeriodTitle = computed(() => {
+    if (this.timeframe() === 'quarterly') {
+      return this.periodLabel();
+    }
+
+    const summary = this.listState().summary;
+    const asOf = formatActiveFundAsOfDate(summary?.asOfDate ?? summary?.as_of_date ?? null);
+    return asOf ? `ITD · As of ${asOf}` : 'ITD';
+  });
 
   readonly activeFilterCount = computed(() => {
     let count = 0;

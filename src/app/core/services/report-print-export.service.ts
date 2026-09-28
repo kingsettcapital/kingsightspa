@@ -9,15 +9,16 @@ import { jsPDF } from 'jspdf';
  * footers and max-height table wraps paint over titles when overflow is unlocked.
  * We clone into a detached host, force every sticky/scroll constraint off with
  * inline !important styles, then screenshot that clone.
+ *
+ * Page slices snap to section / table-row boundaries when possible so rows and
+ * chart cards are not cut mid-block.
  */
 @Injectable({
   providedIn: 'root',
 })
 export class ReportPrintExportService {
   print(): void {
-    // Browsers do not allow JS to check the print-dialog "Landscape" /
-    // "Background graphics" boxes. @page size + print-color-adjust achieve the
-    // same outcome for Management Summary / Loan Detail Print.
+    // Kept for any remaining callers; Management Summary / Loan Detail no longer expose Print.
     const style = document.createElement('style');
     style.setAttribute('data-ks-report-print', 'true');
     style.textContent = `
@@ -64,7 +65,7 @@ export class ReportPrintExportService {
       'position:fixed',
       'left:-10000px',
       'top:0',
-      'width:1400px',
+      'width:1600px',
       'background:#ffffff',
       'opacity:0',
       'pointer-events:none',
@@ -83,9 +84,11 @@ export class ReportPrintExportService {
       this.neutralizeCloneLayout(clone);
       await this.waitForPaint();
 
-      const width = Math.max(clone.scrollWidth, clone.offsetWidth, 1200);
+      const width = Math.max(clone.scrollWidth, clone.offsetWidth, 1400);
       const height = Math.max(clone.scrollHeight, clone.offsetHeight, 1);
       host.style.width = `${width}px`;
+
+      const breakPointsCssPx = this.collectBreakPointsCssPx(clone);
 
       const scale = Math.min(2, 10000 / Math.max(width, height / 4));
       const canvas = await html2canvas(clone, {
@@ -107,9 +110,14 @@ export class ReportPrintExportService {
         },
       });
 
+      const cssToCanvas = canvas.height / Math.max(height, 1);
+      const breakPointsCanvasPx = breakPointsCssPx
+        .map((y) => Math.round(y * cssToCanvas))
+        .filter((y) => y > 0 && y < canvas.height);
+
       const orientation = width / Math.max(height, 1) > 0.75 ? 'landscape' : 'portrait';
       const pdf = new jsPDF({ orientation, unit: 'pt', format: 'a4' });
-      this.addCanvasPages(pdf, canvas, 20);
+      this.addCanvasPages(pdf, canvas, 20, breakPointsCanvasPx);
 
       const safeName = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
       pdf.save(safeName);
@@ -164,7 +172,6 @@ export class ReportPrintExportService {
       }
     }
 
-    // Known report wrappers — belt and suspenders in case computed styles lag.
     root
       .querySelectorAll<HTMLElement>(
         '.ms-table-wrap, .ldr-table-wrap, .ms-mini-table-wrap, .ms-dashboard, .ldr-dashboard',
@@ -196,6 +203,90 @@ export class ReportPrintExportService {
       el.style.setProperty('margin-top', '0.5rem', 'important');
       el.style.setProperty('position', 'static', 'important');
     });
+
+    // Avoid mid-word / mid-currency wraps in PDF capture.
+    root
+      .querySelectorAll<HTMLElement>(
+        '.ms-table thead th, .ms-table tbody td, .ms-table tfoot td, .ldr-table thead th, .ldr-table tbody td, .ldr-table tfoot td',
+      )
+      .forEach((el) => {
+        el.style.setProperty('overflow-wrap', 'normal', 'important');
+        el.style.setProperty('word-break', 'normal', 'important');
+        el.style.setProperty('hyphens', 'none', 'important');
+      });
+    root
+      .querySelectorAll<HTMLElement>(
+        '.ms-table .num, .ldr-table .num, .ms-risk, .ms-watch-status, .ldr-risk',
+      )
+      .forEach((el) => {
+        el.style.setProperty('white-space', 'nowrap', 'important');
+      });
+
+    // Keep donut charts circular in the clone.
+    root
+      .querySelectorAll<HTMLElement>(
+        '.ms-chart:not(.ms-chart--bar), .ldr-chart-card--composition .ldr-chart',
+      )
+      .forEach((el) => {
+        const side = el.classList.contains('ldr-chart') || el.closest('.ldr-chart-card') ? '16rem' : '11rem';
+        el.style.setProperty('width', side, 'important');
+        el.style.setProperty('height', side, 'important');
+        el.style.setProperty('aspect-ratio', '1', 'important');
+        el.style.setProperty('margin-left', 'auto', 'important');
+        el.style.setProperty('margin-right', 'auto', 'important');
+      });
+    root
+      .querySelectorAll<HTMLElement>(
+        '.ms-chart:not(.ms-chart--bar) canvas, .ldr-chart-card--composition canvas',
+      )
+      .forEach((el) => {
+        const canvas = el as HTMLCanvasElement;
+        const side = Math.min(canvas.width || 256, canvas.height || 256);
+        if (side > 0) {
+          el.style.setProperty('width', `${side}px`, 'important');
+          el.style.setProperty('height', `${side}px`, 'important');
+        }
+      });
+  }
+
+  /** Preferred Y offsets (CSS px, relative to root) to snap page slices. */
+  private collectBreakPointsCssPx(root: HTMLElement): number[] {
+    const rootTop = root.getBoundingClientRect().top;
+    const breaks = new Set<number>();
+
+    const addTop = (el: Element) => {
+      if (!(el instanceof HTMLElement)) {
+        return;
+      }
+      const y = Math.round(el.getBoundingClientRect().top - rootTop);
+      if (y > 8) {
+        breaks.add(y);
+      }
+    };
+
+    root
+      .querySelectorAll(
+        [
+          '.ms-kpi-row',
+          '.ms-outstanding',
+          '.ms-section',
+          '.ms-section__head',
+          '.ms-analytics-row',
+          '.ms-chart-card',
+          '.ms-watchlist-head',
+          '.ldr-kpi-row',
+          '.ldr-info-grid',
+          '.ldr-section',
+          '.ldr-charts-row',
+          '.ldr-chart-card',
+          'thead',
+          'tbody tr',
+          'tfoot tr',
+        ].join(','),
+      )
+      .forEach(addTop);
+
+    return [...breaks].sort((a, b) => a - b);
   }
 
   /** Copy live Chart.js canvas pixels into the clone (cloneNode leaves canvases blank). */
@@ -207,6 +298,23 @@ export class ReportPrintExportService {
       if (!(target instanceof HTMLCanvasElement)) {
         return;
       }
+
+      const isDonut =
+        !!source.closest('.ldr-chart-card--composition') ||
+        !!source.closest('.ms-chart:not(.ms-chart--bar)');
+      const side = Math.min(source.width, source.height);
+      if (isDonut && side > 0 && source.width !== source.height) {
+        const sx = Math.floor((source.width - side) / 2);
+        const sy = Math.floor((source.height - side) / 2);
+        target.width = side;
+        target.height = side;
+        const ctx = target.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(source, sx, sy, side, side, 0, 0, side, side);
+        }
+        return;
+      }
+
       target.width = source.width;
       target.height = source.height;
       const ctx = target.getContext('2d');
@@ -226,13 +334,20 @@ export class ReportPrintExportService {
     });
   }
 
-  private addCanvasPages(pdf: jsPDF, canvas: HTMLCanvasElement, margin: number): void {
+  private addCanvasPages(
+    pdf: jsPDF,
+    canvas: HTMLCanvasElement,
+    margin: number,
+    breakPointsCanvasPx: number[] = [],
+  ): void {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const contentWidth = pageWidth - margin * 2;
     const contentHeight = pageHeight - margin * 2;
     const pxPerPt = canvas.width / contentWidth;
     const pageSlicePx = Math.max(1, Math.floor(contentHeight * pxPerPt));
+    const minUsefulSlice = Math.floor(pageSlicePx * 0.35);
+    const snapWindow = Math.floor(pageSlicePx * 0.28);
 
     let srcY = 0;
     let pageIndex = 0;
@@ -242,7 +357,44 @@ export class ReportPrintExportService {
         pdf.addPage();
       }
 
-      const slicePx = Math.min(pageSlicePx, canvas.height - srcY);
+      const idealEnd = Math.min(srcY + pageSlicePx, canvas.height);
+      let sliceEnd = idealEnd;
+
+      if (idealEnd < canvas.height && breakPointsCanvasPx.length) {
+        const windowStart = Math.max(srcY + minUsefulSlice, idealEnd - snapWindow);
+        let best = 0;
+        for (const bp of breakPointsCanvasPx) {
+          if (bp <= srcY + 2) {
+            continue;
+          }
+          if (bp > idealEnd) {
+            break;
+          }
+          if (bp >= windowStart) {
+            best = bp;
+          }
+        }
+        // Prefer any break in the lower portion of the page over cutting mid-row.
+        if (best > 0) {
+          sliceEnd = best;
+        } else {
+          // Fall back: nearest break at or before idealEnd (still after minUsefulSlice).
+          for (const bp of breakPointsCanvasPx) {
+            if (bp <= srcY + minUsefulSlice) {
+              continue;
+            }
+            if (bp > idealEnd) {
+              break;
+            }
+            best = bp;
+          }
+          if (best > 0) {
+            sliceEnd = best;
+          }
+        }
+      }
+
+      const slicePx = Math.max(1, sliceEnd - srcY);
       const sliceCanvas = document.createElement('canvas');
       sliceCanvas.width = canvas.width;
       sliceCanvas.height = Math.max(1, Math.ceil(slicePx));
@@ -263,7 +415,7 @@ export class ReportPrintExportService {
         slicePx / pxPerPt,
       );
 
-      srcY += slicePx;
+      srcY = sliceEnd;
       pageIndex += 1;
       if (pageIndex > 100) {
         break;

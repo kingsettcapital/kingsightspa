@@ -50,42 +50,15 @@
   background: var(--ks-color-pale-blue, #eef4fb);
 }
 
-.non-ks-page .table-wrap tbody tr.row-selected .select-col,
-.non-ks-page .table-wrap tbody tr.row-selected .audit-col-by,
-.non-ks-page .table-wrap tbody tr.row-selected .audit-col-date {
+.non-ks-page .table-wrap tbody tr.row-selected .select-col {
   background: var(--ks-color-pale-blue, #eef4fb);
 }
 
-/* Sticky audit columns — stay visible at the right edge while scrolling data */
-.non-ks-page .table-wrap .audit-col-by {
-  position: sticky;
-  right: 6.5rem;
-  z-index: 3;
-  min-width: 6.5rem;
-  max-width: 6.5rem;
-  background: var(--ks-color-surface, #ffffff);
-  box-shadow: -4px 0 8px -4px rgba(12, 39, 74, 0.18);
-}
-
+/* Audit columns scroll with the table (not pinned) */
+.non-ks-page .table-wrap .audit-col-by,
 .non-ks-page .table-wrap .audit-col-date {
-  position: sticky;
-  right: 0;
-  z-index: 3;
   min-width: 6.5rem;
-  max-width: 6.5rem;
-  background: var(--ks-color-surface, #ffffff);
-}
-
-.non-ks-page .table-wrap thead .audit-col-by,
-.non-ks-page .table-wrap thead .audit-col-date {
-  top: 0;
-  z-index: 35;
-  background: var(--ks-color-table-head-bg, #f3f4f6);
-  box-shadow: -4px 0 8px -4px rgba(12, 39, 74, 0.12);
-}
-
-.non-ks-page .table-wrap thead .audit-col-date {
-  box-shadow: none;
+  white-space: nowrap;
 }
 
 .non-ks-page .loan-code-cell {

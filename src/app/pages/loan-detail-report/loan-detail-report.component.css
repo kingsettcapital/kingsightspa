@@ -53,18 +53,35 @@
   text-decoration: underline;
 }
 
+.ldr-header__confidential {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 0.35rem;
+}
+
+.ldr-header__meta {
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  line-height: 1.45;
+  color: #475569;
+  margin-bottom: 0.65rem;
+  max-width: 100%;
+}
+
 .ldr-header__main {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 1rem;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .ldr-header h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: #0c274a;
 }
@@ -77,6 +94,8 @@
 
 .ldr-header__actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -266,6 +285,16 @@
   width: 5.5%;
 }
 
+.ldr-table--portfolio .ldr-col--arrears {
+  width: 7%;
+}
+
+.ldr-table--portfolio thead th:last-child,
+.ldr-table--portfolio tbody td:last-child,
+.ldr-table--portfolio tfoot td:last-child {
+  min-width: 5.75rem;
+}
+
 .ldr-table thead th {
   position: sticky;
   top: 0;
@@ -277,9 +306,11 @@
   letter-spacing: 0.03em;
   text-transform: uppercase;
   text-align: left;
+  /* Wrap only at spaces — never mid-word (e.g. ARREAR / S). */
   white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
   line-height: 1.25;
   vertical-align: middle;
 }
@@ -288,13 +319,52 @@
   text-align: right;
 }
 
+.ldr-th-sort {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  width: 100%;
+}
+
+.ldr-table thead th.num .ldr-th-sort {
+  justify-content: flex-end;
+}
+
+.ldr-th-sort:hover {
+  color: #fde68a;
+}
+
+.ldr-info-card h2[title],
+.ldr-info-card dt[title],
+.ldr-th-sort[title] {
+  cursor: help;
+}
+
+.ldr-th-sort__icon {
+  flex: 0 0 auto;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+
 .ldr-table tbody td {
   padding: 0.55rem 0.4rem;
   border-bottom: 1px solid #e2e8f0;
   font-size: 0.82rem;
   vertical-align: top;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .ldr-table--portfolio tbody td:nth-child(1),
@@ -309,7 +379,7 @@
 
 .ldr-table .num {
   text-align: right;
-  white-space: normal;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
@@ -326,9 +396,10 @@
   padding: 0.55rem 0.4rem;
   line-height: 1.25;
   vertical-align: middle;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
   border-top: 1px solid #0c274a;
   box-shadow: 0 -2px 6px rgba(15, 23, 42, 0.18);
 }
@@ -363,6 +434,14 @@
   height: 16rem;
 }
 
+/* Square plot area so the donut stays circular (incl. PDF capture). */
+.ldr-chart-card--composition .ldr-chart {
+  width: min(16rem, 100%);
+  height: min(16rem, 100%);
+  aspect-ratio: 1;
+  margin-inline: auto;
+}
+
 .ldr-chart--bar {
   height: 16rem;
 }
@@ -370,6 +449,13 @@
 .ldr-chart canvas {
   width: 100% !important;
   height: 100% !important;
+}
+
+.ldr-chart-card--composition .ldr-chart canvas {
+  /* Preserve 1:1 bitmap — do not stretch into a non-square box. */
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .ldr-mini-table {
