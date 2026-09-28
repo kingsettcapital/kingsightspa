@@ -31,6 +31,7 @@ import {
   FundsTableSortDirection,
   mapFundListItemToRow,
 } from '../shared/utils/fund-list-row.util';
+import { formatActiveFundAsOfDate } from '../dashboard/dashboard-active-table.util';
 import { FundsApiActions } from '../store';
 import { selectFundsList } from '../store/capital-dashboard.selectors';
 
@@ -124,9 +125,16 @@ export class CapitalDashboardInvestmentsComponent {
     return period?.label ?? period?.quarterYear ?? `Q${quarter} ${year}`;
   });
 
-  readonly subtitleText = computed(
-    () => `${this.totalCount()} fund${this.totalCount() === 1 ? '' : 's'} · ${this.periodLabel()}`,
-  );
+  readonly subtitleText = computed(() => {
+    const countLabel = `${this.totalCount()} fund${this.totalCount() === 1 ? '' : 's'} · ${this.periodLabel()}`;
+    if (this.timeframe() !== 'ltd') {
+      return countLabel;
+    }
+
+    const summary = this.listState().summary;
+    const asOf = formatActiveFundAsOfDate(summary?.asOfDate ?? summary?.as_of_date ?? null);
+    return asOf ? `${countLabel} · As of ${asOf}` : countLabel;
+  });
 
   readonly activeFilterCount = computed(() => {
     let count = 0;

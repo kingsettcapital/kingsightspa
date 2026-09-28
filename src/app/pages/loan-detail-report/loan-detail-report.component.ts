@@ -26,14 +26,53 @@ import {
 import { dashboardBarPieSeriesColor } from '../../features/capital-dashboard/dashboard/dashboard-chart-colors';
 import type { ManagementSummaryFilters } from '../management-summary/management-summary.models';
 import {
+  createLoanDetailDefaultFilters,
   filtersToQueryParams,
+  formatActiveFiltersDisplay,
   investorAliasesFromFilters,
-  mergeFiltersFromQuery,
+  loanDetailFiltersFromQuery,
   statusesFromFilters,
 } from '../management-summary/management-summary-filter.util';
 import type { LoanDetailReportData, LoanPortfolioDetailRow } from './loan-detail-report.models';
 
 Chart.register(...registerables);
+
+type PortfolioSortColumn =
+  | 'loanId'
+  | 'description'
+  | 'investor'
+  | 'rank'
+  | 'rate'
+  | 'principal'
+  | 'defInterest'
+  | 'accruedInt'
+  | 'lateInt'
+  | 'intAdj'
+  | 'taxArrears'
+  | 'otherCosts'
+  | 'totalExposure'
+  | 'ltv'
+  | 'monthsInArrears';
+
+const PORTFOLIO_TEXT_SORT_COLUMNS = new Set<PortfolioSortColumn>([
+  'loanId',
+  'description',
+  'investor',
+]);
+
+/** Rows included in the grid and totals (syndicate / main — excludes whole loan). */
+function isPortfolioAggregateRow(row: LoanPortfolioDetailRow): boolean {
+  return row.aggregateFlag?.trim().toUpperCase() === 'Y';
+}
+
+function rankSortValue(rank: string): number {
+  const trimmed = rank.trim();
+  if (!trimmed || trimmed === '—') {
+    return Number.POSITIVE_INFINITY;
+  }
+  const numeric = Number(trimmed.replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(numeric) ? numeric : Number.POSITIVE_INFINITY;
+}
 
 @Component({
   selector: 'app-loan-detail-report',
@@ -78,12 +117,17 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
     }),
   );
   readonly isLoading = signal(false);
-  readonly isPrinting = signal(false);
   readonly isExporting = signal(false);
   readonly errorMessage = signal('');
   readonly filtersOpen = signal(false);
-  readonly filters = signal<ManagementSummaryFilters>(this.filterState.getFilters());
+  /** Loan Detail local filters — not written back to Management Summary session. */
+  readonly filters = signal<ManagementSummaryFilters>(
+    createLoanDetailDefaultFilters(this.filterState.getFilters().asOfDate),
+  );
   readonly openFilterMenu = signal<'sponsor' | 'investor' | null>(null);
+
+  /** Face-of-report active filters (skips All / empty). */
+  readonly activeFiltersDisplay = computed(() => formatActiveFiltersDisplay(this.filters()));
 
   readonly riskOptions = ['ALL', 'HIGH', 'ELEVATED', 'MODERATE', 'LOW'] as const;
   readonly sponsorOptions = signal<string[]>(this.filterState.getFilterOptions().sponsors);
@@ -91,7 +135,25 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   readonly statusOptions = signal<string[]>(this.filterState.getFilterOptions().statuses);
 
   readonly selectedInvestorAlias = computed(() => this.filters().investorAliases[0] ?? 'All');
-  readonly portfolioTotals = computed(() => this.sumPortfolioRows(this.report().portfolioRows));
+
+  /** Syndicate + main loans only (aggregate_flag = Y); whole loan excluded. */
+  readonly portfolioDisplayRows = computed(() =>
+    this.report().portfolioRows.filter(isPortfolioAggregateRow),
+  );
+
+  readonly portfolioSortColumn = signal<PortfolioSortColumn>('rank');
+  readonly portfolioSortDirection = signal<'asc' | 'desc'>('asc');
+
+  readonly sortedPortfolioRows = computed(() => {
+    const rows = [...this.portfolioDisplayRows()];
+    const column = this.portfolioSortColumn();
+    const direction = this.portfolioSortDirection() === 'asc' ? 1 : -1;
+
+    rows.sort((left, right) => this.comparePortfolioRows(left, right, column) * direction);
+    return rows;
+  });
+
+  readonly portfolioTotals = computed(() => this.sumPortfolioRows(this.portfolioDisplayRows()));
 
   readonly totalExposureDisplay = computed(() => {
     const total = this.portfolioTotals().totalExposure;
@@ -116,16 +178,13 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
         return;
       }
 
-      const merged = mergeFiltersFromQuery(this.filterState.getFilters(), query);
-      // Loan detail must always have an explicit funding status (MS default is Default).
-      if (!merged.status?.trim()) {
-        merged.status = 'Default';
-      }
-      this.filterState.saveFilters(merged);
-      this.filters.set(merged);
+      // Detach from MS filters: only As Of is shared; other filters default to All.
+      const fallbackAsOf = this.filterState.getFilters().asOfDate;
+      const loanFilters = loanDetailFiltersFromQuery(query, fallbackAsOf);
+      this.filters.set(loanFilters);
       this.loanAliasKey = loanAliasKey;
       this.loanAliasName = alias;
-      this.hydrateFilterOptions(merged.asOfDate);
+      this.hydrateFilterOptions(loanFilters.asOfDate);
       this.loadReport();
     });
   }
@@ -135,16 +194,7 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.filterState.saveFilters(this.filters());
-  }
-
-  printReport(): void {
-    this.filtersOpen.set(false);
-    this.isPrinting.set(true);
-    setTimeout(() => {
-      this.reportPrintExport.print();
-      this.isPrinting.set(false);
-    }, 50);
+    // Do not overwrite Management Summary session filters.
   }
 
   async exportPdf(): Promise<void> {
@@ -155,7 +205,9 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
     this.filtersOpen.set(false);
     this.isExporting.set(true);
     try {
-      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+      // Ensure charts are painted circular before canvas pixels are cloned into the PDF.
+      this.renderCharts();
+      await new Promise<void>((resolve) => setTimeout(resolve, 80));
       const alias = this.report().loanAlias.replace(/\W+/g, '-') || 'loan';
       const asOf = this.report().keyDates.asOfDate.replace(/\W+/g, '-') || 'report';
       await this.reportPrintExport.exportElementToPdf(root, `loan-portfolio-detail-${alias}-${asOf}.pdf`);
@@ -184,17 +236,13 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   toggleRisk(level: string): void {
     this.filters.update((current) => {
       if (level === 'ALL') {
-        const next = { ...current, riskLevels: ['ALL'] };
-        this.filterState.saveFilters(next);
-        return next;
+        return { ...current, riskLevels: ['ALL'] };
       }
       const withoutAll = current.riskLevels.filter((item) => item !== 'ALL');
       const nextLevels = withoutAll.includes(level)
         ? withoutAll.filter((item) => item !== level)
         : [...withoutAll, level];
-      const next = { ...current, riskLevels: nextLevels.length ? nextLevels : ['ALL'] };
-      this.filterState.saveFilters(next);
-      return next;
+      return { ...current, riskLevels: nextLevels.length ? nextLevels : ['ALL'] };
     });
   }
 
@@ -208,32 +256,23 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   }
 
   setInvestorAlias(alias: string): void {
-    this.filters.update((current) => {
-      const next = {
-        ...current,
-        investorAliases: [alias || 'All'],
-      };
-      this.filterState.saveFilters(next);
-      return next;
-    });
+    this.filters.update((current) => ({
+      ...current,
+      investorAliases: [alias || 'All'],
+    }));
     this.openFilterMenu.set(null);
   }
 
   updateFilterField<K extends keyof ManagementSummaryFilters>(key: K, value: ManagementSummaryFilters[K]): void {
-    this.filters.update((current) => {
-      const next = { ...current, [key]: value };
-      this.filterState.saveFilters(next);
-      return next;
-    });
+    this.filters.update((current) => ({ ...current, [key]: value }));
   }
 
   resetFilters(): void {
-    this.filters.set(this.filterState.resetToDefaults());
+    this.filters.set(createLoanDetailDefaultFilters(this.filters().asOfDate));
   }
 
   applyFilters(): void {
     const next = this.filters();
-    this.filterState.saveFilters(next);
     this.closeFilters();
     void this.router.navigate([], {
       relativeTo: this.route,
@@ -242,9 +281,9 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  /** Persist current filters before returning to Management Summary. */
+  /** Return to Management Summary without overwriting its session filters. */
   backToManagementSummary(): void {
-    this.filterState.saveFilters(this.filters());
+    // no-op: MS filters remain in ManagementSummaryFilterStateService
   }
 
   private loadReport(): void {
@@ -252,7 +291,7 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
       return;
     }
     const filters = this.filters();
-    const statuses = statusesFromFilters(filters) ?? (filters.status === 'All' ? undefined : ['Default']);
+    const statuses = statusesFromFilters(filters);
     this.isLoading.set(true);
     this.errorMessage.set('');
     this.summaryApi
@@ -389,8 +428,8 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   }
 
   private sumPortfolioRows(rows: LoanPortfolioDetailRow[]) {
-    // Grid shows all rows; TOTALS only include aggregate_flag = Y.
-    const totalRows = rows.filter((row) => row.aggregateFlag?.trim().toUpperCase() === 'Y');
+    // Display and TOTALS both use syndicate/main rows only (aggregate_flag = Y).
+    const totalRows = rows;
     const sum = (key: keyof LoanPortfolioDetailRow) =>
       totalRows.reduce((total, row) => {
         const value = row[key];
@@ -416,6 +455,54 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
       totalExposure,
       ltv,
     };
+  }
+
+  togglePortfolioSort(column: PortfolioSortColumn): void {
+    if (this.portfolioSortColumn() === column) {
+      this.portfolioSortDirection.update((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    this.portfolioSortColumn.set(column);
+    this.portfolioSortDirection.set('asc');
+  }
+
+  portfolioSortIndicator(column: PortfolioSortColumn): string {
+    if (this.portfolioSortColumn() !== column) {
+      return '';
+    }
+    return this.portfolioSortDirection() === 'asc' ? '↑' : '↓';
+  }
+
+  private comparePortfolioRows(
+    left: LoanPortfolioDetailRow,
+    right: LoanPortfolioDetailRow,
+    column: PortfolioSortColumn,
+  ): number {
+    if (column === 'rank') {
+      return rankSortValue(left.rank) - rankSortValue(right.rank);
+    }
+
+    if (PORTFOLIO_TEXT_SORT_COLUMNS.has(column)) {
+      const leftText = String(left[column] ?? '');
+      const rightText = String(right[column] ?? '');
+      return leftText.localeCompare(rightText, undefined, { sensitivity: 'base', numeric: true });
+    }
+
+    const leftValue = left[column];
+    const rightValue = right[column];
+    const leftNum = typeof leftValue === 'number' && Number.isFinite(leftValue) ? leftValue : null;
+    const rightNum = typeof rightValue === 'number' && Number.isFinite(rightValue) ? rightValue : null;
+
+    if (leftNum == null && rightNum == null) {
+      return 0;
+    }
+    if (leftNum == null) {
+      return 1;
+    }
+    if (rightNum == null) {
+      return -1;
+    }
+    return leftNum - rightNum;
   }
 
   private renderCharts(): void {
@@ -472,7 +559,8 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false,
+        maintainAspectRatio: true,
+        aspectRatio: 1,
         cutout: '62%',
         plugins: {
           legend: { display: false },

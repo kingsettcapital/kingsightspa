@@ -243,6 +243,13 @@ export function extractFundsListSummary(result: unknown): FundsListSummaryDto | 
   );
   const netDistributed = readNumber(s, 'net_distributed', 'netDistributed', 'NetDistributed');
   const unfunded = readNumber(s, 'unfunded', 'Unfunded', 'unfunded_amount', 'unfundedAmount');
+  const asOfRaw = s['as_of_date'] ?? s['asOfDate'] ?? s['AsOfDate'];
+  const asOfDate =
+    typeof asOfRaw === 'string' && asOfRaw.trim()
+      ? asOfRaw.trim()
+      : asOfRaw instanceof Date
+        ? asOfRaw.toISOString()
+        : null;
 
   return {
     ...(totalFunds > 0 ? { totalFunds } : {}),
@@ -250,6 +257,7 @@ export function extractFundsListSummary(result: unknown): FundsListSummaryDto | 
     netInvestedCapital,
     netDistributed,
     unfunded,
+    ...(asOfDate ? { asOfDate, as_of_date: asOfDate } : {}),
   };
 }
 

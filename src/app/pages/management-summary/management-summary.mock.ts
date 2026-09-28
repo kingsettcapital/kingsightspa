@@ -416,8 +416,8 @@ export const MANAGEMENT_SUMMARY_INVESTOR_ALIAS_OPTIONS = [
 ];
 
 export const MANAGEMENT_SUMMARY_MOCK_LTV_RISK: LtvRiskBandRow[] = [
-  { label: 'Low (< 60%)', value: 142_000_000, sharePercent: 10.0, loans: 2 },
-  { label: 'Moderate (60% – 75%)', value: 284_000_000, sharePercent: 20.0, loans: 3 },
+  { label: 'Low (< 50%)', value: 142_000_000, sharePercent: 10.0, loans: 2 },
+  { label: 'Moderate (50% – 75%)', value: 284_000_000, sharePercent: 20.0, loans: 3 },
   { label: 'Elevated (75% – 100%)', value: 854_000_000, sharePercent: 60.0, loans: 6 },
   { label: 'High (> 100%)', value: 144_000_000, sharePercent: 10.0, loans: 2 },
 ];

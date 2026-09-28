@@ -57,6 +57,8 @@ export interface InvestorsListSummaryDto {
   reservedUncalled?: number;
   unfunded?: number;
   releasedCapital?: number;
+  as_of_date?: string | null;
+  asOfDate?: string | null;
 }
 
 export interface AssetsFilterOptionDto {
@@ -280,6 +282,8 @@ export interface FundsListSummaryDto {
   netDistributed?: number;
   reservedUncalled?: number;
   unfunded?: number;
+  as_of_date?: string | null;
+  asOfDate?: string | null;
 }
 
 export interface FundListItemDto {
@@ -301,6 +305,30 @@ export interface FundListItemDto {
   unfundedAmount?: number | null;
   unfunded?: number | null;
   releasedCapital?: number | null;
+  investors?: number | null;
+  assets?: number | null;
+  status?: string | null;
+}
+
+/** Dashboard Active Funds from GET /api/Funds/active-summary. */
+export interface ActiveFundSummaryDto {
+  fundKey: number;
+  fundName: string | null;
+  fund_type_name?: string | null;
+  fund_strategy_name?: string | null;
+  investors: number;
+  assets: number;
+  net_invested_capital_amount?: number;
+  currentValue?: number;
+  status?: string | null;
+  as_of_date?: string | null;
+  asOfDate?: string | null;
+}
+
+export interface ActiveFundsSummaryResultDto {
+  as_of_date?: string | null;
+  asOfDate?: string | null;
+  items: ActiveFundSummaryDto[];
 }
 
 export interface FundsPagedResult extends PagedResult<FundListItemDto> {

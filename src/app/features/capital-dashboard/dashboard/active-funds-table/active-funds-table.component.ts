@@ -3,9 +3,8 @@ import { Router, RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { catchError, of } from 'rxjs';
 
-import { FundsListQueryParams } from '../../shared/models/api.models';
 import { CapitalFundsApiService } from '../../shared/services/capital-funds-api.service';
-import { mapFundListItemToActiveFundRow } from '../dashboard-active-table.util';
+import { mapActiveFundSummaryToRow } from '../dashboard-active-table.util';
 import { ActiveFundRow } from '../dashboard.mock-data';
 import { formatCurrency } from '../../shared/utils/format-currency.util';
 
@@ -59,27 +58,24 @@ export class ActiveFundsTableComponent {
     this.loading.set(true);
     this.error.set(null);
 
-    const params: FundsListQueryParams = {
-      view: 'ltd',
-    };
-
     this.fundsApi
-      .getAllFunds(params)
+      .getActiveFundSummary()
       .pipe(
         catchError(() => {
           this.error.set('Unable to load active funds.');
           return of(null);
         }),
       )
-      .subscribe((items) => {
+      .subscribe((result) => {
         this.loading.set(false);
-        if (!items) {
+        if (!result) {
           this.rows.set([]);
           this.totalCount.set(0);
           return;
         }
 
-        this.rows.set(items.map((item, index) => mapFundListItemToActiveFundRow(item, index)));
+        const items = result.items ?? [];
+        this.rows.set(items.map((item, index) => mapActiveFundSummaryToRow(item, index)));
         this.totalCount.set(items.length);
       });
   }

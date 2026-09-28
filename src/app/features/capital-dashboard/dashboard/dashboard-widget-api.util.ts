@@ -94,7 +94,7 @@ export function formatDashboardLastUpdated(value: string | null | undefined): st
     return '—';
   }
 
-  const parsed = new Date(trimmed);
+  const parsed = new Date(trimmed.length <= 10 ? `${trimmed}T00:00:00` : trimmed);
   if (Number.isNaN(parsed.getTime())) {
     return trimmed;
   }

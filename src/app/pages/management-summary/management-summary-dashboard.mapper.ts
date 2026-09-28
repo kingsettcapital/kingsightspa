@@ -51,6 +51,50 @@ function mapChartSlice(slice: {
   };
 }
 
+/**
+ * LTV risk bands: Low &lt; 50%, Moderate 50–&lt;75%, Elevated 75–100%, High &gt; 100%.
+ */
+export function riskBandFromLtv(ltv: number | null | undefined): 'HIGH' | 'ELEVATED' | 'MODERATE' | 'LOW' {
+  if (ltv == null || Number.isNaN(ltv)) {
+    return 'LOW';
+  }
+  if (ltv > 100) {
+    return 'HIGH';
+  }
+  if (ltv >= 75) {
+    return 'ELEVATED';
+  }
+  if (ltv >= 50) {
+    return 'MODERATE';
+  }
+  return 'LOW';
+}
+
+const LTV_RISK_BAND_ORDER = ['HIGH', 'ELEVATED', 'MODERATE', 'LOW'] as const;
+
+function buildLtvRiskBandsFromLoanRows(loanRows: LoanAliasSummaryRow[]): LtvRiskBandRow[] {
+  const totalExposure = loanRows.reduce((sum, row) => sum + (row.totalExposure ?? 0), 0);
+  const byRisk = new Map<string, { exposure: number; loans: number }>();
+
+  for (const row of loanRows) {
+    const band = riskBandFromLtv(row.ltv);
+    const current = byRisk.get(band) ?? { exposure: 0, loans: 0 };
+    current.exposure += row.totalExposure ?? 0;
+    current.loans += 1;
+    byRisk.set(band, current);
+  }
+
+  return LTV_RISK_BAND_ORDER.filter((label) => byRisk.has(label)).map((label) => {
+    const { exposure, loans } = byRisk.get(label)!;
+    return {
+      label,
+      value: exposure,
+      loans,
+      sharePercent: totalExposure > 0 ? Math.round((exposure / totalExposure) * 1000) / 10 : 0,
+    };
+  });
+}
+
 function buildCapitalStackFromExposureAnalysis(
   rows: ManagementSummaryDashboardDto['exposureAnalysisRows'],
 ): Array<{ label: string; value: number; sharePercent: number }> {
@@ -173,7 +217,7 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
     other: row.other ?? null,
     totalExposure: row.totalExposure ?? null,
     ltv: row.ltv ?? null,
-    risk: row.risk ?? 'LOW',
+    risk: riskBandFromLtv(row.ltv),
     isLtvConfirmed: Boolean(row.isLtvConfirmed),
   }));
 
@@ -213,12 +257,7 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
     };
   });
 
-  const ltvRiskBands: LtvRiskBandRow[] = (charts?.ltvRiskDistribution ?? []).map((slice) => ({
-    label: slice.label,
-    value: slice.value,
-    sharePercent: slice.sharePercent ?? 0,
-    loans: slice.count ?? 0,
-  }));
+  const ltvRiskBands: LtvRiskBandRow[] = buildLtvRiskBandsFromLoanRows(loanRows);
 
   const topExposures: TopExposureRow[] = (charts?.top5Exposures ?? []).map((slice) => ({
     loanAlias: slice.label,

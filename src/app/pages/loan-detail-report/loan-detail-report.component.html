@@ -17,25 +17,23 @@
   </div>
 
   <header class="ldr-header">
+    <div class="ldr-header__confidential">CONFIDENTIAL — INTERNAL USE ONLY</div>
+    @if (activeFiltersDisplay()) {
+      <div class="ldr-header__meta">{{ activeFiltersDisplay() }}</div>
+    }
     <div class="ldr-header__main">
       <div>
         <h1>{{ report().loanAlias }} — Loan Portfolio Management Report</h1>
-        <p class="ldr-header__subtitle">
-          As of {{ report().keyDates.asOfDate }}
-        </p>
       </div>
       <div class="ldr-header__actions ks-no-print">
-        <button type="button" class="ldr-btn ldr-btn--ghost" (click)="printReport()" [disabled]="isPrinting() || isExporting()">
-          Print
-        </button>
-        <button type="button" class="ldr-btn ldr-btn--ghost" (click)="toggleFilters()" [disabled]="isPrinting() || isExporting()">
+        <button type="button" class="ldr-btn ldr-btn--ghost" (click)="toggleFilters()" [disabled]="isExporting()">
           Filters
         </button>
         <button
           type="button"
           class="ldr-btn ldr-btn--primary"
           (click)="exportPdf()"
-          [disabled]="isPrinting() || isExporting() || isLoading()"
+          [disabled]="isExporting() || isLoading()"
         >
           {{ isExporting() ? 'Exporting…' : 'Export' }}
         </button>
@@ -71,7 +69,6 @@
     <article class="ldr-info-card">
       <h2>Report Details</h2>
       <dl>
-        <div><dt>Main Loan ID</dt><dd>{{ report().reportDetails.mainLoanId }}</dd></div>
         <div>
           <dt># of Investors</dt>
           <dd>{{ report().reportDetails.investorCount != null ? report().reportDetails.investorCount : '—' }}</dd>
@@ -81,7 +78,7 @@
     </article>
 
     <article class="ldr-info-card">
-      <h2>Key Dates</h2>
+      <h2 title="Dates shown below are the Earliest date related to the Capital Stack">Key Dates</h2>
       <dl>
         <div><dt>Date of Advance</dt><dd>{{ report().keyDates.dateOfAdvance }}</dd></div>
         <div><dt>Date of Default</dt><dd>{{ report().keyDates.dateOfDefault }}</dd></div>
@@ -133,7 +130,7 @@
       <h2>Interest Over Life of Loan</h2>
       <dl>
         <div>
-          <dt>Total Interest Due</dt>
+          <dt>Total Loan Interest Due</dt>
           <dd>{{ formatMillions(report().interestOverLife.totalInterestDue) }}</dd>
         </div>
         <div>
@@ -145,7 +142,7 @@
           <dd>{{ formatMillions(report().interestOverLife.paidViaCash) }}</dd>
         </div>
         <div>
-          <dt>Interest Unpaid</dt>
+          <dt>Loan Interest Unpaid</dt>
           <dd>{{ formatMillions(report().interestOverLife.interestUnpaid) }}</dd>
         </div>
       </dl>
@@ -155,11 +152,13 @@
       <h2>Interest Disbursed</h2>
       <dl>
         <div>
-          <dt>Interest Disbursed</dt>
+          <dt title="SMF and MLP Loan Interest Due before Interest Off Date">Interest Disbursed</dt>
           <dd>{{ formatMillions(report().interestSummary.interestDisbursed) }}</dd>
         </div>
         <div>
-          <dt>Interest Not Disbursed</dt>
+          <dt title="SMF and MLP Loan Interest Due after Interest Off Date to the Report As Of Date">
+            Interest Not Disbursed
+          </dt>
           <dd>{{ formatMillions(report().interestSummary.interestNotDisbursed) }}</dd>
         </div>
         <div>
@@ -192,29 +191,114 @@
           <col class="ldr-col ldr-col--num" />
           <col class="ldr-col ldr-col--num" />
           <col class="ldr-col ldr-col--narrow" />
-          <col class="ldr-col ldr-col--narrow" />
+          <col class="ldr-col ldr-col--arrears" />
         </colgroup>
         <thead>
           <tr>
-            <th>Loan ID</th>
-            <th>Loan Name</th>
-            <th>Investor</th>
-            <th>Rank</th>
-            <th class="num">Rate</th>
-            <th class="num">Principal</th>
-            <th class="num">O/S Int.</th>
-            <th class="num">Accrued Int.</th>
-            <th class="num">Late Int.</th>
-            <th class="num">Int. Adj.</th>
-            <th class="num">Tax Arrears</th>
-            <th class="num">Other Costs</th>
-            <th class="num">Total Exposure</th>
-            <th class="num">LTV</th>
-            <th class="num"># Mo. in Arrears</th>
+            <th>
+              <button type="button" class="ldr-th-sort" (click)="togglePortfolioSort('loanId')">
+                Loan ID
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('loanId') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="ldr-th-sort" (click)="togglePortfolioSort('description')">
+                Loan Name
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('description') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="ldr-th-sort" (click)="togglePortfolioSort('investor')">
+                Investor
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('investor') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="ldr-th-sort" (click)="togglePortfolioSort('rank')">
+                Rank
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('rank') }}</span>
+              </button>
+            </th>
+            <th class="num">
+              <button type="button" class="ldr-th-sort" (click)="togglePortfolioSort('rate')">
+                Rate
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('rate') }}</span>
+              </button>
+            </th>
+            <th class="num">
+              <button type="button" class="ldr-th-sort" (click)="togglePortfolioSort('principal')">
+                Principal
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('principal') }}</span>
+              </button>
+            </th>
+            <th class="num">
+              <button type="button" class="ldr-th-sort" (click)="togglePortfolioSort('defInterest')">
+                O/S Loan Int.
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('defInterest') }}</span>
+              </button>
+            </th>
+            <th class="num">
+              <button type="button" class="ldr-th-sort" (click)="togglePortfolioSort('accruedInt')">
+                Acc. Loan Int.
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('accruedInt') }}</span>
+              </button>
+            </th>
+            <th class="num">
+              <button type="button" class="ldr-th-sort" (click)="togglePortfolioSort('lateInt')">
+                O/S Late Int.
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('lateInt') }}</span>
+              </button>
+            </th>
+            <th class="num">
+              <button
+                type="button"
+                class="ldr-th-sort"
+                title="All Interest, including Late Interest, outstanding after Interest Off Date to the Report As Of Date"
+                (click)="togglePortfolioSort('intAdj')"
+              >
+                Int. Adj.
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('intAdj') }}</span>
+              </button>
+            </th>
+            <th class="num">
+              <button type="button" class="ldr-th-sort" (click)="togglePortfolioSort('taxArrears')">
+                Tax Arrears
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('taxArrears') }}</span>
+              </button>
+            </th>
+            <th class="num">
+              <button
+                type="button"
+                class="ldr-th-sort"
+                title="Total of Outstanding Invoices, Est. Realization Costs and Cost to Complete"
+                (click)="togglePortfolioSort('otherCosts')"
+              >
+                Other Costs
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('otherCosts') }}</span>
+              </button>
+            </th>
+            <th class="num">
+              <button type="button" class="ldr-th-sort" (click)="togglePortfolioSort('totalExposure')">
+                Total Exposure
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('totalExposure') }}</span>
+              </button>
+            </th>
+            <th class="num">
+              <button type="button" class="ldr-th-sort" (click)="togglePortfolioSort('ltv')">
+                LTV
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('ltv') }}</span>
+              </button>
+            </th>
+            <th class="num">
+              <button type="button" class="ldr-th-sort" (click)="togglePortfolioSort('monthsInArrears')">
+                # Mo. in Arrears
+                <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('monthsInArrears') }}</span>
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
-          @for (row of report().portfolioRows; track row.loanId) {
+          @for (row of sortedPortfolioRows(); track row.loanId) {
             <tr>
               <td>{{ row.loanId }}</td>
               <td>{{ row.description }}</td>

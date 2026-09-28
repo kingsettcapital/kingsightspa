@@ -234,6 +234,13 @@ export function extractInvestorsListSummary(result: unknown): InvestorsListSumma
     'released_capital_amount',
     'releasedCapitalAmount',
   );
+  const asOfRaw = s['as_of_date'] ?? s['asOfDate'] ?? s['AsOfDate'];
+  const asOfDate =
+    typeof asOfRaw === 'string' && asOfRaw.trim()
+      ? asOfRaw.trim()
+      : asOfRaw instanceof Date
+        ? asOfRaw.toISOString()
+        : null;
 
   return {
     ...(totalInvestors > 0 ? { totalInvestors } : {}),
@@ -243,6 +250,7 @@ export function extractInvestorsListSummary(result: unknown): InvestorsListSumma
     reservedUncalled,
     unfunded,
     releasedCapital,
+    ...(asOfDate ? { asOfDate, as_of_date: asOfDate } : {}),
   };
 }
 

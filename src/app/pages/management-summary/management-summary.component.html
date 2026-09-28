@@ -8,26 +8,23 @@
 
 <section class="ms-dashboard" #reportRoot>
   <header class="ms-header">
-    <div class="ms-header__meta">
-      AS OF {{ asOfDisplay() | uppercase }}
-      | CONFIDENTIAL — INTERNAL USE ONLY
-    </div>
+    <div class="ms-header__confidential">CONFIDENTIAL — INTERNAL USE ONLY</div>
+    @if (activeFiltersDisplay()) {
+      <div class="ms-header__meta">{{ activeFiltersDisplay() }}</div>
+    }
     <div class="ms-header__main">
       <div>
         <h1>Loan Portfolio</h1>
       </div>
       <div class="ms-header__actions ks-no-print">
-        <button type="button" class="ms-btn ms-btn--ghost" (click)="printReport()" [disabled]="isPrinting() || isExporting()">
-          Print
-        </button>
-        <button type="button" class="ms-btn ms-btn--ghost" (click)="toggleFilters()" [disabled]="isPrinting() || isExporting()">
+        <button type="button" class="ms-btn ms-btn--ghost" (click)="toggleFilters()" [disabled]="isExporting()">
           Filters
         </button>
         <button
           type="button"
           class="ms-btn ms-btn--primary"
           (click)="exportPdf()"
-          [disabled]="isPrinting() || isExporting() || isLoading()"
+          [disabled]="isExporting() || isLoading()"
         >
           {{ isExporting() ? 'Exporting…' : 'Export' }}
         </button>
@@ -63,15 +60,29 @@
       <div class="ms-outstanding__group">
         <h3>Loan Interest</h3>
         <dl>
-          <div><dt>Interest Disbursed</dt><dd>{{ formatMillions(outstanding().interestDisbursed) }}</dd></div>
-          <div><dt>Interest Not Disbursed</dt><dd>{{ formatMillions(outstanding().interestNotDisbursed) }}</dd></div>
-          <div><dt>Total Outstanding Interest</dt><dd>{{ formatMillions(outstanding().totalOutstandingInterest) }}</dd></div>
+          <div>
+            <dt title="SMF and MLP Loan Interest Due before Interest Off Date">Interest Disbursed</dt>
+            <dd>{{ formatMillions(outstanding().interestDisbursed) }}</dd>
+          </div>
+          <div>
+            <dt title="SMF and MLP Loan Interest Due after Interest Off Date to the Report As Of Date">
+              Interest Not Disbursed
+            </dt>
+            <dd>{{ formatMillions(outstanding().interestNotDisbursed) }}</dd>
+          </div>
+          <div>
+            <dt>Total Outstanding Loan Interest</dt>
+            <dd>{{ formatMillions(outstanding().totalOutstandingInterest) }}</dd>
+          </div>
         </dl>
       </div>
       <div class="ms-outstanding__group">
         <h3>Late Interest</h3>
         <dl>
-          <div><dt>Total Late Interest</dt><dd>{{ formatMillions(outstanding().totalLateInterest) }}</dd></div>
+          <div>
+            <dt>Total Outstanding Late Interest</dt>
+            <dd>{{ formatMillions(outstanding().totalLateInterest) }}</dd>
+          </div>
         </dl>
       </div>
     </div>
@@ -83,7 +94,7 @@
         <h2>Detailed Loan Summary</h2>
         <p>{{ sortedLoanRows().length }} of {{ loanRows().length }} loan aliases — As of {{ filters().asOfDate }}</p>
       </div>
-      <label class="ms-loan-search">
+      <label class="ms-loan-search ks-no-print">
         <span class="visually-hidden">Search loan summary</span>
         <mat-icon class="ms-loan-search__icon" aria-hidden="true">search</mat-icon>
         <input
@@ -97,60 +108,81 @@
     </div>
     <div class="ms-table-wrap">
       <table class="ms-table ms-table--loan-summary">
+        <colgroup>
+          <col class="ms-col--alias" />
+          <col class="ms-col--sponsor" />
+          <col class="ms-col--date" />
+          <col class="ms-col--interest-status" />
+          <col class="ms-col--exit" />
+          <col class="ms-col--num" />
+          <col class="ms-col--num" />
+          <col class="ms-col--num" />
+          <col class="ms-col--num" />
+          <col class="ms-col--num" />
+          <col class="ms-col--num" />
+          <col class="ms-col--num" />
+          <col class="ms-col--num" />
+          <col class="ms-col--num" />
+          <col class="ms-col--ltv" />
+          <col class="ms-col--risk" />
+          <col class="ms-table__chevron-col" />
+        </colgroup>
         <thead>
           <tr>
-            <th class="ms-col-left ms-sortable" (click)="sortLoanColumn('loanAlias')">
+            <th class="ms-col-left ms-col--alias ms-sortable" (click)="sortLoanColumn('loanAlias')">
               Loan Alias <span class="ms-sort-icon">{{ loanSortIndicator('loanAlias') }}</span>
             </th>
-            <th class="ms-col-left ms-sortable" (click)="sortLoanColumn('sponsor')">
+            <th class="ms-col-left ms-col--sponsor ms-sortable" (click)="sortLoanColumn('sponsor')">
               Sponsor <span class="ms-sort-icon">{{ loanSortIndicator('sponsor') }}</span>
             </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('defaultDate')">
+            <th class="ms-col-center ms-col--date ms-sortable" (click)="sortLoanColumn('defaultDate')">
               Default Date <span class="ms-sort-icon">{{ loanSortIndicator('defaultDate') }}</span>
             </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('maturityDate')">
-              Maturity Date <span class="ms-sort-icon">{{ loanSortIndicator('maturityDate') }}</span>
-            </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('interestStatus')">
+            <th class="ms-col-left ms-col--interest-status ms-sortable" (click)="sortLoanColumn('interestStatus')">
               Interest Status <span class="ms-sort-icon">{{ loanSortIndicator('interestStatus') }}</span>
             </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('units')">
-              Units <span class="ms-sort-icon">{{ loanSortIndicator('units') }}</span>
-            </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('exit')">
+            <th class="ms-col-center ms-col--exit ms-sortable" (click)="sortLoanColumn('exit')">
               Exit <span class="ms-sort-icon">{{ loanSortIndicator('exit') }}</span>
             </th>
-            <th class="num ms-sortable" (click)="sortLoanColumn('security')">
+            <th class="num ms-col--num ms-sortable" (click)="sortLoanColumn('security')">
               Security <span class="ms-sort-icon">{{ loanSortIndicator('security') }}</span>
             </th>
-            <th class="num ms-sortable" (click)="sortLoanColumn('principal')">
+            <th class="num ms-col--num ms-sortable" (click)="sortLoanColumn('principal')">
               Principal <span class="ms-sort-icon">{{ loanSortIndicator('principal') }}</span>
             </th>
-            <th class="num ms-sortable" (click)="sortLoanColumn('osInt')">
-              O/S Int. <span class="ms-sort-icon">{{ loanSortIndicator('osInt') }}</span>
+            <th class="num ms-col--num ms-sortable" (click)="sortLoanColumn('osInt')">
+              O/S Loan Int. <span class="ms-sort-icon">{{ loanSortIndicator('osInt') }}</span>
             </th>
-            <th class="num ms-sortable" (click)="sortLoanColumn('accrued')">
-              Accrued Int. <span class="ms-sort-icon">{{ loanSortIndicator('accrued') }}</span>
+            <th class="num ms-col--num ms-sortable" (click)="sortLoanColumn('accrued')">
+              Acc. Loan Int. <span class="ms-sort-icon">{{ loanSortIndicator('accrued') }}</span>
             </th>
-            <th class="num ms-sortable" (click)="sortLoanColumn('lateInt')">
-              Late Int. <span class="ms-sort-icon">{{ loanSortIndicator('lateInt') }}</span>
+            <th class="num ms-col--num ms-sortable" (click)="sortLoanColumn('lateInt')">
+              O/S Late Int. <span class="ms-sort-icon">{{ loanSortIndicator('lateInt') }}</span>
             </th>
-            <th class="num ms-sortable" (click)="sortLoanColumn('taxIns')">
-              Tax Arrears <span class="ms-sort-icon">{{ loanSortIndicator('taxIns') }}</span>
-            </th>
-            <th class="num ms-sortable" (click)="sortLoanColumn('intAdv')">
+            <th
+              class="num ms-col--num ms-sortable"
+              title="All Interest, including Late Interest, outstanding after Interest Off Date to the Report As Of Date"
+              (click)="sortLoanColumn('intAdv')"
+            >
               Int. Adj. <span class="ms-sort-icon">{{ loanSortIndicator('intAdv') }}</span>
             </th>
-            <th class="num ms-sortable" (click)="sortLoanColumn('other')">
+            <th class="num ms-col--num ms-sortable" (click)="sortLoanColumn('taxIns')">
+              Tax Arrears <span class="ms-sort-icon">{{ loanSortIndicator('taxIns') }}</span>
+            </th>
+            <th
+              class="num ms-col--num ms-sortable"
+              title="Total of Outstanding Invoices, Est. Realization Costs and Cost to Complete"
+              (click)="sortLoanColumn('other')"
+            >
               Other Costs <span class="ms-sort-icon">{{ loanSortIndicator('other') }}</span>
             </th>
-            <th class="num ms-sortable" (click)="sortLoanColumn('totalExposure')">
+            <th class="num ms-col--num ms-sortable" (click)="sortLoanColumn('totalExposure')">
               Total Exposure <span class="ms-sort-icon">{{ loanSortIndicator('totalExposure') }}</span>
             </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('ltv')">
+            <th class="ms-col-center ms-col--ltv ms-sortable" (click)="sortLoanColumn('ltv')">
               LTV <span class="ms-sort-icon">{{ loanSortIndicator('ltv') }}</span>
             </th>
-            <th class="ms-col-center ms-sortable" (click)="sortLoanColumn('risk')">
+            <th class="ms-col-center ms-col--risk ms-sortable" (click)="sortLoanColumn('risk')">
               Risk <span class="ms-sort-icon">{{ loanSortIndicator('risk') }}</span>
             </th>
             <th class="ms-table__chevron-col" aria-hidden="true"></th>
@@ -162,26 +194,24 @@
               class="ms-table__row ms-table__row--clickable"
               (click)="openLoanDetail(row)"
             >
-              <td class="ms-col-left">
+              <td class="ms-col-left ms-col--alias">
                 <span class="ms-drill-cell__name">{{ row.loanAlias }}</span>
               </td>
-              <td class="ms-col-left">{{ row.sponsor }}</td>
-              <td class="ms-col-center">{{ row.defaultDate }}</td>
-              <td class="ms-col-center">{{ row.maturityDate }}</td>
-              <td class="ms-col-center wrap">{{ row.interestStatus }}</td>
-              <td class="ms-col-center wrap">{{ row.units }}</td>
-              <td class="ms-col-center">{{ row.exit }}</td>
-              <td class="num">{{ row.security | number: '1.0-0' }}</td>
-              <td class="num">{{ row.principal | number: '1.0-0' }}</td>
-              <td class="num">{{ row.osInt | number: '1.0-0' }}</td>
-              <td class="num">{{ row.accrued | number: '1.0-0' }}</td>
-              <td class="num">{{ row.lateInt | number: '1.0-0' }}</td>
-              <td class="num">{{ row.taxIns | number: '1.0-0' }}</td>
-              <td class="num">{{ row.intAdv | number: '1.0-0' }}</td>
-              <td class="num">{{ row.other | number: '1.0-0' }}</td>
-              <td class="num">{{ row.totalExposure | number: '1.0-0' }}</td>
-              <td class="ms-col-center">{{ row.ltv }}%</td>
-              <td class="ms-col-center"><span [class]="riskClass(row.risk)">{{ row.risk }}</span></td>
+              <td class="ms-col-left ms-col--sponsor">{{ row.sponsor }}</td>
+              <td class="ms-col-center ms-col--date">{{ row.defaultDate }}</td>
+              <td class="ms-col-left ms-col--interest-status">{{ row.interestStatus }}</td>
+              <td class="ms-col-center ms-col--exit">{{ row.exit }}</td>
+              <td class="num ms-col--num">{{ row.security | number: '1.0-0' }}</td>
+              <td class="num ms-col--num">{{ row.principal | number: '1.0-0' }}</td>
+              <td class="num ms-col--num">{{ row.osInt | number: '1.0-0' }}</td>
+              <td class="num ms-col--num">{{ row.accrued | number: '1.0-0' }}</td>
+              <td class="num ms-col--num">{{ row.lateInt | number: '1.0-0' }}</td>
+              <td class="num ms-col--num">{{ row.intAdv | number: '1.0-0' }}</td>
+              <td class="num ms-col--num">{{ row.taxIns | number: '1.0-0' }}</td>
+              <td class="num ms-col--num">{{ row.other | number: '1.0-0' }}</td>
+              <td class="num ms-col--num">{{ row.totalExposure | number: '1.0-0' }}</td>
+              <td class="ms-col-center ms-col--ltv">{{ row.ltv }}%</td>
+              <td class="ms-col-center ms-col--risk"><span [class]="riskClass(row.risk)">{{ row.risk }}</span></td>
               <td class="ms-table__chevron-col">
                 <mat-icon aria-hidden="true">chevron_right</mat-icon>
               </td>
@@ -190,14 +220,14 @@
         </tbody>
         <tfoot>
           <tr class="ms-table__total">
-            <td colspan="7">TOTAL</td>
+            <td colspan="5">TOTAL</td>
             <td class="num">{{ loanTotals().security | number: '1.0-0' }}</td>
             <td class="num">{{ loanTotals().principal | number: '1.0-0' }}</td>
             <td class="num">{{ loanTotals().osInt | number: '1.0-0' }}</td>
             <td class="num">{{ loanTotals().accrued | number: '1.0-0' }}</td>
             <td class="num">{{ loanTotals().lateInt | number: '1.0-0' }}</td>
-            <td class="num">{{ loanTotals().taxIns | number: '1.0-0' }}</td>
             <td class="num">{{ loanTotals().intAdv | number: '1.0-0' }}</td>
+            <td class="num">{{ loanTotals().taxIns | number: '1.0-0' }}</td>
             <td class="num">{{ loanTotals().other | number: '1.0-0' }}</td>
             <td class="num">{{ loanTotals().totalExposure | number: '1.0-0' }}</td>
             <td class="ms-col-center" aria-label="LTV total not shown"></td>

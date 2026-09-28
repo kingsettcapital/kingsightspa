@@ -40,7 +40,8 @@ import type {
 } from './management-summary.models';
 import { mapManagementSummaryDashboard } from './management-summary-dashboard.mapper';
 import {
-  filtersToQueryParams,
+  loanDetailEntryQueryParams,
+  formatActiveFiltersDisplay,
   statusesFromFilters,
 } from './management-summary-filter.util';
 
@@ -84,7 +85,6 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   readonly reportPeriod = signal('');
   readonly filtersOpen = signal(false);
   readonly isLoading = signal(false);
-  readonly isPrinting = signal(false);
   readonly isExporting = signal(false);
   readonly errorMessage = signal('');
 
@@ -121,6 +121,11 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
 
   readonly filters = signal<ManagementSummaryFilters>(this.filterState.getFilters());
 
+  /** Face-of-report active filters (skips All / empty). */
+  readonly activeFiltersDisplay = computed(() =>
+    formatActiveFiltersDisplay(this.filters(), { asOfDisplay: this.asOfDisplay() || undefined }),
+  );
+
   readonly filteredLoanRows = computed(() => {
     const term = this.loanSearchText().trim().toLowerCase();
     const rows = this.loanRows();
@@ -139,7 +144,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
       return rows;
     }
     const direction = this.loanSortDir() === 'asc' ? 1 : -1;
-    const dateColumns = new Set<keyof LoanAliasSummaryRow>(['defaultDate', 'maturityDate']);
+    const dateColumns = new Set<keyof LoanAliasSummaryRow>(['defaultDate']);
     rows.sort((left, right) => {
       const leftValue = left[column];
       const rightValue = right[column];
@@ -225,15 +230,6 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
     queueMicrotask(() => this.renderCharts());
   }
 
-  printReport(): void {
-    this.filtersOpen.set(false);
-    this.isPrinting.set(true);
-    setTimeout(() => {
-      this.reportPrintExport.print();
-      this.isPrinting.set(false);
-    }, 50);
-  }
-
   async exportPdf(): Promise<void> {
     const root = this.reportRoot()?.nativeElement;
     if (!root || this.isExporting()) {
@@ -242,7 +238,8 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
     this.filtersOpen.set(false);
     this.isExporting.set(true);
     try {
-      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+      this.renderCharts();
+      await new Promise<void>((resolve) => setTimeout(resolve, 80));
       const asOf = this.asOfDisplay().replace(/\W+/g, '-') || 'report';
       await this.reportPrintExport.exportElementToPdf(root, `loan-portfolio-management-summary-${asOf}.pdf`);
     } finally {
@@ -419,9 +416,10 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   }
 
   private navigateToLoanDetail(loanAliasKey: number, loanAlias: string): void {
+    // Keep MS filters in session; only carry As Of into Loan Detail.
     this.filterState.saveFilters(this.filters());
     void this.router.navigate(['/mortgage', 'management-summary', loanAliasKey, 'loan-detail'], {
-      queryParams: filtersToQueryParams(this.filters(), loanAlias),
+      queryParams: loanDetailEntryQueryParams(this.filters().asOfDate, loanAlias),
     });
   }
 
@@ -533,9 +531,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
       row.loanAlias,
       row.sponsor,
       row.defaultDate,
-      row.maturityDate,
       row.interestStatus,
-      row.units,
       row.exit,
       row.risk,
       this.formatSearchNumber(row.security),
@@ -634,7 +630,8 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false,
+        maintainAspectRatio: true,
+        aspectRatio: 1,
         cutout: '62%',
         plugins: {
           legend: { display: false },

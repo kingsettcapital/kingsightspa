@@ -32,11 +32,21 @@
   color: #1a1f36;
 }
 
-.ms-header__meta {
+.ms-header__confidential {
   font-size: 0.72rem;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: #64748b;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.ms-header__meta {
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  line-height: 1.45;
+  color: #475569;
+  margin-bottom: 0.65rem;
+  max-width: 100%;
 }
 
 .ms-header__main {
@@ -189,6 +199,11 @@
   color: #475569;
 }
 
+.ms-outstanding dt[title],
+.ms-table--loan-summary thead th[title] {
+  cursor: help;
+}
+
 .ms-outstanding dd {
   margin: 0;
   font-weight: 700;
@@ -290,7 +305,7 @@
 }
 
 .ms-table-wrap {
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: auto;
   width: 100%;
   max-height: min(32rem, 60vh);
@@ -301,7 +316,7 @@
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
-  min-width: 0;
+  min-width: 72rem;
 }
 
 .ms-table thead th {
@@ -315,9 +330,11 @@
   letter-spacing: 0.03em;
   text-transform: uppercase;
   text-align: left;
+  /* Wrap only at spaces — never mid-word. */
   white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 /* Match body alignment — base thead th { text-align:left } wins over .num otherwise. */
@@ -338,8 +355,9 @@
   border-bottom: 1px solid #e2e8f0;
   font-size: 0.75rem;
   vertical-align: top;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .ms-table tbody tr:nth-child(even) {
@@ -392,26 +410,76 @@
 
 .ms-table .num {
   text-align: right;
-  white-space: normal;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
 .ms-table--loan-summary .ms-col-left {
   text-align: left;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .ms-table--loan-summary .ms-col-center {
   text-align: center;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ms-table--loan-summary td.wrap {
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+.ms-table--loan-summary .ms-col--interest-status {
+  width: 15%;
+  min-width: 10rem;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  text-align: left;
+}
+
+.ms-table--loan-summary .ms-col--alias {
+  width: 13%;
+  min-width: 8.5rem;
+}
+
+.ms-table--loan-summary .ms-col--sponsor {
+  width: 13%;
+  min-width: 8.5rem;
+}
+
+.ms-table--loan-summary .ms-col--risk {
+  width: 8%;
+  min-width: 5.75rem;
+  white-space: nowrap;
+}
+
+.ms-table--loan-summary .ms-col--date {
+  width: 6.5%;
+}
+
+.ms-table--loan-summary .ms-col--exit,
+.ms-table--loan-summary .ms-col--ltv {
+  width: 4.5%;
+}
+
+.ms-table--loan-summary .ms-col--num {
+  width: 5%;
 }
 
 .ms-table--loan-summary thead th {
   vertical-align: top;
   white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow-wrap: normal;
+  word-break: normal;
   line-height: 1.15;
-  hyphens: auto;
+  hyphens: none;
 }
 
 /* Headers: center all except Loan Alias / Sponsor (left). Body .num cells stay right. */
@@ -445,12 +513,16 @@
   min-width: 0;
   max-width: none;
   white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .ms-table .ms-prewrap {
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .ms-table .ms-watchlist-notes {
@@ -538,6 +610,7 @@
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .ms-risk--high {
@@ -619,8 +692,7 @@
   padding: 0.2rem 0.45rem;
   font-size: 0.72rem;
   font-weight: 700;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .ms-watch-status--claim {
@@ -864,8 +936,17 @@
   margin-bottom: 0.65rem;
 }
 
+/* Square plot so donuts stay circular on screen and in PDF capture. */
+.ms-chart:not(.ms-chart--bar) {
+  width: min(11rem, 100%);
+  height: 11rem;
+  aspect-ratio: 1;
+  margin-inline: auto;
+}
+
 .ms-chart--bar {
   height: 14rem;
+  width: 100%;
 }
 
 .ms-chart canvas {
@@ -902,12 +983,18 @@
   text-transform: uppercase;
   text-align: left;
   border-bottom: 1px solid #e2e8f0;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .ms-mini-table tbody td {
   padding: 0.35rem 0.5rem;
   border-bottom: 1px solid #f1f5f9;
   color: #1e293b;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .ms-mini-table thead th.num,
@@ -936,6 +1023,15 @@
 
 .ms-table--exposure-analysis {
   min-width: 0;
+}
+
+.ms-table--exposure-analysis td,
+.ms-table--exposure-analysis th,
+.ms-table--watchlist td,
+.ms-table--watchlist th {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .ms-table--exposure-analysis .ms-col-sum {

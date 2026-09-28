@@ -11,6 +11,7 @@ export interface ActiveFundRow {
   investors: number;
   assets: number;
   status: string;
+  asOfDate?: string | null;
 }
 
 export interface ActiveAssetRow {

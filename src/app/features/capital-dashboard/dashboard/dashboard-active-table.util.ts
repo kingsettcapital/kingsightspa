@@ -1,4 +1,4 @@
-import { FundListItemDto, PropertyListItemDto } from '../shared/models/api.models';
+import { ActiveFundSummaryDto, FundListItemDto, PropertyListItemDto } from '../shared/models/api.models';
 import { formatCurrency, formatPercent } from '../shared/utils/format-currency.util';
 import { ActiveAssetRow, ActiveFundRow } from './dashboard.mock-data';
 
@@ -24,6 +24,59 @@ function readNumber(record: Record<string, unknown>, ...keys: string[]): number 
     }
   }
   return null;
+}
+
+export function formatActiveFundAsOfDate(value: string | null | undefined): string {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return '';
+  }
+  const parsed = new Date(trimmed.length <= 10 ? `${trimmed}T00:00:00` : trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return trimmed;
+  }
+  return parsed.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+export function mapActiveFundSummaryToRow(dto: ActiveFundSummaryDto, index: number): ActiveFundRow {
+  const record = readRecord(dto);
+  const fundKey = readNumber(record, 'fundKey', 'FundKey', 'fund_key') ?? dto.fundKey ?? 0;
+  const name = readString(record, 'fundName', 'FundName', 'fund_name') || '—';
+  const currentValue =
+    readNumber(
+      record,
+      'currentValue',
+      'CurrentValue',
+      'net_invested_capital_amount',
+      'netInvestedCapitalAmount',
+    ) ?? dto.currentValue ?? dto.net_invested_capital_amount ?? 0;
+  const investors =
+    readNumber(record, 'investors', 'Investors', 'investorCount', 'investor_count', 'investors_count') ??
+    dto.investors ??
+    0;
+  const assets =
+    readNumber(record, 'assets', 'Assets', 'assetCount', 'asset_count', 'assets_count') ?? dto.assets ?? 0;
+  const status = readString(record, 'status', 'Status') || dto.status || 'Active';
+  const asOfRaw =
+    readString(record, 'asOfDate', 'AsOfDate', 'as_of_date') || dto.asOfDate || dto.as_of_date || null;
+
+  return {
+    rank: index + 1,
+    fundKey,
+    name,
+    aum: formatCurrency(currentValue, { compact: true }),
+    eumAmount: currentValue,
+    q3Return: '—',
+    q3ReturnPositive: true,
+    investors,
+    assets,
+    status,
+    asOfDate: asOfRaw,
+  };
 }
 
 export function mapFundListItemToActiveFundRow(dto: FundListItemDto, index: number): ActiveFundRow {

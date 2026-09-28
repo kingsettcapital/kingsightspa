@@ -15,6 +15,7 @@ import {
   FundsFilterOptionsDto,
   FundsListQueryParams,
   FundsPagedResult,
+  ActiveFundsSummaryResultDto,
   FundNavQueryParams,
   FundNavTimeframe,
   FundPeriodDto,
@@ -44,6 +45,15 @@ export class CapitalFundsApiService {
 
   getFunds(params: FundsListQueryParams = {}): Observable<FundsPagedResult> {
     return this.api.get<FundsPagedResult>('api/Funds', params as any);
+  }
+
+  /** Dashboard Active Funds from vw_active_fund_summary. */
+  getActiveFundSummary(params: {
+    search?: string;
+    fundType?: string;
+    strategy?: string;
+  } = {}): Observable<ActiveFundsSummaryResultDto> {
+    return this.api.get<ActiveFundsSummaryResultDto>('api/Funds/active-summary', params as any);
   }
 
   getAllFunds(params: FundsListQueryParams = {}): Observable<FundListItemDto[]> {
