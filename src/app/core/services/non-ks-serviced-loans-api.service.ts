@@ -1,17 +1,23 @@
-import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 
-import { APP_API_CONFIG } from '../config/api.config';
+import { ApiService } from './api.service';
 
 /** Full manual-entry row for Non-KS serviced loans (quarterly subjective input). */
 export type NonKsServicedLoanDto = {
-  nonKsServicedLoanKey?: number;
+  nonKsServicedLoanKey?: number | string | null;
+  loanAliasName?: string | null;
   loanName?: string | null;
   asAtDate?: string | null;
   loanId?: string | null;
+  loanCode?: string | null;
+  extLoanCode?: string | null;
   servicerId?: string | null;
   description?: string | null;
+  investorAliasName?: string | null;
   investor?: string | null;
+  investorCode?: string | null;
+  sponsor?: string | null;
   dateOfDefault?: string | null;
   maturityDate?: string | null;
   interestOffDate?: string | null;
@@ -21,6 +27,7 @@ export type NonKsServicedLoanDto = {
   netAcres?: number | null;
   squareFeet?: number | null;
   interestRate?: number | null;
+  currentLtv?: number | null;
   principalBalance?: number | null;
   outstandingInterest?: number | null;
   accruedInterest?: number | null;
@@ -29,14 +36,18 @@ export type NonKsServicedLoanDto = {
   estRealizationCosts?: number | null;
   costToComplete?: number | null;
   taxArrears?: number | null;
-  interestAsOfTaxMemo?: number | null;
   interestAdjustment?: number | null;
+  fundingStatus?: string | null;
   userUpdatedBy?: string | null;
   userUpdatedDate?: string | null;
 };
 
-export type NonKsServicedLoanPayload = Omit<NonKsServicedLoanDto, 'nonKsServicedLoanKey' | 'userUpdatedDate'> & {
-  nonKsServicedLoanKey?: number;
+export type NonKsServicedLoanPayload = Omit<
+  NonKsServicedLoanDto,
+  'nonKsServicedLoanKey' | 'userUpdatedDate'
+> & {
+  nonKsServicedLoanKey?: number | string | null;
+  originalAsAtDate?: string | null;
   userUpdatedBy: string;
 };
 
@@ -48,26 +59,34 @@ export type NonKsServicedLoanBulkUpdateRequest = {
   loans: NonKsServicedLoanPayload[];
 };
 
+export type NonKsServicedLoanLookupsDto = {
+  nextExtLoanCode?: string;
+  NextExtLoanCode?: string;
+  sponsors?: string[];
+  Sponsors?: string[];
+};
+
 @Injectable({
   providedIn: 'root',
 })
 export class NonKsServicedLoansApiService {
-  private readonly http = inject(HttpClient);
-  private readonly apiConfig = inject(APP_API_CONFIG);
+  private readonly api = inject(ApiService);
 
-  private get baseUrl(): string {
-    return `${this.apiConfig.baseUrl}/api/NonKsServicedLoans`;
+  getLookups(): Observable<NonKsServicedLoanLookupsDto> {
+    return this.api.get<NonKsServicedLoanLookupsDto>('api/NonKsServicedLoans/lookups');
   }
 
-  getAll() {
-    return this.http.get<NonKsServicedLoanDto[] | Record<string, unknown>>(this.baseUrl);
+  getAll(): Observable<NonKsServicedLoanDto[] | Record<string, unknown>> {
+    return this.api.get<NonKsServicedLoanDto[] | Record<string, unknown>>(
+      'api/NonKsServicedLoans',
+    );
   }
 
-  createLoans(request: NonKsServicedLoanBulkCreateRequest) {
-    return this.http.post<void>(this.baseUrl, request);
+  createLoans(request: NonKsServicedLoanBulkCreateRequest): Observable<NonKsServicedLoanDto[]> {
+    return this.api.post<NonKsServicedLoanDto[]>('api/NonKsServicedLoans', request);
   }
 
-  updateLoans(request: NonKsServicedLoanBulkUpdateRequest) {
-    return this.http.put<void>(this.baseUrl, request);
+  updateLoans(request: NonKsServicedLoanBulkUpdateRequest): Observable<NonKsServicedLoanDto[]> {
+    return this.api.put<NonKsServicedLoanDto[]>('api/NonKsServicedLoans', request);
   }
 }

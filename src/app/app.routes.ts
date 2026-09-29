@@ -1,133 +1,75 @@
 import { Routes } from '@angular/router';
+import { MsalGuard } from '@azure/msal-angular';
+
+import { environment } from '../environments/environment';
 
 export const routes: Routes = [
   {
-    path: '',
+    path: 'auth/login',
     loadComponent: () =>
-      import('./components/main-layout/main-layout.component').then(
+      import('./shared/components/auth-login/auth-login.component').then(
+        (m) => m.AuthLoginComponent
+      ),
+  },
+  {
+    path: 'login-failed',
+    loadComponent: () =>
+      import('./shared/components/login-failed/login-failed.component').then(
+        (m) => m.LoginFailedComponent
+      ),
+  },
+  {
+    path: '',
+    canActivate: environment.requireLogin ? [MsalGuard] : [],
+    loadComponent: () =>
+      import('./layout/main-layout/main-layout.component').then(
         (m) => m.MainLayoutComponent
       ),
     children: [
       {
         path: '',
-        pathMatch: 'full',
-        loadComponent: () =>
-          import('./pages/dashboard/dashboard.component').then(
-            (m) => m.DashboardComponent
+        loadChildren: () =>
+          import('./features/dashboard/dashboard.routes').then(
+            (m) => m.DASHBOARD_ROUTES
           ),
       },
       {
-        path: 'mortgage/ranking',
-        loadComponent: () =>
-          import('./pages/ranking/ranking.component').then(
-            (m) => m.RankingComponent
+        path: 'capital-dashboard',
+        loadChildren: () =>
+          import('./features/capital-dashboard/capital-dashboard.routes').then(
+            (m) => m.CAPITAL_DASHBOARD_ROUTES
           ),
       },
       {
-        path: 'mortgage/loan-alias',
-        loadComponent: () =>
-          import('./pages/loan-alias/loan-alias.component').then(
-            (m) => m.LoanAliasComponent
+        path: 'mortgage',
+        loadChildren: () =>
+          import('./features/mortgage/mortgage.routes').then(
+            (m) => m.MORTGAGE_ROUTES
           ),
       },
       {
-        path: 'mortgage/loan-alias-assignment',
-        loadComponent: () =>
-          import('./pages/loan-alias-assignment/loan-alias-assignment.component').then(
-            (m) => m.LoanAliasAssignmentComponent
+        path: 'capital-reporting',
+        loadChildren: () =>
+          import('./features/capital-reporting/capital-reporting.routes').then(
+            (m) => m.CAPITAL_REPORTING_ROUTES
           ),
       },
       {
-        path: 'mortgage/loans-ranking',
-        loadComponent: () =>
-          import('./pages/loans-ranking/loans-ranking.component').then(
-            (m) => m.LoansRankingComponent
+        path: 'data-explorer',
+        loadChildren: () =>
+          import('./features/data-explorer/data-explorer.routes').then(
+            (m) => m.DATA_EXPLORER_ROUTES
           ),
       },
       {
-        path: 'mortgage/investor-alias',
-        loadComponent: () =>
-          import('./pages/investor-alias/investor-alias.component').then(
-            (m) => m.InvestorAliasComponent
-          ),
-      },
-      {
-        path: 'mortgage/security-value',
-        loadComponent: () =>
-          import('./pages/security-value/security-value.component').then(
-            (m) => m.SecurityValueComponent
-          ),
-      },
-      {
-        path: 'mortgage/cmhc-upload',
-        loadComponent: () =>
-          import('./pages/cmhc-upload/cmhc-upload.component').then(
-            (m) => m.CmhcUploadComponent
-          ),
-      },
-      {
-        path: 'mortgage/other-cost-capture',
-        loadComponent: () =>
-          import('./pages/other-cost-capture/other-cost-capture.component').then(
-            (m) => m.OtherCostCaptureComponent
-          ),
-      },
-      {
-        path: 'mortgage/default-date-capture',
-        loadComponent: () =>
-          import('./pages/default-date-capture/default-date-capture.component').then(
-            (m) => m.DefaultDateCaptureComponent
-          ),
-      },
-      {
-        path: 'mortgage/default-subjective-analytics',
-        loadComponent: () =>
-          import('./pages/default-subjective-analytics/default-subjective-analytics.component').then(
-            (m) => m.DefaultSubjectiveAnalyticsComponent
-          ),
-      },
-      {
-        path: 'mortgage/tax-arrears-capture',
-        loadComponent: () =>
-          import('./pages/tax-arrears-capture/tax-arrears-capture.component').then(
-            (m) => m.TaxArrearsCaptureComponent
-          ),
-      },
-      {
-        path: 'mortgage/ltv-validation',
-        loadComponent: () =>
-          import('./pages/ltv-validation/ltv-validation.component').then(
-            (m) => m.LtvValidationComponent
-          ),
-      },
-      {
-        path: 'mortgage/non-ks-serviced-loans',
-        loadComponent: () =>
-          import('./pages/non-ks-serviced-loans/non-ks-serviced-loans.component').then(
-            (m) => m.NonKsServicedLoansComponent
-          ),
-      },
-      {
-        path: 'capital-reporting/fund',
-        loadComponent: () =>
-          import('./pages/fund/fund.component').then((m) => m.FundComponent),
-      },
-      {
-        path: 'capital-reporting/asset',
-        loadComponent: () =>
-          import('./pages/asset/asset.component').then((m) => m.AssetComponent),
-      },
-      {
-        path: 'capital-reporting/investor',
-        loadComponent: () =>
-          import('./pages/investor/investor.component').then(
-            (m) => m.InvestorComponent
-          ),
+        path: 'admin',
+        loadChildren: () =>
+          import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
       },
       {
         path: '**',
         loadComponent: () =>
-          import('./pages/not-found/not-found.component').then(
+          import('./shared/components/not-found/not-found.component').then(
             (m) => m.NotFoundComponent
           ),
       },

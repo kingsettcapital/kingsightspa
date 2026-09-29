@@ -1,59 +1,82 @@
-<section class="subjective-page">
-  <h1>Capture Default Subjective Analytics</h1>
-  <p class="subtitle">
-    All loan aliases load by default. Search to narrow the grid, or select tags to filter. Update default
-    status, exit plan, exit date, and maturity detail for each loan.
-  </p>
-
-  <div class="filters-row">
-    <div class="filter-panel alias-panel">
-      <span class="filter-label">Loan Alias</span>
-      <div class="search-input-wrap">
-        <input
-          type="text"
-          [value]="searchText()"
-          (input)="updateSearch($any($event.target).value)"
-          placeholder="Search and add loan aliases"
-        />
+<section class="ks-fp subjective-page">
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">Capture Default Subjective Analytics</h1>
+        <p class="ks-page__subtitle">
+          Add Default Status, Exit Plan, Exit Date and Maturity Additional Detail as required for
+          reporting.
+        </p>
       </div>
 
-      @if (searchedAliasOptions().length > 0) {
-        <ul class="search-results">
-          @for (alias of searchedAliasOptions(); track alias.loanAliasId) {
-            <li>
-              <button type="button" (click)="selectAlias(alias)">{{ alias.loanAliasName }}</button>
-            </li>
+      <div class="ks-fp__filters-compact">
+        <div class="ks-fp__search-block">
+          <label class="ks-fp__filter-label" for="defaultSubjectiveLoanAliasSearch">Search Loans</label>
+          <input
+            id="defaultSubjectiveLoanAliasSearch"
+            type="text"
+            class="ks-fp__search-input"
+            placeholder="Enter Search Value"
+            [value]="searchText()"
+            (input)="updateSearch($any($event.target).value)"
+            aria-label="Search loan aliases"
+          />
+
+          @if (searchText().trim() && searchedAliasOptions().length > 0) {
+            <ul class="ks-fp__autocomplete">
+              @for (alias of searchedAliasOptions().slice(0, 20); track alias.loanAliasId) {
+                <li>
+                  <button type="button" (click)="selectAlias(alias)">
+                    <span>{{ alias.loanAliasName }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
           }
-        </ul>
-      }
 
-      <div class="selected-alias-tags">
-        @for (selected of selectedAliases(); track selected.loanAliasId) {
-          <button type="button" class="alias-tag" (click)="removeSelectedAlias(selected.loanAliasId)">
-            <span>{{ selected.loanAliasName }}</span>
-            <span class="tag-close">x</span>
+          @if (selectedAliases().length > 0) {
+            <div class="selected-alias-tags">
+              @for (selected of selectedAliases(); track selected.loanAliasId) {
+                <button
+                  type="button"
+                  class="alias-tag"
+                  (click)="removeSelectedAlias(selected.loanAliasName)"
+                >
+                  <span>{{ selected.loanAliasName }}</span>
+                  <span class="tag-close">×</span>
+                </button>
+              }
+            </div>
+          }
+
+          <button
+            type="button"
+            class="ks-fp__clear-selection"
+            (click)="clearSelection()"
+            [disabled]="!selectedAliasNames().length && !selectedStatuses().length && !searchText().trim()"
+          >
+            Clear Selection
           </button>
-        }
-      </div>
+        </div>
 
-      @if (selectedAliases().length > 0) {
-        <button type="button" class="link-clear" (click)="clearAliasSelection()">Clear aliases</button>
-      }
-    </div>
-
-    <div class="filter-panel status-panel">
-      <span class="filter-label">Status</span>
-      <div class="status-options">
-        @for (status of statusOptions(); track status.value) {
-          <label class="status-option">
-            <input
-              type="checkbox"
-              [checked]="isStatusSelected(status.value)"
-              (change)="toggleStatus(status.value)"
-            />
-            <span>{{ status.displayLabel }}</span>
-          </label>
-        }
+        <div class="ks-fp__status-block">
+          <label class="ks-fp__filter-label" for="defaultSubjectiveStatus">Status</label>
+          <ng-select
+            id="defaultSubjectiveStatus"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="statusSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Select status..."
+            [ngModel]="selectedStatuses()"
+            (ngModelChange)="updateSelectedStatuses($event)"
+          ></ng-select>
+        </div>
       </div>
     </div>
   </div>
@@ -62,45 +85,54 @@
     <p class="meta-message">Loading filters...</p>
   }
   @if (errorMessage() && !isSaving()) {
-    <p class="error-message">{{ errorMessage() }}</p>
+    <p class="error-message banner-error">{{ errorMessage() }}</p>
   }
   @if (isLoadingGrid()) {
-    <p class="meta-message">Loading loan syndicate details...</p>
+    <p class="meta-message grid-loading">Loading loans...</p>
   } @else if (statusMessage() && !errorMessage()) {
     <p class="status-message">{{ statusMessage() }}</p>
+  } @else if (gridLoadMessage() && !errorMessage()) {
+    <p class="status-message">{{ gridLoadMessage() }}</p>
   }
-
-  <h2 class="table-title">Loan Syndicate Details</h2>
 
   <div class="table-wrap">
     <table>
+      <colgroup>
+        <col class="hidden-column" />
+        @for (column of tableColumns; track column.key) {
+          <col [class]="column.colClass ?? ''" />
+        }
+      </colgroup>
       <thead>
         <tr>
           <th class="hidden-column">Loan Key</th>
-          <th>Loan ID</th>
-          <th>Description</th>
-          <th>Loan Alias</th>
-          <th>Maturity Date</th>
-          <th>Default Status</th>
-          <th>Exit Plan</th>
-          <th>Exit Date</th>
-          <th>Maturity - Additional Detail</th>
-          <th>Date of DWH Update</th>
-          <th>Updated By</th>
+          @for (column of tableColumns; track column.key) {
+            <th [class]="column.colClass" [class.audit-col]="column.audit">
+              <button
+                type="button"
+                class="dsa-th-sort"
+                (click)="toggleSort(column.key)"
+                [attr.aria-label]="'Sort by ' + column.label"
+              >
+                <span>{{ column.label }}</span>
+                <span class="dsa-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+              </button>
+            </th>
+          }
         </tr>
       </thead>
       <tbody>
-        @for (row of paginatedRows(); track row.loanKey) {
+        @for (row of paginatedRows(); track row.loanCode) {
           <tr>
             <td class="hidden-column">{{ row.loanKey }}</td>
-            <td>{{ row.loanId }}</td>
-            <td>{{ row.description }}</td>
-            <td>{{ row.loanAliasName }}</td>
-            <td class="date-readonly">{{ formatDisplayDate(row.maturityDate) }}</td>
-            <td>
+            <td class="dsa-col--code">{{ row.loanCode }}</td>
+            <td class="dsa-col--name">{{ row.loanName }}</td>
+            <td class="dsa-col--alias">{{ row.loanAliasName }}</td>
+            <td class="date-readonly dsa-col--maturity">{{ formatDisplayDate(row.maturityDate) }}</td>
+            <td class="dsa-col--default-status">
               <select
                 class="select-input"
-                (change)="updateDefaultStatus(row.loanKey, $any($event.target).value)"
+                (change)="updateDefaultStatus(row.loanCode, $any($event.target).value)"
               >
                 <option value="" [selected]="!row.defaultStatus">—</option>
                 @for (opt of defaultStatusOptions(); track opt) {
@@ -108,10 +140,10 @@
                 }
               </select>
             </td>
-            <td>
+            <td class="dsa-col--exit-plan">
               <select
                 class="select-input"
-                (change)="updateExitPlan(row.loanKey, $any($event.target).value)"
+                (change)="updateExitPlan(row.loanCode, $any($event.target).value)"
               >
                 <option value="" [selected]="!row.exitPlan">—</option>
                 @for (opt of exitPlanOptions(); track opt) {
@@ -119,29 +151,36 @@
                 }
               </select>
             </td>
-            <td>
+            <td class="dsa-col--exit-date">
               <input
                 type="date"
                 class="date-input"
                 [value]="row.exitDate"
-                (input)="updateExitDate(row.loanKey, $any($event.target).value)"
+                (input)="updateExitDate(row.loanCode, $any($event.target).value)"
+                aria-label="Exit Date"
               />
             </td>
-            <td>
+            <td class="dsa-col--maturity-detail">
               <input
                 type="text"
                 class="text-input"
                 [value]="row.maturityAdditionalDetail"
-                (input)="updateMaturityDetail(row.loanKey, $any($event.target).value)"
+                (input)="updateMaturityDetail(row.loanCode, $any($event.target).value)"
                 placeholder="Additional detail"
               />
             </td>
-            <td class="date-readonly">{{ formatDisplayDate(row.userUpdatedDate) }}</td>
-            <td>{{ row.userUpdatedBy }}</td>
+            <td class="date-readonly audit-col updated-by-cell dsa-col--audit-by">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="date-readonly audit-col dsa-col--audit-date">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>
         } @empty {
           <tr>
-            <td colspan="11" class="empty-row">No loans loaded for the selected filters.</td>
+            <td colspan="11" class="empty-row">
+              @if (isLoadingGrid() || isLoadingFilters()) {
+                Loading loans...
+              } @else {
+                No loans match the current filters.
+              }
+            </td>
           </tr>
         }
       </tbody>
@@ -153,6 +192,7 @@
       <label for="subjectivePageSize">Rows per page</label>
       <select
         id="subjectivePageSize"
+        class="page-size-select"
         [value]="pageSize()"
         (change)="updatePageSize($any($event.target).value)"
       >
@@ -160,6 +200,7 @@
         <option value="10">10</option>
         <option value="20">20</option>
         <option value="50">50</option>
+        <option value="100">100</option>
       </select>
     </div>
     <div class="pagination-right">
@@ -180,7 +221,12 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
+    <button
+      type="button"
+      class="ks-btn ks-btn--accent"
+      (click)="saveChanges()"
+      [disabled]="isSaving() || !rows().length"
+    >
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>

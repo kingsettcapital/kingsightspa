@@ -1,9 +1,10 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 
-import { APP_API_CONFIG } from '../config/api.config';
+import { APP_API_CONFIG } from '../constants/api.config';
+import { appendMortgageStatusParams } from '../utils/mortgage-status-query.util';
 
-/** Row from GET /api/OtherCostCapture — maps mort.dim_loan (leaf, current). */
+/** Row from GET /api/OtherCostCapture — maps loan_alias_relationship. */
 export type OtherCostCaptureRowDto = {
   loanKey: number;
   loanId: string;
@@ -18,6 +19,7 @@ export type OtherCostCaptureRowDto = {
 
 export type OtherCostCaptureUpdatePayload = {
   loanKey: number;
+  loanCode: string;
   outstandingInvoices: number | null;
   estRealizationCosts: number | null;
   costToComplete: number | null;
@@ -39,13 +41,12 @@ export class OtherCostCaptureApiService {
     return `${this.apiConfig.baseUrl}/api/OtherCostCapture`;
   }
 
-  getLoans(loanAliasId: number, statuses: string[]) {
-    let params = new HttpParams().set('loanAliasId', String(loanAliasId));
-    for (const status of statuses) {
-      if (status.trim()) {
-        params = params.append('statuses', status.trim());
-      }
+  getLoans(statuses: string[], loanAliasId?: number | null) {
+    let params = new HttpParams();
+    if (loanAliasId != null && loanAliasId > 0) {
+      params = params.set('loanAliasId', String(loanAliasId));
     }
+    params = appendMortgageStatusParams(params, statuses);
     return this.http.get<OtherCostCaptureRowDto[]>(this.baseUrl, { params });
   }
 

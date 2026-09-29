@@ -1,0 +1,80 @@
+<section class="inv-detail-table-card" [attr.aria-labelledby]="'inv-detail-table-' + config().id">
+  <header class="inv-detail-table-card__header">
+    <h2 class="inv-detail-table-card__title" [id]="'inv-detail-table-' + config().id">
+      {{ config().title }}
+    </h2>
+    @if (config().collapsible) {
+      <button
+        type="button"
+        class="inv-detail-table-card__toggle"
+        (click)="toggleExpanded()"
+        [attr.aria-expanded]="isExpanded()"
+        [attr.aria-controls]="'inv-detail-table-body-' + config().id"
+      >
+        <mat-icon aria-hidden="true">{{ isExpanded() ? 'expand_less' : 'expand_more' }}</mat-icon>
+      </button>
+    }
+  </header>
+
+  @if (isExpanded()) {
+    <div class="inv-detail-table-card__body" [id]="'inv-detail-table-body-' + config().id">
+      <div class="inv-detail-table-wrap">
+        <table class="inv-detail-table">
+          <thead>
+            <tr>
+              @for (column of config().columns; track column.key) {
+                <th
+                  [class.inv-detail-table__head--right]="column.align === 'right'"
+                >
+                  {{ column.label }}
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of config().rows; track $index) {
+              <tr>
+                @for (column of config().columns; track column.key) {
+                  <td [class]="cellClass(column)">
+                    @switch (column.type) {
+                      @case ('amount') {
+                        {{ amountValue(cellValue(row, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                      }
+                      @case ('number') {
+                        {{ formatNumber(cellValue(row, column.key)) }}
+                      }
+                      @default {
+                        {{ cellValue(row, column.key) ?? '—' }}
+                      }
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+          @if (config().totals) {
+            <tfoot>
+              <tr class="inv-detail-table__total-row">
+                @for (column of config().columns; track column.key) {
+                  <td [class]="cellClass(column)">
+                    @switch (column.type) {
+                      @case ('amount') {
+                        {{ amountValue(cellValue(config().totals ?? {}, column.key)) | ksCurrency: 'USD' : 2 : true }}
+                      }
+                      @case ('number') {
+                        {{ formatNumber(cellValue(config().totals ?? {}, column.key)) }}
+                      }
+                      @default {
+                        {{ cellValue(config().totals ?? {}, column.key) ?? '—' }}
+                      }
+                    }
+                  </td>
+                }
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+    </div>
+  }
+</section>

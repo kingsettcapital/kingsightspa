@@ -1,14 +1,29 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { NgSelectComponent } from '@ng-select/ng-select';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
-import { LoanAliasApiService } from '../../core/services/loan-alias-api.service';
+import {
+  DEFAULT_STATUS_OPTIONS,
+  EXIT_PLAN_OPTIONS,
+} from '../../core/constants/default-subjective-analytics-options';
+import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
+import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
+import {
+  normalizeStatusOptions,
+  resolveDefaultStatusValues,
+  toStatusSelectOptions,
+} from '../../core/utils/mortgage-status-filter.util';
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
+import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
   DefaultSubjectiveAnalyticsApiService,
   DefaultSubjectiveAnalyticsBulkUpdateRequest,
   DefaultSubjectiveAnalyticsRowDto,
 } from '../../core/services/default-subjective-analytics-api.service';
+import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 import {
   LoanSecurityValueApiService,
   LoanStatusFilterOption,
@@ -21,8 +36,8 @@ type AliasOption = {
 
 type SubjectiveRow = {
   loanKey: number;
-  loanId: string;
-  description: string;
+  loanCode: string;
+  loanName: string;
   loanAliasName: string;
   maturityDate: string;
   defaultStatus: string;
@@ -40,34 +55,54 @@ type RowSnapshot = {
   maturityAdditionalDetail: string;
 };
 
-const DEFAULT_STATUS_LABEL = 'Default';
+type SubjectiveColumnKey =
+  | 'loanCode'
+  | 'loanName'
+  | 'loanAliasName'
+  | 'maturityDate'
+  | 'defaultStatus'
+  | 'exitPlan'
+  | 'exitDate'
+  | 'maturityAdditionalDetail'
+  | 'userUpdatedBy'
+  | 'userUpdatedDate';
+
+type SubjectiveTableColumn = {
+  key: SubjectiveColumnKey;
+  label: string;
+  editable?: 'defaultStatus' | 'exitPlan' | 'exitDate' | 'maturityAdditionalDetail';
+  audit?: boolean;
+  colClass?: string;
+};
+
+const SUBJECTIVE_TABLE_COLUMNS: SubjectiveTableColumn[] = [
+  { key: 'loanCode', label: 'Loan Code', colClass: 'dsa-col--code' },
+  { key: 'loanName', label: 'Loan Name', colClass: 'dsa-col--name' },
+  { key: 'loanAliasName', label: 'Loan Alias', colClass: 'dsa-col--alias' },
+  { key: 'maturityDate', label: 'Maturity Date', colClass: 'dsa-col--maturity' },
+  { key: 'defaultStatus', label: 'Default Status', editable: 'defaultStatus', colClass: 'dsa-col--default-status' },
+  { key: 'exitPlan', label: 'Exit Plan', editable: 'exitPlan', colClass: 'dsa-col--exit-plan' },
+  { key: 'exitDate', label: 'Exit Date', editable: 'exitDate', colClass: 'dsa-col--exit-date' },
+  {
+    key: 'maturityAdditionalDetail',
+    label: 'Maturity - Additional Detail',
+    editable: 'maturityAdditionalDetail',
+    colClass: 'dsa-col--maturity-detail',
+  },
+  { key: 'userUpdatedBy', label: 'Modified By', audit: true, colClass: 'dsa-col--audit-by' },
+  { key: 'userUpdatedDate', label: 'Modified Date', audit: true, colClass: 'dsa-col--audit-date' },
+];
 const NA_OPTION = 'n/a';
 
-const FALLBACK_DEFAULT_STATUSES = [
-  'Executing Plan',
-  'Formulating Plan',
-  'Waiting on Market',
-  NA_OPTION,
-];
-
-/** Matches GET /api/DefaultSubjectiveAnalytics/lookups (mockup "Siting" → API "Timing"). */
-const FALLBACK_EXIT_PLANS = [
-  'Timing',
-  'Constructing',
-  'Pre-Development',
-  'Selling',
-  'Under Sale Contract',
-  NA_OPTION,
-];
-
 const LEGACY_EXIT_PLAN_ALIASES: Record<string, string> = {
-  siting: 'Timing',
+  timing: 'Sitting',
+  siting: 'Sitting',
 };
 
 @Component({
   selector: 'app-default-subjective-analytics',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, NgSelectComponent],
   templateUrl: './default-subjective-analytics.component.html',
   styleUrl: './default-subjective-analytics.component.css',
 })
@@ -75,19 +110,25 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
   private readonly subjectiveApi = inject(DefaultSubjectiveAnalyticsApiService);
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
-  private readonly userUpdatedBy = 'system';
+
+  readonly tableColumns = SUBJECTIVE_TABLE_COLUMNS;
 
   readonly aliasOptions = signal<AliasOption[]>([]);
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
-  readonly defaultStatusOptions = signal<string[]>(FALLBACK_DEFAULT_STATUSES);
-  readonly exitPlanOptions = signal<string[]>(FALLBACK_EXIT_PLANS);
+  readonly defaultStatusOptions = signal<string[]>([...DEFAULT_STATUS_OPTIONS]);
+  readonly exitPlanOptions = signal<string[]>([...EXIT_PLAN_OPTIONS]);
   readonly searchText = signal('');
-  readonly selectedLoanAliasIds = signal<number[]>([]);
+  readonly sortColumn = signal<SubjectiveColumnKey | null>(null);
+  readonly sortDirection = signal<'asc' | 'desc'>('asc');
+  readonly selectedAliasNames = signal<string[]>([]);
   readonly selectedStatuses = signal<string[]>([]);
 
   readonly rows = signal<SubjectiveRow[]>([]);
-  readonly originalRowState = signal<Record<number, RowSnapshot>>({});
+  readonly originalRowState = signal<Record<string, RowSnapshot>>({});
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
@@ -102,28 +143,80 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
   }
 
   readonly selectedAliases = computed(() => {
-    const ids = new Set(this.selectedLoanAliasIds());
-    return this.aliasOptions().filter((a) => ids.has(a.loanAliasId));
+    const names = new Set(this.selectedAliasNames().map((n) => n.toLowerCase()));
+    return this.aliasOptions().filter((a) => names.has(a.loanAliasName.toLowerCase()));
   });
+
+  readonly aliasSelectOptions = computed(() =>
+    this.aliasOptions().map((alias) => ({
+      label: alias.loanAliasName,
+      value: alias.loanAliasName,
+    })),
+  );
+
+  readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
 
   readonly searchedAliasOptions = computed(() => {
     const keyword = this.searchText().trim().toLowerCase();
     if (!keyword) {
       return [];
     }
-    const selectedIds = new Set(this.selectedLoanAliasIds());
+
+    const selectedNames = new Set(this.selectedAliasNames().map((n) => n.toLowerCase()));
     return this.aliasOptions().filter(
-      (a) => !selectedIds.has(a.loanAliasId) && a.loanAliasName.toLowerCase().includes(keyword),
+      (a) =>
+        !selectedNames.has(a.loanAliasName.toLowerCase()) &&
+        a.loanAliasName.toLowerCase().includes(keyword),
     );
   });
 
+  readonly filteredRows = computed(() => {
+    const selectedNames = this.selectedAliasNames();
+    const keyword = this.searchText();
+
+    let rows = this.rows();
+
+    if (selectedNames.length > 0) {
+      const nameSet = new Set(selectedNames.map((n) => n.toLowerCase()));
+      rows = rows.filter((row) => nameSet.has(row.loanAliasName.trim().toLowerCase()));
+    }
+
+    rows = filterRowsByTableSearch(
+      rows,
+      keyword,
+      this.tableColumns,
+      (row, key) => this.getCellDisplayValue(row, key),
+    );
+
+    const activeSort = this.sortColumn();
+    if (activeSort) {
+      const direction = this.sortDirection() === 'asc' ? 1 : -1;
+      rows = [...rows].sort(
+        (left, right) => this.compareRows(left, right, activeSort) * direction,
+      );
+    }
+
+    return rows;
+  });
+
+  readonly gridLoadMessage = computed(() =>
+    buildMortgageGridLoadMessage({
+      isLoading: this.isLoadingGrid() || this.isLoadingFilters(),
+      totalRows: this.rows().length,
+      visibleRows: this.filteredRows().length,
+      hasClientFilter:
+        this.selectedAliasNames().length > 0 || this.searchText().trim().length > 0,
+      emptyMessage: 'No loans returned for the selected filters.',
+    }),
+  );
+
   readonly totalPages = computed(() => {
-    const total = this.rows().length;
+    const total = this.filteredRows().length;
     return total === 0 ? 1 : Math.ceil(total / this.pageSize());
   });
 
   readonly paginatedRows = computed(() => {
-    const rows = this.rows();
+    const rows = this.filteredRows();
     const pageSize = this.pageSize();
     const maxPage = this.totalPages();
     const safePage = Math.max(1, Math.min(this.currentPage(), maxPage));
@@ -135,7 +228,7 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
   });
 
   readonly pageRangeLabel = computed(() => {
-    const total = this.rows().length;
+    const total = this.filteredRows().length;
     if (total === 0) {
       return '0 - 0 of 0';
     }
@@ -148,35 +241,82 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
 
   updateSearch(value: string): void {
     this.searchText.set(value);
+    this.currentPage.set(1);
     this.clearMessages();
+  }
+
+  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
+  onLoanSearch(event: { term: string } | string | null): void {
+    const term = typeof event === 'string' ? event : (event?.term ?? '');
+    if (!term.trim() && this.suppressEmptySearchClear) {
+      return;
+    }
+    this.updateSearch(term);
+  }
+
+  updateSelectedAliases(names: string[] | null): void {
+    this.suppressEmptySearchClear = true;
+    this.selectedAliasNames.set(names ?? []);
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
+    queueMicrotask(() => {
+      this.suppressEmptySearchClear = false;
+    });
+  }
+
+  updateSelectedStatuses(statuses: string[] | null): void {
+    this.selectedStatuses.set(statuses ?? []);
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
   }
 
   selectAlias(alias: AliasOption): void {
-    if (this.selectedLoanAliasIds().includes(alias.loanAliasId)) {
+    const name = alias.loanAliasName.trim();
+    if (!name || this.selectedAliasNames().includes(name)) {
       return;
     }
-    this.selectedLoanAliasIds.set([...this.selectedLoanAliasIds(), alias.loanAliasId]);
+    this.selectedAliasNames.set([...this.selectedAliasNames(), name]);
     this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
   }
 
-  removeSelectedAlias(loanAliasId: number): void {
-    this.selectedLoanAliasIds.set(
-      this.selectedLoanAliasIds().filter((id) => id !== loanAliasId),
+  removeSelectedAlias(loanAliasName: string): void {
+    this.selectedAliasNames.set(
+      this.selectedAliasNames().filter((name) => name !== loanAliasName),
     );
     this.currentPage.set(1);
     this.clearMessages();
-    this.loadGrid();
   }
 
-  clearAliasSelection(): void {
+  clearSelection(): void {
     this.searchText.set('');
-    this.selectedLoanAliasIds.set([]);
+    this.selectedAliasNames.set([]);
+    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
+    this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
+  }
+
+  toggleSort(column: SubjectiveColumnKey): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+    this.currentPage.set(1);
+  }
+
+  sortIndicator(column: SubjectiveColumnKey): string {
+    if (this.sortColumn() !== column) {
+      return '↕';
+    }
+    return this.sortDirection() === 'asc' ? '↑' : '↓';
   }
 
   toggleStatus(statusValue: string): void {
@@ -194,24 +334,72 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
     return this.selectedStatuses().includes(statusValue);
   }
 
-  updateDefaultStatus(loanKey: number, value: string): void {
-    this.patchRow(loanKey, { defaultStatus: value });
+  updateDefaultStatus(loanCode: string, value: string): void {
+    this.patchRow(loanCode, { defaultStatus: value });
   }
 
-  updateExitPlan(loanKey: number, value: string): void {
-    this.patchRow(loanKey, { exitPlan: this.normalizeExitPlan(value) });
+  updateExitPlan(loanCode: string, value: string): void {
+    this.patchRow(loanCode, { exitPlan: this.normalizeExitPlan(value) });
   }
 
-  updateExitDate(loanKey: number, value: string): void {
-    this.patchRow(loanKey, { exitDate: value.trim() });
+  updateExitDate(loanCode: string, value: string): void {
+    this.patchRow(loanCode, { exitDate: value.trim() });
   }
 
-  updateMaturityDetail(loanKey: number, value: string): void {
-    this.patchRow(loanKey, { maturityAdditionalDetail: value });
+  updateMaturityDetail(loanCode: string, value: string): void {
+    this.patchRow(loanCode, { maturityAdditionalDetail: value });
+  }
+
+  formatDisplayDate(value: string): string {
+    if (!value?.trim()) {
+      return '—';
+    }
+    const iso = this.toDateInputValue(value);
+    if (!iso) {
+      return value;
+    }
+    const [y, m, d] = iso.split('-');
+    return `${m}/${d}/${y}`;
+  }
+
+  formatModifiedDate(value: string): string {
+    return formatAuditModifiedDate(value);
+  }
+
+  displayModifiedBy(value: string): string {
+    const trimmed = value?.trim();
+    return trimmed && trimmed !== '-' ? trimmed : '—';
+  }
+
+  getCellDisplayValue(row: SubjectiveRow, column: SubjectiveColumnKey): string {
+    switch (column) {
+      case 'loanCode':
+        return row.loanCode;
+      case 'loanName':
+        return row.loanName;
+      case 'loanAliasName':
+        return row.loanAliasName;
+      case 'maturityDate':
+        return this.formatDisplayDate(row.maturityDate);
+      case 'defaultStatus':
+        return row.defaultStatus || '—';
+      case 'exitPlan':
+        return row.exitPlan || '—';
+      case 'exitDate':
+        return this.formatDisplayDate(row.exitDate);
+      case 'maturityAdditionalDetail':
+        return row.maturityAdditionalDetail || '—';
+      case 'userUpdatedBy':
+        return this.displayModifiedBy(row.userUpdatedBy);
+      case 'userUpdatedDate':
+        return this.formatModifiedDate(row.userUpdatedDate);
+      default:
+        return '';
+    }
   }
 
   saveChanges(): void {
-    if (this.isSaving() || !this.rows().length) {
+    if (this.isSaving()) {
       return;
     }
 
@@ -222,29 +410,47 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
       return;
     }
 
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      this.statusMessage.set('');
+      return;
+    }
+
     const request: DefaultSubjectiveAnalyticsBulkUpdateRequest = {
       loans: changedRows.map((row) => ({
         loanKey: row.loanKey,
+        loanCode: row.loanCode,
         defaultStatus: this.nullIfEmpty(row.defaultStatus),
         exitPlan: this.nullIfEmpty(this.normalizeExitPlan(row.exitPlan)),
         exitDate: this.nullIfEmpty(row.exitDate),
         maturityAdditionalDetail: this.nullIfEmpty(row.maturityAdditionalDetail),
-        userUpdatedBy: this.userUpdatedBy,
+        userUpdatedBy,
       })),
     };
 
     this.isSaving.set(true);
-    this.statusMessage.set('');
+    this.statusMessage.set('Saving changes...');
     this.errorMessage.set('');
 
     this.subjectiveApi.saveLoans(request).subscribe({
       next: () => {
+        const now = new Date().toISOString();
+        const savedCodes = new Set(changedRows.map((row) => row.loanCode));
+        this.rows.set(
+          this.rows().map((row) =>
+            savedCodes.has(row.loanCode)
+              ? { ...row, userUpdatedBy, userUpdatedDate: now }
+              : row,
+          ),
+        );
         this.snapshotOriginalState();
         this.statusMessage.set(`${changedRows.length} loan(s) updated successfully.`);
+        this.errorMessage.set('');
         this.isSaving.set(false);
-        this.loadGrid();
       },
       error: (error) => {
+        this.statusMessage.set('');
         this.errorMessage.set(this.extractBackendError(error));
         this.isSaving.set(false);
       },
@@ -267,21 +473,9 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
     this.currentPage.set(1);
   }
 
-  formatDisplayDate(value: string): string {
-    if (!value?.trim()) {
-      return '-';
-    }
-    const iso = this.toDateInputValue(value);
-    if (!iso) {
-      return value;
-    }
-    const [y, m, d] = iso.split('-');
-    return `${m}/${d}/${y}`;
-  }
-
-  private patchRow(loanKey: number, patch: Partial<SubjectiveRow>): void {
+  private patchRow(loanCode: string, patch: Partial<SubjectiveRow>): void {
     this.rows.set(
-      this.rows().map((row) => (row.loanKey === loanKey ? { ...row, ...patch } : row)),
+      this.rows().map((row) => (row.loanCode === loanCode ? { ...row, ...patch } : row)),
     );
     this.clearMessages();
   }
@@ -296,27 +490,14 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
       lookups: this.subjectiveApi.getLookups().pipe(catchError(() => of(null))),
     }).subscribe({
       next: ({ aliases, statuses, lookups }) => {
-        this.aliasOptions.set(
-          aliases
-            .map((a) => ({
-              loanAliasId: Number(a.loanAliasId ?? a.loanAliasKey ?? 0),
-              loanAliasName: a.loanAliasName?.trim() || '-',
-            }))
-            .filter((a) => a.loanAliasId > 0)
-            .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
-        );
-        this.statusOptions.set(this.normalizeStatusOptions(statuses));
-        this.selectedStatuses.set(this.resolveDefaultStatusValues(this.statusOptions()));
+        this.aliasOptions.set(this.normalizeAliases(aliases));
+        const statusOpts = normalizeStatusOptions(statuses);
+        this.statusOptions.set(statusOpts);
+        // This screen captures defaulted loans — Status defaults to "Default".
+        this.selectedStatuses.set(resolveDefaultStatusValues(statusOpts));
         this.applyLookupOptions(lookups);
         this.isLoadingFilters.set(false);
-
-        if (!this.aliasOptions().length) {
-          this.errorMessage.set(
-            'Unable to load loan alias list. Verify GET /api/LoanAlias and CORS.',
-          );
-        } else {
-          this.loadGrid();
-        }
+        this.loadGrid();
       },
       error: () => {
         this.isLoadingFilters.set(false);
@@ -325,49 +506,20 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
     });
   }
 
-  private resolveLoanAliasIds(): number[] {
-    const selected = this.selectedLoanAliasIds();
-    if (selected.length > 0) {
-      return selected;
-    }
-    return this.aliasOptions().map((a) => a.loanAliasId).filter((id) => id > 0);
-  }
-
   private loadGrid(): void {
-    const loanAliasIds = this.resolveLoanAliasIds();
     const statuses = this.selectedStatuses();
-
-    if (!loanAliasIds.length) {
-      this.rows.set([]);
-      this.originalRowState.set({});
-      this.statusMessage.set('No loan aliases available to load.');
-      return;
-    }
-
-    if (!statuses.length) {
-      this.rows.set([]);
-      this.originalRowState.set({});
-      this.statusMessage.set('Select at least one status to load loans.');
-      return;
-    }
 
     this.isLoadingGrid.set(true);
     this.errorMessage.set('');
     this.statusMessage.set('');
 
-    this.subjectiveApi.getLoans(loanAliasIds, statuses).subscribe({
-      next: (response) => {
-        const records = this.normalizeRecords(response);
+    this.subjectiveApi.getLoans(statuses).subscribe({
+      next: (records) => {
         const mapped = records.map((r) => this.mapRow(r));
         this.rows.set(mapped);
         this.mergeRowValuesIntoDropdownOptions(mapped);
         this.currentPage.set(1);
         this.snapshotOriginalState();
-        this.statusMessage.set(
-          mapped.length > 0
-            ? `${mapped.length} loan(s) loaded.`
-            : 'No loans returned for the selected filters.',
-        );
         this.isLoadingGrid.set(false);
       },
       error: (error) => {
@@ -379,29 +531,22 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
     });
   }
 
-  private normalizeRecords(response: unknown): DefaultSubjectiveAnalyticsRowDto[] {
-    if (Array.isArray(response)) {
-      return response as DefaultSubjectiveAnalyticsRowDto[];
-    }
-    if (response && typeof response === 'object') {
-      const obj = response as Record<string, unknown>;
-      for (const key of ['loans', 'data', 'results', 'items', 'value']) {
-        const candidate = obj[key];
-        if (Array.isArray(candidate)) {
-          return candidate as DefaultSubjectiveAnalyticsRowDto[];
-        }
-      }
-    }
-    return [];
-  }
-
   private mapRow(record: DefaultSubjectiveAnalyticsRowDto): SubjectiveRow {
     const raw = record as DefaultSubjectiveAnalyticsRowDto & Record<string, unknown>;
+    const loanCode =
+      this.pickField(raw, 'loanId', 'LoanId', 'loanCode', 'LoanCode') || '-';
+    const exitDateRaw = this.pickField(
+      raw,
+      'exitDate',
+      'ExitDate',
+      'subjectiveExitDate',
+      'SubjectiveExitDate',
+    );
     return {
       loanKey: this.pickNumber(raw, 'loanKey', 'LoanKey'),
-      loanId: this.pickField(raw, 'loanId', 'LoanId') || '-',
-      description: this.pickField(raw, 'description', 'Description') || '-',
-      loanAliasName: this.pickField(raw, 'loanAliasName', 'LoanAliasName') || '-',
+      loanCode,
+      loanName: this.pickField(raw, 'description', 'Description') || '—',
+      loanAliasName: this.pickField(raw, 'loanAliasName', 'LoanAliasName') || '—',
       maturityDate: this.toDateInputValue(
         this.pickField(raw, 'maturityDate', 'MaturityDate') || null,
       ),
@@ -415,16 +560,13 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
       exitPlan: this.normalizeExitPlan(
         this.pickField(raw, 'exitPlan', 'ExitPlan', 'subjectiveExitPlan', 'SubjectiveExitPlan'),
       ),
-      exitDate: this.toDateInputValue(
-        this.pickField(raw, 'exitDate', 'ExitDate', 'subjectiveExitDate', 'SubjectiveExitDate') ||
-          null,
-      ),
+      exitDate: this.toDateInputValue(exitDateRaw),
       maturityAdditionalDetail: this.pickField(
         raw,
         'maturityAdditionalDetail',
         'MaturityAdditionalDetail',
       ),
-      userUpdatedBy: this.pickField(raw, 'userUpdatedBy', 'UserUpdatedBy') || '-',
+      userUpdatedBy: this.pickField(raw, 'userUpdatedBy', 'UserUpdatedBy') || '',
       userUpdatedDate: this.pickField(raw, 'userUpdatedDate', 'UserUpdatedDate'),
     };
   }
@@ -517,12 +659,32 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
     return '';
   }
 
+  private normalizeAliases(aliases: LoanAlias[]): AliasOption[] {
+    return aliases
+      .map((a) => ({
+        loanAliasId: Number(a.loanAliasId ?? a.loanAliasKey ?? 0),
+        loanAliasName: a.loanAliasName?.trim() || '',
+      }))
+      .filter((a) => a.loanAliasId > 0 && a.loanAliasName.length > 0)
+      .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName));
+  }
+
   private snapshotOriginalState(): void {
-    const snapshot: Record<number, RowSnapshot> = {};
+    const snapshot: Record<string, RowSnapshot> = {};
     for (const row of this.rows()) {
-      snapshot[row.loanKey] = this.rowSnapshot(row);
+      snapshot[row.loanCode] = this.rowSnapshot(row);
     }
     this.originalRowState.set(snapshot);
+  }
+
+  private revertUnsavedChanges(): void {
+    const original = this.originalRowState();
+    this.rows.update((rows) =>
+      rows.map((row) => {
+        const stored = original[row.loanCode];
+        return stored ? { ...row, ...stored } : row;
+      }),
+    );
   }
 
   private rowSnapshot(row: SubjectiveRow): RowSnapshot {
@@ -535,7 +697,7 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
   }
 
   private hasRowChanged(row: SubjectiveRow): boolean {
-    const original = this.originalRowState()[row.loanKey];
+    const original = this.originalRowState()[row.loanCode];
     if (!original) {
       return true;
     }
@@ -556,6 +718,53 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
     return trimmed;
   }
 
+  private compareRows(
+    left: SubjectiveRow,
+    right: SubjectiveRow,
+    column: SubjectiveColumnKey,
+  ): number {
+    switch (column) {
+      case 'loanCode':
+        return left.loanCode.localeCompare(right.loanCode, undefined, { sensitivity: 'base' });
+      case 'loanName':
+        return left.loanName.localeCompare(right.loanName, undefined, { sensitivity: 'base' });
+      case 'loanAliasName':
+        return left.loanAliasName.localeCompare(right.loanAliasName, undefined, {
+          sensitivity: 'base',
+        });
+      case 'maturityDate':
+        return this.dateSortValue(left.maturityDate) - this.dateSortValue(right.maturityDate);
+      case 'defaultStatus':
+        return left.defaultStatus.localeCompare(right.defaultStatus, undefined, {
+          sensitivity: 'base',
+        });
+      case 'exitPlan':
+        return left.exitPlan.localeCompare(right.exitPlan, undefined, { sensitivity: 'base' });
+      case 'exitDate':
+        return this.dateSortValue(left.exitDate) - this.dateSortValue(right.exitDate);
+      case 'maturityAdditionalDetail':
+        return left.maturityAdditionalDetail.localeCompare(right.maturityAdditionalDetail, undefined, {
+          sensitivity: 'base',
+        });
+      case 'userUpdatedBy':
+        return left.userUpdatedBy.localeCompare(right.userUpdatedBy, undefined, {
+          sensitivity: 'base',
+        });
+      case 'userUpdatedDate':
+        return this.dateSortValue(left.userUpdatedDate) - this.dateSortValue(right.userUpdatedDate);
+      default:
+        return 0;
+    }
+  }
+
+  private dateSortValue(value: string): number {
+    if (!value?.trim()) {
+      return 0;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+  }
+
   private toDateInputValue(value: string | null | undefined): string {
     if (!value?.trim()) {
       return '';
@@ -572,31 +781,6 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
     const m = String(parsed.getMonth() + 1).padStart(2, '0');
     const d = String(parsed.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
-  }
-
-  private normalizeStatusOptions(statuses: unknown): LoanStatusFilterOption[] {
-    if (!Array.isArray(statuses) || !statuses.length) {
-      return [];
-    }
-    if (typeof statuses[0] === 'string') {
-      return (statuses as string[]).map((s) => ({ value: s, displayLabel: s }));
-    }
-    return (statuses as Record<string, unknown>[]).map((row) => ({
-      value: String(row['value'] ?? '').trim(),
-      displayLabel: String(row['displayLabel'] ?? row['value'] ?? '').trim(),
-    }));
-  }
-
-  private resolveDefaultStatusValues(options: LoanStatusFilterOption[]): string[] {
-    if (!options.length) {
-      return [];
-    }
-    const preferred = options.find(
-      (o) =>
-        o.displayLabel.toLowerCase() === DEFAULT_STATUS_LABEL.toLowerCase() ||
-        o.displayLabel.toLowerCase() === 'in default',
-    );
-    return [preferred?.value ?? options.find((o) => o.value !== '(null)')?.value ?? options[0].value];
   }
 
   private extractBackendError(error: unknown): string {

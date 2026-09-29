@@ -1,0 +1,303 @@
+@use './theme/index';
+@import '@ng-select/ng-select/themes/default.theme.css';
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400&family=Rufina:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: var(--ks-font-family);
+    font-weight: var(--ks-font-weight-regular);
+    color: var(--ks-color-text);
+    background-color: var(--ks-color-bg);
+  }
+
+  app-root {
+    display: block;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* KingSett "Type in Use" — global element defaults */
+
+  h1 {
+    font-size: var(--ks-font-size-lg);
+    font-weight: var(--ks-font-weight-semibold);
+    color: var(--ks-color-text);
+    text-transform: uppercase;
+    line-height: 1.3;
+    letter-spacing: 0.04em;
+  }
+
+  h2 {
+    font-size: var(--ks-font-size-lg);
+    font-weight: var(--ks-font-weight-semibold);
+    color: var(--ks-color-blue);
+    line-height: 1.4;
+  }
+
+  h3 {
+    font-size: var(--ks-font-size-md);
+    font-weight: var(--ks-font-weight-semibold);
+    color: var(--ks-color-text);
+    line-height: 1.4;
+  }
+
+  h4 {
+    font-size: var(--ks-font-size-md);
+    font-weight: var(--ks-font-weight-medium);
+    color: var(--ks-color-text);
+    line-height: 1.4;
+  }
+
+  p {
+    font-weight: var(--ks-font-weight-regular);
+    color: var(--ks-color-text);
+    line-height: 1.5;
+  }
+
+  a {
+    font-weight: var(--ks-font-weight-semibold);
+    color: var(--ks-color-blue);
+    text-decoration: underline;
+  }
+
+  a:hover {
+    color: var(--ks-color-blue-dark);
+  }
+
+  .ks-sidebar a:hover,
+  .ks-sidebar a.ks-sidebar__link--active,
+  .ks-sidebar a.ks-sidebar__sublink--active {
+    color: var(--ks-color-text-inverse);
+  }
+
+  label {
+    font-size: var(--ks-font-size-base);
+    font-weight: var(--ks-font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-family: var(--ks-font-family);
+    font-size: var(--ks-font-size-base);
+    font-weight: var(--ks-font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input,
+  select,
+  textarea {
+    font-family: var(--ks-font-family);
+    font-size: var(--ks-font-size-base);
+    font-weight: var(--ks-font-weight-regular);
+    line-height: 1.5;
+    border-radius: 0;
+  }
+
+  button {
+    border-radius: 0;
+  }
+}
+
+@layer utilities {
+  .title {
+    font-weight: var(--ks-font-weight-medium);
+    color: var(--ks-color-text);
+  }
+
+  .ks-currency--negative {
+    color: rgb(176, 8, 8);
+  }
+
+  .subtitle {
+    font-weight: var(--ks-font-weight-medium);
+    color: var(--ks-color-blue);
+  }
+
+  .body-light {
+    font-weight: var(--ks-font-weight-light);
+    color: var(--ks-color-text);
+  }
+}
+
+/*
+ * After default.theme.css — open typing area + panel alignment (all ng-selects).
+ * Default theme uses margin-top/bottom: -1px (panel overlaps control).
+ * Use 0 so the panel sits flush under the control without a detached gap.
+ */
+.ng-dropdown-panel.ng-select-bottom {
+  margin-top: 0 !important;
+  border-top: 1px solid var(--ks-color-border-strong, #c5cdd8) !important;
+}
+
+.ng-dropdown-panel.ng-select-top {
+  margin-bottom: 0 !important;
+  border-bottom: 1px solid var(--ks-color-border-strong, #c5cdd8) !important;
+}
+
+.ng-dropdown-panel {
+  z-index: 1100;
+  border-radius: 0;
+  box-shadow: 0 8px 20px rgba(12, 39, 74, 0.12);
+  background: var(--ks-color-surface, #fff);
+}
+
+/*
+ * LTV Validation — Update Reason list (appendTo=body).
+ * Wider panel + wrap so full reason labels show (no ellipsis).
+ */
+.ng-dropdown-panel.ltv-reason-select {
+  min-width: 16rem !important;
+  width: max-content !important;
+  max-width: min(22rem, 92vw);
+}
+
+.ng-dropdown-panel.ltv-reason-select .ng-option {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.35;
+  font-size: 0.75rem;
+  padding: 0.4rem 0.65rem;
+}
+
+.ng-dropdown-panel.ltv-reason-select .ng-option-label {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  display: block;
+}
+
+.ng-select.ng-select-opened.ng-select-bottom > .ng-select-container,
+.ng-select.ng-select-opened.ng-select-top > .ng-select-container {
+  border-radius: 0 !important;
+}
+
+.ng-select.ng-select-single.ng-select-opened .ng-select-container .ng-value,
+.ng-select.ng-select-single.ng-select-filtered .ng-select-container .ng-value {
+  display: none !important;
+}
+
+.ng-select.ng-select-single.ng-select-opened .ng-select-container .ng-placeholder,
+.ng-select.ng-select-single.ng-select-filtered .ng-select-container .ng-placeholder {
+  display: none !important;
+  opacity: 0 !important;
+}
+
+.ng-select.ng-select-single.ng-select-opened .ng-select-container .ng-input,
+.ng-select.ng-select-single.ng-select-filtered .ng-select-container .ng-input {
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  padding: 0 0.5rem !important;
+  margin: 0 !important;
+}
+
+.ng-select.ng-select-single.ng-select-opened .ng-select-container .ng-input > input,
+.ng-select.ng-select-single.ng-select-filtered .ng-select-container .ng-input > input {
+  opacity: 1 !important;
+  width: 100% !important;
+  min-width: 4rem;
+  color: var(--ks-color-text, #1a1a1a);
+  caret-color: var(--ks-color-text, #1a1a1a);
+}
+
+@media print {
+  /* Report Print buttons use ReportPrintExportService, which also injects
+     @page { size: landscape } for Management Summary / Loan Detail. */
+  html,
+  body,
+  app-root {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    /* Force table/header fills to print even if "Background graphics" is off. */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .ks-app-shell,
+  .ks-app-main,
+  .ks-page {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .ks-sidebar,
+  .ks-sidebar-backdrop,
+  .ks-header,
+  app-ai-chat-sidebar,
+  app-toast-container,
+  .ks-no-print,
+  .ms-home-link {
+    display: none !important;
+  }
+
+  .ms-dashboard,
+  .ldr-dashboard {
+    background: #fff !important;
+    padding: 0.5rem !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Prevent sticky table headers from overlapping section titles when printing. */
+  .ms-table thead th,
+  .ldr-table thead th,
+  .ms-home-link {
+    position: static !important;
+    top: auto !important;
+  }
+
+  .ms-table thead th,
+  .ldr-table thead th,
+  .ms-table tfoot tr.ms-table__total td,
+  .ldr-table tfoot tr.ldr-table__total td,
+  .ms-table tbody tr.ms-table__total td,
+  .ldr-table tbody tr.ldr-table__total td,
+  .ms-mini-table thead th,
+  .ldr-mini-table thead th,
+  .ms-risk,
+  .ldr-risk,
+  .ms-legend-swatch,
+  .ldr-legend-swatch {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .ms-table-wrap,
+  .ldr-table-wrap,
+  .ms-mini-table-wrap {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  canvas {
+    max-width: 100% !important;
+  }
+}
+

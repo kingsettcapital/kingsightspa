@@ -1,0 +1,123 @@
+<section class="ks-fp notifications-page">
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row notifications-page__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">Notifications</h1>
+        <p class="ks-page__subtitle">
+          Review mortgage data updates triggered by Ranking, Default Date, and LTV confirmation.
+        </p>
+      </div>
+
+      <div class="notifications-page__actions">
+        <button
+          type="button"
+          class="ks-btn ks-btn--accent"
+          (click)="markAllAsRead()"
+          [disabled]="isSaving() || !unreadNotifications().length"
+        >
+          Mark All As Read
+        </button>
+      </div>
+    </div>
+  </div>
+
+  @if (statusMessage()) {
+    <p class="status-message">{{ statusMessage() }}</p>
+  }
+  @if (errorMessage()) {
+    <p class="error-message">{{ errorMessage() }}</p>
+  }
+
+  <div class="notifications-section">
+    <h2 class="notifications-section__title">Unread Notifications</h2>
+    <div class="ks-fp__table-wrap">
+      <table class="ks-fp__table notifications-table">
+        <thead>
+          <tr>
+            <th>Notification Type</th>
+            <th>Notice</th>
+            <th>Modified By</th>
+            <th>Modified Date</th>
+            <th class="read-col">Mark as Read</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading()) {
+            <tr>
+              <td colspan="5" class="empty-row">Loading notifications…</td>
+            </tr>
+          } @else if (!unreadNotifications().length) {
+            <tr>
+              <td colspan="5" class="empty-row">No unread notifications.</td>
+            </tr>
+          } @else {
+            @for (row of unreadNotifications(); track row.notificationId) {
+              <tr>
+                <td>{{ row.notificationType || '—' }}</td>
+                <td class="notice-cell">{{ row.notice || '—' }}</td>
+                <td>{{ row.updatedBy || '—' }}</td>
+                <td>{{ formatModifiedDate(row.updatedDate) }}</td>
+                <td class="read-col">
+                  <input
+                    type="checkbox"
+                    class="read-checkbox"
+                    [checked]="row.isRead"
+                    [disabled]="isSaving()"
+                    (change)="toggleRead(row, $any($event.target).checked)"
+                    [attr.aria-label]="'Mark notification as read'"
+                  />
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="notifications-section notifications-section--read">
+    <h2 class="notifications-section__title">Read Notifications</h2>
+    <div class="ks-fp__table-wrap">
+      <table class="ks-fp__table notifications-table notifications-table--read">
+        <thead>
+          <tr>
+            <th>Notification Type</th>
+            <th>Notice</th>
+            <th>Modified By</th>
+            <th>Modified Date</th>
+            <th class="read-col">Mark as Read</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading()) {
+            <tr>
+              <td colspan="5" class="empty-row">Loading notifications…</td>
+            </tr>
+          } @else if (!readNotifications().length) {
+            <tr>
+              <td colspan="5" class="empty-row">No read notifications yet.</td>
+            </tr>
+          } @else {
+            @for (row of readNotifications(); track row.notificationId) {
+              <tr>
+                <td>{{ row.notificationType || '—' }}</td>
+                <td class="notice-cell">{{ row.notice || '—' }}</td>
+                <td>{{ row.updatedBy || '—' }}</td>
+                <td>{{ formatModifiedDate(row.updatedDate) }}</td>
+                <td class="read-col">
+                  <input
+                    type="checkbox"
+                    class="read-checkbox"
+                    checked
+                    disabled
+                    aria-label="Read notification"
+                  />
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

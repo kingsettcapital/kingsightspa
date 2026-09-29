@@ -1,9 +1,10 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 
-import { APP_API_CONFIG } from '../config/api.config';
+import { APP_API_CONFIG } from '../constants/api.config';
+import { appendMortgageStatusParams } from '../utils/mortgage-status-query.util';
 
-/** Row from GET /api/TaxArrears — quarter tax memo records at leaf loan level. */
+/** Row from GET /api/TaxArrears — loan_tax_details joined to loan_alias_relationship. */
 export type TaxArrearsCaptureRowDto = {
   taxArrearKey?: number;
   loanKey: number;
@@ -24,6 +25,10 @@ export type TaxArrearsCaptureLookupsDto = {
 
 export type TaxArrearsCaptureUpdatePayload = {
   taxArrearKey: number;
+  loanCode: string;
+  originalTaxYear: string | null;
+  originalTaxMemoDate: string | null;
+  originalNotes: string | null;
   taxMemoDate: string | null;
   taxArrears: number | null;
   taxYear: string | null;
@@ -36,7 +41,8 @@ export type TaxArrearsCaptureBulkUpdateRequest = {
 };
 
 export type TaxArrearsCaptureCreateRequest = {
-  loanKey: number;
+  loanKey?: number;
+  loanCode?: string;
   taxMemoDate: string | null;
   taxArrears: number | null;
   taxYear: string | null;
@@ -55,19 +61,9 @@ export class TaxArrearsCaptureApiService {
     return `${this.apiConfig.baseUrl}/api/TaxArrears`;
   }
 
-  getRecords(loanAliasIds: number[], statuses: string[]) {
-    let params = new HttpParams();
-    for (const id of loanAliasIds) {
-      params = params.append('loanAliasIds', String(id));
-    }
-    for (const status of statuses) {
-      if (status.trim()) {
-        params = params.append('statuses', status.trim());
-      }
-    }
-    return this.http.get<TaxArrearsCaptureRowDto[] | Record<string, unknown>>(this.baseUrl, {
-      params,
-    });
+  getRecords(statuses: string[]) {
+    const params = appendMortgageStatusParams(new HttpParams(), statuses);
+    return this.http.get<TaxArrearsCaptureRowDto[]>(this.baseUrl, { params });
   }
 
   getLookups() {

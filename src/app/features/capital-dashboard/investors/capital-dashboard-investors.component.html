@@ -1,0 +1,298 @@
+<div style="overflow-y: auto; height: 100vh; scrollbar-width: thin;">
+
+
+  <div class="sticky-remove" style="position: sticky; top: 0; z-index: 5;">
+
+    <section class="cdt-investors cdt-investors--sticky-chrome" aria-label="Investors">
+      <header class="cdt-investors__header">
+        <div class="cdt-investors__heading">
+          <h1 class="cdt-investors__title">Investors</h1>
+          <p class="cdt-investors__subtitle">{{ subtitleText() }}</p>
+        </div>
+
+        <div class="cdt-investors__actions">
+          <div class="cdt-toggle" role="group" aria-label="Reporting period">
+            <button type="button" class="cdt-toggle__btn" [class.cdt-toggle__btn--active]="timeframe() === 'ltd'"
+              (click)="setTimeframe('ltd')">
+              ITD
+            </button>
+            <button type="button" class="cdt-toggle__btn" [class.cdt-toggle__btn--active]="timeframe() === 'quarterly'"
+              (click)="setTimeframe('quarterly')">
+              Quarterly
+            </button>
+          </div>
+
+          @if (timeframe() === 'quarterly') {
+          <div class="cdt-period-select">
+            <mat-icon class="cdt-period-select__calendar" aria-hidden="true">calendar_today</mat-icon>
+            <label class="cdt-period-select__field">
+              <select [ngModel]="quarter()" (ngModelChange)="setQuarter(+$event)" aria-label="Quarter">
+                @for (option of availableQuarters(); track option) {
+                <option [ngValue]="option">Q{{ option }}</option>
+                }
+              </select>
+              <mat-icon class="cdt-period-select__chevron" aria-hidden="true">expand_more</mat-icon>
+            </label>
+            <label class="cdt-period-select__field">
+              <select [ngModel]="year()" (ngModelChange)="setYear(+$event)" aria-label="Year">
+                @for (option of availableYears(); track option) {
+                <option [ngValue]="option">{{ option }}</option>
+                }
+              </select>
+              <mat-icon class="cdt-period-select__chevron" aria-hidden="true">expand_more</mat-icon>
+            </label>
+          </div>
+          }
+
+          <button type="button" class="cdt-btn cdt-btn--filters" [class.cdt-btn--filters-active]="filtersPanelVisible()"
+            (click)="toggleFiltersPanel()" [attr.aria-expanded]="filtersPanelVisible()">
+            <mat-icon aria-hidden="true">filter_alt</mat-icon>
+            Filters
+            @if (activeFilterCount() > 0) {
+            <span class="cdt-btn__badge">{{ activeFilterCount() }}</span>
+            }
+          </button>
+
+          <button
+            type="button"
+            class="cdt-btn cdt-btn--download"
+            [disabled]="exporting() || totalCount() === 0"
+            (click)="downloadTable()"
+          >
+            <span class="cdt-btn__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M12 15V3" />
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <path d="m7 10 5 5 5-5" />
+              </svg>
+            </span>
+            {{ exporting() ? 'Downloading…' : 'Download' }}
+          </button>
+        </div>
+      </header>
+
+      <div class="cdt-kpi-row">
+        <article class="cdt-kpi cdt-kpi--navy">
+          <p class="cdt-kpi__label">Total Investors</p>
+          <p class="cdt-kpi__value">{{ kpiCards().totalInvestors }}</p>
+          <p class="cdt-kpi__hint">Active</p>
+        </article>
+        <article class="cdt-kpi cdt-kpi--blue">
+          <p class="cdt-kpi__label">Total Commitment</p>
+          <p class="cdt-kpi__value">{{ kpiCards().totalCommitment | ksCurrency: 'USD' : 3 : true }}</p>
+        </article>
+        <article class="cdt-kpi cdt-kpi--blue-light">
+          <p class="cdt-kpi__label">Net Invested Capital</p>
+          <p class="cdt-kpi__value">{{ kpiCards().netInvestedCapital | ksCurrency: 'USD' : 3 : true }}</p>
+        </article>
+        <article class="cdt-kpi cdt-kpi--gold">
+          <p class="cdt-kpi__label">{{ distributedColumnLabel }}</p>
+          <p class="cdt-kpi__value">{{ kpiCards().netDistributed | ksCurrency: 'USD' : 3 : true }}</p>
+          <p class="cdt-kpi__hint">Cash returned</p>
+        </article>
+        <article class="cdt-kpi cdt-kpi--metric-reserved">
+          <p class="cdt-kpi__label">Reserved</p>
+          <p class="cdt-kpi__value">{{ kpiCards().reservedUncalled | ksCurrency: 'USD' : 3 : true }}</p>
+        </article>
+        <article class="cdt-kpi cdt-kpi--metric-unfunded">
+          <p class="cdt-kpi__label">Unfunded</p>
+          <p class="cdt-kpi__value">{{ kpiCards().unfunded | ksCurrency: 'USD' : 3 : true }}</p>
+        </article>
+        <article class="cdt-kpi cdt-kpi--metric-released">
+          <p class="cdt-kpi__label">Released Capital</p>
+          <p class="cdt-kpi__value">{{ kpiCards().releasedCapital | ksCurrency: 'USD' : 3 : true }}</p>
+        </article>
+      </div>
+
+      @if (filtersPanelVisible()) {
+      <div class="cdt-filters-panel">
+        <div class="cdt-filters-bar">
+          <label class="cdt-filters-bar__field cdt-filters-bar__field--search">
+            <span class="cdt-filters-bar__label">SEARCH</span>
+            <div class="cdt-filters-bar__search">
+              <mat-icon aria-hidden="true">search</mat-icon>
+              <input type="search" placeholder="Name, relationship..." [ngModel]="tableSearch()"
+                (ngModelChange)="tableSearch.set($event)" aria-label="Search investors" />
+            </div>
+          </label>
+
+          <label class="cdt-filters-bar__field">
+            <span class="cdt-filters-bar__label">INVESTOR TYPE</span>
+            <div class="cdt-filters-bar__select">
+              <select [ngModel]="investorTypeFilter()"
+                (ngModelChange)="investorTypeFilter.set($event); currentPage.set(1)" aria-label="Investor type">
+                <option value="all">All Types</option>
+                @for (option of investorTypeOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+              <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+            </div>
+          </label>
+
+          <label class="cdt-filters-bar__field">
+            <span class="cdt-filters-bar__label">RELATIONSHIP</span>
+            <div class="cdt-filters-bar__select">
+              <select [ngModel]="relationshipFilter()"
+                (ngModelChange)="relationshipFilter.set($event); currentPage.set(1)" aria-label="Relationship">
+                <option value="all">All Relationships</option>
+                @for (option of relationshipOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+              <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+            </div>
+          </label>
+
+          @if (activeFilterCount() > 0) {
+          <button type="button" class="cdt-filters-bar__clear" (click)="clearAllFilters()">
+            <mat-icon aria-hidden="true">close</mat-icon>
+            Clear all
+          </button>
+          }
+        </div>
+      </div>
+      }
+
+    </section>
+  </div>
+
+  <section class="cdt-investors cdt-investors--table-section" aria-label="Investors table">
+
+    <header class="cdt-investors__period-header">
+      <h2 class="cdt-investors__title">Reporting Period - {{ reportingPeriodTitle() }}</h2>
+    </header>
+
+    <div class="cdt-table-card" [class.cdt-table-card--empty]="listLoading() || listError()">
+      @if (listLoading()) {
+      <div class="cdt-table-card__state cdt-table-card__loading" role="status" aria-live="polite">
+        <div class="cdt-table-card__spinner" aria-hidden="true"></div>
+        <p class="cdt-table-card__state-title">Loading investors</p>
+        <p class="cdt-table-card__state-message">Fetching the latest investor data…</p>
+      </div>
+      } @else if (listError()) {
+      <div class="cdt-table-card__state cdt-table-card__error" role="alert">
+        <mat-icon class="cdt-table-card__state-icon" aria-hidden="true">error_outline</mat-icon>
+        <p class="cdt-table-card__state-title">Unable to load investors</p>
+        <p class="cdt-table-card__state-message">Please check your connection and try again.</p>
+        <button type="button" class="cdt-table-card__retry" (click)="retryLoad()">
+          Try again
+        </button>
+      </div>
+      } @else {
+      <div class="cdt-table-card__body">
+        <div class="cdt-table-wrap">
+          <table class="cdt-table">
+            <thead>
+              <tr>
+                <th>Investor Name</th>
+                <th>Relationship</th>
+                <th class="cdt-table__num">Commitment</th>
+                <th class="cdt-table__num">Net Invested<br>Capital</th>
+                <th class="cdt-table__num">{{ distributedColumnLabel }}</th>
+                <th class="cdt-table__num">Reserved</th>
+                <th class="cdt-table__num">Unfunded</th>
+                <th class="cdt-table__num">Released<br>Capital</th>
+                <th class="cdt-table__chevron-col" aria-hidden="true"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows(); track row.investorKey) {
+              <tr class="cdt-table__row cdt-table__row--clickable" (click)="openInvestor(row)">
+                <td>
+                  <div class="cdt-investor-cell">
+                    <span class="cdt-investor-cell__name">{{ row.name }}</span>
+                    <span class="cdt-investor-cell__type">{{ row.investorType }}</span>
+                  </div>
+                </td>
+                <td>{{ row.relationship }}</td>
+                <!-- <td class="cdt-table__num">{{ row.fundsCount }}</td> -->
+                <td class="cdt-table__num cdt-table__num--commitment">{{ row.commitment | ksCurrency: 'USD' : 2 : true }}</td>
+                <td class="cdt-table__num cdt-table__num--net-invested">{{ row.netInvestedCapital | ksCurrency: 'USD' : 2 : true }}</td>
+                <td class="cdt-table__num cdt-table__num--net-distributed">
+                  {{ row.netDistributed | ksCurrency: 'USD' : 2 : true }}
+                </td>
+                <td class="cdt-table__num cdt-table__num--reserved">
+                  {{ row.reservedUncalled | ksCurrency: 'USD' : 2 : true }}
+                </td>
+                <td class="cdt-table__num cdt-table__num--unfunded">
+                  {{ row.unfunded | ksCurrency: 'USD' : 2 : true }}
+                </td>
+                <td class="cdt-table__num cdt-table__num--released">
+                  @if (row.releasedCapital != null) {
+                  {{ row.releasedCapital | ksCurrency: 'USD' : 2 : true }}
+                  } @else {
+                  —
+                  }
+                </td>
+                <td class="cdt-table__chevron-col">
+                  <mat-icon aria-hidden="true">chevron_right</mat-icon>
+                </td>
+              </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="cdt-table__total-row">
+                <td colspan="2">TOTAL · {{ totalCount() }} INVESTORS</td>
+                <td class="cdt-table__num cdt-table__num--commitment">{{ pageTotals().commitment | ksCurrency: 'USD' : 2 : true }}</td>
+                <td class="cdt-table__num cdt-table__num--net-invested">{{ pageTotals().netInvestedCapital | ksCurrency: 'USD' : 2 : true }}</td>
+                <td class="cdt-table__num cdt-table__num--net-distributed">
+                  {{ pageTotals().netDistributed | ksCurrency: 'USD' : 2 : true }}
+                </td>
+                <td class="cdt-table__num cdt-table__num--reserved">
+                  {{ pageTotals().reservedUncalled | ksCurrency: 'USD' : 2 : true }}
+                </td>
+                <td class="cdt-table__num cdt-table__num--unfunded">
+                  {{ pageTotals().unfunded | ksCurrency: 'USD' : 2 : true }}
+                </td>
+                <td class="cdt-table__num cdt-table__num--released" aria-hidden="true"></td>
+                <td class="cdt-table__chevron-col" aria-hidden="true"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <footer class="cdt-pagination">
+          <div class="cdt-pagination__meta">
+            <p class="cdt-pagination__summary">
+              Showing
+              <strong>{{ showingFrom() }}-{{ showingTo() }}</strong>
+              of
+              <strong>{{ totalCount() }}</strong>
+            </p>
+            <label class="cdt-pagination__page-size">
+              <span>Rows</span>
+              <select
+                [ngModel]="pageSize()"
+                (ngModelChange)="setPageSize($event)"
+                aria-label="Rows per page"
+              >
+                @for (size of pageSizeOptions; track size) {
+                <option [ngValue]="size">{{ size }}</option>
+                }
+              </select>
+            </label>
+          </div>
+          <nav class="cdt-pagination__nav" aria-label="Investors pagination">
+            <button type="button" class="cdt-pagination__arrow" [disabled]="currentPage() <= 1"
+              (click)="goToPage(currentPage() - 1)" aria-label="Previous page">
+              <mat-icon aria-hidden="true">chevron_left</mat-icon>
+            </button>
+            @for (page of pageNumbers(); track page) {
+            <button type="button" class="cdt-pagination__page"
+              [class.cdt-pagination__page--active]="page === currentPage()" (click)="goToPage(page)">
+              {{ page }}
+            </button>
+            }
+            <button type="button" class="cdt-pagination__arrow" [disabled]="currentPage() >= totalPages()"
+              (click)="goToPage(currentPage() + 1)" aria-label="Next page">
+              <mat-icon aria-hidden="true">chevron_right</mat-icon>
+            </button>
+          </nav>
+        </footer>
+      </div>
+      }
+    </div>
+  </section>
+</div>

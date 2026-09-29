@@ -1,59 +1,82 @@
-<section class="tax-arrears-page">
-  <h1>Capture Tax Arrears from Quarter Tax Memo</h1>
-  <p class="subtitle">
-    All loan aliases load by default. Search to narrow the grid, or select tags to filter. Edit tax memo
-    details in the grid, or add a new record for a specific loan.
-  </p>
-
-  <div class="filters-row">
-    <div class="filter-panel alias-panel">
-      <span class="filter-label">Loan Alias</span>
-      <div class="search-input-wrap">
-        <input
-          type="text"
-          [value]="searchText()"
-          (input)="updateSearch($any($event.target).value)"
-          placeholder="Search and add loan aliases"
-        />
+<section class="ks-fp tax-arrears-page">
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">Capture Tax Arrears from Quarter Tax Memo</h1>
+        <p class="ks-page__subtitle">
+          Enter Annual Tax Arrears outstanding per Loan as reported on each Quarterly Tax Memo by Adding a
+          New Record to the Table.
+        </p>
       </div>
 
-      @if (searchedAliasOptions().length > 0) {
-        <ul class="search-results">
-          @for (alias of searchedAliasOptions(); track alias.loanAliasId) {
-            <li>
-              <button type="button" (click)="selectAlias(alias)">{{ alias.loanAliasName }}</button>
-            </li>
+      <div class="ks-fp__filters-compact">
+        <div class="ks-fp__search-block">
+          <label class="ks-fp__filter-label" for="taxArrearsLoanSearch">Search Loans</label>
+          <input
+            id="taxArrearsLoanSearch"
+            type="text"
+            class="ks-fp__search-input"
+            placeholder="Enter Search Value"
+            [value]="searchText()"
+            (input)="updateSearch($any($event.target).value)"
+            aria-label="Search loans"
+          />
+
+          @if (searchText().trim() && searchedLoanOptions().length > 0) {
+            <ul class="ks-fp__autocomplete">
+              @for (row of searchedLoanOptions().slice(0, 20); track row.loanCode) {
+                <li>
+                  <button type="button" (click)="selectLoan(row)">
+                    <span>{{ row.loanCode }} — {{ row.loanName }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
           }
-        </ul>
-      }
 
-      <div class="selected-alias-tags">
-        @for (selected of selectedAliases(); track selected.loanAliasId) {
-          <button type="button" class="alias-tag" (click)="removeSelectedAlias(selected.loanAliasId)">
-            <span>{{ selected.loanAliasName }}</span>
-            <span class="tag-close">x</span>
+          @if (selectedLoans().length > 0) {
+            <div class="selected-loan-tags">
+              @for (selected of selectedLoans(); track selected.loanCode) {
+                <button
+                  type="button"
+                  class="loan-tag"
+                  (click)="removeSelectedLoan(selected.loanCode)"
+                >
+                  <span>{{ selected.loanCode }} {{ selected.loanName }}</span>
+                  <span class="tag-close">×</span>
+                </button>
+              }
+            </div>
+          }
+
+          <button
+            type="button"
+            class="ks-fp__clear-selection"
+            (click)="clearSelection()"
+            [disabled]="!selectedLoanCodes().length && !selectedStatuses().length && !searchText().trim()"
+          >
+            Clear Selection
           </button>
-        }
-      </div>
+        </div>
 
-      @if (selectedAliases().length > 0) {
-        <button type="button" class="link-clear" (click)="clearAliasSelection()">Clear aliases</button>
-      }
-    </div>
-
-    <div class="filter-panel status-panel">
-      <span class="filter-label">Status</span>
-      <div class="status-options">
-        @for (status of statusOptions(); track status.value) {
-          <label class="status-option">
-            <input
-              type="checkbox"
-              [checked]="isStatusSelected(status.value)"
-              (change)="toggleStatus(status.value)"
-            />
-            <span>{{ status.displayLabel }}</span>
-          </label>
-        }
+        <div class="ks-fp__status-block">
+          <label class="ks-fp__filter-label" for="taxArrearsStatus">Status</label>
+          <ng-select
+            id="taxArrearsStatus"
+            class="ks-ng-select"
+            appendTo="body"
+            [items]="statusSelectOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [multiple]="true"
+            [searchable]="true"
+            [closeOnSelect]="false"
+            [clearable]="true"
+            placeholder="Select status..."
+            [ngModel]="selectedStatuses()"
+            (ngModelChange)="updateSelectedStatuses($event)"
+          ></ng-select>
+        </div>
       </div>
     </div>
   </div>
@@ -62,40 +85,54 @@
     <p class="meta-message">Loading filters...</p>
   }
   @if (errorMessage() && !isSaving() && !showAddDialog()) {
-    <p class="error-message">{{ errorMessage() }}</p>
+    <p class="error-message banner-error">{{ errorMessage() }}</p>
   }
   @if (isLoadingGrid()) {
-    <p class="meta-message">Loading loan syndicate details...</p>
+    <p class="meta-message grid-loading">Loading tax arrears records...</p>
   } @else if (statusMessage() && !errorMessage()) {
     <p class="status-message">{{ statusMessage() }}</p>
+  } @else if (gridLoadMessage() && !errorMessage()) {
+    <p class="status-message">{{ gridLoadMessage() }}</p>
   }
-
-  <h2 class="table-title">Loan Syndicate Details</h2>
 
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
+          <th class="select-col" aria-label="Select row"></th>
           <th class="hidden-column">Tax Arrear Key</th>
           <th class="hidden-column">Loan Key</th>
-          <th>Loan ID</th>
-          <th>Description</th>
-          <th>Loan Alias</th>
-          <th>Tax Memo Date</th>
-          <th class="numeric-col">Tax Arrears</th>
-          <th>Tax Year</th>
-          <th>Notes</th>
-          <th>Date of DWH Update</th>
-          <th>Updated By</th>
+          @for (column of tableColumns; track column.key) {
+            <th [class.numeric-col]="column.numeric" [class.audit-col]="column.audit">
+              <button
+                type="button"
+                class="ta-th-sort"
+                (click)="toggleSort(column.key)"
+                [attr.aria-label]="'Sort by ' + column.label"
+              >
+                <span>{{ column.label }}</span>
+                <span class="ta-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+              </button>
+            </th>
+          }
         </tr>
       </thead>
       <tbody>
-        @for (row of paginatedRows(); track rowTrackId(row)) {
-          <tr>
+        @for (row of paginatedRows(); track row.stableRowId) {
+          <tr [class.row-selected]="isRowSelected(row)">
+            <td class="select-col">
+              <input
+                type="checkbox"
+                class="row-select-checkbox"
+                [checked]="isRowSelected(row)"
+                (change)="toggleRowSelection(row)"
+                [attr.aria-label]="'Select row ' + row.loanCode"
+              />
+            </td>
             <td class="hidden-column">{{ row.taxArrearKey }}</td>
             <td class="hidden-column">{{ row.loanKey }}</td>
-            <td>{{ row.loanId }}</td>
-            <td>{{ row.description }}</td>
+            <td>{{ row.loanCode }}</td>
+            <td>{{ row.loanName }}</td>
             <td>{{ row.loanAliasName }}</td>
             <td>
               <input
@@ -107,13 +144,13 @@
             </td>
             <td class="numeric-col">
               <input
-                type="number"
+                type="text"
+                inputmode="decimal"
                 class="value-input"
-                [value]="formatCurrency(row.taxArrears)"
-                (input)="updateTaxArrears(rowTrackId(row), $any($event.target).value)"
-                placeholder="0.00"
-                step="0.01"
-                min="0"
+                [value]="currencyInputDisplay(rowTrackId(row), row.taxArrears)"
+                (input)="onTaxArrearsInput(rowTrackId(row), $any($event.target).value)"
+                (blur)="commitTaxArrears(rowTrackId(row), $any($event.target))"
+                placeholder="$0.00"
               />
             </td>
             <td>
@@ -136,12 +173,18 @@
                 placeholder="Notes"
               />
             </td>
-            <td class="date-readonly">{{ formatDisplayDate(row.userUpdatedDate) }}</td>
-            <td>{{ row.userUpdatedBy }}</td>
+            <td class="date-readonly audit-col updated-by-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
+            <td class="date-readonly audit-col">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>
         } @empty {
           <tr>
-            <td colspan="11" class="empty-row">No tax arrears records loaded for the selected filters.</td>
+            <td colspan="12" class="empty-row">
+              @if (isLoadingGrid() || isLoadingFilters()) {
+                Loading tax arrears records...
+              } @else {
+                No tax arrears records match the current filters.
+              }
+            </td>
           </tr>
         }
       </tbody>
@@ -153,6 +196,7 @@
       <label for="taxArrearsPageSize">Rows per page</label>
       <select
         id="taxArrearsPageSize"
+        class="page-size-select"
         [value]="pageSize()"
         (change)="updatePageSize($any($event.target).value)"
       >
@@ -160,6 +204,7 @@
         <option value="10">10</option>
         <option value="20">20</option>
         <option value="50">50</option>
+        <option value="100">100</option>
       </select>
     </div>
     <div class="pagination-right">
@@ -180,8 +225,21 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="btn-add" (click)="openAddDialog()">Add New Record</button>
-    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving() || !rows().length">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="openAddDialog()">Add New Row</button>
+    <button
+      type="button"
+      class="ks-btn ks-btn--accent"
+      (click)="openDuplicateDialog()"
+      [disabled]="!hasSelectedRow()"
+    >
+      Duplicate Row
+    </button>
+    <button
+      type="button"
+      class="ks-btn ks-btn--accent"
+      (click)="saveChanges()"
+      [disabled]="isSaving() || !rows().length"
+    >
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>
@@ -201,50 +259,75 @@
       (click)="$event.stopPropagation()"
     >
       <div class="ta-dialog-header">
-        <h2 id="dlg-add-tax-arrears-title">Add A New Record</h2>
+        <h2 id="dlg-add-tax-arrears-title">{{ dialogTitle() }}</h2>
         <button type="button" class="dlg-close" (click)="closeAddDialog()" aria-label="Close">×</button>
       </div>
 
       <div class="ta-dialog-body">
-        <div class="form-field">
-          <label for="newLoanAlias">Loan Alias</label>
-          <select
-            id="newLoanAlias"
-            [value]="newRecord().loanAliasId ?? ''"
-            (change)="updateNewRecordAlias($any($event.target).value)"
-          >
-            <option value="">Select loan alias</option>
-            @for (alias of aliasOptions(); track alias.loanAliasId) {
-              <option [value]="alias.loanAliasId">{{ alias.loanAliasName }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="form-field">
-          <label for="newLoan">Loan</label>
-          <select
-            id="newLoan"
-            [value]="newRecord().loanKey ?? ''"
-            (change)="updateNewRecordLoan($any($event.target).value)"
-            [disabled]="!newRecord().loanAliasId"
-          >
-            <option value="">Select loan</option>
-            @for (loan of modalLoanOptions(); track loan.loanKey) {
-              <option [value]="loan.loanKey">{{ loan.loanId }} — {{ loan.description }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="form-grid">
-          <div class="form-field">
-            <label>Loan ID</label>
-            <div class="readonly-field">{{ modalLoanPreview().loanId }}</div>
+        @if (dialogMode() === 'duplicate') {
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Loan Alias</label>
+              <div class="readonly-field">{{ modalAliasPreview() }}</div>
+            </div>
+            <div class="form-field">
+              <label>Loan Code</label>
+              <div class="readonly-field">{{ modalLoanPreview().loanCode }}</div>
+            </div>
+            <div class="form-field">
+              <label>Loan Name</label>
+              <div class="readonly-field">{{ modalLoanPreview().loanName }}</div>
+            </div>
           </div>
+        } @else {
           <div class="form-field">
-            <label>Description</label>
-            <div class="readonly-field">{{ modalLoanPreview().description }}</div>
+            <label for="newLoanAlias">Loan Alias</label>
+            <select
+              id="newLoanAlias"
+              class="modal-field-control"
+              [value]="newRecord().loanAliasId ?? ''"
+              (change)="updateNewRecordAlias($any($event.target).value)"
+            >
+              <option value="">Select loan alias</option>
+              @for (alias of aliasOptions(); track alias.loanAliasId) {
+                <option [value]="alias.loanAliasId">{{ alias.loanAliasName }}</option>
+              }
+            </select>
           </div>
-        </div>
+
+          <div class="form-field">
+            <label for="newLoan">Loan</label>
+            <ng-select
+              id="newLoan"
+              class="ks-ng-select ta-loan-select"
+              [items]="modalLoanOptions()"
+              bindLabel="label"
+              bindValue="loanCode"
+              [clearable]="true"
+              [searchable]="true"
+              [disabled]="!newRecord().loanAliasId"
+              [ngModel]="newRecord().loanCode"
+              (ngModelChange)="updateNewRecordLoan($event ?? '')"
+              [placeholder]="newRecord().loanAliasId ? 'Select loan' : 'Select loan alias first'"
+            ></ng-select>
+            @if (newRecord().loanAliasId && modalLoanOptions().length === 0) {
+              <p class="field-hint">
+                No loans are assigned to this alias. Assign loans on Loan Alias Assignment, then try again.
+              </p>
+            }
+          </div>
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Loan Code</label>
+              <div class="readonly-field">{{ modalLoanPreview().loanCode }}</div>
+            </div>
+            <div class="form-field">
+              <label>Loan Name</label>
+              <div class="readonly-field">{{ modalLoanPreview().loanName }}</div>
+            </div>
+          </div>
+        }
 
         <div class="form-grid">
           <div class="form-field">
@@ -252,19 +335,28 @@
             <input
               id="newTaxMemoDate"
               type="date"
+              class="modal-field-control"
               [value]="newRecord().taxMemoDate"
               (input)="updateNewRecordField('taxMemoDate', $any($event.target).value)"
             />
+            <p class="field-hint">
+              @if (dialogMode() === 'duplicate') {
+                Same tax memo date is allowed when the tax year is different (source year was cleared).
+              } @else {
+                Unique per loan for each tax memo date + tax year pair. Same memo date can be reused with a different tax year.
+              }
+            </p>
           </div>
           <div class="form-field">
             <label for="newTaxYear">Tax Year</label>
             <select
               id="newTaxYear"
-              [value]="newRecord().taxYear"
+              class="modal-field-control"
               (change)="updateNewRecordField('taxYear', $any($event.target).value)"
             >
-              @for (year of taxYearOptions(); track year) {
-                <option [value]="year">{{ year }}</option>
+              <option value="" [selected]="!newRecord().taxYear.trim()">—</option>
+              @for (year of modalTaxYearOptions(); track year) {
+                <option [value]="year" [selected]="newRecord().taxYear === year">{{ year }}</option>
               }
             </select>
           </div>
@@ -274,12 +366,12 @@
           <label for="newTaxArrears">Tax Arrears</label>
           <input
             id="newTaxArrears"
-            type="number"
+            type="text"
+            inputmode="decimal"
+            class="modal-field-control currency-input"
             [value]="newRecord().taxArrears"
             (input)="updateNewRecordField('taxArrears', $any($event.target).value)"
-            placeholder="0.00"
-            step="0.01"
-            min="0"
+            placeholder="$0.00"
           />
         </div>
 
@@ -287,6 +379,7 @@
           <label for="newNotes">Notes</label>
           <textarea
             id="newNotes"
+            class="modal-field-control"
             [value]="newRecord().notes"
             (input)="updateNewRecordField('notes', $any($event.target).value)"
             placeholder="Optional notes"
@@ -299,11 +392,11 @@
       </div>
 
       <div class="ta-dialog-footer">
-        <button type="button" class="btn-outline" (click)="closeAddDialog()" [disabled]="isCreating()">
+        <button type="button" class="ks-btn ks-btn--accent" (click)="closeAddDialog()" [disabled]="isCreating()">
           Cancel
         </button>
-        <button type="button" class="btn-save" (click)="createRecord()" [disabled]="isCreating()">
-          @if (isCreating()) { Saving… } @else { Save Record }
+        <button type="button" class="ks-btn ks-btn--accent" (click)="createRecord()" [disabled]="isCreating()">
+          @if (isCreating()) { Saving… } @else { Save Row }
         </button>
       </div>
     </div>

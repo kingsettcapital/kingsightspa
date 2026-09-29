@@ -1,0 +1,358 @@
+<div class="ks-app-shell" [class.ks-app-shell--no-sidebar]="hideAppSidebar()">
+  @if (isMobileNavOpen() && !hideAppSidebar()) {
+    <button
+      type="button"
+      class="ks-sidebar-backdrop"
+      (click)="closeMobileNav()"
+      aria-label="Close menu"
+    ></button>
+  }
+
+  @if (!hideAppSidebar()) {
+  <aside
+    class="ks-sidebar"
+    [class.ks-sidebar--collapsed]="!isSidebarExpanded()"
+    [class.ks-sidebar--expanded]="isSidebarExpanded()"
+    [class.ks-sidebar--mobile-open]="isMobileNavOpen()"
+  >
+    <div class="ks-sidebar__toggle">
+      <button
+        type="button"
+        class="ks-sidebar__toggle-btn"
+        (click)="toggleSidebarExpanded()"
+        [attr.aria-label]="isSidebarExpanded() ? 'Collapse sidebar' : 'Expand sidebar'"
+      >
+        @if (isSidebarExpanded()) {
+          <lucide-icon [img]="xIcon" color="white" [size]="20"></lucide-icon>
+        } @else {
+          <lucide-icon [img]="menuIcon" color="white" [size]="20"></lucide-icon>
+        }
+      </button>
+    </div>
+
+    <nav class="ks-sidebar__nav">
+      @if (showHomeCapitalAndDataExplorer()) {
+        <a
+          routerLink="/"
+          routerLinkActive="ks-sidebar__link--active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="ks-sidebar__link"
+        >
+          <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
+          <span class="ks-sidebar__link-label">Home</span>
+        </a>
+        <a
+          routerLink="/capital-dashboard"
+          routerLinkActive="ks-sidebar__link--active"
+          [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
+          class="ks-sidebar__link"
+        >
+          <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
+          <span class="ks-sidebar__link-label">Capital</span>
+        </a>
+      }
+
+      <div
+        class="ks-sidebar__group"
+        [class.ks-sidebar__group--expanded]="openDropdown() === 'Loans'"
+      >
+        <button
+          type="button"
+          class="ks-sidebar__group-btn"
+          [class.ks-sidebar__group-btn--expanded]="openDropdown() === 'Loans'"
+          (click)="toggleDropdown('Loans')"
+        >
+          <lucide-icon [img]="landmarkIcon" color="currentColor" [size]="22"></lucide-icon>
+          <span class="ks-sidebar__link-label">MORTGAGE</span>
+          @if (isSidebarExpanded()) {
+            <lucide-icon
+              class="ks-sidebar__chevron"
+              [class.ks-sidebar__chevron--open]="openDropdown() === 'Loans'"
+              [img]="chevronDownIcon"
+              color="currentColor"
+              [size]="16"
+            ></lucide-icon>
+          }
+        </button>
+
+        @if (isSidebarExpanded() && openDropdown() === 'Loans') {
+          <div class="ks-sidebar__subnav">
+            @if (showManagementSummary()) {
+              <div
+                class="ks-sidebar__subgroup"
+                [class.ks-sidebar__subgroup--expanded]="isMortgageSectionOpen('reporting')"
+              >
+                <button
+                  type="button"
+                  class="ks-sidebar__subgroup-btn"
+                  [attr.aria-expanded]="isMortgageSectionOpen('reporting')"
+                  (click)="toggleMortgageSection('reporting')"
+                >
+                  <span class="ks-sidebar__subgroup-label">Reporting</span>
+                  <lucide-icon
+                    class="ks-sidebar__chevron ks-sidebar__chevron--subgroup"
+                    [class.ks-sidebar__chevron--open]="isMortgageSectionOpen('reporting')"
+                    [img]="chevronDownIcon"
+                    color="currentColor"
+                    [size]="14"
+                  ></lucide-icon>
+                </button>
+                @if (isMortgageSectionOpen('reporting')) {
+                  <div class="ks-sidebar__subgroup-links">
+                    <a
+                      routerLink="/mortgage/management-summary"
+                      routerLinkActive="ks-sidebar__sublink--active"
+                      class="ks-sidebar__sublink"
+                    >Management Summary</a>
+                  </div>
+                }
+              </div>
+            }
+
+            <div
+              class="ks-sidebar__subgroup"
+              [class.ks-sidebar__subgroup--expanded]="isMortgageSectionOpen('aliasManagement')"
+            >
+              <button
+                type="button"
+                class="ks-sidebar__subgroup-btn"
+                [attr.aria-expanded]="isMortgageSectionOpen('aliasManagement')"
+                (click)="toggleMortgageSection('aliasManagement')"
+              >
+                <span class="ks-sidebar__subgroup-label">Alias Management</span>
+                <lucide-icon
+                  class="ks-sidebar__chevron ks-sidebar__chevron--subgroup"
+                  [class.ks-sidebar__chevron--open]="isMortgageSectionOpen('aliasManagement')"
+                  [img]="chevronDownIcon"
+                  color="currentColor"
+                  [size]="14"
+                ></lucide-icon>
+              </button>
+              @if (isMortgageSectionOpen('aliasManagement')) {
+                <div class="ks-sidebar__subgroup-links">
+                  <a
+                    routerLink="/mortgage/loan-alias-assignment"
+                    routerLinkActive="ks-sidebar__sublink--active"
+                    class="ks-sidebar__sublink"
+                  >Loan Alias Assignment</a>
+                  <a
+                    routerLink="/mortgage/investor-alias-assignment"
+                    routerLinkActive="ks-sidebar__sublink--active"
+                    class="ks-sidebar__sublink"
+                  >Investor Alias Assignment</a>
+                </div>
+              }
+            </div>
+
+            <a
+              routerLink="/mortgage/loans-ranking"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Loan Attribute Assignment</a>
+            <a
+              routerLink="/mortgage/security-value"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Loan Exposure Markers</a>
+            <a
+              routerLink="/mortgage/default-date-capture"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Default Date</a>
+            <a
+              routerLink="/mortgage/other-cost-capture"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Other Cost Capture</a>
+            <a
+              routerLink="/mortgage/default-subjective-analytics"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Default Subjective Analytics</a>
+            <a
+              routerLink="/mortgage/tax-arrears-capture"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Tax Arrears</a>
+            <a
+              routerLink="/mortgage/non-ks-serviced-loans"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Non-KS Serviced Loans</a>
+            <a
+              routerLink="/mortgage/ltv-validation"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >LTV Validation</a>
+            <a
+              routerLink="/mortgage/cmhc-upload"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >File Upload</a>
+
+            <div class="ks-sidebar__subnav-separator" aria-hidden="true"></div>
+
+            <a
+              routerLink="/mortgage/notifications"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink ks-sidebar__sublink--notifications"
+            >
+              <span class="ks-sidebar__sublink-label">Notifications</span>
+              @if (unreadNotificationCount() > 0) {
+                <span
+                  class="ks-sidebar__notification-badge"
+                  [attr.aria-label]="unreadNotificationCount() + ' unread notifications'"
+                >
+                  {{ unreadNotificationCount() > 99 ? '99+' : unreadNotificationCount() }}
+                </span>
+              }
+            </a>
+          </div>
+        }
+      </div>
+
+      @if (showHomeCapitalAndDataExplorer()) {
+        <a
+          routerLink="/data-explorer"
+          routerLinkActive="ks-sidebar__link--active"
+          class="ks-sidebar__link"
+        >
+          <lucide-icon [img]="databaseIcon" color="currentColor" [size]="22"></lucide-icon>
+          <span class="ks-sidebar__link-label">Data Explorer</span>
+        </a>
+      }
+
+      @if (showUserManagement()) {
+        <a
+          routerLink="/admin/user-management"
+          routerLinkActive="ks-sidebar__link--active"
+          class="ks-sidebar__link"
+        >
+          <lucide-icon [img]="userIcon" color="currentColor" [size]="22"></lucide-icon>
+          <span class="ks-sidebar__link-label">User Management</span>
+        </a>
+      }
+
+      <!-- <div
+        class="ks-sidebar__group"
+        [class.ks-sidebar__group--expanded]="openDropdown() === 'Stats'"
+      >
+        <button
+          type="button"
+          class="ks-sidebar__group-btn"
+          [class.ks-sidebar__group-btn--expanded]="openDropdown() === 'Stats'"
+          (click)="toggleDropdown('Stats')"
+        >
+          <lucide-icon [img]="chartBarIcon" color="currentColor" [size]="22"></lucide-icon>
+          <span class="ks-sidebar__link-label">Stats</span>
+          @if (isSidebarExpanded()) {
+            <lucide-icon
+              class="ks-sidebar__chevron"
+              [class.ks-sidebar__chevron--open]="openDropdown() === 'Stats'"
+              [img]="chevronDownIcon"
+              color="currentColor"
+              [size]="16"
+            ></lucide-icon>
+          }
+        </button>
+
+        @if (isSidebarExpanded() && openDropdown() === 'Stats') {
+          <div class="ks-sidebar__subnav">
+            <a
+              routerLink="/capital-reporting/fund"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Fund</a>
+            <a
+              routerLink="/capital-reporting/asset"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Asset</a>
+            <a
+              routerLink="/capital-reporting/investor"
+              routerLinkActive="ks-sidebar__sublink--active"
+              class="ks-sidebar__sublink"
+            >Investor</a>
+          </div>
+        }
+      </div> -->
+    </nav>
+
+    <div class="ks-sidebar__footer">
+      <div class="ks-sidebar__user">
+        <div class="ks-sidebar__avatar">
+          <lucide-icon [img]="userIcon" color="white" [size]="16"></lucide-icon>
+        </div>
+        @if (isSidebarExpanded()) {
+          <div>
+            <p class="ks-sidebar__user-name">{{ currentUser().name }}</p>
+            <p class="ks-sidebar__user-role">{{ currentUser().role }}</p>
+          </div>
+        }
+      </div>
+
+      <button type="button" class="ks-sidebar__logout" (click)="handleLogout()">
+        <lucide-icon [img]="logOutIcon" color="currentColor" [size]="20"></lucide-icon>
+        @if (isSidebarExpanded()) {
+          <span>Sign Out</span>
+        }
+      </button>
+    </div>
+  </aside>
+  }
+
+  <div class="ks-app-main">
+    @if (!hideAppSidebar()) {
+    <header class="ks-header">
+      <div class="ks-header__brand">
+        <button
+          type="button"
+          class="ks-header__menu-btn"
+          (click)="toggleMobileNav()"
+          aria-label="Open menu"
+        >
+          <lucide-icon [img]="menuIcon" color="currentColor" [size]="22"></lucide-icon>
+        </button>
+        <a
+          [routerLink]="showHomeCapitalAndDataExplorer() ? '/' : '/mortgage/loan-alias-assignment'"
+          class="ks-header__brand-link"
+          aria-label="KingSett Capital — KingSight home"
+        >
+          <app-kingsett-logo variant="reversed" size="md" />
+        </a>
+        <p class="ks-header__app-tagline">Data Insights</p>
+      </div>
+
+      <div class="ks-header__actions">
+        @if (showAiAssistant()) {
+          <button
+            type="button"
+            [class]="isAIChatOpen() ? 'ks-btn ks-btn--primary' : 'ks-btn ks-btn--ghost'"
+            (click)="toggleAIChat()"
+          >
+            <lucide-icon
+              [img]="messageSquareIcon"
+              [size]="18"
+              [color]="isAIChatOpen() ? 'white' : 'currentColor'"
+            ></lucide-icon>
+            <span>AI Assistant</span>
+          </button>
+        }
+      </div>
+    </header>
+    }
+
+    <main class="ks-page" [class.ks-page--report]="hideAppSidebar()">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+
+  @if (showAiAssistant()) {
+    <app-ai-chat-sidebar
+      [isOpen]="isAIChatOpen()"
+      (closed)="isAIChatOpen.set(false)"
+    ></app-ai-chat-sidebar>
+  }
+
+  <app-toast-container />
+</div>

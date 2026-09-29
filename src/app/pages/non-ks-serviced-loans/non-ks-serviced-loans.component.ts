@@ -1,33 +1,63 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { NgFooterTemplateDirective, NgSelectComponent } from '@ng-select/ng-select';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
+import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
+import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
+import {
+  normalizeStatusOptions,
+  toStatusSelectOptions,
+} from '../../core/utils/mortgage-status-filter.util';
+import {
+  InvestorApiService,
+  InvestorDto,
+} from '../../core/services/investor-api.service';
+import {
+  LoanSecurityValueApiService,
+  LoanStatusFilterOption,
+} from '../../core/services/loan-security-value-api.service';
+import { LoanAliasOptionDto, LoansApiService } from '../../core/services/loans-api.service';
+import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 import {
   NonKsServicedLoanDto,
   NonKsServicedLoanPayload,
   NonKsServicedLoansApiService,
 } from '../../core/services/non-ks-serviced-loans-api.service';
 
+type LoanSelectOption = {
+  label: string;
+  value: string;
+};
+
 type NonKsLoanRow = {
-  nonKsServicedLoanKey: number;
+  stableRowKey: string;
+  nonKsServicedLoanKey: string;
   clientRowId: number;
   loanName: string;
   asAtDate: string;
-  loanId: string;
+  loanCode: string;
   servicerId: string;
   description: string;
   investor: string;
+  investorCode: string;
+  investorAlias: string;
+  sponsor: string;
   dateOfDefault: string;
   maturityDate: string;
   interestOffDate: string;
   taxMemoDate: string;
+  /** Hidden from UI — retained so updates do not wipe warehouse values. */
   securityValue: number | null;
   units: number | null;
   netAcres: number | null;
   squareFeet: number | null;
-  interestRate: number | null;
   principalBalance: number | null;
+  currentLtv: number | null;
+  interestRate: number | null;
   outstandingInterest: number | null;
   accruedInterest: number | null;
   lateInterest: number | null;
@@ -35,21 +65,41 @@ type NonKsLoanRow = {
   estRealizationCosts: number | null;
   costToComplete: number | null;
   taxArrears: number | null;
-  interestAsOfTaxMemo: number | null;
   interestAdjustment: number | null;
+  fundingStatus: string;
   userUpdatedBy: string;
   userUpdatedDate: string;
 };
 
-type RowSnapshot = Omit<NonKsLoanRow, 'nonKsServicedLoanKey' | 'clientRowId' | 'userUpdatedBy' | 'userUpdatedDate'>;
+type RowSnapshot = Omit<
+  NonKsLoanRow,
+  | 'stableRowKey'
+  | 'nonKsServicedLoanKey'
+  | 'clientRowId'
+  | 'userUpdatedBy'
+  | 'userUpdatedDate'
+  | 'investorAlias'
+>;
+
+type DialogMode = 'create' | 'update' | 'duplicate';
+
+type DialogDraft = RowSnapshot & {
+  stableRowKey: string;
+  nonKsServicedLoanKey: string;
+  clientRowId: number;
+  originalAsAtDate: string;
+  /** Source Loan Code for update/duplicate; field stays read-only. */
+  lockedLoanCode: string | null;
+};
 
 const NUMERIC_FIELDS: (keyof RowSnapshot)[] = [
   'securityValue',
   'units',
   'netAcres',
   'squareFeet',
-  'interestRate',
   'principalBalance',
+  'currentLtv',
+  'interestRate',
   'outstandingInterest',
   'accruedInterest',
   'lateInterest',
@@ -57,25 +107,126 @@ const NUMERIC_FIELDS: (keyof RowSnapshot)[] = [
   'estRealizationCosts',
   'costToComplete',
   'taxArrears',
-  'interestAsOfTaxMemo',
   'interestAdjustment',
+];
+
+/** Interest and costs currency fields may be negative. */
+const NEGATIVE_ALLOWED_CURRENCY_FIELDS = new Set<keyof RowSnapshot>([
+  'outstandingInterest',
+  'accruedInterest',
+  'interestAdjustment',
+  'lateInterest',
+  'outstandingInvoices',
+  'estRealizationCosts',
+  'costToComplete',
+  'taxArrears',
+]);
+
+const DIALOG_INTEGER_FIELDS = new Set<keyof RowSnapshot>(['units', 'squareFeet']);
+
+const DIALOG_DECIMAL_FIELDS: Partial<Record<keyof RowSnapshot, number>> = {
+  netAcres: 2,
+};
+
+const DIALOG_CURRENCY_FIELDS = new Set<keyof RowSnapshot>([
+  'securityValue',
+  'principalBalance',
+  'outstandingInterest',
+  'accruedInterest',
+  'interestAdjustment',
+  'lateInterest',
+  'outstandingInvoices',
+  'estRealizationCosts',
+  'costToComplete',
+  'taxArrears',
+]);
+
+type NonKsColumnKey =
+  | keyof RowSnapshot
+  | 'investorAlias'
+  | 'userUpdatedBy'
+  | 'userUpdatedDate';
+
+type NonKsTableColumn = {
+  key: NonKsColumnKey;
+  label: string;
+  numeric?: boolean;
+  audit?: boolean;
+};
+
+const NON_KS_TABLE_COLUMNS: NonKsTableColumn[] = [
+  { key: 'loanName', label: 'Loan Alias' },
+  { key: 'asAtDate', label: 'As At' },
+  { key: 'fundingStatus', label: 'Funding Status' },
+  { key: 'loanCode', label: 'Loan Code' },
+  { key: 'servicerId', label: 'Servicer ID' },
+  { key: 'description', label: 'Loan Name' },
+  { key: 'investor', label: 'Investor Name' },
+  { key: 'investorAlias', label: 'Investor Alias' },
+  { key: 'investorCode', label: 'Investor Code' },
+  { key: 'sponsor', label: 'Sponsor' },
+  { key: 'dateOfDefault', label: 'Default Date' },
+  { key: 'maturityDate', label: 'Maturity' },
+  { key: 'interestOffDate', label: 'Interest Off' },
+  { key: 'taxMemoDate', label: 'Tax Memo' },
+  { key: 'principalBalance', label: 'Principal', numeric: true },
+  { key: 'currentLtv', label: 'Current LTV', numeric: true },
+  { key: 'interestRate', label: 'Interest Rate', numeric: true },
+  { key: 'outstandingInterest', label: 'Outstanding Int.', numeric: true },
+  { key: 'accruedInterest', label: 'Accrued Int.', numeric: true },
+  { key: 'lateInterest', label: 'Late Int.', numeric: true },
+  { key: 'interestAdjustment', label: 'Int. Adj.', numeric: true },
+  { key: 'outstandingInvoices', label: 'Outstanding Inv.', numeric: true },
+  { key: 'estRealizationCosts', label: 'Est. Realization', numeric: true },
+  { key: 'costToComplete', label: 'Cost to Complete', numeric: true },
+  { key: 'taxArrears', label: 'Tax Arrears', numeric: true },
+  { key: 'userUpdatedBy', label: 'Modified By', audit: true },
+  { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
 ];
 
 @Component({
   selector: 'app-non-ks-serviced-loans',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, NgSelectComponent, NgFooterTemplateDirective],
   templateUrl: './non-ks-serviced-loans.component.html',
   styleUrl: './non-ks-serviced-loans.component.css',
 })
 export class NonKsServicedLoansComponent implements OnInit {
   private readonly api = inject(NonKsServicedLoansApiService);
+  private readonly loansApi = inject(LoansApiService);
+  private readonly investorApi = inject(InvestorApiService);
+  private readonly securityValueApi = inject(LoanSecurityValueApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
-  private readonly userUpdatedBy = 'system';
-  private nextClientRowId = -1;
 
+  readonly tableColumns = NON_KS_TABLE_COLUMNS;
   readonly rows = signal<NonKsLoanRow[]>([]);
+  readonly fundingStatusOptions = signal<LoanStatusFilterOption[]>([]);
+  readonly fundingStatusSelectOptions = computed(() =>
+    toStatusSelectOptions(this.fundingStatusOptions())
+      .filter((option) => option.value.length > 0 && option.value !== '(null)')
+      .map((option) => ({
+        // Persist status_name into external_serviced_loan.funding_status.
+        value: option.label,
+        label: option.label,
+      })),
+  );
   readonly originalRowState = signal<Record<string, RowSnapshot>>({});
+  readonly loanAliasOptions = signal<LoanAliasOptionDto[]>([]);
+  readonly investorOptions = signal<InvestorDto[]>([]);
+  readonly sponsorOptions = signal<string[]>([]);
+  readonly showInvestorDialog = signal(false);
+  readonly investorDialogName = signal('');
+  readonly investorDialogError = signal('');
+  readonly isCreatingInvestor = signal(false);
+  readonly showSponsorDialog = signal(false);
+  readonly sponsorDialogName = signal('');
+  readonly sponsorDialogError = signal('');
+  readonly isCreatingSponsor = signal(false);
+  readonly selectedLoanKeys = signal<string[]>([]);
+  readonly searchText = signal('');
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
@@ -83,18 +234,210 @@ export class NonKsServicedLoansComponent implements OnInit {
   readonly isSaving = signal(false);
   readonly currentPage = signal(1);
   readonly pageSize = signal(this.defaultPageSize);
+  readonly sortColumn = signal<NonKsColumnKey | null>(null);
+  readonly sortDirection = signal<'asc' | 'desc'>('asc');
+
+  private pendingExtLoanCode = signal('NKSLn-1');
+
+  readonly showEntryDialog = signal(false);
+  readonly dialogMode = signal<DialogMode>('create');
+  readonly selectedRowTrackId = signal<string | null>(null);
+  readonly dialogDraft = signal<DialogDraft | null>(null);
+  /** Raw in-progress text for dialog numeric inputs (avoids reformat-on-keystroke). */
+  readonly dialogFieldText = signal<Record<string, string>>({});
+  readonly dialogError = signal('');
+
+  readonly hasSelectedRow = computed(() => this.selectedRowTrackId() !== null);
+
+  readonly dialogTitle = computed(() => {
+    switch (this.dialogMode()) {
+      case 'create':
+        return 'Add New Non-KS Loan';
+      case 'update':
+        return 'Update Non-KS Loan';
+      case 'duplicate':
+        return 'Duplicate Non-KS Loan';
+      default:
+        return 'Non-KS Loan';
+    }
+  });
+
+  readonly investorSelectItems = computed(() =>
+    this.investorOptions()
+      .map((investor) => ({
+        value: investor.investorCode,
+        label: this.formatInvestorSelectLabel(investor),
+      }))
+      .filter((item) => !!item.value)
+      .sort((left, right) =>
+        left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }),
+      ),
+  );
+
+  readonly sponsorSelectItems = computed(() => {
+    const names = new Map<string, string>();
+    for (const sponsor of this.sponsorOptions()) {
+      const trimmed = sponsor.trim();
+      if (trimmed) {
+        names.set(trimmed.toLowerCase(), trimmed);
+      }
+    }
+    for (const row of this.rows()) {
+      const trimmed = row.sponsor.trim();
+      if (trimmed) {
+        names.set(trimmed.toLowerCase(), trimmed);
+      }
+    }
+    const draft = this.dialogDraft()?.sponsor.trim();
+    if (draft) {
+      names.set(draft.toLowerCase(), draft);
+    }
+    return [...names.values()]
+      .map((value) => ({ value, label: value }))
+      .sort((left, right) =>
+        left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }),
+      );
+  });
+
+  /** Investor Alias from Investor Alias Assignment for the selected investor (read-only). */
+  dialogInvestorAliasDisplay(): string {
+    const draft = this.dialogDraft();
+    if (!draft) {
+      return '—';
+    }
+    const investor = this.findInvestorOption(draft.investorCode, draft.investor);
+    const alias = investor?.investorAliasName?.trim();
+    if (alias) {
+      return alias;
+    }
+    return '—';
+  }
+
+  /** ng-select model: only bind when the code exists in the investor list (avoids "." / blank mismatch). */
+  dialogInvestorSelectValue(): string | null {
+    const draft = this.dialogDraft();
+    if (!draft?.investorCode.trim()) {
+      return null;
+    }
+    return this.isKnownInvestorCode(draft.investorCode) ? draft.investorCode.trim() : null;
+  }
 
   ngOnInit(): void {
     this.loadGrid();
   }
 
+  readonly loanSelectOptions = computed<LoanSelectOption[]>(() => {
+    const options = new Map<string, string>();
+
+    for (const alias of this.loanAliasOptions()) {
+      const name = alias.loanAliasName.trim();
+      if (name) {
+        options.set(name.toLowerCase(), name);
+      }
+    }
+
+    for (const row of this.rows()) {
+      const alias = row.loanName.trim();
+      if (alias) {
+        options.set(alias.toLowerCase(), alias);
+      }
+      const loanCode = row.loanCode.trim();
+      if (loanCode) {
+        const label = alias ? `${loanCode} — ${alias}` : loanCode;
+        options.set(`id:${loanCode.toLowerCase()}`, label);
+      }
+    }
+
+    return [...options.entries()]
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  });
+
+  readonly searchedLoanOptions = computed(() => {
+    const keyword = this.searchText().trim();
+    if (!keyword) {
+      return [];
+    }
+
+    const selected = new Set(this.selectedLoanKeys().map((key) => key.toLowerCase()));
+    return this.rows().filter((row) => {
+      const aliasKey = row.loanName.trim().toLowerCase();
+      const loanCodeKey = row.loanCode.trim() ? `id:${row.loanCode.trim().toLowerCase()}` : '';
+      if (
+        (aliasKey && selected.has(aliasKey)) ||
+        (loanCodeKey && selected.has(loanCodeKey))
+      ) {
+        return false;
+      }
+      return (
+        filterRowsByTableSearch(
+          [row],
+          keyword,
+          this.tableColumns,
+          (candidate, key) => this.getCellDisplayValue(candidate, key),
+        ).length > 0
+      );
+    });
+  });
+
+  readonly selectedLoans = computed(() => {
+    const selected = new Set(this.selectedLoanKeys().map((key) => key.toLowerCase()));
+    return this.loanSelectOptions().filter((option) => selected.has(option.value.toLowerCase()));
+  });
+
+  readonly filteredRows = computed(() => {
+    let rows = this.rows();
+    const keyword = this.searchText();
+
+    rows = filterRowsByTableSearch(
+      rows,
+      keyword,
+      this.tableColumns,
+      (row, key) => this.getCellDisplayValue(row, key),
+    );
+
+    const selected = this.selectedLoanKeys();
+    if (selected.length) {
+      const selectedSet = new Set(selected.map((key) => key.toLowerCase()));
+      rows = rows.filter((row) => {
+        const aliasKey = row.loanName.trim().toLowerCase();
+        const loanCodeKey = row.loanCode.trim() ? `id:${row.loanCode.trim().toLowerCase()}` : '';
+        return (
+          (aliasKey && selectedSet.has(aliasKey)) ||
+          (loanCodeKey && selectedSet.has(loanCodeKey))
+        );
+      });
+    }
+
+    const activeSort = this.sortColumn();
+    if (activeSort) {
+      const direction = this.sortDirection() === 'asc' ? 1 : -1;
+      rows = [...rows].sort(
+        (left, right) => this.compareRows(left, right, activeSort) * direction,
+      );
+    }
+
+    return rows;
+  });
+
+  readonly gridLoadMessage = computed(() =>
+    buildMortgageGridLoadMessage({
+      isLoading: this.isLoadingGrid(),
+      totalRows: this.rows().length,
+      visibleRows: this.filteredRows().length,
+      hasClientFilter: this.selectedLoanKeys().length > 0 || this.searchText().trim().length > 0,
+      entitySingular: 'record',
+      emptyMessage: 'No records yet. Use Add New Row to enter quarterly data.',
+    }),
+  );
+
   readonly totalPages = computed(() => {
-    const total = this.rows().length;
+    const total = this.filteredRows().length;
     return total === 0 ? 1 : Math.ceil(total / this.pageSize());
   });
 
   readonly paginatedRows = computed(() => {
-    const rows = this.rows();
+    const rows = this.filteredRows();
     const pageSize = this.pageSize();
     const maxPage = this.totalPages();
     const safePage = Math.max(1, Math.min(this.currentPage(), maxPage));
@@ -106,7 +449,7 @@ export class NonKsServicedLoansComponent implements OnInit {
   });
 
   readonly pageRangeLabel = computed(() => {
-    const total = this.rows().length;
+    const total = this.filteredRows().length;
     if (total === 0) {
       return '0 - 0 of 0';
     }
@@ -117,128 +460,545 @@ export class NonKsServicedLoansComponent implements OnInit {
     return `${start} - ${end} of ${total}`;
   });
 
+  updateSearch(value: string): void {
+    this.searchText.set(value);
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  selectLoan(row: NonKsLoanRow): void {
+    const loanCode = row.loanCode.trim();
+    const alias = row.loanName.trim();
+    const key = loanCode
+      ? `id:${loanCode.toLowerCase()}`
+      : alias
+        ? alias.toLowerCase()
+        : '';
+    if (!key || this.selectedLoanKeys().some((selected) => selected.toLowerCase() === key)) {
+      return;
+    }
+    // Prefer stable option values used by loanSelectOptions.
+    const optionValue = loanCode
+      ? `id:${loanCode.toLowerCase()}`
+      : alias.toLowerCase();
+    this.selectedLoanKeys.set([...this.selectedLoanKeys(), optionValue]);
+    this.searchText.set('');
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  removeSelectedLoan(value: string): void {
+    this.selectedLoanKeys.set(this.selectedLoanKeys().filter((key) => key !== value));
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  updateSelectedLoans(values: string[] | null): void {
+    this.selectedLoanKeys.set(values ?? []);
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  clearSelection(): void {
+    this.searchText.set('');
+    this.selectedLoanKeys.set([]);
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
   rowTrackId(row: NonKsLoanRow): string {
-    if (row.nonKsServicedLoanKey > 0) {
-      return `key-${row.nonKsServicedLoanKey}`;
+    if (row.stableRowKey) {
+      return `key-${row.stableRowKey}`;
     }
     return `new-${row.clientRowId}`;
   }
 
   isNewRow(row: NonKsLoanRow): boolean {
-    return row.nonKsServicedLoanKey <= 0;
+    return !row.stableRowKey;
   }
 
-  addRow(): void {
-    const row = this.emptyRow(this.nextClientRowId);
-    this.nextClientRowId -= 1;
-    this.rows.set([row, ...this.rows()]);
-    this.currentPage.set(1);
-    this.clearMessages();
-  }
-
-  removeRow(row: NonKsLoanRow): void {
+  toggleRowSelection(row: NonKsLoanRow): void {
     const trackId = this.rowTrackId(row);
-    this.rows.set(this.rows().filter((r) => this.rowTrackId(r) !== trackId));
-    const snapshot = { ...this.originalRowState() };
-    delete snapshot[trackId];
-    this.originalRowState.set(snapshot);
+    this.selectedRowTrackId.set(this.selectedRowTrackId() === trackId ? null : trackId);
     this.clearMessages();
   }
 
-  updateTextField(row: NonKsLoanRow, field: keyof RowSnapshot, value: string): void {
-    this.patchRow(row, { [field]: value } as Partial<NonKsLoanRow>);
+  isRowSelected(row: NonKsLoanRow): boolean {
+    return this.selectedRowTrackId() === this.rowTrackId(row);
   }
 
-  updateDateField(row: NonKsLoanRow, field: keyof RowSnapshot, value: string): void {
-    this.patchRow(row, { [field]: value.trim() } as Partial<NonKsLoanRow>);
+  openAddDialog(): void {
+    const loanCode = this.pendingExtLoanCode();
+    this.dialogMode.set('create');
+    this.dialogFieldText.set({});
+    this.dialogDraft.set(this.emptyDialogDraft(loanCode));
+    this.dialogError.set('');
+    this.showEntryDialog.set(true);
   }
 
-  updateNumericField(row: NonKsLoanRow, field: keyof RowSnapshot, value: string): void {
-    this.patchRow(row, { [field]: this.parseNumericInput(value) } as Partial<NonKsLoanRow>);
-  }
-
-  formatNumber(value: number | null): string {
-    if (value == null || !Number.isFinite(value)) {
-      return '';
+  openUpdateDialog(): void {
+    const row = this.findSelectedRow();
+    if (!row) {
+      return;
     }
-    return String(value);
+    this.dialogMode.set('update');
+    this.dialogFieldText.set({});
+    this.dialogDraft.set(this.rowToDialogDraft(row));
+    this.dialogError.set('');
+    this.showEntryDialog.set(true);
   }
 
-  formatDisplayDate(value: string): string {
-    if (!value?.trim()) {
-      return '-';
+  openDuplicateDialog(): void {
+    const row = this.findSelectedRow();
+    if (!row) {
+      return;
     }
-    const iso = this.toDateInputValue(value);
-    if (!iso) {
-      return value;
-    }
-    const [y, m, d] = iso.split('-');
-    return `${m}/${d}/${y}`;
+    this.dialogMode.set('duplicate');
+    this.dialogFieldText.set({});
+    this.dialogDraft.set(this.rowToDuplicateDialogDraft(row));
+    this.dialogError.set('');
+    this.showEntryDialog.set(true);
   }
 
-  saveChanges(): void {
+  closeEntryDialog(): void {
+    this.showEntryDialog.set(false);
+    this.dialogDraft.set(null);
+    this.dialogFieldText.set({});
+    this.dialogError.set('');
+  }
+
+  updateDialogInvestor(investorCode: string | null): void {
+    const draft = this.dialogDraft();
+    if (!draft) {
+      return;
+    }
+    const code = investorCode?.trim() || '';
+    const investor = code ? this.findInvestorOption(code, '') : undefined;
+    this.dialogDraft.set({
+      ...draft,
+      investorCode: investor?.investorCode?.trim() || '',
+      investor: investor?.investorName?.trim() || '',
+    });
+    this.dialogError.set('');
+  }
+
+  private formatInvestorSelectLabel(investor: InvestorDto): string {
+    const name = investor.investorName?.trim() || '';
+    const code = investor.investorCode?.trim() || '';
+    if (name && code) {
+      return `${name} (${code})`;
+    }
+    return name || code;
+  }
+
+  private isKnownInvestorCode(investorCode: string): boolean {
+    const code = investorCode.trim().toLowerCase();
+    if (!code) {
+      return false;
+    }
+    return this.investorOptions().some(
+      (option) => option.investorCode.trim().toLowerCase() === code,
+    );
+  }
+
+  private findInvestorOption(investorCode: string, investorName: string): InvestorDto | undefined {
+    const code = investorCode.trim().toLowerCase();
+    if (code) {
+      const byCode = this.investorOptions().find(
+        (option) => option.investorCode.trim().toLowerCase() === code,
+      );
+      if (byCode) {
+        return byCode;
+      }
+    }
+
+    const hints = [investorName, investorCode]
+      .map((value) => value.trim().toLowerCase())
+      .filter((value, index, all) => !!value && all.indexOf(value) === index);
+
+    for (const hint of hints) {
+      const byName = this.investorOptions().find(
+        (option) => option.investorName.trim().toLowerCase() === hint,
+      );
+      if (byName) {
+        return byName;
+      }
+
+      const byAlias = this.investorOptions().find(
+        (option) => (option.investorAliasName ?? '').trim().toLowerCase() === hint,
+      );
+      if (byAlias) {
+        return byAlias;
+      }
+    }
+
+    return undefined;
+  }
+
+  openInvestorDialog(): void {
+    this.investorDialogName.set('');
+    this.investorDialogError.set('');
+    this.showInvestorDialog.set(true);
+  }
+
+  closeInvestorDialog(): void {
+    this.showInvestorDialog.set(false);
+    this.investorDialogName.set('');
+    this.investorDialogError.set('');
+  }
+
+  openSponsorDialog(): void {
+    this.sponsorDialogName.set('');
+    this.sponsorDialogError.set('');
+    this.showSponsorDialog.set(true);
+  }
+
+  closeSponsorDialog(): void {
+    this.showSponsorDialog.set(false);
+    this.sponsorDialogName.set('');
+    this.sponsorDialogError.set('');
+  }
+
+  createSponsorFromDialog(): void {
+    const name = this.sponsorDialogName().trim();
+    if (!name || this.isCreatingSponsor()) {
+      return;
+    }
+
+    const duplicate = this.sponsorSelectItems().find(
+      (option) => option.value.toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicate) {
+      this.sponsorDialogError.set('This sponsor is already in the list.');
+      this.updateDialogTextField('sponsor', duplicate.value);
+      this.closeSponsorDialog();
+      return;
+    }
+
+    this.isCreatingSponsor.set(true);
+    this.sponsorDialogError.set('');
+    this.sponsorOptions.set(
+      [...this.sponsorOptions(), name].sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: 'base' }),
+      ),
+    );
+    this.updateDialogTextField('sponsor', name);
+    this.isCreatingSponsor.set(false);
+    this.closeSponsorDialog();
+    this.statusMessage.set(
+      `Sponsor "${name}" added to the list. It is saved with the Non-KS loan when you click Save Changes.`,
+    );
+  }
+
+  createInvestorFromDialog(): void {
+    const name = this.investorDialogName().trim();
+    if (!name || this.isCreatingInvestor()) {
+      return;
+    }
+
+    const createdBy = this.currentAppUser.getUpdatedBy();
+    if (!createdBy) {
+      this.investorDialogError.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
+    const duplicate = this.investorOptions().find(
+      (investor) => investor.investorName.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (duplicate) {
+      this.investorDialogError.set('An investor with this name already exists.');
+      return;
+    }
+
+    this.isCreatingInvestor.set(true);
+    this.investorDialogError.set('');
+
+    this.investorApi.createInvestor({ investorName: name, createdBy }).subscribe({
+      next: (created) => {
+        const record: InvestorDto = {
+          ...created,
+          investorCode: String(created.investorCode ?? '').trim(),
+          investorName: String(created.investorName ?? name).trim(),
+        };
+        this.investorOptions.set(
+          [...this.investorOptions(), record].sort((a, b) =>
+            a.investorName.localeCompare(b.investorName, undefined, { sensitivity: 'base' }),
+          ),
+        );
+        this.isCreatingInvestor.set(false);
+        this.closeInvestorDialog();
+        this.updateDialogInvestor(record.investorCode);
+        this.statusMessage.set(
+          `Investor "${record.investorName}" created (${record.investorCode}). Assign an Investor Alias on Investor Alias Assignment if needed.`,
+        );
+      },
+      error: () => {
+        this.investorDialogError.set('Failed to create investor. Please try again.');
+        this.isCreatingInvestor.set(false);
+      },
+    });
+  }
+
+  saveEntryDialog(): void {
     if (this.isSaving()) {
       return;
     }
 
-    const newRows = this.rows().filter((row) => this.isNewRow(row) && this.hasAnyInput(row));
-    const changedRows = this.rows().filter(
-      (row) => !this.isNewRow(row) && this.hasRowChanged(row),
-    );
+    this.commitAllDialogNumericFields();
 
-    if (!newRows.length && !changedRows.length) {
-      this.statusMessage.set('No changes detected to save.');
-      this.errorMessage.set('');
+    const draft = this.dialogDraft();
+    if (!draft) {
       return;
     }
 
+    const validationError = this.validateDialogDraft(draft);
+    if (validationError) {
+      this.dialogError.set(validationError);
+      return;
+    }
+
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.dialogError.set(this.currentAppUser.registrationRequiredMessage);
+      return;
+    }
+
+    const mode = this.dialogMode();
     this.isSaving.set(true);
-    this.statusMessage.set('');
+    this.dialogError.set('');
     this.errorMessage.set('');
+    this.statusMessage.set('');
 
-    const requests = [];
-    if (newRows.length) {
-      requests.push(
-        this.api
-          .createLoans({ loans: newRows.map((row) => this.toPayload(row)) })
-          .pipe(catchError((error) => {
-            throw error;
-          })),
-      );
-    }
-    if (changedRows.length) {
-      requests.push(
-        this.api
-          .updateLoans({
-            loans: changedRows.map((row) => ({
-              ...this.toPayload(row),
-              nonKsServicedLoanKey: row.nonKsServicedLoanKey,
-            })),
-          })
-          .pipe(catchError((error) => {
-            throw error;
-          })),
-      );
+    const savedPage = this.currentPage();
+
+    if (mode === 'update') {
+      this.saveUpdatedDraft(draft, userUpdatedBy, savedPage);
+      return;
     }
 
-    forkJoin(requests.length ? requests : [of(null)]).subscribe({
-      next: () => {
-        const parts = [];
-        if (newRows.length) {
-          parts.push(`${newRows.length} created`);
-        }
-        if (changedRows.length) {
-          parts.push(`${changedRows.length} updated`);
-        }
-        this.statusMessage.set(`Save successful: ${parts.join(', ')}.`);
-        this.isSaving.set(false);
-        this.loadGrid();
-      },
-      error: (error) => {
-        this.errorMessage.set(this.extractBackendError(error));
-        this.isSaving.set(false);
-      },
+    this.saveCreatedDraft(draft, userUpdatedBy, savedPage, mode);
+  }
+
+  dialogInputDisplay(field: string, formatted: string): string {
+    const raw = this.dialogFieldText()[field];
+    return raw !== undefined ? raw : formatted;
+  }
+
+  onDialogInputText(field: string, value: string): void {
+    this.dialogFieldText.update((current) => ({ ...current, [field]: value }));
+    this.dialogError.set('');
+  }
+
+  commitDialogIntegerField(field: keyof RowSnapshot, input: HTMLInputElement): void {
+    const parsed = this.parseIntegerInput(input.value);
+    this.patchDialogDraft({ [field]: parsed } as Partial<DialogDraft>);
+    this.clearDialogFieldText(field);
+    input.value = this.formatIntegerInput(parsed);
+  }
+
+  commitDialogDecimalField(
+    field: keyof RowSnapshot,
+    input: HTMLInputElement,
+    fractionDigits: number,
+  ): void {
+    const parsed = this.parseDecimalInput(input.value, fractionDigits);
+    this.patchDialogDraft({ [field]: parsed } as Partial<DialogDraft>);
+    this.clearDialogFieldText(field);
+    input.value = this.formatDecimalInput(parsed, fractionDigits);
+  }
+
+  commitDialogCurrencyField(field: keyof RowSnapshot, input: HTMLInputElement): void {
+    const allowNegative = NEGATIVE_ALLOWED_CURRENCY_FIELDS.has(field);
+    const parsed = this.parseCurrencyInput(input.value, allowNegative);
+    this.patchDialogDraft({ [field]: parsed } as Partial<DialogDraft>);
+    this.clearDialogFieldText(field);
+    input.value = this.formatCurrencyInput(parsed);
+  }
+
+  commitDialogPercentField(field: 'interestRate' | 'currentLtv', input: HTMLInputElement): void {
+    const parsed = this.parsePercentInput(input.value);
+    this.patchDialogDraft({ [field]: parsed });
+    this.clearDialogFieldText(field);
+    input.value = this.formatPercentInput(parsed);
+  }
+
+  private clearDialogFieldText(field: string): void {
+    this.dialogFieldText.update((current) => {
+      if (!(field in current)) {
+        return current;
+      }
+      const next = { ...current };
+      delete next[field];
+      return next;
     });
+  }
+
+  private commitAllDialogNumericFields(): void {
+    const pending = this.dialogFieldText();
+    const keys = Object.keys(pending);
+    if (!keys.length) {
+      return;
+    }
+
+    const patch: Partial<DialogDraft> = {};
+    for (const fieldName of keys) {
+      const field = fieldName as keyof RowSnapshot;
+      const raw = pending[fieldName] ?? '';
+      if (field === 'interestRate' || field === 'currentLtv') {
+        patch[field] = this.parsePercentInput(raw) as never;
+        continue;
+      }
+      if (DIALOG_INTEGER_FIELDS.has(field)) {
+        patch[field] = this.parseIntegerInput(raw) as never;
+        continue;
+      }
+      if (field in DIALOG_DECIMAL_FIELDS) {
+        const digits = DIALOG_DECIMAL_FIELDS[field] ?? 2;
+        patch[field] = this.parseDecimalInput(raw, digits) as never;
+        continue;
+      }
+      if (DIALOG_CURRENCY_FIELDS.has(field)) {
+        patch[field] = this.parseCurrencyInput(
+          raw,
+          NEGATIVE_ALLOWED_CURRENCY_FIELDS.has(field),
+        ) as never;
+      }
+    }
+
+    if (Object.keys(patch).length) {
+      this.patchDialogDraft(patch);
+    }
+    this.dialogFieldText.set({});
+  }
+
+  updateDialogTextField(field: keyof RowSnapshot, value: string): void {
+    this.patchDialogDraft({ [field]: value } as Partial<DialogDraft>);
+  }
+
+  updateDialogDateField(field: keyof RowSnapshot, value: string): void {
+    this.patchDialogDraft({ [field]: value.trim() } as Partial<DialogDraft>);
+  }
+
+  formatCurrencyDisplay(value: number | null): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '—';
+    }
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  }
+
+  formatPercentDisplay(value: number | null): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '—';
+    }
+    return `${value.toFixed(2)}%`;
+  }
+
+  formatIntegerDisplay(value: number | null): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '—';
+    }
+    return new Intl.NumberFormat('en-US', {
+      maximumFractionDigits: 0,
+    }).format(Math.trunc(value));
+  }
+
+  formatDecimalDisplay(value: number | null, fractionDigits: number): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '—';
+    }
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    }).format(value);
+  }
+
+  formatDateDisplay(value: string): string {
+    if (!value?.trim()) {
+      return '—';
+    }
+    const parsed = new Date(`${value.trim()}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      return value;
+    }
+    return parsed.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+    });
+  }
+
+  formatTextDisplay(value: string): string {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : '—';
+  }
+
+  toggleSort(column: NonKsColumnKey): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+    this.currentPage.set(1);
+  }
+
+  sortIndicator(column: NonKsColumnKey): string {
+    if (this.sortColumn() !== column) {
+      return '↕';
+    }
+    return this.sortDirection() === 'asc' ? '↑' : '↓';
+  }
+
+  formatCurrencyInput(value: number | null): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '';
+    }
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  }
+
+  formatPercentInput(value: number | null): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '';
+    }
+    return `${value.toFixed(2)}%`;
+  }
+
+  formatIntegerInput(value: number | null): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '';
+    }
+    return new Intl.NumberFormat('en-US', {
+      maximumFractionDigits: 0,
+    }).format(Math.trunc(value));
+  }
+
+  formatDecimalInput(value: number | null, fractionDigits: number): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '';
+    }
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    }).format(value);
+  }
+
+  formatModifiedDate(value: string): string {
+    return formatAuditModifiedDate(value);
+  }
+
+  displayModifiedBy(value: string): string {
+    const trimmed = value?.trim();
+    return trimmed && trimmed !== '-' ? trimmed : '—';
   }
 
   goToPreviousPage(): void {
@@ -257,23 +1017,83 @@ export class NonKsServicedLoansComponent implements OnInit {
     this.currentPage.set(1);
   }
 
-  private loadGrid(): void {
+  private loadGrid(preservePage?: number, justSaved: NonKsServicedLoanDto[] = []): void {
     this.isLoadingGrid.set(true);
     this.errorMessage.set('');
     this.statusMessage.set('');
 
-    this.api.getAll().subscribe({
-      next: (response) => {
-        const records = this.normalizeRecords(response);
-        const mapped = records.map((r) => this.mapRow(r));
-        this.rows.set(mapped);
-        this.currentPage.set(1);
-        this.snapshotOriginalState();
-        this.statusMessage.set(
-          mapped.length > 0
-            ? `${mapped.length} record(s) loaded.`
-            : 'No records yet. Use Add Row to enter quarterly data.',
+    forkJoin({
+      records: this.api.getAll().pipe(catchError((error) => {
+        throw error;
+      })),
+      lookups: this.api.getLookups().pipe(catchError(() => of({ nextExtLoanCode: 'NKSLn-1' }))),
+      loanAliases: this.loansApi.getLookups().pipe(
+        catchError(() => of({ loanAliases: [] as LoanAliasOptionDto[] })),
+      ),
+      investors: this.investorApi.getInvestors().pipe(catchError(() => of([] as InvestorDto[]))),
+      statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
+    }).subscribe({
+      next: ({ records, lookups, loanAliases, investors, statuses }) => {
+        this.fundingStatusOptions.set(normalizeStatusOptions(statuses));
+        const lookupSponsors = [
+          ...((lookups as { sponsors?: string[]; Sponsors?: string[] }).sponsors ?? []),
+          ...((lookups as { sponsors?: string[]; Sponsors?: string[] }).Sponsors ?? []),
+        ]
+          .map((name) => String(name ?? '').trim())
+          .filter(Boolean);
+        this.sponsorOptions.set(
+          [...new Map(lookupSponsors.map((name) => [name.toLowerCase(), name])).values()].sort(
+            (a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }),
+          ),
         );
+        this.loanAliasOptions.set(
+          (loanAliases.loanAliases ?? [])
+            .map((alias) => ({
+              loanAliasId: Number(alias.loanAliasId ?? 0),
+              loanAliasName: String(alias.loanAliasName ?? '').trim(),
+            }))
+            .filter((alias) => alias.loanAliasName)
+            .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
+        );
+
+        this.investorOptions.set(
+          investors
+            .map((investor) => ({
+              ...investor,
+              investorCode: String(investor.investorCode ?? '').trim(),
+              investorName: String(investor.investorName ?? '').trim(),
+              investorAliasName: String(investor.investorAliasName ?? '').trim(),
+            }))
+            .filter((investor) => investor.investorCode || investor.investorName)
+            .sort((a, b) =>
+              a.investorName.localeCompare(b.investorName, undefined, { sensitivity: 'base' }),
+            ),
+        );
+
+        const normalized = this.mergeSavedRecords(this.normalizeRecords(records), justSaved);
+        const mapped = normalized.map((record) => {
+          const row = this.mapRow(record);
+          const resolved = this.resolveInvestorFields(row.investorCode, row.investor);
+          return {
+            ...row,
+            investor: resolved.investorName,
+            investorCode: resolved.investorCode,
+            investorAlias: resolved.investorAlias,
+          };
+        });
+        this.rows.set(mapped);
+        if (preservePage != null) {
+          this.currentPage.set(Math.min(preservePage, Math.max(1, Math.ceil(mapped.length / this.pageSize()) || 1)));
+        } else {
+          this.currentPage.set(1);
+        }
+        this.snapshotOriginalState();
+
+        const apiNext =
+          this.pickString(lookups as Record<string, unknown>, 'nextExtLoanCode', 'NextExtLoanCode') ||
+          'NKSLn-1';
+        this.syncPendingExtLoanCode(apiNext);
+
         this.isLoadingGrid.set(false);
       },
       error: (error) => {
@@ -287,14 +1107,18 @@ export class NonKsServicedLoansComponent implements OnInit {
 
   private emptyRow(clientRowId: number): NonKsLoanRow {
     return {
-      nonKsServicedLoanKey: 0,
+      stableRowKey: '',
+      nonKsServicedLoanKey: '',
       clientRowId,
       loanName: '',
       asAtDate: '',
-      loanId: '',
+      loanCode: '',
       servicerId: '',
       description: '',
       investor: '',
+      investorCode: '',
+      investorAlias: '',
+      sponsor: '',
       dateOfDefault: '',
       maturityDate: '',
       interestOffDate: '',
@@ -303,8 +1127,9 @@ export class NonKsServicedLoansComponent implements OnInit {
       units: null,
       netAcres: null,
       squareFeet: null,
-      interestRate: null,
       principalBalance: null,
+      currentLtv: null,
+      interestRate: null,
       outstandingInterest: null,
       accruedInterest: null,
       lateInterest: null,
@@ -312,32 +1137,371 @@ export class NonKsServicedLoansComponent implements OnInit {
       estRealizationCosts: null,
       costToComplete: null,
       taxArrears: null,
-      interestAsOfTaxMemo: null,
       interestAdjustment: null,
+      fundingStatus: '',
       userUpdatedBy: '-',
       userUpdatedDate: '',
     };
   }
 
-  private patchRow(row: NonKsLoanRow, patch: Partial<NonKsLoanRow>): void {
-    const trackId = this.rowTrackId(row);
-    this.rows.set(
-      this.rows().map((r) => (this.rowTrackId(r) === trackId ? { ...r, ...patch } : r)),
-    );
-    this.clearMessages();
+  private findSelectedRow(): NonKsLoanRow | null {
+    const trackId = this.selectedRowTrackId();
+    if (!trackId) {
+      return null;
+    }
+    return this.rows().find((row) => this.rowTrackId(row) === trackId) ?? null;
+  }
+
+  private emptyDialogDraft(loanCode: string): DialogDraft {
+    return {
+      ...this.emptyRowSnapshot(),
+      loanCode,
+      stableRowKey: '',
+      nonKsServicedLoanKey: '',
+      clientRowId: 0,
+      originalAsAtDate: '',
+      lockedLoanCode: null,
+    };
+  }
+
+  private emptyRowSnapshot(): RowSnapshot {
+    const row = this.emptyRow(0);
+    return this.rowSnapshot(row);
+  }
+
+  private rowToDialogDraft(row: NonKsLoanRow): DialogDraft {
+    const original = this.originalRowState()[this.rowTrackId(row)];
+    const loanCode = row.loanCode.trim();
+    const resolved = this.resolveInvestorFields(row.investorCode, row.investor);
+    return {
+      ...this.rowSnapshot(row),
+      loanCode,
+      investor: resolved.investorName,
+      investorCode: resolved.investorCode,
+      stableRowKey: row.stableRowKey,
+      nonKsServicedLoanKey: row.nonKsServicedLoanKey,
+      clientRowId: row.clientRowId,
+      originalAsAtDate: original?.asAtDate ?? row.asAtDate,
+      lockedLoanCode: loanCode || null,
+    };
+  }
+
+  private rowToDuplicateDialogDraft(row: NonKsLoanRow): DialogDraft {
+    const loanCode = row.loanCode.trim();
+    const resolved = this.resolveInvestorFields(row.investorCode, row.investor);
+    return {
+      ...this.rowSnapshot(row),
+      loanCode,
+      investor: resolved.investorName,
+      investorCode: resolved.investorCode,
+      stableRowKey: '',
+      nonKsServicedLoanKey: '',
+      clientRowId: 0,
+      originalAsAtDate: '',
+      lockedLoanCode: loanCode || null,
+    };
+  }
+
+  private resolveInvestorFields(
+    investorCode: string,
+    investorName: string,
+  ): { investorCode: string; investorName: string; investorAlias: string } {
+    const rawCode = investorCode.trim();
+    const rawName = investorName.trim();
+
+    // Legacy rows often stored the alias (e.g. "Baden Park") in investor_code.
+    // Only keep it as a code when it matches the investor list.
+    const investor =
+      this.findInvestorOption(rawCode, rawName) ??
+      (!this.isKnownInvestorCode(rawCode) ? this.findInvestorOption('', rawCode) : undefined);
+
+    if (investor) {
+      return {
+        investorCode: investor.investorCode.trim(),
+        investorName: investor.investorName.trim() || rawName,
+        investorAlias: (investor.investorAliasName ?? '').trim(),
+      };
+    }
+
+    return {
+      investorCode: this.isKnownInvestorCode(rawCode) ? rawCode : '',
+      investorName: rawName || (!this.isKnownInvestorCode(rawCode) ? rawCode : ''),
+      investorAlias: '',
+    };
+  }
+
+  private dialogDraftToRow(draft: DialogDraft): NonKsLoanRow {
+    const loanCode = draft.lockedLoanCode ?? draft.loanCode;
+    return {
+      stableRowKey: draft.stableRowKey,
+      nonKsServicedLoanKey: draft.nonKsServicedLoanKey,
+      clientRowId: draft.clientRowId,
+      loanName: draft.loanName,
+      asAtDate: draft.asAtDate,
+      loanCode,
+      servicerId: draft.servicerId,
+      description: draft.description,
+      investor: draft.investor,
+      investorCode: draft.investorCode,
+      investorAlias: this.resolveInvestorFields(draft.investorCode, draft.investor).investorAlias,
+      sponsor: draft.sponsor,
+      dateOfDefault: draft.dateOfDefault,
+      maturityDate: draft.maturityDate,
+      interestOffDate: draft.interestOffDate,
+      taxMemoDate: draft.taxMemoDate,
+      securityValue: draft.securityValue,
+      units: draft.units,
+      netAcres: draft.netAcres,
+      squareFeet: draft.squareFeet,
+      principalBalance: draft.principalBalance,
+      currentLtv: draft.currentLtv,
+      interestRate: draft.interestRate,
+      outstandingInterest: draft.outstandingInterest,
+      accruedInterest: draft.accruedInterest,
+      lateInterest: draft.lateInterest,
+      outstandingInvoices: draft.outstandingInvoices,
+      estRealizationCosts: draft.estRealizationCosts,
+      costToComplete: draft.costToComplete,
+      taxArrears: draft.taxArrears,
+      interestAdjustment: draft.interestAdjustment,
+      fundingStatus: draft.fundingStatus,
+      userUpdatedBy: '-',
+      userUpdatedDate: '',
+    };
+  }
+
+  private patchDialogDraft(patch: Partial<DialogDraft>): void {
+    const draft = this.dialogDraft();
+    if (!draft) {
+      return;
+    }
+    if (draft.lockedLoanCode !== null && 'loanCode' in patch) {
+      const { loanCode: _ignored, ...safePatch } = patch;
+      this.dialogDraft.set({ ...draft, ...safePatch, loanCode: draft.lockedLoanCode });
+      this.dialogError.set('');
+      return;
+    }
+    this.dialogDraft.set({ ...draft, ...patch });
+    this.dialogError.set('');
+  }
+
+  private validateDialogDraft(draft: DialogDraft): string | null {
+    if (!this.hasAnyInputInDraft(draft)) {
+      return 'Enter at least one field before saving.';
+    }
+    return null;
+  }
+
+  private hasAnyInputInDraft(draft: DialogDraft): boolean {
+    const snap: RowSnapshot = { ...draft };
+    return Object.entries(snap).some(([key, value]) => {
+      if (NUMERIC_FIELDS.includes(key as keyof RowSnapshot)) {
+        return value != null;
+      }
+      if (key === 'loanCode') {
+        return typeof value === 'string' && value.trim().length > 0;
+      }
+      return typeof value === 'string' && value.trim().length > 0;
+    });
+  }
+
+  private saveCreatedDraft(
+    draft: DialogDraft,
+    userUpdatedBy: string,
+    savedPage: number,
+    mode: DialogMode,
+  ): void {
+    const reuseLoanCode = mode === 'duplicate';
+    const expectedLoanCode = (draft.lockedLoanCode ?? draft.loanCode).trim();
+    this.api
+      .createLoans({
+        loans: [this.toCreatePayload(draft, userUpdatedBy, reuseLoanCode)],
+      })
+      .pipe(catchError((error) => {
+        throw error;
+      }))
+      .subscribe({
+        next: (created) => {
+          if (mode === 'create') {
+            const loanCode = draft.loanCode.trim();
+            if (loanCode) {
+              this.pendingExtLoanCode.set(
+                `NKSLn-${this.parseExtLoanCodeNumber(loanCode) + 1}`,
+              );
+            }
+          }
+          let saved = Array.isArray(created) ? created : [];
+          if (reuseLoanCode && expectedLoanCode) {
+            saved = this.applyLoanCodeToSavedRecords(saved, expectedLoanCode);
+          }
+          this.selectedRowTrackId.set(null);
+          this.closeEntryDialog();
+          this.isSaving.set(false);
+          this.statusMessage.set(
+            reuseLoanCode ? 'Loan record duplicated successfully.' : 'Loan record created successfully.',
+          );
+          this.loadGrid(savedPage, saved);
+        },
+        error: (error) => {
+          this.dialogError.set(this.extractBackendError(error));
+          this.isSaving.set(false);
+        },
+      });
+  }
+
+  private saveUpdatedDraft(draft: DialogDraft, userUpdatedBy: string, savedPage: number): void {
+    const row = this.dialogDraftToRow(draft);
+
+    if (this.isNewRow(row)) {
+      const trackId = this.rowTrackId(row);
+      this.rows.set(
+        this.rows().map((existing) =>
+          this.rowTrackId(existing) === trackId ? row : existing,
+        ),
+      );
+      this.selectedRowTrackId.set(null);
+      this.closeEntryDialog();
+      this.isSaving.set(false);
+      this.statusMessage.set('Unsaved row updated locally.');
+      return;
+    }
+
+    this.api
+      .updateLoans({
+        loans: [
+          {
+            ...this.toUpdatePayload(draft, userUpdatedBy),
+            nonKsServicedLoanKey: draft.stableRowKey || null,
+            originalAsAtDate: this.nullIfEmpty(draft.originalAsAtDate),
+          },
+        ],
+      })
+      .pipe(catchError((error) => {
+        throw error;
+      }))
+      .subscribe({
+        next: (updated) => {
+          this.selectedRowTrackId.set(null);
+          this.closeEntryDialog();
+          this.isSaving.set(false);
+          this.statusMessage.set('Loan record updated successfully.');
+          this.loadGrid(savedPage, Array.isArray(updated) ? updated : []);
+        },
+        error: (error) => {
+          this.dialogError.set(this.extractBackendError(error));
+          this.isSaving.set(false);
+        },
+      });
+  }
+
+  private toCreatePayload(
+    draft: DialogDraft,
+    userUpdatedBy: string,
+    reuseLoanCode: boolean,
+  ): NonKsServicedLoanPayload {
+    const loanAlias = this.nullIfEmpty(draft.loanName);
+    const investorName = this.nullIfEmpty(draft.investor);
+    const investorCode = this.nullIfEmpty(draft.investorCode);
+    const loanCode = this.nullIfEmpty(draft.lockedLoanCode ?? draft.loanCode);
+    return {
+      loanAliasName: loanAlias,
+      loanName: loanAlias,
+      asAtDate: this.nullIfEmpty(draft.asAtDate),
+      loanCode: reuseLoanCode ? loanCode : null,
+      loanId: reuseLoanCode ? loanCode : null,
+      extLoanCode: reuseLoanCode ? loanCode : null,
+      servicerId: this.nullIfEmpty(draft.servicerId),
+      description: this.nullIfEmpty(draft.description),
+      investorAliasName: investorName,
+      investor: investorName,
+      investorCode,
+      sponsor: this.nullIfEmpty(draft.sponsor),
+      dateOfDefault: this.nullIfEmpty(draft.dateOfDefault),
+      maturityDate: this.nullIfEmpty(draft.maturityDate),
+      interestOffDate: this.nullIfEmpty(draft.interestOffDate),
+      taxMemoDate: this.nullIfEmpty(draft.taxMemoDate),
+      securityValue: draft.securityValue,
+      units: draft.units,
+      netAcres: draft.netAcres,
+      squareFeet: draft.squareFeet,
+      principalBalance: draft.principalBalance,
+      currentLtv: draft.currentLtv,
+      interestRate: draft.interestRate,
+      outstandingInterest: draft.outstandingInterest,
+      accruedInterest: draft.accruedInterest,
+      lateInterest: draft.lateInterest,
+      outstandingInvoices: draft.outstandingInvoices,
+      estRealizationCosts: draft.estRealizationCosts,
+      costToComplete: draft.costToComplete,
+      taxArrears: draft.taxArrears,
+      interestAdjustment: draft.interestAdjustment,
+      fundingStatus: this.nullIfEmpty(draft.fundingStatus),
+      userUpdatedBy,
+    };
+  }
+
+  private toUpdatePayload(draft: DialogDraft, userUpdatedBy: string): NonKsServicedLoanPayload {
+    return this.toCreatePayload(draft, userUpdatedBy, true);
+  }
+
+  private applyLoanCodeToSavedRecords(
+    records: NonKsServicedLoanDto[],
+    loanCode: string,
+  ): NonKsServicedLoanDto[] {
+    return records.map((record) => ({
+      ...record,
+      loanCode,
+      loanId: loanCode,
+      extLoanCode: loanCode,
+    }));
   }
 
   private mapRow(record: NonKsServicedLoanDto): NonKsLoanRow {
     const raw = record as NonKsServicedLoanDto & Record<string, unknown>;
+    const stableRowKey = this.pickRowKey(raw);
     return {
-      nonKsServicedLoanKey: this.pickNumber(raw, 'nonKsServicedLoanKey', 'NonKsServicedLoanKey'),
+      stableRowKey,
+      nonKsServicedLoanKey: stableRowKey,
       clientRowId: 0,
-      loanName: this.pickString(raw, 'loanName', 'LoanName'),
-      asAtDate: this.toDateInputValue(this.pickString(raw, 'asAtDate', 'AsAtDate') || null),
-      loanId: this.pickString(raw, 'loanId', 'LoanId'),
-      servicerId: this.pickString(raw, 'servicerId', 'ServicerId'),
-      description: this.pickString(raw, 'description', 'Description'),
-      investor: this.pickString(raw, 'investor', 'Investor'),
+      loanName: this.pickString(
+        raw,
+        'loanAliasName',
+        'LoanAliasName',
+        'loanName',
+        'LoanName',
+      ),
+      asAtDate: this.toDateInputValue(
+        this.pickString(raw, 'asAtDate', 'AsAtDate', 'asOfDate', 'AsOfDate') || null,
+      ),
+      loanCode: this.pickString(
+        raw,
+        'loanCode',
+        'LoanCode',
+        'extLoanCode',
+        'ExtLoanCode',
+        'loanId',
+        'LoanId',
+      ),
+      servicerId: this.pickString(
+        raw,
+        'servicerId',
+        'ServicerId',
+        'syndicateLoanCode',
+        'SyndicateLoanCode',
+      ),
+      description: this.pickString(raw, 'description', 'Description', 'loanDescription', 'LoanDescription'),
+      investor: this.pickString(
+        raw,
+        'investor',
+        'Investor',
+        'investorAliasName',
+        'InvestorAliasName',
+        'investorName',
+        'InvestorName',
+      ),
+      investorCode: this.pickString(raw, 'investorCode', 'InvestorCode'),
+      sponsor: this.pickString(raw, 'sponsor', 'Sponsor', 'sponsorName', 'SponsorName'),
+      investorAlias: '',
       dateOfDefault: this.toDateInputValue(
         this.pickString(raw, 'dateOfDefault', 'DateOfDefault') || null,
       ),
@@ -352,7 +1516,6 @@ export class NonKsServicedLoansComponent implements OnInit {
       units: this.pickNullableNumber(raw, 'units', 'Units'),
       netAcres: this.pickNullableNumber(raw, 'netAcres', 'NetAcres'),
       squareFeet: this.pickNullableNumber(raw, 'squareFeet', 'SquareFeet', 'sf', 'SF'),
-      interestRate: this.pickNullableNumber(raw, 'interestRate', 'InterestRate'),
       principalBalance: this.pickNullableNumber(
         raw,
         'principalBalance',
@@ -360,6 +1523,16 @@ export class NonKsServicedLoansComponent implements OnInit {
         'principal',
         'Principal',
       ),
+      currentLtv: this.pickNullableNumber(
+        raw,
+        'currentLtv',
+        'CurrentLtv',
+        'ltv',
+        'Ltv',
+        'loanToValue',
+        'LoanToValue',
+      ),
+      interestRate: this.pickNullableNumber(raw, 'interestRate', 'InterestRate'),
       outstandingInterest: this.pickNullableNumber(
         raw,
         'outstandingInterest',
@@ -371,6 +1544,8 @@ export class NonKsServicedLoansComponent implements OnInit {
         raw,
         'outstandingInvoices',
         'OutstandingInvoices',
+        'outstandingInvoice',
+        'OutstandingInvoice',
         'outstandingInvested',
         'OutstandingInvested',
       ),
@@ -378,50 +1553,40 @@ export class NonKsServicedLoansComponent implements OnInit {
         raw,
         'estRealizationCosts',
         'EstRealizationCosts',
+        'estimatedRealizationCosts',
+        'EstimatedRealizationCosts',
         'estRealizationCost',
         'EstRealizationCost',
       ),
       costToComplete: this.pickNullableNumber(raw, 'costToComplete', 'CostToComplete'),
-      taxArrears: this.pickNullableNumber(raw, 'taxArrears', 'TaxArrears'),
-      interestAsOfTaxMemo: this.pickNullableNumber(
+      taxArrears: this.pickNullableNumber(
         raw,
-        'interestAsOfTaxMemo',
-        'InterestAsOfTaxMemo',
+        'taxArrears',
+        'TaxArrears',
+        'arrearsAsOf',
+        'ArrearsAsOf',
       ),
       interestAdjustment: this.pickNullableNumber(raw, 'interestAdjustment', 'InterestAdjustment'),
-      userUpdatedBy: this.pickString(raw, 'userUpdatedBy', 'UserUpdatedBy', 'modifiedBy', 'ModifiedBy') || '-',
-      userUpdatedDate: this.pickString(raw, 'userUpdatedDate', 'UserUpdatedDate'),
-    };
-  }
-
-  private toPayload(row: NonKsLoanRow): NonKsServicedLoanPayload {
-    return {
-      loanName: this.nullIfEmpty(row.loanName),
-      asAtDate: this.nullIfEmpty(row.asAtDate),
-      loanId: this.nullIfEmpty(row.loanId),
-      servicerId: this.nullIfEmpty(row.servicerId),
-      description: this.nullIfEmpty(row.description),
-      investor: this.nullIfEmpty(row.investor),
-      dateOfDefault: this.nullIfEmpty(row.dateOfDefault),
-      maturityDate: this.nullIfEmpty(row.maturityDate),
-      interestOffDate: this.nullIfEmpty(row.interestOffDate),
-      taxMemoDate: this.nullIfEmpty(row.taxMemoDate),
-      securityValue: row.securityValue,
-      units: row.units,
-      netAcres: row.netAcres,
-      squareFeet: row.squareFeet,
-      interestRate: row.interestRate,
-      principalBalance: row.principalBalance,
-      outstandingInterest: row.outstandingInterest,
-      accruedInterest: row.accruedInterest,
-      lateInterest: row.lateInterest,
-      outstandingInvoices: row.outstandingInvoices,
-      estRealizationCosts: row.estRealizationCosts,
-      costToComplete: row.costToComplete,
-      taxArrears: row.taxArrears,
-      interestAsOfTaxMemo: row.interestAsOfTaxMemo,
-      interestAdjustment: row.interestAdjustment,
-      userUpdatedBy: this.userUpdatedBy,
+      fundingStatus: this.pickString(raw, 'fundingStatus', 'FundingStatus'),
+      userUpdatedBy:
+        this.pickString(
+          raw,
+          'userUpdatedBy',
+          'UserUpdatedBy',
+          'modifiedBy',
+          'ModifiedBy',
+          'updatedBy',
+          'UpdatedBy',
+        ) || '-',
+      userUpdatedDate: this.pickString(
+        raw,
+        'userUpdatedDate',
+        'UserUpdatedDate',
+        'updatedDatetime',
+        'UpdatedDatetime',
+        'modifiedDate',
+        'ModifiedDate',
+      ),
     };
   }
 
@@ -429,10 +1594,11 @@ export class NonKsServicedLoansComponent implements OnInit {
     const {
       loanName,
       asAtDate,
-      loanId,
+      loanCode,
       servicerId,
       description,
       investor,
+      investorCode,
       dateOfDefault,
       maturityDate,
       interestOffDate,
@@ -441,8 +1607,9 @@ export class NonKsServicedLoansComponent implements OnInit {
       units,
       netAcres,
       squareFeet,
-      interestRate,
       principalBalance,
+      currentLtv,
+      interestRate,
       outstandingInterest,
       accruedInterest,
       lateInterest,
@@ -450,16 +1617,18 @@ export class NonKsServicedLoansComponent implements OnInit {
       estRealizationCosts,
       costToComplete,
       taxArrears,
-      interestAsOfTaxMemo,
       interestAdjustment,
+      fundingStatus,
+      sponsor,
     } = row;
     return {
       loanName,
       asAtDate,
-      loanId,
+      loanCode,
       servicerId,
       description,
       investor,
+      investorCode,
       dateOfDefault,
       maturityDate,
       interestOffDate,
@@ -468,8 +1637,9 @@ export class NonKsServicedLoansComponent implements OnInit {
       units,
       netAcres,
       squareFeet,
-      interestRate,
       principalBalance,
+      currentLtv,
+      interestRate,
       outstandingInterest,
       accruedInterest,
       lateInterest,
@@ -477,8 +1647,9 @@ export class NonKsServicedLoansComponent implements OnInit {
       estRealizationCosts,
       costToComplete,
       taxArrears,
-      interestAsOfTaxMemo,
       interestAdjustment,
+      fundingStatus,
+      sponsor,
     };
   }
 
@@ -492,22 +1663,30 @@ export class NonKsServicedLoansComponent implements OnInit {
     this.originalRowState.set(snapshot);
   }
 
-  private hasRowChanged(row: NonKsLoanRow): boolean {
-    const original = this.originalRowState()[this.rowTrackId(row)];
-    if (!original) {
-      return true;
+  private syncPendingExtLoanCode(apiNext = this.pendingExtLoanCode()): void {
+    let nextNumber = this.parseExtLoanCodeNumber(apiNext) || 1;
+    for (const row of this.rows()) {
+      const rowNumber = this.parseExtLoanCodeNumber(row.loanCode);
+      if (rowNumber >= nextNumber) {
+        nextNumber = rowNumber + 1;
+      }
     }
-    return JSON.stringify(this.rowSnapshot(row)) !== JSON.stringify(original);
+    this.pendingExtLoanCode.set(`NKSLn-${nextNumber}`);
   }
 
-  private hasAnyInput(row: NonKsLoanRow): boolean {
-    const snap = this.rowSnapshot(row);
-    return Object.entries(snap).some(([key, value]) => {
-      if (NUMERIC_FIELDS.includes(key as keyof RowSnapshot)) {
-        return value != null;
-      }
-      return typeof value === 'string' && value.trim().length > 0;
-    });
+  private parseExtLoanCodeNumber(code: string): number {
+    const match = /^(?:NKSLn|NONKS)-(\d+)$/i.exec(code?.trim() ?? '');
+    return match ? Number.parseInt(match[1], 10) : 0;
+  }
+
+  private compareLoanCodes(left: string, right: string): number {
+    const leftNumber = this.parseExtLoanCodeNumber(left);
+    const rightNumber = this.parseExtLoanCodeNumber(right);
+    if (leftNumber !== rightNumber) {
+      return leftNumber - rightNumber;
+    }
+
+    return left.localeCompare(right, undefined, { sensitivity: 'base', numeric: true });
   }
 
   private normalizeRecords(response: unknown): NonKsServicedLoanDto[] {
@@ -526,18 +1705,197 @@ export class NonKsServicedLoansComponent implements OnInit {
     return [];
   }
 
+  private getCellDisplayValue(row: NonKsLoanRow, key: NonKsColumnKey): string {
+    switch (key) {
+      case 'userUpdatedBy':
+        return this.displayModifiedBy(row.userUpdatedBy);
+      case 'userUpdatedDate':
+        return this.formatModifiedDate(row.userUpdatedDate);
+      case 'asAtDate':
+      case 'dateOfDefault':
+      case 'maturityDate':
+      case 'interestOffDate':
+      case 'taxMemoDate':
+        return row[key]?.trim() || '';
+      case 'securityValue':
+      case 'principalBalance':
+      case 'outstandingInterest':
+      case 'accruedInterest':
+      case 'lateInterest':
+      case 'outstandingInvoices':
+      case 'estRealizationCosts':
+      case 'costToComplete':
+      case 'taxArrears':
+      case 'interestAdjustment':
+        return row[key] == null ? '' : this.formatCurrencyDisplay(row[key]);
+      case 'units':
+      case 'squareFeet':
+        return row[key] == null ? '' : String(row[key]);
+      case 'netAcres':
+      case 'currentLtv':
+      case 'interestRate':
+        return row[key] == null ? '' : String(row[key]);
+      case 'investorAlias':
+        return row.investorAlias?.trim() || '';
+      default:
+        return String(row[key] ?? '').trim();
+    }
+  }
+
+  private compareRows(left: NonKsLoanRow, right: NonKsLoanRow, column: NonKsColumnKey): number {
+    switch (column) {
+      case 'userUpdatedBy':
+        return left.userUpdatedBy.localeCompare(right.userUpdatedBy, undefined, {
+          sensitivity: 'base',
+        });
+      case 'userUpdatedDate':
+        return this.dateSortValue(left.userUpdatedDate) - this.dateSortValue(right.userUpdatedDate);
+      case 'asAtDate':
+      case 'dateOfDefault':
+      case 'maturityDate':
+      case 'interestOffDate':
+      case 'taxMemoDate':
+        return this.dateSortValue(left[column]) - this.dateSortValue(right[column]);
+      case 'securityValue':
+      case 'units':
+      case 'netAcres':
+      case 'squareFeet':
+      case 'principalBalance':
+      case 'currentLtv':
+      case 'interestRate':
+      case 'outstandingInterest':
+      case 'accruedInterest':
+      case 'lateInterest':
+      case 'outstandingInvoices':
+      case 'estRealizationCosts':
+      case 'costToComplete':
+      case 'taxArrears':
+      case 'interestAdjustment':
+        return (left[column] ?? 0) - (right[column] ?? 0);
+      case 'loanCode':
+        return this.compareLoanCodes(left.loanCode, right.loanCode);
+      case 'investorAlias':
+        return left.investorAlias.localeCompare(right.investorAlias, undefined, {
+          sensitivity: 'base',
+        });
+      default: {
+        const leftValue = String(left[column] ?? '');
+        const rightValue = String(right[column] ?? '');
+        return leftValue.localeCompare(rightValue, undefined, { sensitivity: 'base' });
+      }
+    }
+  }
+
+  private dateSortValue(value: string): number {
+    if (!value?.trim()) {
+      return 0;
+    }
+    const parsed = new Date(value.includes('T') ? value : `${value.trim()}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+  }
+
   private nullIfEmpty(value: string): string | null {
     const trimmed = value?.trim() ?? '';
     return trimmed ? trimmed : null;
   }
 
-  private parseNumericInput(value: string): number | null {
-    const trimmed = value?.trim().replace(/[,$%]/g, '') ?? '';
-    if (!trimmed) {
+  private parseCurrencyInput(value: string, allowNegative = false): number | null {
+    const trimmed = value.replace(/[$,\s]/g, '').trim();
+    if (!trimmed || trimmed === '-' || trimmed === '-.' || trimmed === '.') {
       return null;
     }
     const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) {
+      return null;
+    }
+    if (!allowNegative && parsed < 0) {
+      return null;
+    }
+    return Number(parsed.toFixed(2));
+  }
+
+  private parseIntegerInput(value: string): number | null {
+    const trimmed = value.replace(/[,\s]/g, '').trim();
+    if (!trimmed || trimmed === '-') {
+      return null;
+    }
+    const parsed = Number.parseInt(trimmed, 10);
     return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private parseDecimalInput(value: string, fractionDigits: number): number | null {
+    const trimmed = value.replace(/[,\s]/g, '').trim();
+    if (!trimmed || trimmed === '-' || trimmed === '-.' || trimmed === '.') {
+      return null;
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) {
+      return null;
+    }
+    return Number(parsed.toFixed(fractionDigits));
+  }
+
+  private parsePercentInput(value: string): number | null {
+    const trimmed = value.replace(/%/g, '').trim();
+    if (!trimmed || trimmed === '-' || trimmed === '-.' || trimmed === '.') {
+      return null;
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) {
+      return null;
+    }
+    return Number(parsed.toFixed(2));
+  }
+
+  private mergeSavedRecords(
+    loaded: NonKsServicedLoanDto[],
+    saved: NonKsServicedLoanDto[],
+  ): NonKsServicedLoanDto[] {
+    if (!saved.length) {
+      return loaded;
+    }
+
+    const savedByKey = new Map(saved.map((row) => [this.recordKey(row), row]));
+    const merged = loaded.map((row) => savedByKey.get(this.recordKey(row)) ?? row);
+
+    for (const row of saved) {
+      const key = this.recordKey(row);
+      if (!merged.some((existing) => this.recordKey(existing) === key)) {
+        merged.push(row);
+      }
+    }
+
+    return merged;
+  }
+
+  private recordKey(record: NonKsServicedLoanDto): string {
+    const raw = record as NonKsServicedLoanDto & Record<string, unknown>;
+    const loanCode = this.pickString(
+      raw,
+      'loanCode',
+      'LoanCode',
+      'extLoanCode',
+      'ExtLoanCode',
+      'loanId',
+      'LoanId',
+    );
+    const asAtDate = this.toDateInputValue(
+      this.pickString(raw, 'asAtDate', 'AsAtDate', 'asOfDate', 'AsOfDate') || null,
+    );
+    return `${loanCode}|${asAtDate}`;
+  }
+
+  private pickRowKey(record: Record<string, unknown>): string {
+    for (const key of ['nonKsServicedLoanKey', 'NonKsServicedLoanKey']) {
+      const value = record[key];
+      if (typeof value === 'string' && value.trim()) {
+        return value.trim();
+      }
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return String(value);
+      }
+    }
+    return '';
   }
 
   private pickNumber(record: Record<string, unknown>, ...keys: string[]): number {

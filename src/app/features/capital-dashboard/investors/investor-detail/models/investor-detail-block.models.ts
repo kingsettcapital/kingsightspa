@@ -1,0 +1,348 @@
+import {
+  InvestorDetailTableColumn,
+  InvestorDetailTableConfig,
+  InvestorDetailTableRow,
+} from './investor-detail-table.models';
+
+import { InvestorDetailTransactionHubBlock } from './investor-transaction-hub.models';
+
+export type InvestorDetailTableVariant =
+  | 'default'
+  | 'transactions'
+  | 'communications'
+  | 'investments'
+  | 'asset-transactions'
+  | 'property-details'
+  | 'asset-fund-holdings'
+  | 'fund-holdings'
+  | 'underlying-investments';
+
+export interface InvestorDetailTablePagination {
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalCount: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+export interface InvestorDetailTableDateFilters {
+  sinceStart: string;
+  sinceEnd: string;
+}
+
+export interface InvestorDetailTableBlock extends InvestorDetailTableConfig {
+  kind: 'table';
+  subtitle?: string;
+  subtitleAccent?: string;
+  variant?: InvestorDetailTableVariant;
+  showToolbar?: boolean;
+  rowDrillDown?: boolean;
+  pagination?: InvestorDetailTablePagination;
+  dateFilters?: InvestorDetailTableDateFilters;
+}
+
+export interface InvestorDetailFieldItem {
+  label: string;
+  value: string;
+  tone?: 'default' | 'warning' | 'positive' | 'negative' | 'muted';
+  multiline?: boolean;
+  /** Raw at-share amount used when Financial Metrics is toggled to 100%. */
+  atShareAmount?: number | null;
+  /** When true, 100% mode shows atShareAmount / (ownershipPct / 100). */
+  scaleWithOwnership?: boolean;
+}
+
+export interface InvestorDetailFieldColumn {
+  title?: string;
+  fields: InvestorDetailFieldItem[];
+}
+
+export interface InvestorDetailOccupancyFooter {
+  label: string;
+  percent: number;
+  committedLabel: string;
+  vacantLabel: string;
+}
+
+export interface InvestorDetailDeploymentBar {
+  label: string;
+  percent: number;
+  leftLabel: string;
+  rightLabel: string;
+}
+
+export interface InvestorDetailFundMembershipItem {
+  fundKey: number;
+  name: string;
+}
+
+export interface InvestorDetailFundMembership {
+  count: number;
+  items: InvestorDetailFundMembershipItem[];
+  moreCount: number;
+}
+
+export interface InvestorDetailOverviewMiniKpi {
+  label: string;
+  value: string;
+}
+
+export type InvestorOverviewHighlightTone = 'default' | 'accent' | 'info' | 'positive' | 'muted';
+
+export interface InvestorOverviewContactDetails {
+  name?: string;
+  email?: string;
+  address?: string;
+}
+
+export interface InvestorOverviewHighlightMetric {
+  label: string;
+  value: string;
+  subtext?: string;
+  valueTone?: InvestorOverviewHighlightTone;
+  subtextTone?: InvestorOverviewHighlightTone;
+  inlineHint?: string;
+  inlineHintTone?: 'positive' | 'muted';
+  /** 1-based column placement for sparse bottom rows (Deal Highlights layout). */
+  gridColumn?: 1 | 2 | 3 | 4;
+  multiline?: boolean;
+  contactDetails?: InvestorOverviewContactDetails;
+}
+
+export interface InvestorOverviewHighlights {
+  topRow: InvestorOverviewHighlightMetric[];
+  bottomRow: InvestorOverviewHighlightMetric[];
+}
+
+export interface InvestorDetailEntityOverviewBlock {
+  kind: 'entity-overview';
+  id: string;
+  title: string;
+  variant: 'investor' | 'fund';
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  columns: InvestorDetailFieldColumn[];
+  highlights?: InvestorOverviewHighlights;
+  fundMembership?: InvestorDetailFundMembership;
+  performanceMiniKpis?: InvestorDetailOverviewMiniKpi[];
+  deploymentBar?: InvestorDetailDeploymentBar;
+  deploymentBarPlacement?: 'full' | 'performance-column';
+}
+
+export interface InvestorDetailFieldGridBlock {
+  kind: 'field-grid';
+  id: string;
+  title: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  layout?: 'columns' | 'paired-rows';
+  columns: InvestorDetailFieldColumn[];
+  occupancyFooter?: InvestorDetailOccupancyFooter;
+}
+
+export interface InvestorDetailLeasingMetric {
+  label: string;
+  value: string;
+  hint?: string;
+}
+
+export interface InvestorDetailLeasingSummaryBlock {
+  kind: 'leasing-summary';
+  id: string;
+  title: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  metricGroups: InvestorDetailLeasingMetric[][];
+  leaseExpirySchedule: InvestorDetailDebtMaturityBar[];
+}
+
+export interface InvestorDetailAssetTypeSummaryBlock {
+  kind: 'asset-type-summary';
+  id: string;
+  title: string;
+  subtitle?: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  rows: InvestorDetailAssetTypeSummaryRow[];
+}
+
+export interface InvestorDetailAssetTypeSummaryRow {
+  assetType: string;
+  grossLeasableAreaSqft: number | null;
+  committedAreaSqft: number | null;
+  vacantAreaSqft: number | null;
+  occupancyRate: number | null;
+  vacancyRate: number | null;
+}
+
+export interface InvestorDetailKpiCard {
+  label: string;
+  value: string;
+  hint?: string;
+  variant?: 'navy' | 'blue' | 'blue-light' | 'gold' | 'slate';
+}
+
+export interface InvestorDetailKpiRowBlock {
+  kind: 'kpi-row';
+  id: string;
+  title: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  display?: 'colored' | 'performance';
+  cards: InvestorDetailKpiCard[];
+}
+
+export interface InvestorDetailEsgMetricCard {
+  label: string;
+  value: string;
+  hint: string;
+}
+
+export interface InvestorDetailEsgMetricsBlock {
+  kind: 'esg-metrics';
+  id: string;
+  title: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  cards: InvestorDetailEsgMetricCard[];
+}
+
+export interface InvestorDetailDocumentItem {
+  name: string;
+  category: string;
+  date: string;
+  size: string;
+  year?: number | null;
+  quarter?: string | null;
+  /** Opens the document (SharePoint web URL). */
+  webUrl?: string | null;
+}
+
+export type FundDocumentCategoryId = 'interim' | 'advisory';
+
+export interface InvestorDetailDocumentCategory {
+  id: FundDocumentCategoryId;
+  label: string;
+  count: number;
+}
+
+export interface InvestorDetailDocumentListBlock {
+  kind: 'document-list';
+  id: string;
+  title: string;
+  subtitle?: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  loading?: boolean;
+  categories?: InvestorDetailDocumentCategory[];
+  activeCategoryId?: FundDocumentCategoryId;
+  documents: InvestorDetailDocumentItem[];
+}
+
+export interface InvestorDetailDebtMaturityBar {
+  label: string;
+  percent: number;
+}
+
+export interface InvestorDetailDebtFinancingBlock {
+  kind: 'debt-financing';
+  id: string;
+  title: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  metrics: InvestorDetailFieldItem[];
+  maturitySchedule: InvestorDetailDebtMaturityBar[];
+}
+
+export interface InvestorDetailRiskFlag {
+  label: string;
+  value: string;
+  tone?: 'default' | 'positive' | 'warning';
+  /** Raw at-share amount used when Financial Metrics is toggled to 100%. */
+  atShareAmount?: number | null;
+  /** When true, 100% mode shows atShareAmount / (ownershipPct / 100). */
+  scaleWithOwnership?: boolean;
+}
+
+export interface InvestorDetailRiskInsuranceBlock {
+  kind: 'risk-insurance';
+  id: string;
+  title: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  coverageTitle: string;
+  coverage: InvestorDetailFieldItem[];
+  riskTitle: string;
+  banner?: { message: string; tone: 'positive' | 'warning' };
+  riskFlags: InvestorDetailRiskFlag[];
+}
+
+export interface InvestorDetailFinancialMetricsBlock {
+  kind: 'financial-metrics';
+  id: string;
+  title: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  /**
+   * KS ownership as a display percent (e.g. 37.5 for 37.5%).
+   * Used by the At Share / 100% toggle to gross up scalable currency fields
+   * when warehouse shareVariants are not provided.
+   */
+  ownershipPct: number | null;
+  /**
+   * When true, always show KS Share / At 100% toggle (asset drill-down).
+   * Fund financial metrics set this false — only one warehouse basis exists.
+   */
+  showShareToggle?: boolean;
+  /**
+   * Optional warehouse-backed KS Share vs At 100% field sets
+   * (<c>fn_asset_financial_ks</c> / <c>fn_asset_financial_100pct</c>).
+   */
+  shareVariants?: {
+    atShare: {
+      leftItems: InvestorDetailFieldItem[];
+      rightItems: InvestorDetailRiskFlag[];
+    };
+    at100: {
+      leftItems: InvestorDetailFieldItem[];
+      rightItems: InvestorDetailRiskFlag[];
+    };
+  };
+  leftItems: InvestorDetailFieldItem[];
+  rightItems: InvestorDetailRiskFlag[];
+}
+
+export interface InvestorDetailAcquisitionSaleBlock {
+  kind: 'acquisition-sale';
+  id: string;
+  title: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  leftTitle: string;
+  leftItems: InvestorDetailFieldItem[];
+  rightTitle: string;
+  rightItems: InvestorDetailFieldItem[];
+}
+
+export type InvestorDetailBlock =
+  | InvestorDetailTableBlock
+  | InvestorDetailFieldGridBlock
+  | InvestorDetailEntityOverviewBlock
+  | InvestorDetailKpiRowBlock
+  | InvestorDetailEsgMetricsBlock
+  | InvestorDetailDocumentListBlock
+  | InvestorDetailDebtFinancingBlock
+  | InvestorDetailLeasingSummaryBlock
+  | InvestorDetailAssetTypeSummaryBlock
+  | InvestorDetailRiskInsuranceBlock
+  | InvestorDetailFinancialMetricsBlock
+  | InvestorDetailAcquisitionSaleBlock
+  | InvestorDetailTransactionHubBlock;
+
+export interface InvestorDetailSectionBlock {
+  sectionId: string;
+  blocks: InvestorDetailBlock[];
+}
+
+export type { InvestorDetailTableColumn, InvestorDetailTableRow };

@@ -1,0 +1,166 @@
+@if (isOpen()) {
+  <div class="ks-modal-backdrop" (click)="onBackdropClick($event)">
+    <div
+      class="ks-modal de-saved-modal"
+      role="dialog"
+      aria-labelledby="savedQueriesTitle"
+    >
+      <header class="ks-modal__header de-saved-modal__header">
+        <div class="de-saved-modal__header-content">
+          <span class="de-saved-modal__icon" aria-hidden="true">
+            <lucide-icon [img]="bookIcon" [size]="18" color="currentColor"></lucide-icon>
+          </span>
+          <div>
+            <h2 id="savedQueriesTitle" class="de-saved-modal__title">Saved Queries</h2>
+            <p class="de-saved-modal__subtitle">{{ subtitleLabel() }}</p>
+          </div>
+        </div>
+        <button type="button" class="de-saved-modal__close" [disabled]="actionLoading()" (click)="close()" aria-label="Close">
+          <lucide-icon [img]="closeIcon" [size]="20" color="currentColor"></lucide-icon>
+        </button>
+      </header>
+
+      <div class="ks-modal__body de-saved-modal__body">
+        @if (loading()) {
+          <div class="de-saved-modal__state de-saved-modal__state--loading" role="status" aria-live="polite">
+            <div class="de-saved-modal__progress" aria-hidden="true">
+              <span class="de-saved-modal__progress-bar"></span>
+            </div>
+            <ul class="de-saved-modal__skeleton-list" aria-hidden="true">
+              @for (row of skeletonRows; track row) {
+                <li class="de-saved-modal__skeleton-item">
+                  <span class="de-saved-modal__skeleton de-saved-modal__skeleton--icon"></span>
+                  <div class="de-saved-modal__skeleton-content">
+                    <span
+                      class="de-saved-modal__skeleton de-saved-modal__skeleton--title"
+                      [style.width]="skeletonLineWidth(row, 0)"
+                    ></span>
+                    <span
+                      class="de-saved-modal__skeleton de-saved-modal__skeleton--desc"
+                      [style.width]="skeletonLineWidth(row, 1)"
+                    ></span>
+                    <div class="de-saved-modal__skeleton-tags">
+                      <span class="de-saved-modal__skeleton de-saved-modal__skeleton--tag"></span>
+                      <span class="de-saved-modal__skeleton de-saved-modal__skeleton--tag"></span>
+                    </div>
+                  </div>
+                  <span class="de-saved-modal__skeleton de-saved-modal__skeleton--action"></span>
+                </li>
+              }
+            </ul>
+            <p class="de-saved-modal__state-label">Fetching your saved queries…</p>
+          </div>
+        } @else if (error()) {
+          <div class="de-saved-modal__state de-saved-modal__state--error" role="alert">
+            <span class="de-saved-modal__state-icon de-saved-modal__state-icon--error" aria-hidden="true">
+              <lucide-icon [img]="errorIcon" [size]="28" color="currentColor"></lucide-icon>
+            </span>
+            <h3 class="de-saved-modal__state-title">Unable to load saved queries</h3>
+            <p class="de-saved-modal__state-text">{{ error() }}</p>
+          </div>
+        } @else if (queries().length === 0) {
+          <div class="de-saved-modal__state de-saved-modal__state--empty">
+            <span class="de-saved-modal__state-icon" aria-hidden="true">
+              <lucide-icon [img]="emptyIcon" [size]="28" color="currentColor"></lucide-icon>
+            </span>
+            <h3 class="de-saved-modal__state-title">No saved queries yet</h3>
+            <p class="de-saved-modal__state-text">
+              Build a query with columns and filters, then use <strong>Save Query</strong> to store it here for quick access later.
+            </p>
+          </div>
+        } @else {
+          <div class="de-saved-modal__list-wrap" [class.de-saved-modal__list-wrap--loading]="actionLoading() && loadingQuery()">
+            @if (actionLoading() && loadingQuery()) {
+              <div class="de-saved-modal__action-overlay" role="status" aria-live="polite">
+                <span class="de-saved-modal__action-spinner" aria-hidden="true"></span>
+                <p class="de-saved-modal__action-label">{{ actionLoadingLabel() }}</p>
+              </div>
+            }
+            <ul class="de-saved-modal__list">
+            @for (query of queries(); track query.id) {
+              <li
+                class="de-saved-modal__item"
+                [class.de-saved-modal__item--loading]="isQueryLoading(query.id)"
+              >
+                <span class="de-saved-modal__item-icon" aria-hidden="true">
+                  <lucide-icon [img]="bookIcon" [size]="16" color="currentColor"></lucide-icon>
+                </span>
+
+                <div class="de-saved-modal__item-content">
+                  <span class="de-saved-modal__item-name">{{ query.name }}</span>
+                  @if (query.description) {
+                    <span class="de-saved-modal__item-desc">{{ query.description }}</span>
+                  }
+                  <div class="de-saved-modal__item-meta">
+                    <span class="de-saved-modal__meta-date">
+                      <lucide-icon [img]="clockIcon" [size]="12" color="currentColor"></lucide-icon>
+                      {{ query.savedAt | date: 'MMM d, y, h:mm a' }}
+                    </span>
+                    <span class="de-saved-modal__tag">{{ columnCount(query) }} cols</span>
+                    @if (filterCount(query) > 0) {
+                      <span class="de-saved-modal__tag de-saved-modal__tag--filter">
+                        {{ filterCount(query) }} {{ filterCount(query) === 1 ? 'filter' : 'filters' }}
+                      </span>
+                    }
+                  </div>
+                  @if (hasGroupBy(query)) {
+                    <div class="de-saved-modal__item-tags">
+                      <span class="de-saved-modal__tag de-saved-modal__tag--grouped">grouped</span>
+                    </div>
+                  }
+                </div>
+
+                <div class="de-saved-modal__item-actions">
+                  <button
+                    type="button"
+                    class="de-saved-modal__edit-btn"
+                    [disabled]="actionLoading()"
+                    (click)="editQuery(query)"
+                  >
+                    @if (isQueryLoading(query.id) && loadingQuery()?.mode === 'edit') {
+                      <span class="de-saved-modal__btn-spinner" aria-hidden="true"></span>
+                      Loading…
+                    } @else {
+                      <lucide-icon [img]="editIcon" [size]="12" color="currentColor"></lucide-icon>
+                      Edit
+                    }
+                  </button>
+                  <button
+                    type="button"
+                    class="de-saved-modal__run-btn"
+                    [disabled]="actionLoading()"
+                    (click)="runQuery(query)"
+                  >
+                    @if (isQueryLoading(query.id) && loadingQuery()?.mode === 'run') {
+                      <span class="de-saved-modal__btn-spinner de-saved-modal__btn-spinner--inverse" aria-hidden="true"></span>
+                      Loading…
+                    } @else {
+                      <lucide-icon [img]="playIcon" [size]="12" color="currentColor"></lucide-icon>
+                      Run
+                    }
+                  </button>
+                  <button
+                    type="button"
+                    class="de-saved-modal__delete-btn"
+                    aria-label="Delete saved query"
+                    [disabled]="actionLoading()"
+                    (click)="deleteQuery(query)"
+                  >
+                    <lucide-icon [img]="trashIcon" [size]="16" color="currentColor"></lucide-icon>
+                  </button>
+                </div>
+              </li>
+            }
+          </ul>
+          </div>
+        }
+      </div>
+
+      <footer class="ks-modal__footer de-saved-modal__footer">
+        <button type="button" class="de-saved-modal__footer-close" [disabled]="actionLoading()" (click)="close()">
+          Close
+        </button>
+      </footer>
+    </div>
+  </div>
+}

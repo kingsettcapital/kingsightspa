@@ -1,0 +1,69 @@
+# Node.js with Angular 21 — SPA artifact must include web.config at zip root for IIS deep links.
+trigger:
+- develop
+- staging
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+
+- checkout: self
+  persistCredentials: true
+
+- task: NodeTool@0
+  inputs:
+    versionSpec: '24.x'
+  displayName: 'Install Node.js 24.x'
+
+- script: |
+    npm install -g npm@8.19.4
+  displayName: 'Set npm version'
+
+- script: |
+    npm install
+  displayName: 'npm install'
+
+- script: |
+    npm run build:dev
+  displayName: 'Angular Build (development)'
+  condition: eq(variables['Build.SourceBranchName'], 'develop')
+
+- script: |
+    npm run build:prod
+  displayName: 'Angular Build (production)'
+  condition: eq(variables['Build.SourceBranchName'], 'main')
+
+- script: |
+    npm run build:uat
+  displayName: 'Angular Build (UAT / staging)'
+  condition: eq(variables['Build.SourceBranchName'], 'staging')
+
+- script: |
+    set -e
+    test -f dist/kingsight/web.config || (echo "ERROR: dist/kingsight/web.config missing — IIS deep links will 404." && exit 1)
+    test -f dist/kingsight/index.html || (echo "ERROR: dist/kingsight/index.html missing." && exit 1)
+    echo "SPA publish layout OK (web.config + index.html at artifact root):"
+    ls -la dist/kingsight | head -25
+  displayName: 'Verify SPA deploy artifacts (web.config + index.html)'
+  condition: or(eq(variables['Build.SourceBranchName'], 'develop'), eq(variables['Build.SourceBranchName'], 'staging'), eq(variables['Build.SourceBranchName'], 'main'))
+
+- task: ArchiveFiles@2
+  displayName: 'Archive dist/kingsight (zip root = wwwroot)'
+  condition: or(eq(variables['Build.SourceBranchName'], 'develop'), eq(variables['Build.SourceBranchName'], 'staging'), eq(variables['Build.SourceBranchName'], 'main'))
+  inputs:
+    rootFolderOrFile: 'dist/kingsight'
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+    replaceExistingArchive: true
+
+- task: CopyPublishBuildArtifacts@1
+  displayName: 'Publish Artifact: drop'
+  condition: or(eq(variables['Build.SourceBranchName'], 'develop'), eq(variables['Build.SourceBranchName'], 'staging'), eq(variables['Build.SourceBranchName'], 'main'))
+  inputs:
+    CopyRoot: 'dist/kingsight'
+    Contents: '**'
+    ArtifactName: drop
+    ArtifactType: Container

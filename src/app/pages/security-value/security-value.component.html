@@ -1,78 +1,79 @@
-<section class="security-value-page">
-  <h1>Security Value</h1>
-  <p class="subtitle">
-    All loan aliases load by default. Search to narrow the grid, or select tags to filter.
-  </p>
+<section class="ks-fp security-value-page">
+  <div class="ks-fp__sticky-chrome">
+    <div class="ks-fp__title-row">
+      <div class="ks-page__heading">
+        <h1 class="ks-page__title">Loan Alias Exposure Markers</h1>
+        <p class="ks-page__subtitle">
+          Provide Updated Property Security Values if different from Collateral provided and provide # of
+          Units, Square Footage and Acres
+        </p>
+      </div>
 
-  <div class="filters-row">
-    <div class="search-panel">
-    <label for="loanAliasSearch">Loan Alias</label>
-    <div class="search-input-wrap">
-      <span class="search-icon" aria-hidden="true"></span>
-      <input
-        id="loanAliasSearch"
-        type="text"
-        [value]="searchText()"
-        (input)="updateSearch($any($event.target).value)"
-        placeholder="Search by Loan Alias Name"
-      />
-    </div>
+      <div class="ks-fp__filters-compact">
+        <div class="ks-fp__search-block">
+          <label class="ks-fp__filter-label" for="loanAliasSearch">Search Loans</label>
+          <input
+            id="loanAliasSearch"
+            type="text"
+            class="ks-fp__search-input"
+            placeholder="Enter Search Value"
+            [value]="searchText()"
+            (input)="updateSearch($any($event.target).value)"
+            aria-label="Search loan aliases"
+          />
 
-    @if (searchedAliasOptions().length > 0) {
-      <ul class="search-results">
-        @for (row of searchedAliasOptions(); track row.loanAliasId) {
-          <li>
-            <button type="button" (click)="selectAlias(row)">
-              <span>{{ row.loanAliasName }}</span>
-            </button>
-          </li>
-        }
-      </ul>
-    }
+          @if (searchText().trim() && searchedAliasOptions().length > 0) {
+            <ul class="ks-fp__autocomplete">
+              @for (alias of searchedAliasOptions().slice(0, 20); track alias.loanAliasId) {
+                <li>
+                  <button type="button" (click)="selectAlias(alias)">
+                    <span>{{ alias.loanAliasName }}</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
 
-    <div class="selected-alias-tags">
-      @for (selected of selectedAliases(); track selected.loanAliasId) {
-        <button
-          type="button"
-          class="alias-tag"
-          (click)="removeSelectedAlias(selected.loanAliasId)"
-        >
-          <span>{{ selected.loanAliasName }}</span>
-          <span class="tag-close">x</span>
-        </button>
-      }
-    </div>
+          @if (selectedAliases().length > 0) {
+            <div class="selected-alias-tags">
+              @for (selected of selectedAliases(); track selected.loanAliasId) {
+                <button
+                  type="button"
+                  class="alias-tag"
+                  (click)="removeSelectedAlias(selected.loanAliasId)"
+                >
+                  <span>{{ selected.loanAliasName }}</span>
+                  <span class="tag-close">×</span>
+                </button>
+              }
+            </div>
+          }
 
-    @if (isLoadingAliases() || isLoadingStatuses()) {
-      <p class="meta-message">Loading filters...</p>
-    }
-    </div>
-
-    <div class="status-panel">
-      <span class="filter-label">Status</span>
-      <div class="status-options">
-        @if (statusOptions().length === 0 && !isLoadingStatuses()) {
-          <p class="meta-message">No statuses from API.</p>
-        }
-        @for (status of statusOptions(); track status.value) {
-          <label class="status-option">
-            <input
-              type="checkbox"
-              [checked]="isStatusSelected(status.value)"
-              (change)="toggleStatus(status.value)"
-            />
-            <span>{{ status.displayLabel }}</span>
-          </label>
-        }
+          <button
+            type="button"
+            class="ks-fp__clear-selection"
+            (click)="clearSelection()"
+            [disabled]="!selectedLoanAliasIds().length && !searchText().trim()"
+          >
+            Clear Selection
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
+  @if (isLoadingAliases()) {
+    <p class="meta-message">Loading filters...</p>
+  }
   @if (errorMessage() && !isSaving()) {
     <p class="error-message banner-error">{{ errorMessage() }}</p>
   }
   @if (isLoadingGrid()) {
     <p class="meta-message grid-loading">Loading security values...</p>
+  } @else if (statusMessage() && !errorMessage()) {
+    <p class="status-message">{{ statusMessage() }}</p>
+  } @else if (gridLoadMessage() && !errorMessage()) {
+    <p class="status-message">{{ gridLoadMessage() }}</p>
   }
 
   <div class="table-wrap">
@@ -80,14 +81,23 @@
       <thead>
         <tr>
           <th class="hidden-column">Loan Alias Id</th>
-          <th>Loan Alias</th>
-          <th class="numeric-col">Collateral Per Yardi</th>
-          <th class="numeric-col">Security Value</th>
-          <th class="numeric-col">Units</th>
-          <th class="numeric-col">SF</th>
-          <th class="numeric-col">Acres</th>
-          <th>Date of DWH Update</th>
-          <th>Updated By</th>
+          @for (column of tableColumns; track column.key) {
+            <th
+              [class.numeric-col]="column.numeric"
+              [class.audit-col]="column.audit"
+            >
+              <button
+                type="button"
+                class="sv-th-sort"
+                [class.sv-th-sort--numeric]="column.numeric"
+                (click)="toggleSort(column.key)"
+                [attr.aria-label]="'Sort by ' + column.label"
+              >
+                <span>{{ column.label }}</span>
+                <span class="sv-th-sort__icon" aria-hidden="true">{{ sortIndicator(column.key) }}</span>
+              </button>
+            </th>
+          }
         </tr>
       </thead>
       <tbody>
@@ -98,55 +108,55 @@
             <td class="numeric-col display-only">{{ formatCurrency(row.collateralPerYardi) }}</td>
             <td class="numeric-col">
               <input
-                type="number"
-                class="value-input"
-                [value]="formatNumber(row.securityValue)"
-                (input)="updateField(row.loanAliasId, 'securityValue', $any($event.target).value)"
-                placeholder="0"
-                step="any"
-                min="0"
+                type="text"
+                inputmode="decimal"
+                class="value-input value-input--numeric"
+                [value]="fieldInputDisplay(row.loanAliasId, 'securityValue', row.securityValue)"
+                (input)="onFieldInput(row.loanAliasId, 'securityValue', $any($event.target).value)"
+                (blur)="commitField(row.loanAliasId, 'securityValue', $any($event.target))"
+                placeholder="$0"
               />
             </td>
             <td class="numeric-col">
               <input
-                type="number"
-                class="value-input"
-                [value]="formatNumber(row.units)"
-                (input)="updateField(row.loanAliasId, 'units', $any($event.target).value)"
+                type="text"
+                inputmode="numeric"
+                class="value-input value-input--numeric"
+                [value]="fieldInputDisplay(row.loanAliasId, 'units', row.units)"
+                (input)="onFieldInput(row.loanAliasId, 'units', $any($event.target).value)"
+                (blur)="commitField(row.loanAliasId, 'units', $any($event.target))"
                 placeholder="0"
-                step="1"
-                min="0"
               />
             </td>
             <td class="numeric-col">
               <input
-                type="number"
-                class="value-input"
-                [value]="formatNumber(row.squareFeet)"
-                (input)="updateField(row.loanAliasId, 'squareFeet', $any($event.target).value)"
+                type="text"
+                inputmode="decimal"
+                class="value-input value-input--numeric"
+                [value]="fieldInputDisplay(row.loanAliasId, 'squareFeet', row.squareFeet)"
+                (input)="onFieldInput(row.loanAliasId, 'squareFeet', $any($event.target).value)"
+                (blur)="commitField(row.loanAliasId, 'squareFeet', $any($event.target))"
                 placeholder="0"
-                step="any"
-                min="0"
               />
             </td>
             <td class="numeric-col">
               <input
-                type="number"
-                class="value-input"
-                [value]="formatNumber(row.acres)"
-                (input)="updateField(row.loanAliasId, 'acres', $any($event.target).value)"
+                type="text"
+                inputmode="decimal"
+                class="value-input value-input--numeric"
+                [value]="fieldInputDisplay(row.loanAliasId, 'acres', row.acres)"
+                (input)="onFieldInput(row.loanAliasId, 'acres', $any($event.target).value)"
+                (blur)="commitField(row.loanAliasId, 'acres', $any($event.target))"
                 placeholder="0"
-                step="any"
-                min="0"
               />
             </td>
-            <td class="date-cell">{{ row.updatedDtm }}</td>
-            <td class="updated-by-cell">{{ row.updatedBy }}</td>
+            <td class="audit-col updated-by-cell">{{ displayModifiedBy(row.updatedBy) }}</td>
+            <td class="audit-col date-cell">{{ formatModifiedDate(row.updatedDtm) }}</td>
           </tr>
         } @empty {
           <tr>
             <td colspan="9" class="empty-row">
-              No security value rows returned. Check status filters or the LoanSecurityValue API.
+              No security value rows returned. Check the LoanSecurityValue API.
             </td>
           </tr>
         }
@@ -159,6 +169,7 @@
       <label for="pageSize">Rows per page</label>
       <select
         id="pageSize"
+        class="page-size-select"
         [value]="pageSize()"
         (change)="updatePageSize($any($event.target).value)"
       >
@@ -166,6 +177,7 @@
         <option value="10">10</option>
         <option value="20">20</option>
         <option value="50">50</option>
+        <option value="100">100</option>
       </select>
     </div>
     <div class="pagination-right">
@@ -186,13 +198,12 @@
   </div>
 
   <div class="actions">
-    <button type="button" class="btn-close" (click)="clearSelection()">Clear Selection</button>
-    <button type="button" class="btn-save" (click)="saveChanges()" [disabled]="isSaving()">
+    <button type="button" class="ks-btn ks-btn--accent" (click)="saveChanges()" [disabled]="isSaving()">
       @if (isSaving()) { Saving… } @else { Save Changes }
     </button>
   </div>
 
   @if (statusMessage()) {
-    <p class="status">{{ statusMessage() }}</p>
+    <p class="status-message">{{ statusMessage() }}</p>
   }
 </section>

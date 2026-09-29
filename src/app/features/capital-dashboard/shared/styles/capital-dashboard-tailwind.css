@@ -1,0 +1,222 @@
+@tailwind components;
+
+@layer components {
+  .cd-shell {
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden bg-neutral-100;
+  }
+
+  .cd-nav {
+    @apply flex shrink-0 border-b border-neutral-200 bg-white;
+  }
+
+  .cd-nav-link {
+    @apply inline-flex h-[3.25rem] items-center gap-2 border-b-2 border-transparent px-8 text-[0.9375rem] font-semibold text-neutral-500 transition-colors hover:text-neutral-900;
+  }
+
+  .cd-nav-link--active {
+    @apply border-neutral-900 text-neutral-900 font-bold;
+  }
+
+  .cd-master-detail {
+    @apply flex min-h-0 flex-1 gap-3 overflow-hidden bg-neutral-100 p-5;
+  }
+
+  .cd-list-panel {
+    @apply flex w-96 min-h-0 shrink-0 flex-col gap-3 overflow-hidden;
+  }
+
+  .cd-detail-panel {
+    @apply flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden;
+  }
+
+  .cd-card {
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-neutral-200 bg-white;
+  }
+
+  .cd-card-header {
+    @apply flex flex-col gap-5 border-b border-neutral-200 bg-neutral-100 p-6;
+  }
+
+  .cd-identity-card {
+    @apply relative overflow-hidden rounded-[10px] border border-neutral-200 bg-white pl-6 pr-5 py-5;
+  }
+
+  .cd-identity-card::before {
+    content: '';
+    @apply absolute left-0 top-3.5 bottom-3.5 w-[3.5px] rounded-r bg-kingsett-gold;
+  }
+
+  .cd-identity-card::after {
+    content: '';
+    @apply absolute left-[0.65rem] top-3.5 bottom-3.5 w-px bg-kingsett-light-blue;
+  }
+
+  .cd-metrics-grid {
+    @apply grid gap-3;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  }
+
+  .cd-metric-card {
+    @apply flex min-h-[5rem] flex-col justify-center rounded-lg border border-neutral-200 bg-white px-4 py-3.5 transition-colors hover:border-neutral-300;
+  }
+
+  .cd-metric-label {
+    @apply mb-1.5 text-[0.6875rem] font-bold uppercase tracking-wide text-neutral-500;
+  }
+
+  .cd-metric-value {
+    @apply text-[1.0625rem] font-bold leading-snug text-neutral-900;
+  }
+
+  .cd-list-card {
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-neutral-200 bg-white;
+  }
+
+  .cd-list-card-search {
+    @apply border-b border-neutral-200 px-3.5 pb-2.5 pt-3.5;
+  }
+
+  .cd-table-wrap {
+    @apply min-h-0 flex-1 overflow-auto;
+  }
+
+  .cd-table {
+    @apply w-full border-collapse text-sm;
+  }
+
+  .cd-table thead {
+    @apply sticky top-0 z-[1] bg-neutral-50;
+  }
+
+  .cd-table th {
+    @apply border-b border-neutral-200 px-4 py-3 text-left text-[0.6875rem] font-bold uppercase tracking-wide text-neutral-500;
+  }
+
+  .cd-table th.text-right {
+    text-align: right;
+  }
+
+  .cd-table td {
+    @apply border-b border-neutral-100 px-4 py-3 align-middle text-[0.9375rem] text-neutral-900;
+  }
+
+  .cd-table td.text-right {
+    text-align: right;
+  }
+
+  .cd-table tbody tr {
+    @apply cursor-pointer transition-colors hover:bg-neutral-50;
+  }
+
+  .cd-table tbody tr.is-selected {
+    @apply bg-blue-50;
+  }
+
+  .cd-table tbody tr.is-selected td:first-child {
+    box-shadow: inset 3px 0 0 #00529b;
+  }
+
+  .cd-detail-tabs {
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+  }
+
+  .cd-detail-tabs-nav {
+    @apply flex shrink-0 gap-6 border-b border-neutral-200 bg-white px-5;
+  }
+
+  .cd-detail-tab {
+    @apply -mb-px border-b-2 border-transparent py-3.5 text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-800;
+  }
+
+  .cd-detail-tab--active {
+    @apply border-neutral-900 font-bold text-neutral-900;
+  }
+
+  .cd-detail-tab-body {
+    @apply min-h-0 flex-1 overflow-hidden p-5;
+  }
+
+  .cd-detail-tab-body--table {
+    @apply flex flex-col p-5;
+  }
+
+  .cd-empty {
+    @apply flex flex-1 flex-col items-center justify-center gap-2 rounded-[10px] border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500;
+  }
+
+  .cd-toolbar {
+    @apply mb-3 flex flex-wrap items-center gap-3;
+  }
+
+  .cd-select {
+    @apply rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-800 focus:border-neutral-400 focus:outline-none;
+  }
+
+  .cd-btn-outline {
+    @apply inline-flex items-center gap-1.5 rounded-lg border border-kingsett-blue px-3 py-2 text-sm font-semibold text-kingsett-blue transition-colors hover:bg-blue-50;
+  }
+
+  .cd-btn-load-more {
+    @apply inline-flex min-w-40 items-center justify-center gap-2 rounded-full bg-kingsett-blue px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-kingsett-blue-dark disabled:opacity-75;
+  }
+
+  .cd-return-positive {
+    @apply font-semibold text-[#668c62];
+  }
+
+  .cd-return-negative {
+    @apply font-semibold text-[#661910];
+  }
+
+  .cd-return-neutral {
+    @apply font-medium text-neutral-500;
+  }
+
+  .cd-link-cell {
+    @apply cursor-pointer;
+  }
+
+  .cd-link-cell:hover .cd-link-primary {
+    @apply text-kingsett-blue underline;
+  }
+
+  .cd-link-primary {
+    @apply text-sm font-semibold text-neutral-900;
+  }
+
+  .cd-link-secondary {
+    @apply mt-0.5 text-xs text-neutral-500;
+  }
+}
+
+@media (max-width: 48rem) {
+  .cd-master-detail {
+    @apply gap-0 p-3;
+  }
+
+  .cd-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cd-detail-panel {
+    @apply hidden;
+  }
+
+  .cd-master-detail--detail-open .cd-list-panel {
+    @apply hidden;
+  }
+
+  .cd-master-detail--detail-open .cd-detail-panel {
+    @apply flex;
+  }
+
+  .cd-back-btn {
+    @apply mb-3 inline-flex items-center gap-1 text-sm font-semibold text-kingsett-blue;
+  }
+}
+
+@media (min-width: 48rem) {
+  .cd-back-btn {
+    @apply hidden;
+  }
+}

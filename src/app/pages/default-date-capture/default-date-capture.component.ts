@@ -1,9 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { NgSelectComponent } from '@ng-select/ng-select';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
-import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
+import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
+import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
+import {
+  toStatusSelectOptions,
+} from '../../core/utils/mortgage-status-filter.util';
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
+import { NotificationUnreadCountService } from '../../core/services/notification-unread-count.service';
 import {
   DefaultDateCaptureApiService,
   DefaultDateCaptureBulkUpdateRequest,
@@ -13,6 +21,8 @@ import {
   LoanSecurityValueApiService,
   LoanStatusFilterOption,
 } from '../../core/services/loan-security-value-api.service';
+import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
+import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 
 type AliasOption = {
   loanAliasId: number;
@@ -21,8 +31,8 @@ type AliasOption = {
 
 type DefaultDateRow = {
   loanKey: number;
-  loanId: string;
-  description: string;
+  loanCode: string;
+  loanName: string;
   loanAliasName: string;
   loanTermDefaultDate: string;
   defaultDate: string;
@@ -30,12 +40,36 @@ type DefaultDateRow = {
   userUpdatedDate: string;
 };
 
-const DEFAULT_STATUS_LABEL = 'Default';
+type DefaultDateColumnKey =
+  | 'loanCode'
+  | 'loanName'
+  | 'loanAliasName'
+  | 'loanTermDefaultDate'
+  | 'defaultDate'
+  | 'userUpdatedBy'
+  | 'userUpdatedDate';
+
+type DefaultDateTableColumn = {
+  key: DefaultDateColumnKey;
+  label: string;
+  editable?: boolean;
+  audit?: boolean;
+};
+
+const DEFAULT_DATE_TABLE_COLUMNS: DefaultDateTableColumn[] = [
+  { key: 'loanCode', label: 'Loan Code' },
+  { key: 'loanName', label: 'Loan Name' },
+  { key: 'loanAliasName', label: 'Loan Alias' },
+  { key: 'loanTermDefaultDate', label: 'Loan Term Default Date' },
+  { key: 'defaultDate', label: 'Default Date', editable: true },
+  { key: 'userUpdatedBy', label: 'Modified By', audit: true },
+  { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
+];
 
 @Component({
   selector: 'app-default-date-capture',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, NgSelectComponent],
   templateUrl: './default-date-capture.component.html',
   styleUrl: './default-date-capture.component.css',
 })
@@ -43,17 +77,24 @@ export class DefaultDateCaptureComponent implements OnInit {
   private readonly defaultDateApi = inject(DefaultDateCaptureApiService);
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
+  private readonly notificationUnreadCount = inject(NotificationUnreadCountService);
   private readonly defaultPageSize = 10;
-  private readonly userUpdatedBy = 'system';
+
+  readonly tableColumns = DEFAULT_DATE_TABLE_COLUMNS;
 
   readonly aliasOptions = signal<AliasOption[]>([]);
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
   readonly searchText = signal('');
-  readonly selectedLoanAliasIds = signal<number[]>([]);
+  readonly sortColumn = signal<DefaultDateColumnKey | null>(null);
+  readonly sortDirection = signal<'asc' | 'desc'>('asc');
+  readonly selectedAliasNames = signal<string[]>([]);
   readonly selectedStatuses = signal<string[]>([]);
 
   readonly rows = signal<DefaultDateRow[]>([]);
-  readonly originalRowState = signal<Record<number, string>>({});
+  readonly originalRowState = signal<Record<string, string>>({});
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
@@ -68,28 +109,80 @@ export class DefaultDateCaptureComponent implements OnInit {
   }
 
   readonly selectedAliases = computed(() => {
-    const ids = new Set(this.selectedLoanAliasIds());
-    return this.aliasOptions().filter((a) => ids.has(a.loanAliasId));
+    const names = new Set(this.selectedAliasNames().map((n) => n.toLowerCase()));
+    return this.aliasOptions().filter((a) => names.has(a.loanAliasName.toLowerCase()));
   });
+
+  readonly aliasSelectOptions = computed(() =>
+    this.aliasOptions().map((alias) => ({
+      label: alias.loanAliasName,
+      value: alias.loanAliasName,
+    })),
+  );
+
+  readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
 
   readonly searchedAliasOptions = computed(() => {
     const keyword = this.searchText().trim().toLowerCase();
     if (!keyword) {
       return [];
     }
-    const selectedIds = new Set(this.selectedLoanAliasIds());
+
+    const selectedNames = new Set(this.selectedAliasNames().map((n) => n.toLowerCase()));
     return this.aliasOptions().filter(
-      (a) => !selectedIds.has(a.loanAliasId) && a.loanAliasName.toLowerCase().includes(keyword),
+      (a) =>
+        !selectedNames.has(a.loanAliasName.toLowerCase()) &&
+        a.loanAliasName.toLowerCase().includes(keyword),
     );
   });
 
+  readonly filteredRows = computed(() => {
+    const selectedNames = this.selectedAliasNames();
+    const keyword = this.searchText();
+
+    let rows = this.rows();
+
+    if (selectedNames.length > 0) {
+      const nameSet = new Set(selectedNames.map((n) => n.toLowerCase()));
+      rows = rows.filter((row) => nameSet.has(row.loanAliasName.trim().toLowerCase()));
+    }
+
+    rows = filterRowsByTableSearch(
+      rows,
+      keyword,
+      this.tableColumns,
+      (row, key) => this.getCellDisplayValue(row, key),
+    );
+
+    const activeSort = this.sortColumn();
+    if (activeSort) {
+      const direction = this.sortDirection() === 'asc' ? 1 : -1;
+      rows = [...rows].sort(
+        (left, right) => this.compareRows(left, right, activeSort) * direction,
+      );
+    }
+
+    return rows;
+  });
+
+  readonly gridLoadMessage = computed(() =>
+    buildMortgageGridLoadMessage({
+      isLoading: this.isLoadingGrid() || this.isLoadingFilters(),
+      totalRows: this.rows().length,
+      visibleRows: this.filteredRows().length,
+      hasClientFilter:
+        this.selectedAliasNames().length > 0 || this.searchText().trim().length > 0,
+      emptyMessage: 'No loans returned for the selected filters.',
+    }),
+  );
+
   readonly totalPages = computed(() => {
-    const total = this.rows().length;
+    const total = this.filteredRows().length;
     return total === 0 ? 1 : Math.ceil(total / this.pageSize());
   });
 
   readonly paginatedRows = computed(() => {
-    const rows = this.rows();
+    const rows = this.filteredRows();
     const pageSize = this.pageSize();
     const maxPage = this.totalPages();
     const safePage = Math.max(1, Math.min(this.currentPage(), maxPage));
@@ -101,7 +194,7 @@ export class DefaultDateCaptureComponent implements OnInit {
   });
 
   readonly pageRangeLabel = computed(() => {
-    const total = this.rows().length;
+    const total = this.filteredRows().length;
     if (total === 0) {
       return '0 - 0 of 0';
     }
@@ -114,35 +207,82 @@ export class DefaultDateCaptureComponent implements OnInit {
 
   updateSearch(value: string): void {
     this.searchText.set(value);
+    this.currentPage.set(1);
     this.clearMessages();
+  }
+
+  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
+  onLoanSearch(event: { term: string } | string | null): void {
+    const term = typeof event === 'string' ? event : (event?.term ?? '');
+    if (!term.trim() && this.suppressEmptySearchClear) {
+      return;
+    }
+    this.updateSearch(term);
+  }
+
+  updateSelectedAliases(names: string[] | null): void {
+    this.suppressEmptySearchClear = true;
+    this.selectedAliasNames.set(names ?? []);
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
+    queueMicrotask(() => {
+      this.suppressEmptySearchClear = false;
+    });
+  }
+
+  updateSelectedStatuses(statuses: string[] | null): void {
+    this.selectedStatuses.set(statuses ?? []);
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
   }
 
   selectAlias(alias: AliasOption): void {
-    if (this.selectedLoanAliasIds().includes(alias.loanAliasId)) {
+    const name = alias.loanAliasName.trim();
+    if (!name || this.selectedAliasNames().includes(name)) {
       return;
     }
-    this.selectedLoanAliasIds.set([...this.selectedLoanAliasIds(), alias.loanAliasId]);
+    this.selectedAliasNames.set([...this.selectedAliasNames(), name]);
     this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
   }
 
-  removeSelectedAlias(loanAliasId: number): void {
-    this.selectedLoanAliasIds.set(
-      this.selectedLoanAliasIds().filter((id) => id !== loanAliasId),
+  removeSelectedAlias(loanAliasName: string): void {
+    this.selectedAliasNames.set(
+      this.selectedAliasNames().filter((name) => name !== loanAliasName),
     );
     this.currentPage.set(1);
     this.clearMessages();
-    this.loadGrid();
   }
 
-  clearAliasSelection(): void {
+  clearSelection(): void {
     this.searchText.set('');
-    this.selectedLoanAliasIds.set([]);
+    this.selectedAliasNames.set([]);
+    this.selectedStatuses.set([]);
+    this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
+  }
+
+  toggleSort(column: DefaultDateColumnKey): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+    this.currentPage.set(1);
+  }
+
+  sortIndicator(column: DefaultDateColumnKey): string {
+    if (this.sortColumn() !== column) {
+      return '↕';
+    }
+    return this.sortDirection() === 'asc' ? '↑' : '↓';
   }
 
   toggleStatus(statusValue: string): void {
@@ -160,18 +300,60 @@ export class DefaultDateCaptureComponent implements OnInit {
     return this.selectedStatuses().includes(statusValue);
   }
 
-  updateDefaultDate(loanKey: number, value: string): void {
+  updateDefaultDate(loanCode: string, value: string): void {
     const normalized = value.trim();
     this.rows.set(
       this.rows().map((row) =>
-        row.loanKey === loanKey ? { ...row, defaultDate: normalized } : row,
+        row.loanCode === loanCode ? { ...row, defaultDate: normalized } : row,
       ),
     );
     this.clearMessages();
   }
 
+  formatDisplayDate(value: string): string {
+    if (!value?.trim()) {
+      return '—';
+    }
+    const iso = this.toDateInputValue(value);
+    if (!iso) {
+      return value;
+    }
+    const [y, m, d] = iso.split('-');
+    return `${m}/${d}/${y}`;
+  }
+
+  formatModifiedDate(value: string): string {
+    return formatAuditModifiedDate(value);
+  }
+
+  displayModifiedBy(value: string): string {
+    const trimmed = value?.trim();
+    return trimmed && trimmed !== '-' ? trimmed : '—';
+  }
+
+  getCellDisplayValue(row: DefaultDateRow, column: DefaultDateColumnKey): string {
+    switch (column) {
+      case 'loanCode':
+        return row.loanCode;
+      case 'loanName':
+        return row.loanName;
+      case 'loanAliasName':
+        return row.loanAliasName;
+      case 'loanTermDefaultDate':
+        return this.formatDisplayDate(row.loanTermDefaultDate);
+      case 'defaultDate':
+        return this.formatDisplayDate(row.defaultDate);
+      case 'userUpdatedBy':
+        return this.displayModifiedBy(row.userUpdatedBy);
+      case 'userUpdatedDate':
+        return this.formatModifiedDate(row.userUpdatedDate);
+      default:
+        return '';
+    }
+  }
+
   saveChanges(): void {
-    if (this.isSaving() || !this.rows().length) {
+    if (this.isSaving()) {
       return;
     }
 
@@ -182,26 +364,45 @@ export class DefaultDateCaptureComponent implements OnInit {
       return;
     }
 
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      this.statusMessage.set('');
+      return;
+    }
+
     const request: DefaultDateCaptureBulkUpdateRequest = {
       loans: changedRows.map((row) => ({
         loanKey: row.loanKey,
+        loanCode: row.loanCode,
         defaultDate: row.defaultDate || null,
-        userUpdatedBy: this.userUpdatedBy,
+        userUpdatedBy,
       })),
     };
 
     this.isSaving.set(true);
-    this.statusMessage.set('');
+    this.statusMessage.set('Saving changes...');
     this.errorMessage.set('');
 
     this.defaultDateApi.saveDefaultDates(request).subscribe({
       next: () => {
+        const now = new Date().toISOString();
+        const savedCodes = new Set(changedRows.map((row) => row.loanCode));
+        this.rows.set(
+          this.rows().map((row) =>
+            savedCodes.has(row.loanCode)
+              ? { ...row, userUpdatedBy, userUpdatedDate: now }
+              : row,
+          ),
+        );
         this.snapshotOriginalState();
         this.statusMessage.set(`${changedRows.length} loan(s) updated successfully.`);
+        this.errorMessage.set('');
         this.isSaving.set(false);
-        this.loadGrid();
+        this.notificationUnreadCount.refresh();
       },
       error: (error) => {
+        this.statusMessage.set('');
         this.errorMessage.set(this.extractBackendError(error));
         this.isSaving.set(false);
       },
@@ -224,18 +425,6 @@ export class DefaultDateCaptureComponent implements OnInit {
     this.currentPage.set(1);
   }
 
-  formatDisplayDate(value: string): string {
-    if (!value?.trim()) {
-      return '-';
-    }
-    const iso = this.toDateInputValue(value);
-    if (!iso) {
-      return value;
-    }
-    const [y, m, d] = iso.split('-');
-    return `${m}/${d}/${y}`;
-  }
-
   private loadFilters(): void {
     this.isLoadingFilters.set(true);
     this.errorMessage.set('');
@@ -245,26 +434,11 @@ export class DefaultDateCaptureComponent implements OnInit {
       statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
     }).subscribe({
       next: ({ aliases, statuses }) => {
-        this.aliasOptions.set(
-          aliases
-            .map((a) => ({
-              loanAliasId: Number(a.loanAliasId ?? a.loanAliasKey ?? 0),
-              loanAliasName: a.loanAliasName?.trim() || '-',
-            }))
-            .filter((a) => a.loanAliasId > 0)
-            .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
-        );
+        this.aliasOptions.set(this.normalizeAliases(aliases));
         this.statusOptions.set(this.normalizeStatusOptions(statuses));
-        this.selectedStatuses.set(this.resolveDefaultStatusValues(this.statusOptions()));
+        this.selectedStatuses.set([]);
         this.isLoadingFilters.set(false);
-
-        if (!this.aliasOptions().length) {
-          this.errorMessage.set(
-            'Unable to load loan alias list. Verify GET /api/LoanAlias and CORS.',
-          );
-        } else {
-          this.loadGrid();
-        }
+        this.loadGrid();
       },
       error: () => {
         this.isLoadingFilters.set(false);
@@ -273,48 +447,19 @@ export class DefaultDateCaptureComponent implements OnInit {
     });
   }
 
-  /** Selected alias tags, or all aliases from GET /api/LoanAlias when none selected. */
-  private resolveLoanAliasIds(): number[] {
-    const selected = this.selectedLoanAliasIds();
-    if (selected.length > 0) {
-      return selected;
-    }
-    return this.aliasOptions().map((a) => a.loanAliasId).filter((id) => id > 0);
-  }
-
   private loadGrid(): void {
-    const loanAliasIds = this.resolveLoanAliasIds();
     const statuses = this.selectedStatuses();
-
-    if (!loanAliasIds.length) {
-      this.rows.set([]);
-      this.originalRowState.set({});
-      this.statusMessage.set('No loan aliases available to load.');
-      return;
-    }
-
-    if (!statuses.length) {
-      this.rows.set([]);
-      this.originalRowState.set({});
-      this.statusMessage.set('Select at least one status to load loans.');
-      return;
-    }
 
     this.isLoadingGrid.set(true);
     this.errorMessage.set('');
     this.statusMessage.set('');
 
-    this.defaultDateApi.getLoans(loanAliasIds, statuses).subscribe({
+    this.defaultDateApi.getLoans(statuses).subscribe({
       next: (records) => {
         const mapped = records.map((r) => this.mapRow(r));
         this.rows.set(mapped);
         this.currentPage.set(1);
         this.snapshotOriginalState();
-        this.statusMessage.set(
-          mapped.length > 0
-            ? `${mapped.length} loan(s) loaded.`
-            : 'No loans returned for the selected filters.',
-        );
         this.isLoadingGrid.set(false);
       },
       error: (error) => {
@@ -329,28 +474,86 @@ export class DefaultDateCaptureComponent implements OnInit {
   private mapRow(record: DefaultDateCaptureRowDto): DefaultDateRow {
     const loanTerm = this.toDateInputValue(record.loanTermDefaultDate);
     const stored = this.toDateInputValue(record.defaultDate);
+    const loanCode = record.loanId?.trim() || '';
     return {
-      loanKey: Number(record.loanKey),
-      loanId: record.loanId?.trim() || '-',
-      description: record.description?.trim() || '-',
-      loanAliasName: record.loanAliasName?.trim() || '-',
+      loanKey: Number(record.loanKey) > 0 ? Number(record.loanKey) : 0,
+      loanCode: loanCode || '-',
+      loanName: record.description?.trim() || '—',
+      loanAliasName: record.loanAliasName?.trim() || '—',
       loanTermDefaultDate: loanTerm,
       defaultDate: stored || loanTerm,
-      userUpdatedBy: record.userUpdatedBy?.trim() || '-',
+      userUpdatedBy: record.userUpdatedBy?.trim() ?? '',
       userUpdatedDate: record.userUpdatedDate ?? '',
     };
   }
 
+  private normalizeAliases(aliases: LoanAlias[]): AliasOption[] {
+    return aliases
+      .map((a) => ({
+        loanAliasId: Number(a.loanAliasId ?? a.loanAliasKey ?? 0),
+        loanAliasName: a.loanAliasName?.trim() || '',
+      }))
+      .filter((a) => a.loanAliasId > 0 && a.loanAliasName.length > 0)
+      .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName));
+  }
+
   private snapshotOriginalState(): void {
-    const snapshot: Record<number, string> = {};
+    const snapshot: Record<string, string> = {};
     for (const row of this.rows()) {
-      snapshot[row.loanKey] = row.defaultDate;
+      snapshot[row.loanCode] = row.defaultDate;
     }
     this.originalRowState.set(snapshot);
   }
 
+  private revertUnsavedChanges(): void {
+    const original = this.originalRowState();
+    this.rows.update((rows) =>
+      rows.map((row) => {
+        const stored = original[row.loanCode];
+        return stored !== undefined ? { ...row, defaultDate: stored } : row;
+      }),
+    );
+  }
+
   private hasRowChanged(row: DefaultDateRow): boolean {
-    return row.defaultDate !== (this.originalRowState()[row.loanKey] ?? '');
+    return row.defaultDate !== (this.originalRowState()[row.loanCode] ?? '');
+  }
+
+  private compareRows(
+    left: DefaultDateRow,
+    right: DefaultDateRow,
+    column: DefaultDateColumnKey,
+  ): number {
+    switch (column) {
+      case 'loanCode':
+        return left.loanCode.localeCompare(right.loanCode, undefined, { sensitivity: 'base' });
+      case 'loanName':
+        return left.loanName.localeCompare(right.loanName, undefined, { sensitivity: 'base' });
+      case 'loanAliasName':
+        return left.loanAliasName.localeCompare(right.loanAliasName, undefined, {
+          sensitivity: 'base',
+        });
+      case 'loanTermDefaultDate':
+        return this.dateSortValue(left.loanTermDefaultDate) - this.dateSortValue(right.loanTermDefaultDate);
+      case 'defaultDate':
+        return this.dateSortValue(left.defaultDate) - this.dateSortValue(right.defaultDate);
+      case 'userUpdatedBy':
+        return left.userUpdatedBy.localeCompare(right.userUpdatedBy, undefined, {
+          sensitivity: 'base',
+        });
+      case 'userUpdatedDate':
+        return this.dateSortValue(left.userUpdatedDate) - this.dateSortValue(right.userUpdatedDate);
+      default:
+        return 0;
+    }
+  }
+
+  private dateSortValue(value: string): number {
+    if (!value?.trim()) {
+      return 0;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
   }
 
   private toDateInputValue(value: string | null | undefined): string {
@@ -382,18 +585,6 @@ export class DefaultDateCaptureComponent implements OnInit {
       value: String(row['value'] ?? '').trim(),
       displayLabel: String(row['displayLabel'] ?? row['value'] ?? '').trim(),
     }));
-  }
-
-  private resolveDefaultStatusValues(options: LoanStatusFilterOption[]): string[] {
-    if (!options.length) {
-      return [];
-    }
-    const preferred = options.find(
-      (o) =>
-        o.displayLabel.toLowerCase() === DEFAULT_STATUS_LABEL.toLowerCase() ||
-        o.displayLabel.toLowerCase() === 'in default',
-    );
-    return [preferred?.value ?? options.find((o) => o.value !== '(null)')?.value ?? options[0].value];
   }
 
   private extractBackendError(error: unknown): string {

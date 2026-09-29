@@ -1,0 +1,34 @@
+.mortgage-home__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 1rem;
+}
+
+.mortgage-home__card {
+  display: block;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--ks-color-border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: var(--ks-color-white, #fff);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mortgage-home__card:hover {
+  border-color: var(--ks-color-primary, #c8922a);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--ks-color-navy, #0b1f3a) 8%, transparent);
+}
+
+.mortgage-home__card-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ks-color-navy, #0b1f3a);
+}
+
+.mortgage-home__card-text {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ks-color-blue, #4a6fa5);
+}

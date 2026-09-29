@@ -1,18 +1,36 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { NgSelectComponent } from '@ng-select/ng-select';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
+import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
+import {
+  formatCurrencyDisplay,
+  parseCurrencyInput,
+} from '../../core/utils/mortgage-currency-input.util';
+import {
+  toStatusSelectOptions,
+} from '../../core/utils/mortgage-status-filter.util';
+import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import {
   OtherCostCaptureApiService,
   OtherCostCaptureBulkUpdateRequest,
   OtherCostCaptureRowDto,
 } from '../../core/services/other-cost-capture-api.service';
+import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 import {
   LoanSecurityValueApiService,
   LoanStatusFilterOption,
 } from '../../core/services/loan-security-value-api.service';
+
+type AliasOption = {
+  loanAliasId: number;
+  loanAliasName: string;
+};
 
 type EditableCosts = {
   outstandingInvoices: number | null;
@@ -22,20 +40,46 @@ type EditableCosts = {
 
 type OtherCostRow = {
   loanKey: number;
-  loanId: string;
-  description: string;
+  loanCode: string;
+  loanName: string;
   loanAliasName: string;
 } & EditableCosts & {
     userUpdatedBy: string;
     userUpdatedDate: string;
   };
 
-const DEFAULT_STATUS_LABEL = 'Default';
+type OtherCostColumnKey =
+  | 'loanCode'
+  | 'loanName'
+  | 'loanAliasName'
+  | 'outstandingInvoices'
+  | 'estRealizationCosts'
+  | 'costToComplete'
+  | 'userUpdatedBy'
+  | 'userUpdatedDate';
+
+type OtherCostTableColumn = {
+  key: OtherCostColumnKey;
+  label: string;
+  numeric?: boolean;
+  audit?: boolean;
+};
+
+const OTHER_COST_TABLE_COLUMNS: OtherCostTableColumn[] = [
+  { key: 'loanCode', label: 'Loan Code' },
+  { key: 'loanName', label: 'Loan Name' },
+  { key: 'loanAliasName', label: 'Loan Alias' },
+  { key: 'outstandingInvoices', label: 'Outstanding Invoice', numeric: true },
+  { key: 'estRealizationCosts', label: 'Est Realization Costs', numeric: true },
+  { key: 'costToComplete', label: 'Cost to Complete', numeric: true },
+  { key: 'userUpdatedBy', label: 'Modified By', audit: true },
+  { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
+];
 
 @Component({
   selector: 'app-other-cost-capture',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, NgSelectComponent],
   templateUrl: './other-cost-capture.component.html',
   styleUrl: './other-cost-capture.component.css',
 })
@@ -43,16 +87,25 @@ export class OtherCostCaptureComponent implements OnInit {
   private readonly otherCostApi = inject(OtherCostCaptureApiService);
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
+  private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly defaultPageSize = 10;
-  private readonly userUpdatedBy = 'system';
 
-  readonly aliasOptions = signal<LoanAlias[]>([]);
+  readonly tableColumns = OTHER_COST_TABLE_COLUMNS;
+
+  readonly aliasOptions = signal<AliasOption[]>([]);
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
-  readonly selectedLoanAliasId = signal<number | null>(null);
+  readonly searchText = signal('');
+  readonly sortColumn = signal<OtherCostColumnKey | null>(null);
+  readonly sortDirection = signal<'asc' | 'desc'>('asc');
+  readonly selectedLoanAliasIds = signal<number[]>([]);
   readonly selectedStatuses = signal<string[]>([]);
 
   readonly rows = signal<OtherCostRow[]>([]);
-  readonly originalRowState = signal<Record<number, EditableCosts>>({});
+  readonly originalRowState = signal<Record<string, EditableCosts>>({});
+  /** Raw in-progress text for currency inputs (avoids reformat-on-keystroke). */
+  readonly currencyFieldText = signal<Record<string, string>>({});
+  /** Ignores the empty search emit ng-select fires right after selecting a chip. */
+  private suppressEmptySearchClear = false;
 
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
@@ -62,21 +115,90 @@ export class OtherCostCaptureComponent implements OnInit {
   readonly currentPage = signal(1);
   readonly pageSize = signal(this.defaultPageSize);
 
-  readonly selectedAliasName = computed(() => {
-    const id = this.selectedLoanAliasId();
-    if (id == null) {
-      return '';
-    }
-    return this.aliasOptions().find((a) => this.getAliasId(a) === id)?.loanAliasName ?? '';
+  ngOnInit(): void {
+    this.loadFilters();
+  }
+
+  readonly selectedAliases = computed(() => {
+    const selectedIds = new Set(this.selectedLoanAliasIds());
+    return this.aliasOptions().filter((alias) => selectedIds.has(alias.loanAliasId));
   });
 
+  readonly aliasSelectOptions = computed(() =>
+    this.aliasOptions().map((alias) => ({
+      label: alias.loanAliasName,
+      value: alias.loanAliasId,
+    })),
+  );
+
+  readonly statusSelectOptions = computed(() => toStatusSelectOptions(this.statusOptions()));
+
+  readonly searchedAliasOptions = computed(() => {
+    const keyword = this.searchText().trim().toLowerCase();
+    if (!keyword) {
+      return [];
+    }
+
+    const selectedIds = new Set(this.selectedLoanAliasIds());
+    return this.aliasOptions().filter((alias) => {
+      if (selectedIds.has(alias.loanAliasId)) {
+        return false;
+      }
+      return alias.loanAliasName.toLowerCase().includes(keyword);
+    });
+  });
+
+  readonly filteredRows = computed(() => {
+    const selectedIds = this.selectedLoanAliasIds();
+    const keyword = this.searchText();
+    const selectedAliasNames = new Set(
+      this.selectedAliases().map((alias) => alias.loanAliasName.trim().toLowerCase()),
+    );
+
+    let rows = this.rows();
+
+    if (selectedIds.length > 0) {
+      rows = rows.filter((row) =>
+        selectedAliasNames.has(row.loanAliasName.trim().toLowerCase()),
+      );
+    }
+
+    rows = filterRowsByTableSearch(
+      rows,
+      keyword,
+      this.tableColumns,
+      (row, key) => this.getCellDisplayValue(row, key),
+    );
+
+    const activeSort = this.sortColumn();
+    if (activeSort) {
+      const direction = this.sortDirection() === 'asc' ? 1 : -1;
+      rows = [...rows].sort(
+        (left, right) => this.compareRows(left, right, activeSort) * direction,
+      );
+    }
+
+    return rows;
+  });
+
+  readonly gridLoadMessage = computed(() =>
+    buildMortgageGridLoadMessage({
+      isLoading: this.isLoadingGrid() || this.isLoadingFilters(),
+      totalRows: this.rows().length,
+      visibleRows: this.filteredRows().length,
+      hasClientFilter:
+        this.selectedLoanAliasIds().length > 0 || this.searchText().trim().length > 0,
+      emptyMessage: 'No loans returned for the selected filters.',
+    }),
+  );
+
   readonly totalPages = computed(() => {
-    const total = this.rows().length;
+    const total = this.filteredRows().length;
     return total === 0 ? 1 : Math.ceil(total / this.pageSize());
   });
 
   readonly paginatedRows = computed(() => {
-    const rows = this.rows();
+    const rows = this.filteredRows();
     const pageSize = this.pageSize();
     const maxPage = this.totalPages();
     const safePage = Math.max(1, Math.min(this.currentPage(), maxPage));
@@ -88,7 +210,7 @@ export class OtherCostCaptureComponent implements OnInit {
   });
 
   readonly pageRangeLabel = computed(() => {
-    const total = this.rows().length;
+    const total = this.filteredRows().length;
     if (total === 0) {
       return '0 - 0 of 0';
     }
@@ -99,16 +221,73 @@ export class OtherCostCaptureComponent implements OnInit {
     return `${start} - ${end} of ${total}`;
   });
 
-  ngOnInit(): void {
-    this.loadFilters();
+  updateSearch(value: string): void {
+    this.searchText.set(value);
+    this.currentPage.set(1);
+    this.clearMessages();
   }
 
-  onLoanAliasChange(value: string): void {
-    const parsed = Number(value);
-    this.selectedLoanAliasId.set(Number.isFinite(parsed) && parsed > 0 ? parsed : null);
+  /** Live typeahead → grid filter (keeps last term when ng-select clears search after a chip select). */
+  onLoanSearch(event: { term: string } | string | null): void {
+    const term = typeof event === 'string' ? event : (event?.term ?? '');
+    if (!term.trim() && this.suppressEmptySearchClear) {
+      return;
+    }
+    this.updateSearch(term);
+  }
+
+  updateSelectedAliases(ids: number[] | null): void {
+    this.suppressEmptySearchClear = true;
+    this.selectedLoanAliasIds.set(ids ?? []);
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
+    queueMicrotask(() => {
+      this.suppressEmptySearchClear = false;
+    });
+  }
+
+  updateSelectedStatuses(statuses: string[] | null): void {
+    this.selectedStatuses.set(statuses ?? []);
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
+  }
+
+  selectAlias(alias: AliasOption): void {
+    if (this.selectedLoanAliasIds().includes(alias.loanAliasId)) {
+      return;
+    }
+    this.selectedLoanAliasIds.set([...this.selectedLoanAliasIds(), alias.loanAliasId]);
+    this.searchText.set('');
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
+  }
+
+  removeSelectedAlias(loanAliasId: number): void {
+    this.selectedLoanAliasIds.set(
+      this.selectedLoanAliasIds().filter((id) => id !== loanAliasId),
+    );
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  toggleSort(column: OtherCostColumnKey): void {
+    if (this.sortColumn() === column) {
+      this.sortDirection.update((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortColumn.set(column);
+      this.sortDirection.set('asc');
+    }
+    this.currentPage.set(1);
+  }
+
+  sortIndicator(column: OtherCostColumnKey): string {
+    if (this.sortColumn() !== column) {
+      return '↕';
+    }
+    return this.sortDirection() === 'asc' ? '↑' : '↓';
   }
 
   toggleStatus(statusValue: string): void {
@@ -126,22 +305,85 @@ export class OtherCostCaptureComponent implements OnInit {
     return this.selectedStatuses().includes(statusValue);
   }
 
-  updateCostField(
-    loanKey: number,
-    field: keyof EditableCosts,
-    rawValue: string,
-  ): void {
-    const parsed = this.parseNumericInput(rawValue);
-    this.rows.set(
-      this.rows().map((row) =>
-        row.loanKey === loanKey ? { ...row, [field]: parsed } : row,
-      ),
-    );
+  updateCostField(loanCode: string, field: keyof EditableCosts, rawValue: string): void {
+    const key = `${loanCode}|${field}`;
+    this.currencyFieldText.update((current) => ({ ...current, [key]: rawValue }));
     this.clearMessages();
   }
 
+  currencyInputDisplay(loanCode: string, field: keyof EditableCosts, value: number | null): string {
+    const key = `${loanCode}|${field}`;
+    const pending = this.currencyFieldText()[key];
+    if (pending !== undefined) {
+      return pending;
+    }
+    return formatCurrencyDisplay(value, 0);
+  }
+
+  commitCostField(loanCode: string, field: keyof EditableCosts, input: HTMLInputElement): void {
+    const key = `${loanCode}|${field}`;
+    const raw = this.currencyFieldText()[key] ?? input.value;
+    const parsed = parseCurrencyInput(raw);
+    this.rows.set(
+      this.rows().map((row) => (row.loanCode === loanCode ? { ...row, [field]: parsed } : row)),
+    );
+    this.currencyFieldText.update((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+    input.value = formatCurrencyDisplay(parsed, 0);
+    this.clearMessages();
+  }
+
+  formatCurrencyInput(value: number | null): string {
+    return formatCurrencyDisplay(value, 0);
+  }
+
+  formatModifiedDate(value: string): string {
+    return formatAuditModifiedDate(value);
+  }
+
+  displayModifiedBy(value: string): string {
+    const trimmed = value?.trim();
+    return trimmed && trimmed !== '-' ? trimmed : '—';
+  }
+
+  getCellDisplayValue(row: OtherCostRow, column: OtherCostColumnKey): string {
+    switch (column) {
+      case 'loanCode':
+        return row.loanCode;
+      case 'loanName':
+        return row.loanName;
+      case 'loanAliasName':
+        return row.loanAliasName;
+      case 'outstandingInvoices':
+        return this.formatCurrencyInput(row.outstandingInvoices);
+      case 'estRealizationCosts':
+        return this.formatCurrencyInput(row.estRealizationCosts);
+      case 'costToComplete':
+        return this.formatCurrencyInput(row.costToComplete);
+      case 'userUpdatedBy':
+        return this.displayModifiedBy(row.userUpdatedBy);
+      case 'userUpdatedDate':
+        return this.formatModifiedDate(row.userUpdatedDate);
+      default:
+        return '';
+    }
+  }
+
+  clearSelection(): void {
+    this.searchText.set('');
+    this.selectedLoanAliasIds.set([]);
+    this.selectedStatuses.set([]);
+    this.revertUnsavedChanges();
+    this.currentPage.set(1);
+    this.clearMessages();
+    this.loadGrid();
+  }
+
   saveChanges(): void {
-    if (this.isSaving() || !this.rows().length) {
+    if (this.isSaving()) {
       return;
     }
 
@@ -152,13 +394,21 @@ export class OtherCostCaptureComponent implements OnInit {
       return;
     }
 
+    const userUpdatedBy = this.currentAppUser.getUpdatedBy();
+    if (!userUpdatedBy) {
+      this.errorMessage.set(this.currentAppUser.registrationRequiredMessage);
+      this.statusMessage.set('');
+      return;
+    }
+
     const request: OtherCostCaptureBulkUpdateRequest = {
       loans: changedRows.map((row) => ({
         loanKey: row.loanKey,
+        loanCode: row.loanCode,
         outstandingInvoices: row.outstandingInvoices,
         estRealizationCosts: row.estRealizationCosts,
         costToComplete: row.costToComplete,
-        userUpdatedBy: this.userUpdatedBy,
+        userUpdatedBy,
       })),
     };
 
@@ -168,11 +418,19 @@ export class OtherCostCaptureComponent implements OnInit {
 
     this.otherCostApi.saveCosts(request).subscribe({
       next: () => {
+        const now = new Date().toISOString();
+        const savedCodes = new Set(changedRows.map((row) => row.loanCode));
+        this.rows.set(
+          this.rows().map((row) =>
+            savedCodes.has(row.loanCode)
+              ? { ...row, userUpdatedBy, userUpdatedDate: now }
+              : row,
+          ),
+        );
         this.snapshotOriginalState();
         this.statusMessage.set(`${changedRows.length} loan(s) updated successfully.`);
         this.errorMessage.set('');
         this.isSaving.set(false);
-        this.loadGrid();
       },
       error: (error) => {
         this.statusMessage.set('');
@@ -198,41 +456,6 @@ export class OtherCostCaptureComponent implements OnInit {
     this.currentPage.set(1);
   }
 
-  formatCurrency(value: number | null): string {
-    if (value == null || !Number.isFinite(value)) {
-      return '';
-    }
-    return new Intl.NumberFormat('en-CA', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(value);
-  }
-
-  formatNumber(value: number | null): string {
-    if (value == null || !Number.isFinite(value)) {
-      return '';
-    }
-    return String(value);
-  }
-
-  formatDate(value: string): string {
-    if (!value?.trim()) {
-      return '-';
-    }
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) {
-      return value;
-    }
-    const month = String(parsed.getMonth() + 1).padStart(2, '0');
-    const day = String(parsed.getDate()).padStart(2, '0');
-    const year = parsed.getFullYear();
-    return `${month}/${day}/${year}`;
-  }
-
-  getAliasId(alias: LoanAlias): number {
-    return Number(alias.loanAliasId ?? alias.loanAliasKey ?? 0);
-  }
-
   private loadFilters(): void {
     this.isLoadingFilters.set(true);
     this.errorMessage.set('');
@@ -243,13 +466,17 @@ export class OtherCostCaptureComponent implements OnInit {
     }).subscribe({
       next: ({ aliases, statuses }) => {
         this.aliasOptions.set(
-          aliases.filter((a) => this.getAliasId(a) > 0).sort((a, b) =>
-            a.loanAliasName.localeCompare(b.loanAliasName),
-          ),
+          aliases
+            .map((record) => ({
+              loanAliasId: Number(record.loanAliasId ?? record.loanAliasKey ?? 0),
+              loanAliasName: record.loanAliasName?.trim() ?? '',
+            }))
+            .filter((alias) => alias.loanAliasId > 0 && alias.loanAliasName.length > 0)
+            .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
         );
         this.statusOptions.set(this.normalizeStatusOptions(statuses));
-        this.selectedStatuses.set(this.resolveDefaultStatusValues(this.statusOptions()));
         this.isLoadingFilters.set(false);
+        this.loadGrid();
       },
       error: () => {
         this.isLoadingFilters.set(false);
@@ -259,38 +486,19 @@ export class OtherCostCaptureComponent implements OnInit {
   }
 
   private loadGrid(): void {
-    const loanAliasId = this.selectedLoanAliasId();
     const statuses = this.selectedStatuses();
-
-    if (loanAliasId == null) {
-      this.rows.set([]);
-      this.originalRowState.set({});
-      this.statusMessage.set('Select a loan alias to load loan syndicate details.');
-      return;
-    }
-
-    if (!statuses.length) {
-      this.rows.set([]);
-      this.originalRowState.set({});
-      this.statusMessage.set('Select at least one status to load loans.');
-      return;
-    }
 
     this.isLoadingGrid.set(true);
     this.errorMessage.set('');
     this.statusMessage.set('');
 
-    this.otherCostApi.getLoans(loanAliasId, statuses).subscribe({
+    this.otherCostApi.getLoans(statuses).subscribe({
       next: (records) => {
-        const mapped = records.map((r) => this.mapRow(r));
+        const mapped = records.map((record) => this.mapRow(record));
         this.rows.set(mapped);
+        this.currencyFieldText.set({});
         this.currentPage.set(1);
         this.snapshotOriginalState();
-        this.statusMessage.set(
-          mapped.length > 0
-            ? `${mapped.length} loan(s) loaded.`
-            : 'No loans returned for the selected filters.',
-        );
         this.isLoadingGrid.set(false);
       },
       error: (error) => {
@@ -304,15 +512,16 @@ export class OtherCostCaptureComponent implements OnInit {
   }
 
   private mapRow(record: OtherCostCaptureRowDto): OtherCostRow {
+    const loanCode = record.loanId?.trim() || '';
     return {
-      loanKey: Number(record.loanKey),
-      loanId: record.loanId?.trim() || '-',
-      description: record.description?.trim() || '-',
-      loanAliasName: record.loanAliasName?.trim() || this.selectedAliasName() || '-',
+      loanKey: Number(record.loanKey) > 0 ? Number(record.loanKey) : 0,
+      loanCode: loanCode || '-',
+      loanName: record.description?.trim() || '—',
+      loanAliasName: record.loanAliasName?.trim() || '—',
       outstandingInvoices: this.toNumber(record.outstandingInvoices),
       estRealizationCosts: this.toNumber(record.estRealizationCosts),
       costToComplete: this.toNumber(record.costToComplete),
-      userUpdatedBy: record.userUpdatedBy?.trim() || '-',
+      userUpdatedBy: record.userUpdatedBy?.trim() ?? '',
       userUpdatedDate: record.userUpdatedDate ?? '',
     };
   }
@@ -330,22 +539,10 @@ export class OtherCostCaptureComponent implements OnInit {
     }));
   }
 
-  private resolveDefaultStatusValues(options: LoanStatusFilterOption[]): string[] {
-    if (!options.length) {
-      return [];
-    }
-    const preferred = options.find(
-      (o) =>
-        o.displayLabel.toLowerCase() === DEFAULT_STATUS_LABEL.toLowerCase() ||
-        o.displayLabel.toLowerCase() === 'in default',
-    );
-    return [preferred?.value ?? options.find((o) => o.value !== '(null)')?.value ?? options[0].value];
-  }
-
   private snapshotOriginalState(): void {
-    const snapshot: Record<number, EditableCosts> = {};
+    const snapshot: Record<string, EditableCosts> = {};
     for (const row of this.rows()) {
-      snapshot[row.loanKey] = {
+      snapshot[row.loanCode] = {
         outstandingInvoices: row.outstandingInvoices,
         estRealizationCosts: row.estRealizationCosts,
         costToComplete: row.costToComplete,
@@ -354,8 +551,26 @@ export class OtherCostCaptureComponent implements OnInit {
     this.originalRowState.set(snapshot);
   }
 
+  private revertUnsavedChanges(): void {
+    const original = this.originalRowState();
+    this.rows.update((rows) =>
+      rows.map((row) => {
+        const snapshot = original[row.loanCode];
+        if (!snapshot) {
+          return row;
+        }
+        return {
+          ...row,
+          outstandingInvoices: snapshot.outstandingInvoices,
+          estRealizationCosts: snapshot.estRealizationCosts,
+          costToComplete: snapshot.costToComplete,
+        };
+      }),
+    );
+  }
+
   private hasRowChanged(row: OtherCostRow): boolean {
-    const original = this.originalRowState()[row.loanKey];
+    const original = this.originalRowState()[row.loanCode];
     if (!original) {
       return true;
     }
@@ -370,21 +585,51 @@ export class OtherCostCaptureComponent implements OnInit {
     return a === b || (a == null && b == null);
   }
 
-  private parseNumericInput(value: string): number | null {
-    const trimmed = value.trim().replace(/,/g, '');
-    if (!trimmed) {
-      return null;
-    }
-    const parsed = Number(trimmed);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
   private toNumber(value: unknown): number | null {
     if (value == null || value === '') {
       return null;
     }
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private compareRows(
+    left: OtherCostRow,
+    right: OtherCostRow,
+    column: OtherCostColumnKey,
+  ): number {
+    switch (column) {
+      case 'loanCode':
+        return left.loanCode.localeCompare(right.loanCode, undefined, { sensitivity: 'base' });
+      case 'loanName':
+        return left.loanName.localeCompare(right.loanName, undefined, { sensitivity: 'base' });
+      case 'loanAliasName':
+        return left.loanAliasName.localeCompare(right.loanAliasName, undefined, {
+          sensitivity: 'base',
+        });
+      case 'outstandingInvoices':
+        return (left.outstandingInvoices ?? 0) - (right.outstandingInvoices ?? 0);
+      case 'estRealizationCosts':
+        return (left.estRealizationCosts ?? 0) - (right.estRealizationCosts ?? 0);
+      case 'costToComplete':
+        return (left.costToComplete ?? 0) - (right.costToComplete ?? 0);
+      case 'userUpdatedBy':
+        return left.userUpdatedBy.localeCompare(right.userUpdatedBy, undefined, {
+          sensitivity: 'base',
+        });
+      case 'userUpdatedDate':
+        return this.dateSortValue(left.userUpdatedDate) - this.dateSortValue(right.userUpdatedDate);
+      default:
+        return 0;
+    }
+  }
+
+  private dateSortValue(value: string): number {
+    if (!value?.trim()) {
+      return 0;
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
   }
 
   private extractBackendError(error: unknown): string {

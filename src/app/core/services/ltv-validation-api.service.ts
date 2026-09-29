@@ -1,29 +1,38 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 
-import { APP_API_CONFIG } from '../config/api.config';
+import { APP_API_CONFIG } from '../constants/api.config';
+import { appendMortgageStatusParams } from '../utils/mortgage-status-query.util';
 
 /** Row from GET /api/LtvValidation — leaf child loans with AI-extracted LTV. */
 export type LtvValidationRowDto = {
   loanKey: number;
-  parentLoanId?: string | null;
+  loanCode?: string | null;
+  loanName?: string | null;
   childLoanId?: string | null;
-  loanId?: string | null;
-  description: string;
+  description?: string | null;
   loanAliasName: string;
   investorAliasName?: string | null;
   securityValue?: number | null;
   exposure?: number | null;
   ranking?: number | null;
+  priorLtv?: number | null;
   ltv?: number | null;
-  aiCommentary?: string | null;
+  updateReason?: string | null;
+  updateComment?: string | null;
+  aiConfidenceScore?: number | null;
+  qrSlideLink?: string | null;
   userUpdatedBy?: string | null;
   userUpdatedDate?: string | null;
+  isConfirmed?: boolean;
 };
 
 export type LtvValidationUpdatePayload = {
   loanKey: number;
+  loanCode?: string | null;
   ltv: number | null;
+  updateReason?: string | null;
+  updateComment?: string | null;
   userUpdatedBy: string;
 };
 
@@ -33,7 +42,19 @@ export type LtvValidationBulkUpdateRequest = {
 
 export type LtvValidationConfirmRequest = {
   loanKeys: number[];
+  loanCodes?: string[];
   userUpdatedBy: string;
+};
+
+export type LtvValidationUnlockRequest = LtvValidationConfirmRequest;
+
+export type LtvValidationColumnDatesDto = {
+  /** Latest current LTV as_of_date (yyyy-MM-dd). */
+  currentLtvAsOfDate?: string | null;
+  /** Latest confirmed prior LTV as_of_date (yyyy-MM-dd). */
+  priorLtvConfirmedDate?: string | null;
+  /** True when current LTV review is locked. */
+  isCurrentLtvConfirmed?: boolean;
 };
 
 @Injectable({
@@ -48,13 +69,11 @@ export class LtvValidationApiService {
   }
 
   getLoans(loanAliasIds: number[], statuses: string[]) {
-    let params = new HttpParams();
+    // Statuses first so long alias lists cannot push status params off truncated URLs.
+    let params = appendMortgageStatusParams(new HttpParams(), statuses);
     for (const id of loanAliasIds) {
-      params = params.append('loanAliasIds', String(id));
-    }
-    for (const status of statuses) {
-      if (status.trim()) {
-        params = params.append('statuses', status.trim());
+      if (id > 0) {
+        params = params.append('loanAliasIds', String(id));
       }
     }
     return this.http.get<LtvValidationRowDto[] | Record<string, unknown>>(this.baseUrl, { params });
@@ -66,5 +85,13 @@ export class LtvValidationApiService {
 
   confirmAiLtv(request: LtvValidationConfirmRequest) {
     return this.http.post<void>(`${this.baseUrl}/confirm`, request);
+  }
+
+  unlockLtv(request: LtvValidationUnlockRequest) {
+    return this.http.post<void>(`${this.baseUrl}/unlock`, request);
+  }
+
+  getColumnDates() {
+    return this.http.get<LtvValidationColumnDatesDto>(`${this.baseUrl}/column-dates`);
   }
 }

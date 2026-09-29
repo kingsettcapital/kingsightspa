@@ -1,0 +1,1332 @@
+import {
+  FundAmountTabRow,
+  FundAssetOverviewDto,
+  FundAssetTabRow,
+  FundCommitmentTabRow,
+  FundDetailDto,
+  FundDistributionGroupTabRow,
+  FundDocumentItemDto,
+  FundDocumentsResultDto,
+  FundInvestorCapitalActivityTabRow,
+  FundInvestorCapitalObligationTabRow,
+  FundInvestorNetAssetTabRow,
+  FundInvestorDistributionTableTabRow,
+  FundInvestorIrrTabRow,
+} from '../../../shared/models/api.models';
+import { FundTableRow } from '../../../shared/utils/fund-list-row.util';
+import {
+  InvestorDetailBlock,
+  // InvestorDetailDebtFinancingBlock,
+  InvestorDetailDocumentItem,
+  InvestorDetailDocumentListBlock,
+  InvestorDetailEntityOverviewBlock,
+  // InvestorDetailEsgMetricsBlock,
+  InvestorDetailFieldGridBlock,
+  InvestorDetailFinancialMetricsBlock,
+  InvestorDetailKpiRowBlock,
+  InvestorDetailSectionBlock,
+  InvestorDetailTableBlock,
+  FundDocumentCategoryId,
+} from '../../../investors/investor-detail/models/investor-detail-block.models';
+import { FundFinancialMetricsRow } from '../../../shared/mappers/fund-financial-metrics.mapper';
+import { formatSquareFeet } from '../../../shared/utils/asset-list-row.util';
+import {
+  formatAssetDisplayCount,
+  formatAssetDisplayCurrency,
+  formatAssetDisplayPercent,
+  formatAssetDisplayString,
+} from '../../../assets/asset-detail/utils/asset-detail-api.util';
+import {
+  INVESTOR_DETAIL_CELL_TONES_KEY,
+  InvestorDetailColumnTone,
+  InvestorDetailTableColumn,
+  InvestorDetailTableRow,
+} from '../../../investors/investor-detail/models/investor-detail-table.models';
+import { createDetailTableBlock } from '../../../shared/utils/investor-detail-table-block.util';
+import { withOptionalPeriodColumn } from '../../../shared/utils/transaction-table-period.util';
+import { INVESTMENT_DETAIL_PAGE_SECTION_IDS, INVESTMENT_DETAIL_SIDEBAR_SECTIONS } from '../models/investment-detail-sidebar.config';
+import {
+  FUND_OVERVIEW_EMPTY,
+  readFundDetailKey,
+  readFundDetailNumber,
+  readFundDetailString,
+} from './investment-detail-api.util';
+
+const FUND_OVERVIEW_DASH = '—';
+import {
+  INVESTMENT_DETAIL_DUMMY,
+  investedPercentForTimeframe,
+  netDistributedForTimeframe,
+} from '../data/investment-detail-dummy.data';
+
+export function readFundDetailSummaryString(detail: FundDetailDto | null, ...keys: string[]): string {
+  if (!detail) {
+    return '';
+  }
+  const top = detail as unknown as Record<string, unknown>;
+  for (const key of keys) {
+    const value = top[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  if (!detail.summary) {
+    return '';
+  }
+  const record = detail.summary as unknown as Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return '';
+}
+
+export function pickOverviewLabel(...candidates: Array<string | null | undefined>): string {
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim();
+    if (trimmed && trimmed !== '—' && trimmed !== FUND_OVERVIEW_EMPTY) {
+      return trimmed;
+    }
+  }
+  return FUND_OVERVIEW_EMPTY;
+}
+
+export type InvestmentDetailTimeframe = 'ltd' | 'quarterly' | 'daily';
+export type InvestmentDetailSectionId =
+  | 'overview'
+  | 'capital-account'
+  | 'performance'
+  | 'assets'
+  | 'financial-metrics'
+  | 'fund-transactions'
+  | 'documents';
+  // | 'esg-reporting'
+  // | 'debt-financing';
+
+export interface InvestmentDetailKpiCards {
+  totalCommitment: number;
+  netInvestedCapital: number;
+  netDistributed: number;
+  reservedUncalled: number | null;
+  unfunded: number | null;
+  releasedCapital: number;
+  investedPercent: number;
+  tvpi: number | null;
+  dpi: number | null;
+  rvpi: number | null;
+  capitalDeployed?: number | null;
+}
+
+export interface InvestmentDetailFlatBlock {
+  sectionId: string;
+  block: InvestorDetailBlock;
+  isSectionStart: boolean;
+}
+
+function sumColumn(rows: InvestorDetailTableRow[], key: string): number {
+  return rows.reduce((total, row) => {
+    const value = row[key];
+    return total + (typeof value === 'number' && Number.isFinite(value) ? value : 0);
+  }, 0);
+}
+
+function averageColumn(rows: InvestorDetailTableRow[], key: string): number | null {
+  const values = rows
+    .map((row) => row[key])
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+  if (!values.length) {
+    return null;
+  }
+  return values.reduce((total, value) => total + value, 0) / values.length;
+}
+
+function buildTotalsRow(
+  columns: InvestorDetailTableColumn[],
+  rows: InvestorDetailTableRow[],
+  labelKey = 'fundCode',
+  label = 'TOTALS',
+): InvestorDetailTableRow {
+  const totals: InvestorDetailTableRow = { [labelKey]: label };
+
+  for (const column of columns) {
+    if (column.key === labelKey) {
+      continue;
+    }
+    if (column.type === 'amount' || column.type === 'number') {
+      totals[column.key] = sumColumn(rows, column.key);
+      continue;
+    }
+    if (column.type === 'percent') {
+      const average = averageColumn(rows, column.key);
+      totals[column.key] = average ?? '—';
+      continue;
+    }
+    totals[column.key] = '—';
+  }
+
+  return totals;
+}
+
+export function buildTableTotalsRow(
+  columns: InvestorDetailTableColumn[],
+  rows: InvestorDetailTableRow[],
+  labelKey = 'investorName',
+  label?: string,
+): InvestorDetailTableRow | null {
+  if (!rows.length) {
+    return null;
+  }
+  return buildTotalsRow(columns, rows, labelKey, label ?? `Total — ${rows.length}`);
+}
+
+function formatCurrencyCompact(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) {
+    return FUND_OVERVIEW_EMPTY;
+  }
+  const negative = value < 0;
+  const abs = Math.abs(value);
+  const units: ReadonlyArray<{ threshold: number; suffix: string }> = [
+    { threshold: 1_000_000_000_000, suffix: 'T' },
+    { threshold: 1_000_000_000, suffix: 'B' },
+    { threshold: 1_000_000, suffix: 'M' },
+    { threshold: 1_000, suffix: 'K' },
+  ];
+
+  for (const { threshold, suffix } of units) {
+    if (abs >= threshold) {
+      const scaled = abs / threshold;
+      // Match ksCurrency compact behavior: truncate, do not round up.
+      const truncated = Math.trunc(scaled * 100) / 100;
+      const numberPart = truncated.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      return `${negative ? '-' : ''}$${numberPart}${suffix}`;
+    }
+  }
+
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatOverviewCurrency(value: number | null | undefined, dashWhenZero = false): string {
+  if (value == null || !Number.isFinite(value)) {
+    return FUND_OVERVIEW_EMPTY;
+  }
+  if (dashWhenZero && value === 0) {
+    return FUND_OVERVIEW_EMPTY;
+  }
+  return formatCurrencyCompact(value);
+}
+
+function formatOverviewPercent(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) {
+    return FUND_OVERVIEW_EMPTY;
+  }
+  return `${value.toFixed(1)}%`;
+}
+
+function formatMultiple(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value) || value < 0) {
+    return FUND_OVERVIEW_EMPTY;
+  }
+  if (value === 0) {
+    return FUND_OVERVIEW_EMPTY;
+  }
+  return `${value.toFixed(2)}x`;
+}
+
+function formatPercentValue(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) {
+    return FUND_OVERVIEW_EMPTY;
+  }
+  return `${value.toFixed(1)}%`;
+}
+
+function formatApiMultiple(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value) || value <= 0) {
+    return FUND_OVERVIEW_EMPTY;
+  }
+  return `${value.toFixed(2)}x`;
+}
+
+function pickOverviewDisplayLabel(...candidates: Array<string | null | undefined>): string {
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim();
+    if (trimmed && trimmed !== '—' && trimmed !== FUND_OVERVIEW_EMPTY && trimmed !== FUND_OVERVIEW_DASH) {
+      return trimmed;
+    }
+  }
+  return FUND_OVERVIEW_DASH;
+}
+
+function overviewFieldTone(value: string): 'default' | 'muted' | undefined {
+  return value === FUND_OVERVIEW_EMPTY ? 'muted' : 'default';
+}
+
+function tableBlock(config: Omit<InvestorDetailTableBlock, 'kind'>): InvestorDetailTableBlock {
+  return createDetailTableBlock(config);
+}
+
+function occupancyTone(value: number | null | undefined): InvestorDetailColumnTone {
+  if (value == null || !Number.isFinite(value)) {
+    return 'muted';
+  }
+  return value >= 90 ? 'positive' : 'warning';
+}
+
+export function kpiCardsFromListRow(
+  row: FundTableRow | null,
+  timeframe: InvestmentDetailTimeframe,
+): InvestmentDetailKpiCards {
+  const dummy = INVESTMENT_DETAIL_DUMMY;
+  const commitment = row?.commitment ?? 0;
+  const netInvested =
+    timeframe === 'ltd'
+      ? row?.netInvestedCapital ?? 0
+      : row?.netInvestedCapital ?? 0;
+  const distributed =
+    timeframe === 'ltd'
+      ? row?.netDistributed ?? 0
+      : netDistributedForTimeframe(timeframe);
+  // List row carries unfunded, not reserved — wait for fund detail for Reserved KPI.
+  const reserved = dummy.reservedUncalled;
+  const investedPct =
+    commitment > 0
+      // ? (netInvested / commitment) * 100
+      ? (commitment - (row?.unfunded ?? 0)) / commitment * 100
+      : investedPercentForTimeframe(timeframe);
+  return {
+    totalCommitment: commitment,
+    netInvestedCapital: netInvested,
+    netDistributed: distributed,
+    reservedUncalled: reserved,
+    unfunded: row?.unfunded ?? null,
+    releasedCapital: row?.releasedCapital ?? 0,
+    investedPercent: investedPct,
+    tvpi: null,
+    dpi: null,
+    rvpi: null,
+    capitalDeployed: null,
+  };
+}
+
+export function kpiCardsFromFundDetail(detail: FundDetailDto | null): InvestmentDetailKpiCards {
+  const totalCommitment =
+    readFundDetailNumber(detail, 'total_commitment', 'totalCommitment') ?? 0;
+  const netInvestedCapital =
+    readFundDetailNumber(detail, 'net_invested_capital', 'netInvestedCapital') ?? 0;
+  const netDistributed =
+    readFundDetailNumber(detail, 'net_distributed', 'netDistributed') ?? 0;
+  const reservedUncalled =
+    readFundDetailNumber(detail, 'reserved_uncalled', 'reservedUncalled');
+  const unfunded =
+    readFundDetailNumber(detail, 'unfunded', 'unfunded_amount', 'unfundedAmount');
+  const releasedCapital =
+    readFundDetailNumber(detail, 'released_capital', 'releasedCapital') ?? 0;
+  const capitalDeployed =
+    readFundDetailNumber(detail, 'capital_deployed', 'capitalDeployed');
+
+  let investedPct = 0;
+  investedPct = Math.min(100, Math.max(0, (totalCommitment - (unfunded ?? 0)) / totalCommitment * 100));
+  // if (totalCommitment > 0 && netInvestedCapital > 0) {
+  //   investedPct = Math.min(100, Math.max(0, (netInvestedCapital / totalCommitment) * 100));
+  // } else if (totalCommitment > 0 && capitalDeployed != null && capitalDeployed > 0) {
+  //   investedPct = Math.min(100, Math.max(0, (capitalDeployed / totalCommitment) * 100));
+  // }
+
+  const tvpi = readFundDetailNumber(detail, 'tvpi', 'TVPI');
+  const dpi = readFundDetailNumber(detail, 'dpi', 'DPI');
+  const rvpi = readFundDetailNumber(detail, 'rvpi', 'RVPI');
+
+  return {
+    totalCommitment,
+    netInvestedCapital,
+    netDistributed,
+    reservedUncalled,
+    unfunded,
+    releasedCapital,
+    investedPercent: investedPct,
+    tvpi,
+    dpi,
+    rvpi,
+    capitalDeployed,
+  };
+}
+
+export interface FundOverviewInput {
+  fundName: string;
+  fundType: string;
+  strategy: string;
+  fundId: number | string;
+  startDate?: string;
+  status?: string;
+}
+
+function formatOverviewDate(value: string | null | undefined): string {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return FUND_OVERVIEW_DASH;
+  }
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return trimmed.slice(0, 10);
+  }
+  return parsed.toLocaleDateString('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+}
+
+function readOverviewStartDate(detail: FundDetailDto | null, overviewStartDate?: string): string {
+  const raw =
+    overviewStartDate?.trim() ||
+    readFundDetailString(detail, 'start_date', 'startDate');
+  return formatOverviewDate(raw || null);
+}
+
+function readOverviewStatus(detail: FundDetailDto | null, overviewStatus?: string): string {
+  return pickOverviewDisplayLabel(
+    overviewStatus,
+    readFundDetailString(detail, 'status'),
+    detail?.summary?.status,
+  );
+}
+
+function buildFundOverviewBlock(
+  detail: FundDetailDto | null,
+  overview: FundOverviewInput,
+  _kpi: InvestmentDetailKpiCards,
+): InvestorDetailEntityOverviewBlock {
+  const fundType = pickOverviewDisplayLabel(
+    overview.fundType,
+    readFundDetailString(detail, 'fund_type', 'fundType', 'FundType'),
+    detail?.summary?.fundType,
+  );
+  const strategy = pickOverviewDisplayLabel(
+    overview.strategy,
+    readFundDetailString(detail, 'strategy', 'fund_strategy_name', 'fundStrategyName'),
+  );
+  const startDate = readOverviewStartDate(detail, overview.startDate);
+  const status = readOverviewStatus(detail, overview.status);
+
+  const statusTone = status.toLowerCase() === 'active' ? 'info' : 'default';
+
+  return {
+    kind: 'entity-overview',
+    id: 'fund-overview',
+    title: 'Fund Overview',
+    variant: 'fund',
+    collapsible: true,
+    defaultExpanded: true,
+    columns: [],
+    highlights: {
+      topRow: [
+        {
+          label: 'Fund Type',
+          value: fundType,
+          valueTone: fundType === FUND_OVERVIEW_DASH || !fundType ? 'muted' : 'accent',
+        },
+        {
+          label: 'Status',
+          value: status,
+          valueTone: statusTone,
+        },
+        {
+          label: 'Strategy',
+          value: strategy,
+          valueTone: strategy === FUND_OVERVIEW_DASH || !strategy ? 'muted' : 'accent',
+        },
+        {
+          label: 'Start Date',
+          value: startDate,
+          valueTone: startDate === FUND_OVERVIEW_DASH || !startDate ? 'muted' : 'info',
+        },
+      ],
+      bottomRow: [],
+    },
+  };
+}
+
+function readAssetOverviewArea(
+  overview: FundAssetOverviewDto | null | undefined,
+  ...keys: string[]
+): number | null {
+  if (!overview) {
+    return null;
+  }
+  const record = overview as unknown as Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function buildAssetOverviewBlock(
+  overview: FundAssetOverviewDto | null | undefined,
+): InvestorDetailEntityOverviewBlock {
+  const gla = readAssetOverviewArea(overview, 'gla_sf', 'glaSf');
+  const occupied = readAssetOverviewArea(overview, 'occupied_sf', 'occupiedSf');
+  const committed = readAssetOverviewArea(overview, 'committed_sf', 'committedSf');
+  const vacant = readAssetOverviewArea(overview, 'vacant_sf', 'vacantSf');
+  const occupancyRate = readAssetOverviewArea(overview, 'occupancy_rate', 'occupancyRate');
+  const vacancyRate = readAssetOverviewArea(overview, 'vacancy_rate', 'vacancyRate');
+
+  const toneOrMuted = (
+    value: number | null,
+    tone: 'accent' | 'info' | 'positive' | 'default',
+  ): 'muted' | 'accent' | 'info' | 'positive' | 'default' => (value == null ? 'muted' : tone);
+
+  return {
+    kind: 'entity-overview',
+    id: 'asset-overview',
+    title: 'Asset Overview',
+    variant: 'fund',
+    collapsible: true,
+    defaultExpanded: true,
+    columns: [],
+    highlights: {
+      topRow: [
+        {
+          label: 'GLA (SF)',
+          value: formatSquareFeet(gla),
+          valueTone: toneOrMuted(gla, 'accent'),
+        },
+        {
+          label: 'Occupied (SF)',
+          value: formatSquareFeet(occupied),
+          valueTone: toneOrMuted(occupied, 'positive'),
+        },
+        {
+          label: 'Committed (SF)',
+          value: formatSquareFeet(committed),
+          valueTone: toneOrMuted(committed, 'info'),
+        },
+        {
+          label: 'Vacant (SF)',
+          value: formatSquareFeet(vacant),
+          valueTone: toneOrMuted(vacant, 'default'),
+        },
+      ],
+      bottomRow: [
+        {
+          label: 'Occupancy Rate',
+          value: formatOverviewPercent(occupancyRate),
+          valueTone: toneOrMuted(occupancyRate, 'positive'),
+          gridColumn: 1,
+        },
+        {
+          label: 'Vacancy Rate',
+          value: formatOverviewPercent(vacancyRate),
+          valueTone: toneOrMuted(vacancyRate, 'accent'),
+          gridColumn: 2,
+        },
+      ],
+    },
+  };
+}
+
+function buildCapitalAccountGrid(kpi: InvestmentDetailKpiCards): InvestorDetailFieldGridBlock {
+  const totalValue = kpi.netInvestedCapital + kpi.netDistributed;
+  const tvpi = formatApiMultiple(kpi.tvpi);
+  const releasedCapital = formatOverviewCurrency(kpi.releasedCapital, true);
+  const reserved =
+    kpi.reservedUncalled == null || !Number.isFinite(kpi.reservedUncalled)
+      ? FUND_OVERVIEW_EMPTY
+      : kpi.reservedUncalled === 0
+        ? FUND_OVERVIEW_EMPTY
+        : formatCurrencyCompact(kpi.reservedUncalled);
+  const investedPct = formatOverviewPercent(kpi.investedPercent);
+
+  return {
+    kind: 'field-grid',
+    id: 'capital-account',
+    title: 'Capital Account',
+    layout: 'paired-rows',
+    collapsible: true,
+    defaultExpanded: true,
+    columns: [
+      {
+        fields: [
+          {
+            label: 'Total Commitment (LTD)',
+            value: formatOverviewCurrency(kpi.totalCommitment),
+          },
+          {
+            label: 'Net Invested Capital',
+            value: formatOverviewCurrency(kpi.netInvestedCapital),
+          },
+          { label: 'Reserved / Uncalled', value: reserved, tone: overviewFieldTone(reserved) },
+          { label: '% Invested', value: investedPct, tone: overviewFieldTone(investedPct) },
+        ],
+      },
+      {
+        fields: [
+          {
+            label: 'Net Distributed (LTD)',
+            value: formatOverviewCurrency(kpi.netDistributed),
+          },
+          {
+            label: 'Released Capital',
+            value: releasedCapital,
+            tone: overviewFieldTone(releasedCapital),
+          },
+          {
+            label: 'Total Value (Invested+Dist.)',
+            value: formatOverviewCurrency(totalValue),
+          },
+          { label: 'TVPI', value: tvpi, tone: overviewFieldTone(tvpi) },
+        ],
+      },
+    ],
+  };
+}
+
+// function buildPerformanceKpiRow(kpi: InvestmentDetailKpiCards): InvestorDetailKpiRowBlock {
+//   return {
+//     kind: 'kpi-row',
+//     id: 'performance-metrics',
+//     title: 'Performance Metrics',
+//     collapsible: true,
+//     defaultExpanded: true,
+//     display: 'performance',
+//     cards: [
+//       {
+//         label: 'TVPI',
+//         value: formatApiMultiple(kpi.tvpi),
+//         hint: 'Total value / paid-in',
+//       },
+//       {
+//         label: 'DPI',
+//         value: formatApiMultiple(kpi.dpi),
+//         hint: 'Distributions / paid-in',
+//       },
+//       {
+//         label: 'RVPI',
+//         value: formatApiMultiple(kpi.rvpi),
+//         hint: 'Net invested / paid-in',
+//       },
+//       {
+//         label: 'Deploy Rate',
+//         value: formatOverviewPercent(kpi.investedPercent),
+//         hint: 'of total commitment',
+//       },
+//     ],
+//   };
+// }
+
+function mapAssetsTable(
+  assets: FundAssetTabRow[],
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    totalCount: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+  },
+): InvestorDetailTableBlock {
+  const columns: InvestorDetailTableColumn[] = [
+    { key: 'propertyName', label: 'Property Name', type: 'text', align: 'left' },
+    { key: 'city', label: 'City', type: 'text', align: 'left', tone: 'muted' },
+    { key: 'province', label: 'Province', type: 'text', align: 'left', tone: 'muted' },
+    { key: 'geography', label: 'Geography', type: 'text', align: 'left', tone: 'muted' },
+    { key: 'assetType', label: 'Asset Type', type: 'text', align: 'left', tone: 'muted' },
+    { key: 'assetSubType', label: 'Asset Sub Type', type: 'text', align: 'left', tone: 'muted' },
+    { key: 'investmentType', label: 'Investment Type', type: 'text', align: 'left', tone: 'muted' },
+    { key: 'propertyStatus', label: 'Property Status', type: 'status', align: 'left' },
+    { key: 'propertyDisposition', label: 'Disposition', type: 'text', align: 'right', tone: 'muted' },
+    { key: 'propertyAcquisition', label: 'Acquisition', type: 'text', align: 'right', tone: 'muted' },
+    { key: 'glaSf', label: 'GLA (SF)', type: 'number', align: 'right', tone: 'muted' },
+    { key: 'occupancyPct', label: 'Occupancy %', type: 'percent', align: 'right', tone: 'muted' },
+    { key: 'marketValue', label: 'Market Value', type: 'amount', align: 'right' },
+    { key: 'capRate', label: 'Cap Rate', type: 'percent', align: 'right', tone: 'muted' },
+    { key: 'status', label: 'Status', type: 'status', align: 'left' },
+  ];
+
+  const rows: InvestorDetailTableRow[] = assets.map((asset) => ({
+    propertyName: asset.assetName,
+    city: asset.city,
+    province: asset.province,
+    geography: asset.geography,
+    assetType: asset.assetType,
+    assetSubType: asset.assetSubType,
+    investmentType: asset.investmentType,
+    propertyStatus: asset.propertyStatus,
+    propertyDisposition: asset.propertyDisposition,
+    propertyAcquisition: asset.propertyAcquisition,
+    glaSf: asset.glaSf,
+    occupancyPct: asset.occupancyPct,
+    marketValue: asset.marketValue,
+    capRate: asset.capRate,
+    status: asset.status,
+  }));
+
+  const totalCount = pagination.totalCount;
+
+  return {
+    kind: 'table',
+    id: 'underlying-assets',
+    title: 'Asset Holdings',
+    subtitle: totalCount > 0 ? `${totalCount} asset${totalCount === 1 ? '' : 's'}` : undefined,
+    columns,
+    rows,
+    totals: null,
+    collapsible: true,
+    defaultExpanded: true,
+    showToolbar: false,
+    variant: 'underlying-investments',
+    pagination,
+  };
+}
+
+function fundToolbarTableBlock(
+  config: Omit<InvestorDetailTableBlock, 'kind' | 'variant' | 'showToolbar' | 'collapsible' | 'defaultExpanded'>,
+): InvestorDetailTableBlock {
+  return tableBlock({
+    ...config,
+    variant: 'transactions',
+    showToolbar: true,
+  });
+}
+
+const TRANSACTION_INVESTOR_COLUMN: InvestorDetailTableColumn = {
+  key: 'investorName',
+  label: 'Investor Name',
+  type: 'transaction-investor',
+  align: 'left',
+  sortBy: 'investor_name',
+};
+
+function fundTransactionInvestorColumns(
+  columns: InvestorDetailTableColumn[],
+  rows: InvestorDetailTableRow[],
+): InvestorDetailTableColumn[] {
+  return withOptionalPeriodColumn([TRANSACTION_INVESTOR_COLUMN, ...columns], rows, 'investorName');
+}
+
+function capitalActivityRowsToTableRows(rows: FundInvestorCapitalActivityTabRow[]): InvestorDetailTableRow[] {
+  return rows.map((row) => ({
+    investorCode: row.investorCode,
+    investorName: row.investorName,
+    type: row.type,
+    period: row.period,
+    called: row.called,
+    transferIn: row.transferIn,
+    transferOut: row.transferOut,
+    redemption: row.redemption,
+  }));
+}
+
+function distributionTableRowsToTableRows(rows: FundInvestorDistributionTableTabRow[]): InvestorDetailTableRow[] {
+  return rows.map((row) => ({
+    investorCode: row.investorCode,
+    investorName: row.investorName,
+    type: row.type,
+    period: row.period,
+    prefReturn: row.preferredReturn,
+    committed: row.committed,
+    unfunded: row.unfunded,
+    cashDist: row.cashDist,
+    gainDist: row.gainDist,
+    returnOfCapital: row.returnOfCapital,
+    released: row.released,
+  }));
+}
+
+function irrRowsToTableRows(rows: FundInvestorIrrTabRow[]): InvestorDetailTableRow[] {
+  return rows.map((row) => ({
+    investorCode: row.investorCode,
+    investorName: row.investorName,
+    type: row.type,
+    period: row.period,
+    irr1Year: row.irr1Year,
+    irr3Year: row.irr3Year,
+    irr5Year: row.irr5Year,
+    irr7Year: row.irr7Year,
+    irr10Year: row.irr10Year,
+    irrLtd: row.irrLtd,
+  }));
+}
+
+function capitalObligationRowsToTableRows(
+  rows: FundInvestorCapitalObligationTabRow[],
+): InvestorDetailTableRow[] {
+  return rows.map((row) => ({
+    investorCode: row.investorCode,
+    investorName: row.investorName,
+    period: row.period,
+    commitment: row.commitment,
+    unfundedAmount: row.unfundedAmount,
+    reserved: row.reserved,
+    releasedCapital: row.releasedCapital,
+  }));
+}
+
+function netAssetRowsToTableRows(rows: FundInvestorNetAssetTabRow[]): InvestorDetailTableRow[] {
+  return rows.map((row) => ({
+    period: row.period,
+    nav: row.nav,
+  }));
+}
+
+export function buildCapitalActivitiesTable(
+  rows: FundInvestorCapitalActivityTabRow[],
+  periodLabel: string,
+): InvestorDetailTableBlock {
+  const tableRows = capitalActivityRowsToTableRows(rows);
+  const columns = fundTransactionInvestorColumns(
+    [
+    { key: 'called', label: 'Called', type: 'amount', align: 'right', sortBy: 'called' },
+    { key: 'transferIn', label: 'Transfer In', type: 'amount', align: 'right', sortBy: 'transfer_in' },
+    { key: 'transferOut', label: 'Transfer Out', type: 'amount', align: 'right', tone: 'negative', sortBy: 'transfer_out' },
+    { key: 'redemption', label: 'Redemption', type: 'amount', align: 'right', sortBy: 'redemption' },
+    ],
+    tableRows,
+  );
+
+  return fundToolbarTableBlock({
+    id: 'capital-activities',
+    title: 'Capital Activities',
+    subtitle: '',
+    subtitleAccent: '',
+    columns,
+    rows: tableRows,
+    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorName', `Total — ${tableRows.length}`) : null,
+  });
+}
+
+export function buildDistributionsTable(
+  rows: FundInvestorDistributionTableTabRow[],
+  periodLabel: string,
+): InvestorDetailTableBlock {
+  const tableRows = distributionTableRowsToTableRows(rows);
+  const columns = fundTransactionInvestorColumns(
+    [
+    { key: 'prefReturn', label: `Pref. Return (${periodLabel})`, type: 'amount', align: 'right', tone: 'info', sortBy: 'preferred_return' },
+    { key: 'committed', label: 'Committed', type: 'amount', align: 'right', sortBy: 'committed' },
+    { key: 'unfunded', label: 'Unfunded', type: 'amount', align: 'right', tone: 'warning', sortBy: 'unfunded' },
+    { key: 'cashDist', label: `Cash Dist. (${periodLabel})`, type: 'amount', align: 'right', tone: 'positive', sortBy: 'cash_dist' },
+    { key: 'gainDist', label: `Gain Dist. (${periodLabel})`, type: 'amount', align: 'right', tone: 'positive', sortBy: 'gain_dist' },
+    { key: 'returnOfCapital', label: 'Return of Capital', type: 'amount', align: 'right', sortBy: 'return_of_capital' },
+    { key: 'released', label: 'Released', type: 'amount', align: 'right', sortBy: 'released' },
+    ],
+    tableRows,
+  );
+
+  return fundToolbarTableBlock({
+    id: 'distributions',
+    title: 'Distributions',
+    subtitle: '',
+    subtitleAccent: '',
+    columns,
+    rows: tableRows,
+    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorName', `Total — ${tableRows.length}`) : null,
+  });
+}
+
+export function buildIrrsTable(rows: FundInvestorIrrTabRow[], periodLabel: string): InvestorDetailTableBlock {
+  const tableRows = irrRowsToTableRows(rows);
+  const columns = fundTransactionInvestorColumns(
+    [
+    { key: 'irr1Year', label: '1Y IRR', type: 'percent', align: 'right', sortBy: 'irr_1_year_pct' },
+    { key: 'irr3Year', label: '3Y IRR', type: 'percent', align: 'right', sortBy: 'irr_3_year_pct' },
+    { key: 'irr5Year', label: '5Y IRR', type: 'percent', align: 'right', sortBy: 'irr_5_year_pct' },
+    { key: 'irr7Year', label: '7Y IRR', type: 'percent', align: 'right', sortBy: 'irr_7_year_pct' },
+    { key: 'irr10Year', label: '10Y IRR', type: 'percent', align: 'right', sortBy: 'irr_10_year_pct' },
+    { key: 'irrLtd', label: 'ITD IRR', type: 'percent', align: 'right', tone: 'info', sortBy: 'irr_ltd_pct' },
+    ],
+    tableRows,
+  );
+
+  return fundToolbarTableBlock({
+    id: 'irrs',
+    title: 'Performance',
+    subtitle: '',
+    subtitleAccent: '',
+    columns,
+    rows: tableRows,
+    totals: null,
+  });
+}
+
+const CAPITAL_OBLIGATION_AMOUNT_COLUMNS: InvestorDetailTableColumn[] = [
+  { key: 'commitment', label: 'Commitment', type: 'amount', align: 'right', sortBy: 'commitment_amount' },
+  {
+    key: 'unfundedAmount',
+    label: 'Unfunded Amount',
+    type: 'amount',
+    align: 'right',
+    tone: 'warning',
+    sortBy: 'unfunded_amount',
+  },
+  { key: 'reserved', label: 'Reserved', type: 'amount', align: 'right', sortBy: 'reserved_amount' },
+  {
+    key: 'releasedCapital',
+    label: 'Released Capital',
+    type: 'amount',
+    align: 'right',
+    sortBy: 'released_capital_amount',
+  },
+];
+
+export function buildCapitalObligationsTable(
+  rows: FundInvestorCapitalObligationTabRow[],
+  periodLabel: string,
+): InvestorDetailTableBlock {
+  const tableRows = capitalObligationRowsToTableRows(rows);
+  const columns = fundTransactionInvestorColumns(CAPITAL_OBLIGATION_AMOUNT_COLUMNS, tableRows);
+
+  return fundToolbarTableBlock({
+    id: 'capital-obligations',
+    title: 'Capital Obligations',
+    subtitle: '',
+    subtitleAccent: '',
+    columns,
+    rows: tableRows,
+    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorName', `Total — ${tableRows.length}`) : null,
+  });
+}
+
+export function buildNetAssetsTable(
+  rows: FundInvestorNetAssetTabRow[],
+  periodLabel: string,
+): InvestorDetailTableBlock {
+  const tableRows = netAssetRowsToTableRows(rows);
+  const columns: InvestorDetailTableColumn[] = [
+    {
+      key: 'period',
+      label: 'Period',
+      type: 'text',
+      align: 'left',
+      sortBy: 'period',
+      tone: 'muted',
+    },
+    { key: 'nav', label: 'NAV', type: 'amount', align: 'right', sortBy: 'nav' },
+  ];
+
+  return fundToolbarTableBlock({
+    id: 'net-assets',
+    title: 'Net Asset Value',
+    subtitle: '',
+    subtitleAccent: '',
+    columns,
+    rows: tableRows,
+    totals: null,
+  });
+}
+
+function buildFundFinancialMetricsBlock(
+  metrics: FundFinancialMetricsRow | null,
+): InvestorDetailFinancialMetricsBlock {
+  const currency = (value: number | null | undefined) => formatAssetDisplayCurrency(value, true);
+  const percent = (value: number | null | undefined) => formatAssetDisplayPercent(value);
+  const text = (value: string | null | undefined) => formatAssetDisplayString(value ?? '');
+  const count = (value: number | null | undefined) => formatAssetDisplayCount(value);
+
+  return {
+    kind: 'financial-metrics',
+    id: 'financial-metrics',
+    title: 'Financial Metrics',
+    collapsible: true,
+    defaultExpanded: true,
+    ownershipPct: null,
+    showShareToggle: false,
+    leftItems: [
+      { label: 'Fund Code', value: text(metrics?.fundCode) },
+      { label: 'As of Date', value: text(metrics?.asOfDate) },
+      { label: 'Gross Market Value', value: currency(metrics?.fundGrossMarketValue) },
+      { label: 'Total Asset Value', value: currency(metrics?.fundTotalAssetValue) },
+      { label: 'GAV Amount', value: currency(metrics?.fundGavAmount) },
+      { label: 'NAV Amount', value: currency(metrics?.fundNavAmount) },
+      { label: 'Debt', value: currency(metrics?.fundDebt) },
+      { label: 'Equity', value: currency(metrics?.fundEquity) },
+      { label: 'LTV', value: percent(metrics?.fundLtv) },
+      { label: 'Cash at Quarter End', value: currency(metrics?.fundCashAtQuarterEnd) },
+      { label: 'Total Number JV Partners', value: count(metrics?.jvPartnersCount) },
+      { label: 'JV Investments Amount', value: currency(metrics?.jvInvestmentsAmount) },
+      { label: 'JV Investments % of GAV', value: percent(metrics?.jvInvestmentsPctOfGav) },
+    ],
+    rightItems: [
+      { label: 'NOI', value: currency(metrics?.fundNoi) },
+      { label: 'FFO', value: currency(metrics?.fundFfo) },
+      { label: 'CapEx', value: currency(metrics?.fundCapex) },
+      { label: 'Net Income', value: currency(metrics?.fundNetIncome) },
+      { label: 'Assets Held', value: count(metrics?.assetHeldCount) },
+      { label: 'Properties Held', value: count(metrics?.propertyHeldCount) },
+    ],
+  };
+}
+
+function formatDocumentSize(bytes: number | null | undefined): string {
+  if (bytes == null || !Number.isFinite(bytes) || bytes < 0) {
+    return FUND_OVERVIEW_DASH;
+  }
+  if (bytes < 1024) {
+    return `${Math.round(bytes)} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDocumentDate(value: string | null | undefined): string {
+  if (!value?.trim()) {
+    return FUND_OVERVIEW_DASH;
+  }
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) {
+    return value.trim();
+  }
+  return new Date(parsed).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+export function mapFundDocumentsToItems(
+  result: FundDocumentsResultDto | null | undefined,
+): InvestorDetailDocumentItem[] {
+  const items = result?.items ?? [];
+  const category = (result?.category ?? 'Interim/Annual Reports').toString();
+
+  return items
+    .map((item: FundDocumentItemDto): InvestorDetailDocumentItem | null => {
+      const name = (item.name ?? '').trim();
+      if (!name) {
+        return null;
+      }
+      const quarter = (item.quarter ?? '').trim();
+      const year = item.year;
+      const boardBook = (item.board_book ?? item.boardBook ?? '').trim();
+      const categoryParts = [
+        category,
+        boardBook || null,
+        quarter || null,
+        year != null && Number.isFinite(year) ? String(year) : null,
+      ].filter(Boolean);
+
+      return {
+        name,
+        category: categoryParts.join(' · '),
+        date: formatDocumentDate(item.modified_on ?? item.modifiedOn ?? null),
+        size: formatDocumentSize(item.size_bytes ?? item.sizeBytes ?? null),
+        year: year ?? null,
+        quarter: quarter || null,
+        webUrl: (item.web_url ?? item.webUrl ?? '').trim() || null,
+      };
+    })
+    .filter((item): item is InvestorDetailDocumentItem => item != null);
+}
+
+function buildDocumentsList(
+  documents: InvestorDetailDocumentItem[],
+  loading = false,
+  activeCategoryId: FundDocumentCategoryId = 'interim',
+  interimCount = 0,
+  advisoryCount = 0,
+): InvestorDetailDocumentListBlock {
+  const isAdvisory = activeCategoryId === 'advisory';
+  return {
+    kind: 'document-list',
+    id: 'documents',
+    title: 'Documents',
+    subtitle: isAdvisory
+      ? 'Advisory Board Books from SharePoint'
+      : 'Interim / Annual Reports from SharePoint',
+    collapsible: true,
+    defaultExpanded: true,
+    loading,
+    activeCategoryId,
+    categories: [
+      {
+        id: 'interim',
+        label: 'Interim/Annual Reports',
+        count: interimCount,
+      },
+      {
+        id: 'advisory',
+        label: 'Advisory Board Books',
+        count: advisoryCount,
+      },
+    ],
+    documents: [...documents],
+  };
+}
+
+// function buildEsgMetricsBlock(): InvestorDetailEsgMetricsBlock {
+//   return {
+//     kind: 'esg-metrics',
+//     id: 'esg-reporting',
+//     title: 'ESG & Sustainability Reporting',
+//     collapsible: true,
+//     defaultExpanded: true,
+//     cards: INVESTMENT_DETAIL_DUMMY.esg.map((card) => ({ ...card })),
+//   };
+// }
+
+// function buildDebtFinancingBlock(): InvestorDetailDebtFinancingBlock {
+//   const debt = INVESTMENT_DETAIL_DUMMY.debt;
+//   return {
+//     kind: 'debt-financing',
+//     id: 'debt-financing',
+//     title: 'Debt & Financing',
+//     collapsible: true,
+//     defaultExpanded: true,
+//     metrics: [
+//       { label: 'Total Debt Outstanding', value: formatCurrencyCompact(debt.totalDebtOutstanding) },
+//       { label: 'LTV Ratio', value: formatPercentValue(debt.ltvRatio) },
+//       { label: 'DSCR (avg)', value: formatMultiple(debt.dscr) },
+//       { label: 'Weighted Avg Rate', value: formatPercentValue(debt.weightedAvgRate) },
+//       { label: 'Fixed Rate %', value: formatPercentValue(debt.fixedRatePercent) },
+//     ],
+//     maturitySchedule: [...debt.maturitySchedule],
+//   };
+// }
+
+export function buildBlocksForSection(
+  sectionId: InvestmentDetailSectionId,
+  detail: FundDetailDto | null,
+  assets: FundAssetTabRow[],
+  assetsPagination: {
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    totalCount: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+  },
+  capitalActivities: FundInvestorCapitalActivityTabRow[],
+  distributionTable: FundInvestorDistributionTableTabRow[],
+  irr: FundInvestorIrrTabRow[],
+  kpi: InvestmentDetailKpiCards,
+  timeframe: InvestmentDetailTimeframe,
+  periodLabel: string,
+  overview?: FundOverviewInput,
+  financialMetrics: FundFinancialMetricsRow | null = null,
+  documents: InvestorDetailDocumentItem[] = [],
+  assetOverview: FundAssetOverviewDto | null = null,
+  documentsLoading = false,
+  documentCategory: FundDocumentCategoryId = 'interim',
+  interimDocumentCount = 0,
+  advisoryDocumentCount = 0,
+): InvestorDetailBlock[] {
+  switch (sectionId) {
+    case 'overview':
+      return [
+        buildFundOverviewBlock(
+          detail,
+          overview ?? {
+            fundName: pickOverviewLabel(detail?.summary?.fundName),
+            fundType: pickOverviewLabel(
+              readFundDetailSummaryString(detail, 'fund_type', 'fundType', 'FundType'),
+              detail?.summary?.fundType,
+            ),
+            strategy: pickOverviewLabel(
+              readFundDetailSummaryString(
+                detail,
+                'strategy',
+                'fund_strategy_name',
+                'fundStrategyName',
+                'fund_strategy',
+              ),
+            ),
+            fundId: readFundDetailKey(detail) ?? detail?.summary?.fundId ?? FUND_OVERVIEW_EMPTY,
+          },
+          detail ? kpiCardsFromFundDetail(detail) : kpi,
+        ),
+        buildAssetOverviewBlock(assetOverview),
+      ];
+    case 'capital-account':
+      return [buildCapitalAccountGrid(kpi)];
+    case 'performance':
+      return [];
+    case 'assets':
+      return [mapAssetsTable(assets, assetsPagination)];
+    case 'financial-metrics':
+      return [buildFundFinancialMetricsBlock(financialMetrics)];
+    case 'fund-transactions':
+      return [
+        {
+          kind: 'transaction-hub',
+          id: 'fund-transactions',
+          title: 'Fund Transactions',
+          collapsible: true,
+          defaultExpanded: true,
+          activeCategoryId: 'capital-activities',
+          categories: [],
+          columns: [],
+          rows: [],
+          totals: null,
+          loading: false,
+          periodSummary: periodLabel,
+          recordCount: 0,
+          pagination: {
+            page: 1,
+            pageSize: 25,
+            totalPages: 0,
+            totalCount: 0,
+            hasPreviousPage: false,
+            hasNextPage: false,
+          },
+          fundCodeOptions: [],
+        },
+      ];
+    case 'documents':
+      return [
+        buildDocumentsList(
+          documents,
+          documentsLoading,
+          documentCategory,
+          interimDocumentCount,
+          advisoryDocumentCount,
+        ),
+      ];
+    // case 'esg-reporting':
+    //   return [buildEsgMetricsBlock()];
+    // case 'debt-financing':
+    //   return [buildDebtFinancingBlock()];
+    default:
+      return [];
+  }
+}
+
+export function buildFlatInvestmentBlocks(
+  detail: FundDetailDto | null,
+  assets: FundAssetTabRow[],
+  assetsPagination: {
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    totalCount: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+  },
+  capitalActivities: FundInvestorCapitalActivityTabRow[],
+  distributionTable: FundInvestorDistributionTableTabRow[],
+  irr: FundInvestorIrrTabRow[],
+  kpi: InvestmentDetailKpiCards,
+  timeframe: InvestmentDetailTimeframe,
+  periodLabel: string,
+  overview?: FundOverviewInput,
+  financialMetrics: FundFinancialMetricsRow | null = null,
+  documents: InvestorDetailDocumentItem[] = [],
+  assetOverview: FundAssetOverviewDto | null = null,
+  documentsLoading = false,
+  documentCategory: FundDocumentCategoryId = 'interim',
+  interimDocumentCount = 0,
+  advisoryDocumentCount = 0,
+): InvestmentDetailFlatBlock[] {
+  const sections = buildAllSectionBlocks(
+    detail,
+    assets,
+    assetsPagination,
+    capitalActivities,
+    distributionTable,
+    irr,
+    kpi,
+    timeframe,
+    periodLabel,
+    overview,
+    financialMetrics,
+    documents,
+    assetOverview,
+    documentsLoading,
+    documentCategory,
+    interimDocumentCount,
+    advisoryDocumentCount,
+  );
+
+  const flat: InvestmentDetailFlatBlock[] = [];
+  for (const section of sections) {
+    if (!section.blocks.length) {
+      continue;
+    }
+    section.blocks.forEach((block, index) => {
+      flat.push({
+        sectionId: section.sectionId,
+        block,
+        isSectionStart: index === 0,
+      });
+    });
+  }
+  return flat;
+}
+
+export function buildAllSectionBlocks(
+  detail: FundDetailDto | null,
+  assets: FundAssetTabRow[],
+  assetsPagination: {
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    totalCount: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+  },
+  capitalActivities: FundInvestorCapitalActivityTabRow[],
+  distributionTable: FundInvestorDistributionTableTabRow[],
+  irr: FundInvestorIrrTabRow[],
+  kpi: InvestmentDetailKpiCards,
+  timeframe: InvestmentDetailTimeframe,
+  periodLabel: string,
+  overview?: FundOverviewInput,
+  financialMetrics: FundFinancialMetricsRow | null = null,
+  documents: InvestorDetailDocumentItem[] = [],
+  assetOverview: FundAssetOverviewDto | null = null,
+  documentsLoading = false,
+  documentCategory: FundDocumentCategoryId = 'interim',
+  interimDocumentCount = 0,
+  advisoryDocumentCount = 0,
+): InvestorDetailSectionBlock[] {
+  const blocksBySectionId = new Map(
+    INVESTMENT_DETAIL_SIDEBAR_SECTIONS.flatMap((section) =>
+      section.items.map((item) => {
+        const sectionId = item.id as InvestmentDetailSectionId;
+        return [
+          sectionId,
+          {
+            sectionId: item.id,
+            blocks: buildBlocksForSection(
+              sectionId,
+              detail,
+              assets,
+              assetsPagination,
+              capitalActivities,
+              distributionTable,
+              irr,
+              kpi,
+              timeframe,
+              periodLabel,
+              overview,
+              financialMetrics,
+              documents,
+              assetOverview,
+              documentsLoading,
+              documentCategory,
+              interimDocumentCount,
+              advisoryDocumentCount,
+            ),
+          },
+        ] as const;
+      }),
+    ),
+  );
+
+  return INVESTMENT_DETAIL_PAGE_SECTION_IDS.flatMap((sectionId) => {
+    const section = blocksBySectionId.get(sectionId as InvestmentDetailSectionId);
+    return section ? [section] : [];
+  });
+}

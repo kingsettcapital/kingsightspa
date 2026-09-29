@@ -1,9 +1,10 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 
-import { APP_API_CONFIG } from '../config/api.config';
+import { APP_API_CONFIG } from '../constants/api.config';
+import { appendMortgageStatusParams } from '../utils/mortgage-status-query.util';
 
-/** Row from GET /api/DefaultSubjectiveAnalytics — mort.dim_loan (leaf, current). */
+/** Row from GET /api/DefaultSubjectiveAnalytics — loan_alias_relationship. */
 export type DefaultSubjectiveAnalyticsRowDto = {
   loanKey: number;
   loanId: string;
@@ -14,7 +15,6 @@ export type DefaultSubjectiveAnalyticsRowDto = {
   exitPlan?: string | null;
   exitDate?: string | null;
   maturityAdditionalDetail?: string | null;
-  /** Alternate names returned by some API builds */
   defaultSubjectiveStatus?: string | null;
   subjectiveExitPlan?: string | null;
   subjectiveExitDate?: string | null;
@@ -24,6 +24,7 @@ export type DefaultSubjectiveAnalyticsRowDto = {
 
 export type DefaultSubjectiveAnalyticsUpdatePayload = {
   loanKey: number;
+  loanCode: string;
   defaultStatus: string | null;
   exitPlan: string | null;
   exitDate: string | null;
@@ -54,20 +55,9 @@ export class DefaultSubjectiveAnalyticsApiService {
     return `${this.apiConfig.baseUrl}/api/DefaultSubjectiveAnalytics`;
   }
 
-  getLoans(loanAliasIds: number[], statuses: string[]) {
-    let params = new HttpParams();
-    for (const id of loanAliasIds) {
-      params = params.append('loanAliasIds', String(id));
-    }
-    for (const status of statuses) {
-      if (status.trim()) {
-        params = params.append('statuses', status.trim());
-      }
-    }
-    return this.http.get<DefaultSubjectiveAnalyticsRowDto[] | Record<string, unknown>>(
-      this.baseUrl,
-      { params },
-    );
+  getLoans(statuses: string[]) {
+    const params = appendMortgageStatusParams(new HttpParams(), statuses);
+    return this.http.get<DefaultSubjectiveAnalyticsRowDto[]>(this.baseUrl, { params });
   }
 
   getLookups() {

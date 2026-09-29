@@ -1,0 +1,220 @@
+.mortgage-report-page {
+  min-height: 100%;
+  padding: 1.5rem 1.35rem;
+  background: #ffffff;
+}
+
+.mortgage-report-page h1 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.mortgage-report-page .subtitle {
+  margin: 0.25rem 0 1.35rem;
+  color: #2563eb;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  align-items: flex-start;
+}
+
+.filter-panel {
+  flex: 1 1 20rem;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  padding: 0.95rem 1rem 1rem;
+}
+
+.status-panel {
+  flex: 0 1 auto;
+  min-width: 12rem;
+}
+
+.filter-label {
+  display: block;
+  margin-bottom: 0.6rem;
+  color: #111827;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.search-input-wrap input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #d1d5db;
+  font-size: 0.95rem;
+}
+
+.search-results {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  border: 1px solid #e5e7eb;
+  max-height: 12rem;
+  overflow: auto;
+}
+
+.search-results button {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.search-results button:hover {
+  background: #f9fafb;
+}
+
+.selected-alias-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.alias-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1e40af;
+  cursor: pointer;
+}
+
+.tag-close {
+  font-weight: 700;
+}
+
+.link-clear {
+  margin-top: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.status-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.status-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.meta-message,
+.status-message {
+  margin: 0 0 0.75rem;
+  color: #374151;
+}
+
+.error-message {
+  margin: 0 0 0.75rem;
+  color: #b91c1c;
+}
+
+.table-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  color: #111827;
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 56rem;
+}
+
+thead th {
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid #d1d5db;
+  background: #f3f4f6;
+  color: #111827;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+  vertical-align: top;
+}
+
+tbody tr:hover {
+  background: #f9fafb;
+}
+
+.align-right {
+  text-align: right;
+}
+
+.empty-row {
+  text-align: center;
+  color: #6b7280;
+}
+
+.hidden-column {
+  display: none;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.pagination-left,
+.pagination-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination button {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-size-select {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #d1d5db;
+}

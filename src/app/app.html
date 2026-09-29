@@ -1,0 +1,10 @@
+@if (
+  authService.requireLogin &&
+  (!authService.isMsalReady() || authService.isRedirectInProgress())
+) {
+  <div class="ks-auth-shell ks-auth-shell--fullscreen">
+    <p class="ks-type-body">Signing you in...</p>
+  </div>
+} @else {
+  <router-outlet />
+}

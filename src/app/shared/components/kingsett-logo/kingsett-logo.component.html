@@ -1,0 +1,25 @@
+<svg
+  class="ks-kingsett-logo__svg"
+  [attr.viewBox]="viewBox()"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-labelledby="kingsett-logo-title"
+>
+  <title id="kingsett-logo-title">KingSett Capital</title>
+
+  <g class="ks-kingsett-logo__mark" transform="translate(0 1)">
+    <path class="ks-kingsett-logo__diamond" d="M24 2 46 24 24 46 2 24Z" />
+    <g class="ks-kingsett-logo__king" transform="translate(24 25)">
+      <rect x="-1.2" y="-12" width="2.4" height="5.5" rx="0.2" />
+      <rect x="-4.2" y="-10.2" width="8.4" height="2" rx="0.2" />
+      <circle r="3.4" cy="-4" />
+      <path d="M-6 1.5c0-3 6-5.5 6-5.5s6 2.5 6 5.5l-1.2 9.5H-4.8Z" />
+      <rect x="-7.5" y="11" width="15" height="3" rx="0.3" />
+    </g>
+  </g>
+
+  @if (layout() === 'full') {
+    <text class="ks-kingsett-logo__wordmark" x="54" y="30">KingSett</text>
+    <text class="ks-kingsett-logo__capital" x="118" y="43">CAPITAL</text>
+  }
+</svg>

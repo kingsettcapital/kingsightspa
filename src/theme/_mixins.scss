@@ -1,0 +1,25 @@
+@use 'variables' as *;
+
+@mixin bp-down($breakpoint) {
+  @media (max-width: $breakpoint) {
+    @content;
+  }
+}
+
+@mixin bp-up($breakpoint) {
+  @media (min-width: $breakpoint) {
+    @content;
+  }
+}
+
+@mixin bp-md-down {
+  @include bp-down($ks-bp-md) {
+    @content;
+  }
+}
+
+@mixin bp-md-up {
+  @include bp-up($ks-bp-md + 1px) {
+    @content;
+  }
+}
