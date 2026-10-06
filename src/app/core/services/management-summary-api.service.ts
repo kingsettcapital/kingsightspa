@@ -40,7 +40,7 @@ export type ManagementSummaryDashboardQuery = {
   defaultDateTo?: string;
   maturityDateFrom?: string;
   maturityDateTo?: string;
-  sponsor?: string;
+  sponsors?: string[];
   riskLevels?: string[];
   statuses?: string[];
   investorAliases?: string[];
@@ -215,6 +215,17 @@ export type LoanDetailReportDashboardDto = {
   taxArrearsByYear?: { year: number; taxArrears: number }[];
 };
 
+/** Repeated `sponsor` params; sponsor names may contain commas. */
+function appendSponsorParams(params: HttpParams, sponsors: readonly string[] | undefined): HttpParams {
+  for (const sponsor of sponsors ?? []) {
+    const trimmed = sponsor.trim();
+    if (trimmed && trimmed.toLowerCase() !== 'all') {
+      params = params.append('sponsor', trimmed);
+    }
+  }
+  return params;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -253,7 +264,7 @@ export class ManagementSummaryApiService {
       defaultDateTo?: string;
       maturityDateFrom?: string;
       maturityDateTo?: string;
-      sponsor?: string;
+      sponsors?: string[];
       riskLevels?: string[];
       statuses?: string[];
       investorAliases?: string[];
@@ -272,9 +283,7 @@ export class ManagementSummaryApiService {
     if (query.maturityDateTo) {
       params = params.set('maturityDateTo', query.maturityDateTo);
     }
-    if (query.sponsor?.trim()) {
-      params = params.set('sponsor', query.sponsor.trim());
-    }
+    params = appendSponsorParams(params, query.sponsors);
     for (const level of query.riskLevels ?? []) {
       if (level.trim()) {
         params = params.append('riskLevels', level.trim());
@@ -311,9 +320,7 @@ export class ManagementSummaryApiService {
     if (query.maturityDateTo) {
       params = params.set('maturityDateTo', query.maturityDateTo);
     }
-    if (query.sponsor) {
-      params = params.set('sponsor', query.sponsor);
-    }
+    params = appendSponsorParams(params, query.sponsors);
     for (const level of query.riskLevels ?? []) {
       params = params.append('riskLevels', level);
     }

@@ -1,0 +1,47 @@
+<div class="msf" [class.msf--open]="isOpen()">
+  <button
+    type="button"
+    class="msf__trigger"
+    [attr.aria-expanded]="isOpen()"
+    [attr.aria-label]="ariaLabel() || null"
+    [title]="triggerTitle()"
+    (click)="toggleOpen()"
+  >
+    <span class="msf__value">{{ triggerLabel() }}</span>
+    <span class="msf__caret" aria-hidden="true"></span>
+  </button>
+
+  @if (isOpen()) {
+    <div class="msf__menu">
+      <input
+        #searchInput
+        type="search"
+        class="msf__search"
+        [placeholder]="placeholder()"
+        [value]="searchText()"
+        (input)="searchText.set($any($event.target).value)"
+        (keydown)="onSearchKeydown($event)"
+      />
+      <ul class="msf__list" role="listbox" aria-multiselectable="true">
+        @if (!searchText().trim()) {
+          <li>
+            <label class="msf__option" [class.msf__option--active]="isAllSelected()">
+              <input type="checkbox" [checked]="isAllSelected()" (change)="selectAll()" />
+              <span>{{ allValue() }}</span>
+            </label>
+          </li>
+        }
+        @for (option of visibleOptions(); track option) {
+          <li>
+            <label class="msf__option" [class.msf__option--active]="isSelected(option)" [title]="option">
+              <input type="checkbox" [checked]="isSelected(option)" (change)="toggleOption(option)" />
+              <span>{{ option }}</span>
+            </label>
+          </li>
+        } @empty {
+          <li class="msf__empty">No matches</li>
+        }
+      </ul>
+    </div>
+  }
+</div>

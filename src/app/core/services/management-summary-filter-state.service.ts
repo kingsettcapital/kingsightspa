@@ -26,10 +26,20 @@ export function createManagementSummaryDefaultFilters(): ManagementSummaryFilter
     defaultDateTo: '',
     maturityDateFrom: '',
     maturityDateTo: '',
-    sponsor: 'All',
+    sponsors: ['All'],
     riskLevels: ['ALL'],
-    status: 'Default',
+    statuses: ['Default'],
     investorAliases: ['All'],
+  };
+}
+
+function copyFilters(filters: ManagementSummaryFilters): ManagementSummaryFilters {
+  return {
+    ...filters,
+    sponsors: [...filters.sponsors],
+    riskLevels: [...filters.riskLevels],
+    statuses: [...filters.statuses],
+    investorAliases: [...filters.investorAliases],
   };
 }
 
@@ -62,19 +72,11 @@ export class ManagementSummaryFilterStateService {
     if (!this.sessionFilters) {
       this.sessionFilters = createManagementSummaryDefaultFilters();
     }
-    return {
-      ...this.sessionFilters,
-      riskLevels: [...this.sessionFilters.riskLevels],
-      investorAliases: [...this.sessionFilters.investorAliases],
-    };
+    return copyFilters(this.sessionFilters);
   }
 
   saveFilters(filters: ManagementSummaryFilters): void {
-    this.sessionFilters = {
-      ...filters,
-      riskLevels: [...filters.riskLevels],
-      investorAliases: [...filters.investorAliases],
-    };
+    this.sessionFilters = copyFilters(filters);
   }
 
   getFilterOptions(): ManagementSummaryFilterOptions {
