@@ -9,8 +9,8 @@ export const environment: Environment = {
   showAiAssistant: true,
   showUserManagement: true,
   azureConfig: {
-        clientId: 'cfb0f697-501d-4f4e-a200-04187704a1af',
-   authority: 'https://login.microsoftonline.com/f6d94abc-5472-43af-ab66-95726e5ab0cc/',
+    clientId: 'e32db1db-4cd9-4853-aa46-69cd1d63f8d7',
+    authority: 'https://login.microsoftonline.com/f6d94abc-5472-43af-ab66-95726e5ab0cc/',
     redirectURL: 'https://kingsight.kingsettcapital.com/',
     postLogoutRedirectUri: 'https://kingsight.kingsettcapital.com/auth/login',
     scopes: "api://367f65c5-e761-4739-897a-cff602cb119d/Read"
