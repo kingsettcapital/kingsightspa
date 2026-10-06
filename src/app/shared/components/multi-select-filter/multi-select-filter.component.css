@@ -1,0 +1,119 @@
+:host {
+  display: block;
+}
+
+.msf {
+  position: relative;
+  width: 100%;
+}
+
+.msf__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.msf__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.msf__caret {
+  flex: 0 0 auto;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #64748b;
+}
+
+.msf--open .msf__caret {
+  transform: rotate(180deg);
+}
+
+.msf__menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  z-index: 5;
+  box-sizing: border-box;
+}
+
+.msf__search {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.45rem 0.55rem;
+  border: 0;
+  border-bottom: 1px solid #e2e8f0;
+  font: inherit;
+  outline: none;
+}
+
+.msf__list {
+  max-height: 14rem;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.msf__option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  cursor: pointer;
+  font-size: inherit;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  color: inherit;
+}
+
+.msf__option span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.msf__option input {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+  accent-color: #0c274a;
+}
+
+.msf__option:hover,
+.msf__option--active {
+  background: #f1f5f9;
+}
+
+.msf__option--active {
+  font-weight: 600;
+  color: #0c274a;
+}
+
+.msf__empty {
+  padding: 0.45rem 0.55rem;
+  color: #64748b;
+  font-size: 0.85rem;
+}

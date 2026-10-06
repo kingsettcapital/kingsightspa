@@ -1,6 +1,10 @@
 import { Injectable } from '@angular/core';
+import { Chart } from 'chart.js';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+
+/** Table thead / body extents (px, relative to the capture root) for repeating headers. */
+type TableRegion = { headTop: number; headBottom: number; bottom: number };
 
 /**
  * Report PDF export via an off-screen clone.
@@ -73,6 +77,7 @@ export class ReportPrintExportService {
       'overflow:visible',
     ].join(';');
 
+    this.finishChartAnimations(element);
     const clone = element.cloneNode(true) as HTMLElement;
     clone.querySelectorAll('.ks-no-print').forEach((node) => node.remove());
     this.copyCanvasContents(element, clone);
@@ -89,6 +94,7 @@ export class ReportPrintExportService {
       host.style.width = `${width}px`;
 
       const breakPointsCssPx = this.collectBreakPointsCssPx(clone);
+      const tableRegionsCssPx = this.collectTableRegionsCssPx(clone);
 
       const scale = Math.min(2, 10000 / Math.max(width, height / 4));
       const canvas = await html2canvas(clone, {
@@ -114,10 +120,15 @@ export class ReportPrintExportService {
       const breakPointsCanvasPx = breakPointsCssPx
         .map((y) => Math.round(y * cssToCanvas))
         .filter((y) => y > 0 && y < canvas.height);
+      const tableRegionsCanvasPx = tableRegionsCssPx.map((region) => ({
+        headTop: Math.round(region.headTop * cssToCanvas),
+        headBottom: Math.round(region.headBottom * cssToCanvas),
+        bottom: Math.round(region.bottom * cssToCanvas),
+      }));
 
       const orientation = width / Math.max(height, 1) > 0.75 ? 'landscape' : 'portrait';
       const pdf = new jsPDF({ orientation, unit: 'pt', format: 'a4' });
-      this.addCanvasPages(pdf, canvas, 20, breakPointsCanvasPx);
+      this.addCanvasPages(pdf, canvas, 20, breakPointsCanvasPx, tableRegionsCanvasPx);
 
       const safeName = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
       pdf.save(safeName);
@@ -204,6 +215,13 @@ export class ReportPrintExportService {
       el.style.setProperty('position', 'static', 'important');
     });
 
+    // Fixed layout + percentage column widths lets nowrap amounts spill into the next
+    // column; auto layout sizes each column to its widest value (capture width grows to fit).
+    root.querySelectorAll<HTMLElement>('.ms-table, .ldr-table, .ms-mini-table').forEach((el) => {
+      el.style.setProperty('table-layout', 'auto', 'important');
+      el.style.setProperty('min-width', '0', 'important');
+    });
+
     // Avoid mid-word / mid-currency wraps in PDF capture.
     root
       .querySelectorAll<HTMLElement>(
@@ -228,25 +246,98 @@ export class ReportPrintExportService {
         '.ms-chart:not(.ms-chart--bar), .ldr-chart-card--composition .ldr-chart',
       )
       .forEach((el) => {
+        // html2canvas stretches a canvas to its CSS box, so box and canvas get identical
+        // explicit sizes (percent / min() heights do not resolve reliably in the clone).
         const side = el.classList.contains('ldr-chart') || el.closest('.ldr-chart-card') ? '16rem' : '11rem';
-        el.style.setProperty('width', side, 'important');
-        el.style.setProperty('height', side, 'important');
-        el.style.setProperty('aspect-ratio', '1', 'important');
+        for (const target of [el, el.querySelector<HTMLElement>('canvas')]) {
+          if (!target) {
+            continue;
+          }
+          target.style.setProperty('width', side, 'important');
+          target.style.setProperty('height', side, 'important');
+          target.style.setProperty('min-width', side, 'important');
+          target.style.setProperty('max-width', side, 'important');
+          target.style.setProperty('min-height', side, 'important');
+          target.style.setProperty('max-height', side, 'important');
+          target.style.setProperty('aspect-ratio', '1', 'important');
+        }
         el.style.setProperty('margin-left', 'auto', 'important');
         el.style.setProperty('margin-right', 'auto', 'important');
       });
-    root
-      .querySelectorAll<HTMLElement>(
-        '.ms-chart:not(.ms-chart--bar) canvas, .ldr-chart-card--composition canvas',
-      )
-      .forEach((el) => {
-        const canvas = el as HTMLCanvasElement;
-        const side = Math.min(canvas.width || 256, canvas.height || 256);
-        if (side > 0) {
-          el.style.setProperty('width', `${side}px`, 'important');
-          el.style.setProperty('height', `${side}px`, 'important');
+
+    // html2canvas re-breaks text itself and mis-measures letter-spaced headers, splitting
+    // words (e.g. ARREAR / S). Drop letter-spacing and make each word unbreakable.
+    root.querySelectorAll<HTMLElement>('.ms-table thead th, .ldr-table thead th').forEach((th) => {
+      th.style.setProperty('letter-spacing', 'normal', 'important');
+      this.keepWordsTogether(th);
+    });
+  }
+
+  private keepWordsTogether(el: HTMLElement): void {
+    const doc = el.ownerDocument;
+    const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const textNodes: Text[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const text = node as Text;
+      if (text.data.trim() && !text.parentElement?.hasAttribute('data-ks-pdf-word')) {
+        textNodes.push(text);
+      }
+    }
+    for (const text of textNodes) {
+      const fragment = doc.createDocumentFragment();
+      for (const part of text.data.split(/(\s+)/)) {
+        if (!part) {
+          continue;
         }
+        if (/^\s+$/.test(part)) {
+          fragment.appendChild(doc.createTextNode(' '));
+          continue;
+        }
+        const span = doc.createElement('span');
+        span.setAttribute('data-ks-pdf-word', '');
+        span.style.whiteSpace = 'nowrap';
+        span.textContent = part;
+        fragment.appendChild(span);
+      }
+      text.replaceWith(fragment);
+    }
+  }
+
+  /**
+   * Charts are often (re)rendered just before export; capture mid-animation leaves
+   * donuts as partial arcs. Jump every Chart.js instance to its final frame.
+   */
+  private finishChartAnimations(root: HTMLElement): void {
+    root.querySelectorAll('canvas').forEach((canvas) => {
+      const chart = Chart.getChart(canvas);
+      if (!chart) {
+        return;
+      }
+      chart.stop();
+      chart.update('none');
+    });
+  }
+
+  private collectTableRegionsCssPx(root: HTMLElement): TableRegion[] {
+    const rootTop = root.getBoundingClientRect().top;
+    const regions: TableRegion[] = [];
+    root.querySelectorAll('table').forEach((table) => {
+      const head = table.tHead;
+      if (!head || !table.tBodies.length) {
+        return;
+      }
+      const headRect = head.getBoundingClientRect();
+      const tableRect = table.getBoundingClientRect();
+      if (headRect.height <= 0) {
+        return;
+      }
+      regions.push({
+        headTop: headRect.top - rootTop,
+        headBottom: headRect.bottom - rootTop,
+        bottom: tableRect.bottom - rootTop,
       });
+    });
+    return regions;
   }
 
   /** Preferred Y offsets (CSS px, relative to root) to snap page slices. */
@@ -339,6 +430,7 @@ export class ReportPrintExportService {
     canvas: HTMLCanvasElement,
     margin: number,
     breakPointsCanvasPx: number[] = [],
+    tableRegionsCanvasPx: TableRegion[] = [],
   ): void {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
@@ -357,7 +449,16 @@ export class ReportPrintExportService {
         pdf.addPage();
       }
 
-      const idealEnd = Math.min(srcY + pageSlicePx, canvas.height);
+      // Page starts inside a table body → repeat that table's header row(s) on top.
+      const continuedTable =
+        pageIndex > 0
+          ? tableRegionsCanvasPx.find((region) => srcY > region.headBottom + 1 && srcY < region.bottom - 1)
+          : undefined;
+      const headerPx = continuedTable
+        ? Math.min(continuedTable.headBottom - continuedTable.headTop, Math.floor(pageSlicePx * 0.25))
+        : 0;
+
+      const idealEnd = Math.min(srcY + pageSlicePx - headerPx, canvas.height);
       let sliceEnd = idealEnd;
 
       if (idealEnd < canvas.height && breakPointsCanvasPx.length) {
@@ -397,14 +498,27 @@ export class ReportPrintExportService {
       const slicePx = Math.max(1, sliceEnd - srcY);
       const sliceCanvas = document.createElement('canvas');
       sliceCanvas.width = canvas.width;
-      sliceCanvas.height = Math.max(1, Math.ceil(slicePx));
+      sliceCanvas.height = Math.max(1, Math.ceil(headerPx + slicePx));
       const ctx = sliceCanvas.getContext('2d');
       if (!ctx) {
         break;
       }
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-      ctx.drawImage(canvas, 0, srcY, canvas.width, slicePx, 0, 0, canvas.width, slicePx);
+      if (continuedTable && headerPx > 0) {
+        ctx.drawImage(
+          canvas,
+          0,
+          continuedTable.headTop,
+          canvas.width,
+          headerPx,
+          0,
+          0,
+          canvas.width,
+          headerPx,
+        );
+      }
+      ctx.drawImage(canvas, 0, srcY, canvas.width, slicePx, 0, headerPx, canvas.width, slicePx);
 
       pdf.addImage(
         sliceCanvas.toDataURL('image/png'),
@@ -412,7 +526,7 @@ export class ReportPrintExportService {
         margin,
         margin,
         contentWidth,
-        slicePx / pxPerPt,
+        (headerPx + slicePx) / pxPerPt,
       );
 
       srcY = sliceEnd;

@@ -999,7 +999,7 @@
 
 .ms-mini-table thead th.num,
 .ms-mini-table tbody td.num {
-  text-align: center;
+  text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }

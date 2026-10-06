@@ -14,21 +14,46 @@ export const DEFAULT_FILTER_OPTIONS: ManagementSummaryFilterOptions = {
   statuses: ['Default', 'All'],
 };
 
-export function statusesFromFilters(filters: ManagementSummaryFilters): string[] | undefined {
-  if (!filters.status || filters.status === 'All') {
-    return undefined;
-  }
-  return [filters.status];
-}
-
-export function investorAliasesFromFilters(filters: ManagementSummaryFilters): string[] | undefined {
-  const aliases = filters.investorAliases.filter((alias) => alias.trim() && alias !== 'All');
-  return aliases.length ? aliases : undefined;
-}
-
 function isAllOrEmpty(value: string | null | undefined): boolean {
   const trimmed = value?.trim() ?? '';
   return !trimmed || trimmed.toLowerCase() === 'all';
+}
+
+/** Non-All selections, or undefined when the list means "All". */
+function selectedValues(values: readonly string[] | null | undefined): string[] | undefined {
+  const list = (values ?? []).map((value) => value.trim()).filter(Boolean);
+  if (!list.length || list.some((value) => value.toLowerCase() === 'all')) {
+    return undefined;
+  }
+  return list;
+}
+
+export function statusesFromFilters(filters: ManagementSummaryFilters): string[] | undefined {
+  return selectedValues(filters.statuses);
+}
+
+export function sponsorsFromFilters(filters: ManagementSummaryFilters): string[] | undefined {
+  return selectedValues(filters.sponsors);
+}
+
+export function investorAliasesFromFilters(filters: ManagementSummaryFilters): string[] | undefined {
+  return selectedValues(filters.investorAliases);
+}
+
+/**
+ * Chip-style multi-select toggle where `allValue` is exclusive:
+ * picking All clears the rest; removing the last selection falls back to All.
+ */
+export function toggleExclusiveSelection(current: readonly string[], value: string, allValue: string): string[] {
+  const isAll = (item: string) => item.toLowerCase() === allValue.toLowerCase();
+  if (isAll(value)) {
+    return [allValue];
+  }
+  const withoutAll = current.filter((item) => !isAll(item));
+  const next = withoutAll.includes(value)
+    ? withoutAll.filter((item) => item !== value)
+    : [...withoutAll, value];
+  return next.length ? next : [allValue];
 }
 
 function formatFilterDateLabel(isoDate: string): string {
@@ -89,13 +114,14 @@ export function formatActiveFiltersDisplay(
     parts.push(`Maturity Date: ${maturityDate}`);
   }
 
-  if (!isAllOrEmpty(filters.sponsor)) {
-    parts.push(`Sponsor: ${filters.sponsor.trim()}`);
+  const sponsors = sponsorsFromFilters(filters);
+  if (sponsors) {
+    parts.push(`Sponsor: ${sponsors.join('; ')}`);
   }
 
-  const investors = (filters.investorAliases ?? []).filter((alias) => !isAllOrEmpty(alias));
-  if (investors.length) {
-    parts.push(`Investor Alias: ${investors.map((alias) => alias.trim()).join('; ')}`);
+  const investors = investorAliasesFromFilters(filters);
+  if (investors) {
+    parts.push(`Investor Alias: ${investors.join('; ')}`);
   }
 
   const risks = (filters.riskLevels ?? []).filter((level) => !isAllOrEmpty(level));
@@ -103,24 +129,25 @@ export function formatActiveFiltersDisplay(
     parts.push(`Risk: ${risks.map((level) => level.trim()).join('; ')}`);
   }
 
-  if (!isAllOrEmpty(filters.status)) {
-    parts.push(`Funding Status: ${filters.status.trim()}`);
+  const statuses = statusesFromFilters(filters);
+  if (statuses) {
+    parts.push(`Funding Status: ${statuses.join('; ')}`);
   }
 
   return parts.join(' | ');
 }
 
-/** Query params carried between Management Summary and Loan Detail. */
+/** Query params carried between Management Summary and Loan Detail (lists as repeated params). */
 export function filtersToQueryParams(
   filters: ManagementSummaryFilters,
   alias?: string,
-): Record<string, string> {
-  const params: Record<string, string> = {
+): Record<string, string | string[]> {
+  const params: Record<string, string | string[]> = {
     asOfDate: filters.asOfDate,
-    status: filters.status,
-    sponsor: filters.sponsor,
-    riskLevels: filters.riskLevels.join(','),
-    investorAliases: filters.investorAliases.join(','),
+    statuses: [...filters.statuses],
+    sponsors: [...filters.sponsors],
+    riskLevels: [...filters.riskLevels],
+    investorAliases: [...filters.investorAliases],
   };
   if (alias) {
     params['alias'] = alias;
@@ -163,10 +190,41 @@ export function createLoanDetailDefaultFilters(asOfDate: string): ManagementSumm
     defaultDateTo: '',
     maturityDateFrom: '',
     maturityDateTo: '',
-    sponsor: 'All',
+    sponsors: ['All'],
     riskLevels: ['ALL'],
-    status: 'All',
+    statuses: ['All'],
     investorAliases: ['All'],
+  };
+}
+
+/**
+ * Repeated query param values; legacy single keys (`sponsor`, `status`) and
+ * comma-joined risk lists are still accepted.
+ */
+function readListParam(query: ParamMap, key: string, legacyKey?: string, splitCommas = false): string[] | null {
+  let values = query.getAll(key);
+  if (!values.length && legacyKey) {
+    values = query.getAll(legacyKey);
+  }
+  if (splitCommas && values.length === 1) {
+    values = values[0].split(',');
+  }
+  const list = values.map((value) => value.trim()).filter(Boolean);
+  return list.length ? list : null;
+}
+
+function overlayFiltersFromQuery(base: ManagementSummaryFilters, query: ParamMap): ManagementSummaryFilters {
+  return {
+    ...base,
+    asOfDate: query.get('asOfDate')?.trim() || base.asOfDate,
+    defaultDateFrom: query.get('defaultDateFrom') ?? base.defaultDateFrom,
+    defaultDateTo: query.get('defaultDateTo') ?? base.defaultDateTo,
+    maturityDateFrom: query.get('maturityDateFrom') ?? base.maturityDateFrom,
+    maturityDateTo: query.get('maturityDateTo') ?? base.maturityDateTo,
+    sponsors: readListParam(query, 'sponsors', 'sponsor') ?? [...base.sponsors],
+    riskLevels: readListParam(query, 'riskLevels', undefined, true) ?? [...base.riskLevels],
+    statuses: readListParam(query, 'statuses', 'status') ?? [...base.statuses],
+    investorAliases: readListParam(query, 'investorAliases') ?? [...base.investorAliases],
   };
 }
 
@@ -177,49 +235,12 @@ export function createLoanDetailDefaultFilters(asOfDate: string): ManagementSumm
  */
 export function loanDetailFiltersFromQuery(query: ParamMap, fallbackAsOfDate: string): ManagementSummaryFilters {
   const asOfDate = query.get('asOfDate')?.trim() || fallbackAsOfDate;
-  const base = createLoanDetailDefaultFilters(asOfDate);
-
-  const riskRaw = query.get('riskLevels');
-  const investorRaw = query.get('investorAliases');
-  const status = query.get('status')?.trim();
-  const sponsor = query.get('sponsor')?.trim();
-
-  return {
-    ...base,
-    defaultDateFrom: query.get('defaultDateFrom') ?? base.defaultDateFrom,
-    defaultDateTo: query.get('defaultDateTo') ?? base.defaultDateTo,
-    maturityDateFrom: query.get('maturityDateFrom') ?? base.maturityDateFrom,
-    maturityDateTo: query.get('maturityDateTo') ?? base.maturityDateTo,
-    sponsor: sponsor || base.sponsor,
-    riskLevels: riskRaw
-      ? riskRaw.split(',').map((v) => v.trim()).filter(Boolean)
-      : [...base.riskLevels],
-    status: status || base.status,
-    investorAliases: investorRaw
-      ? investorRaw.split(',').map((v) => v.trim()).filter(Boolean)
-      : [...base.investorAliases],
-  };
+  return overlayFiltersFromQuery(createLoanDetailDefaultFilters(asOfDate), query);
 }
 
 export function mergeFiltersFromQuery(
   base: ManagementSummaryFilters,
   query: ParamMap,
 ): ManagementSummaryFilters {
-  const riskRaw = query.get('riskLevels');
-  const investorRaw = query.get('investorAliases');
-  return {
-    asOfDate: query.get('asOfDate')?.trim() || base.asOfDate,
-    defaultDateFrom: query.get('defaultDateFrom') ?? base.defaultDateFrom,
-    defaultDateTo: query.get('defaultDateTo') ?? base.defaultDateTo,
-    maturityDateFrom: query.get('maturityDateFrom') ?? base.maturityDateFrom,
-    maturityDateTo: query.get('maturityDateTo') ?? base.maturityDateTo,
-    sponsor: query.get('sponsor')?.trim() || base.sponsor,
-    riskLevels: riskRaw
-      ? riskRaw.split(',').map((v) => v.trim()).filter(Boolean)
-      : [...base.riskLevels],
-    status: query.get('status')?.trim() || base.status,
-    investorAliases: investorRaw
-      ? investorRaw.split(',').map((v) => v.trim()).filter(Boolean)
-      : [...base.investorAliases],
-  };
+  return overlayFiltersFromQuery(base, query);
 }

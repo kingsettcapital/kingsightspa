@@ -481,67 +481,27 @@
         </div>
       </fieldset>
 
-      <label class="ms-filter-field">
+      <div class="ms-filter-field">
         <span>Sponsor</span>
-        <div class="ms-filter-select" [class.ms-filter-select--open]="openFilterMenu() === 'sponsor'">
-          <button
-            type="button"
-            class="ms-filter-select__trigger"
-            (click)="toggleFilterMenu('sponsor')"
-            [attr.aria-expanded]="openFilterMenu() === 'sponsor'"
-          >
-            <span class="ms-filter-select__value">{{ filters().sponsor }}</span>
-            <span class="ms-filter-select__caret" aria-hidden="true"></span>
-          </button>
-          @if (openFilterMenu() === 'sponsor') {
-            <ul class="ms-filter-select__menu" role="listbox">
-              @for (sponsor of sponsorOptions(); track sponsor) {
-                <li>
-                  <button
-                    type="button"
-                    class="ms-filter-select__option"
-                    [class.ms-filter-select__option--active]="filters().sponsor === sponsor"
-                    (click)="setSponsor(sponsor)"
-                  >
-                    {{ sponsor }}
-                  </button>
-                </li>
-              }
-            </ul>
-          }
-        </div>
-      </label>
+        <app-multi-select-filter
+          ariaLabel="Sponsor"
+          placeholder="Search sponsors…"
+          [options]="sponsorOptions()"
+          [selected]="filters().sponsors"
+          (selectedChange)="setSponsors($event)"
+        />
+      </div>
 
-      <label class="ms-filter-field">
+      <div class="ms-filter-field">
         <span>Investor Alias</span>
-        <div class="ms-filter-select" [class.ms-filter-select--open]="openFilterMenu() === 'investor'">
-          <button
-            type="button"
-            class="ms-filter-select__trigger"
-            (click)="toggleFilterMenu('investor')"
-            [attr.aria-expanded]="openFilterMenu() === 'investor'"
-          >
-            <span class="ms-filter-select__value">{{ selectedInvestorAlias() }}</span>
-            <span class="ms-filter-select__caret" aria-hidden="true"></span>
-          </button>
-          @if (openFilterMenu() === 'investor') {
-            <ul class="ms-filter-select__menu" role="listbox">
-              @for (alias of investorAliasOptions(); track alias) {
-                <li>
-                  <button
-                    type="button"
-                    class="ms-filter-select__option"
-                    [class.ms-filter-select__option--active]="selectedInvestorAlias() === alias"
-                    (click)="setInvestorAlias(alias)"
-                  >
-                    {{ alias }}
-                  </button>
-                </li>
-              }
-            </ul>
-          }
-        </div>
-      </label>
+        <app-multi-select-filter
+          ariaLabel="Investor Alias"
+          placeholder="Search investors…"
+          [options]="investorAliasOptions()"
+          [selected]="filters().investorAliases"
+          (selectedChange)="setInvestorAliases($event)"
+        />
+      </div>
 
       <fieldset class="ms-filter-field">
         <legend>Risk</legend>
@@ -566,8 +526,9 @@
             <button
               type="button"
               class="ms-chip"
-              [class.ms-chip--active]="filters().status === status"
-              (click)="setStatus(status)"
+              [class.ms-chip--active]="isStatusSelected(status)"
+              [attr.aria-pressed]="isStatusSelected(status)"
+              (click)="toggleStatus(status)"
             >
               {{ status }}
             </button>
