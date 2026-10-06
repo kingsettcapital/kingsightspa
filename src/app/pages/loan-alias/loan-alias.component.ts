@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
+import { SearchDropdownDirective } from '../../shared/directives/search-dropdown.directive';
 import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 import {
   LoanAlias,
@@ -35,7 +36,7 @@ const LOAN_ALIAS_TABLE_COLUMNS: LoanAliasTableColumn[] = [
 @Component({
   selector: 'app-loan-alias',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SearchDropdownDirective],
   templateUrl: './loan-alias.component.html',
   styleUrl: './loan-alias.component.css',
 })
@@ -43,12 +44,13 @@ export class LoanAliasComponent implements OnInit {
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
 
-  private readonly defaultPageSize = 10;
+  private readonly defaultPageSize = 100;
 
   readonly tableColumns = LOAN_ALIAS_TABLE_COLUMNS;
 
   readonly aliases = signal<LoanAlias[]>([]);
   readonly searchTerm = signal('');
+  readonly selectedAliasNames = signal<string[]>([]);
   readonly sortColumn = signal<LoanAliasColumnKey | null>(null);
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
   readonly currentPage = signal(1);
@@ -67,8 +69,12 @@ export class LoanAliasComponent implements OnInit {
 
   readonly filteredAliases = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
+    const selected = new Set(this.selectedAliasNames().map((name) => name.toLowerCase()));
 
     let rows = this.aliases();
+    if (selected.size > 0) {
+      rows = rows.filter((alias) => selected.has(alias.loanAliasName.toLowerCase()));
+    }
     if (term) {
       rows = rows.filter((alias) =>
         this.tableColumns.some((column) =>
@@ -149,19 +155,35 @@ export class LoanAliasComponent implements OnInit {
       return [];
     }
 
+    const selected = new Set(this.selectedAliasNames().map((name) => name.toLowerCase()));
     return this.aliases()
-      .filter((alias) => alias.loanAliasName.toLowerCase().includes(term))
+      .filter(
+        (alias) =>
+          !selected.has(alias.loanAliasName.toLowerCase()) &&
+          alias.loanAliasName.toLowerCase().includes(term),
+      )
       .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName, undefined, { sensitivity: 'base' }))
       .slice(0, 10);
   });
 
   selectAliasSuggestion(alias: LoanAlias): void {
-    this.searchTerm.set(alias.loanAliasName);
+    const name = alias.loanAliasName.trim();
+    if (!name || this.selectedAliasNames().some((n) => n.toLowerCase() === name.toLowerCase())) {
+      return;
+    }
+    this.selectedAliasNames.set([...this.selectedAliasNames(), name]);
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  removeSelectedAlias(name: string): void {
+    this.selectedAliasNames.set(this.selectedAliasNames().filter((n) => n !== name));
     this.currentPage.set(1);
     this.clearMessages();
   }
 
   clearSelection(): void {
+    this.selectedAliasNames.set([]);
     this.searchTerm.set('');
     this.currentPage.set(1);
     this.clearMessages();

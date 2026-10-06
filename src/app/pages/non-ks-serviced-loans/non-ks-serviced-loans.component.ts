@@ -22,6 +22,7 @@ import {
 } from '../../core/services/loan-security-value-api.service';
 import { LoanAliasOptionDto, LoansApiService } from '../../core/services/loans-api.service';
 import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
+import { SearchDropdownDirective } from '../../shared/directives/search-dropdown.directive';
 import {
   NonKsServicedLoanDto,
   NonKsServicedLoanPayload,
@@ -187,7 +188,7 @@ const NON_KS_TABLE_COLUMNS: NonKsTableColumn[] = [
 @Component({
   selector: 'app-non-ks-serviced-loans',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectComponent, NgFooterTemplateDirective],
+  imports: [CommonModule, FormsModule, NgSelectComponent, NgFooterTemplateDirective, SearchDropdownDirective],
   templateUrl: './non-ks-serviced-loans.component.html',
   styleUrl: './non-ks-serviced-loans.component.css',
 })
@@ -197,7 +198,7 @@ export class NonKsServicedLoansComponent implements OnInit {
   private readonly investorApi = inject(InvestorApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
-  private readonly defaultPageSize = 10;
+  private readonly defaultPageSize = 100;
 
   readonly tableColumns = NON_KS_TABLE_COLUMNS;
   readonly rows = signal<NonKsLoanRow[]>([]);
@@ -482,7 +483,6 @@ export class NonKsServicedLoansComponent implements OnInit {
       ? `id:${loanCode.toLowerCase()}`
       : alias.toLowerCase();
     this.selectedLoanKeys.set([...this.selectedLoanKeys(), optionValue]);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
   }

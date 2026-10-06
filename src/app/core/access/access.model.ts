@@ -70,6 +70,10 @@ export function isMortgageUserRole(roleName: string | null | undefined): boolean
   return normalizeRoleLabel(roleName) === 'mortgage user';
 }
 
+export function isMortgageApproverRole(roleName: string | null | undefined): boolean {
+  return normalizeRoleLabel(roleName) === 'mortgage approver';
+}
+
 /** Mortgage Super User — may edit Loan/Investor Alias Assignment (Admin exempt). */
 export function isMortgageSuperUserRole(roleName: string | null | undefined): boolean {
   return normalizeRoleLabel(roleName) === 'mortgage super user';

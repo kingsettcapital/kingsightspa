@@ -12,6 +12,7 @@ export type DefaultDateCaptureRowDto = {
   loanAliasName: string;
   loanTermDefaultDate?: string | null;
   defaultDate?: string | null;
+  fundingStatusName?: string | null;
   userUpdatedBy?: string | null;
   userUpdatedDate?: string | null;
 };

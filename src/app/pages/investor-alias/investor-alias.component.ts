@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
+import { SearchDropdownDirective } from '../../shared/directives/search-dropdown.directive';
 import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 import {
   InvestorAlias,
@@ -35,7 +36,7 @@ const INVESTOR_ALIAS_TABLE_COLUMNS: InvestorAliasTableColumn[] = [
 @Component({
   selector: 'app-investor-alias',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SearchDropdownDirective],
   templateUrl: './investor-alias.component.html',
   styleUrl: './investor-alias.component.css',
 })
@@ -43,12 +44,13 @@ export class InvestorAliasComponent implements OnInit {
   private readonly investorApi = inject(InvestorApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
 
-  private readonly defaultPageSize = 10;
+  private readonly defaultPageSize = 100;
 
   readonly tableColumns = INVESTOR_ALIAS_TABLE_COLUMNS;
 
   readonly aliases = signal<InvestorAlias[]>([]);
   readonly searchTerm = signal('');
+  readonly selectedAliasNames = signal<string[]>([]);
   readonly sortColumn = signal<InvestorAliasColumnKey | null>(null);
   readonly sortDirection = signal<'asc' | 'desc'>('asc');
   readonly currentPage = signal(1);
@@ -66,8 +68,12 @@ export class InvestorAliasComponent implements OnInit {
 
   readonly filteredAliases = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
+    const selected = new Set(this.selectedAliasNames().map((name) => name.toLowerCase()));
 
     let rows = this.aliases();
+    if (selected.size > 0) {
+      rows = rows.filter((alias) => selected.has(alias.investorAliasName.toLowerCase()));
+    }
     if (term) {
       rows = rows.filter((alias) =>
         this.tableColumns.some((column) =>
@@ -132,19 +138,35 @@ export class InvestorAliasComponent implements OnInit {
       return [];
     }
 
+    const selected = new Set(this.selectedAliasNames().map((name) => name.toLowerCase()));
     return this.aliases()
-      .filter((alias) => alias.investorAliasName.toLowerCase().includes(term))
+      .filter(
+        (alias) =>
+          !selected.has(alias.investorAliasName.toLowerCase()) &&
+          alias.investorAliasName.toLowerCase().includes(term),
+      )
       .sort((a, b) => a.investorAliasName.localeCompare(b.investorAliasName, undefined, { sensitivity: 'base' }))
       .slice(0, 10);
   });
 
   selectAliasSuggestion(alias: InvestorAlias): void {
-    this.searchTerm.set(alias.investorAliasName);
+    const name = alias.investorAliasName.trim();
+    if (!name || this.selectedAliasNames().some((n) => n.toLowerCase() === name.toLowerCase())) {
+      return;
+    }
+    this.selectedAliasNames.set([...this.selectedAliasNames(), name]);
+    this.currentPage.set(1);
+    this.clearMessages();
+  }
+
+  removeSelectedAlias(name: string): void {
+    this.selectedAliasNames.set(this.selectedAliasNames().filter((n) => n !== name));
     this.currentPage.set(1);
     this.clearMessages();
   }
 
   clearSelection(): void {
+    this.selectedAliasNames.set([]);
     this.searchTerm.set('');
     this.currentPage.set(1);
     this.clearMessages();

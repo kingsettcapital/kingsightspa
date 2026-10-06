@@ -7,7 +7,7 @@
       </div>
 
       <div class="ks-fp__filters-compact">
-        <div class="ks-fp__search-block">
+        <div class="ks-fp__search-block" (searchDismissed)="$event.picked && updateSearch('')">
           <label class="ks-fp__filter-label" for="defaultDateLoanAliasSearch">Search Loans</label>
           <input
             id="defaultDateLoanAliasSearch"
@@ -120,14 +120,20 @@
             <td>{{ row.loanName }}</td>
             <td>{{ row.loanAliasName }}</td>
             <td class="date-readonly">{{ formatDisplayDate(row.loanTermDefaultDate) }}</td>
-            <td>
-              <input
-                type="date"
-                class="date-input"
-                [value]="row.defaultDate"
-                (input)="updateDefaultDate(row.loanCode, $any($event.target).value)"
-              />
-            </td>
+            @if (row.isDefaulted) {
+              <td>
+                <input
+                  type="date"
+                  class="date-input"
+                  [value]="row.defaultDate"
+                  (input)="updateDefaultDate(row.loanCode, $any($event.target).value)"
+                />
+              </td>
+            } @else {
+              <td class="date-readonly" title="Editable only when Funding Status is Default">
+                {{ formatDisplayDate(row.defaultDate) }}
+              </td>
+            }
             <td class="date-readonly audit-col updated-by-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
             <td class="date-readonly audit-col">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>

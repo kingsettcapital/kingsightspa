@@ -269,7 +269,7 @@
   padding: 0;
   border: 1px solid var(--ks-color-border);
   border-radius: 0;
-  max-height: 12rem;
+  max-height: 9rem;
   overflow: auto;
   background: var(--ks-color-surface);
   box-shadow: 0 8px 20px rgba(12, 39, 74, 0.12);
@@ -284,15 +284,19 @@
   position: relative;
 }
 
+.ks-fp__search-block--dismissed .ks-fp__autocomplete {
+  display: none;
+}
+
 .ks-fp__autocomplete li button,
 .ks-fp .search-results li button {
   width: 100%;
   border: none;
   background: var(--ks-color-surface);
   text-align: left;
-  padding: 0.45rem 0.65rem;
+  padding: 0.3rem 0.55rem;
   cursor: pointer;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   border-bottom: 1px solid var(--ks-color-pale-grey);
   font-family: var(--ks-font-family);
   color: var(--ks-color-text);

@@ -19,11 +19,11 @@ import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search'
 import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import {
   normalizeStatusOptions,
+  resolveFundedAndDefaultStatusValues,
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { AccessControlService } from '../../core/access/access-control.service';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
-import { formatCurrencyCompactKm } from '../../core/utils/currency-compact-km.util';
 import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
 import {
   CmhcUploadApiService,
@@ -41,6 +41,7 @@ import {
   LoanStatusFilterOption,
 } from '../../core/services/loan-security-value-api.service';
 import { NotificationUnreadCountService } from '../../core/services/notification-unread-count.service';
+import { SearchDropdownDirective } from '../../shared/directives/search-dropdown.directive';
 
 type AliasOption = {
   loanAliasId: number;
@@ -143,7 +144,7 @@ const LTV_TABLE_COLUMNS: LtvTableColumn[] = [
 @Component({
   selector: 'app-ltv-validation',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectComponent],
+  imports: [CommonModule, FormsModule, NgSelectComponent, SearchDropdownDirective],
   templateUrl: './ltv-validation.component.html',
   styleUrl: './ltv-validation.component.css',
 })
@@ -158,7 +159,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly notificationUnreadCount = inject(NotificationUnreadCountService);
   private readonly apiConfig = inject(APP_API_CONFIG);
-  private readonly defaultPageSize = 10;
+  private readonly defaultPageSize = 100;
 
   readonly updateReasonOptions = [...LTV_UPDATE_REASON_OPTIONS];
 
@@ -500,7 +501,7 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     this.searchText.set('');
     this.selectedLoanCodes.set([]);
     this.selectedLoanAliasIds.set([]);
-    this.selectedStatuses.set([]);
+    this.selectedStatuses.set(resolveFundedAndDefaultStatusValues(this.statusOptions()));
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
@@ -512,7 +513,6 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
       return;
     }
     this.selectedLoanCodes.set([...this.selectedLoanCodes(), code]);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
   }
@@ -928,14 +928,26 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     }).format(value);
   }
 
-  /** Sec. Value: $XM / $XK; rounded whole numbers, no decimals. */
+  /** Sec. Value: $#,###.## */
   formatSecurityValue(value: number | null): string {
-    return formatCurrencyCompactKm(value, { withDollarSign: true });
+    return this.formatCurrencyTwoDecimals(value);
   }
 
-  /** Exposure: $XM / $XK; rounded whole numbers, no decimals. */
+  /** Exposure: $#,###.## */
   formatExposure(value: number | null): string {
-    return formatCurrencyCompactKm(value, { withDollarSign: true });
+    return this.formatCurrencyTwoDecimals(value);
+  }
+
+  private formatCurrencyTwoDecimals(value: number | null): string {
+    if (value == null || !Number.isFinite(value)) {
+      return '-';
+    }
+    return new Intl.NumberFormat('en-CA', {
+      style: 'currency',
+      currency: 'CAD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
   }
 
   currencyTitle(value: number | null): string | null {
@@ -1093,7 +1105,9 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
             .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
         );
 
-        this.statusOptions.set(normalizeStatusOptions(statuses));
+        const statusOpts = normalizeStatusOptions(statuses);
+        this.statusOptions.set(statusOpts);
+        this.selectedStatuses.set(resolveFundedAndDefaultStatusValues(statusOpts));
         this.qrSlideUploads.set(this.normalizeQrSlideUploads(uploads));
         this.applyColumnDates(columnDates);
         this.isLoadingFilters.set(false);

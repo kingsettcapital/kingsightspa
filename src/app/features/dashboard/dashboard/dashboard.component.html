@@ -1,4 +1,7 @@
 <section>
+  @if (lateInterestWarning(); as warning) {
+    <div class="late-interest-warning" role="status">{{ warning }}</div>
+  }
   @if (showHomeCapitalAndDataExplorer) {
     <div class="ks-page__heading">
       <h1 class="ks-page__title">Dashboard</h1>
