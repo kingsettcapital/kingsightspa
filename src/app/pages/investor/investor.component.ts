@@ -9,6 +9,7 @@ import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-loa
 import { AccessControlService } from '../../core/access/access-control.service';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
+import { SearchDropdownDirective } from '../../shared/directives/search-dropdown.directive';
 import {
   InvestorAlias,
   InvestorApiService,
@@ -52,7 +53,7 @@ const INVESTOR_ASSIGNMENT_TABLE_COLUMNS: InvestorAssignmentTableColumn[] = [
 @Component({
   selector: 'app-investor',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectComponent, NgFooterTemplateDirective],
+  imports: [CommonModule, FormsModule, NgSelectComponent, NgFooterTemplateDirective, SearchDropdownDirective],
   templateUrl: './investor.component.html',
   styleUrl: './investor.component.css',
 })
@@ -60,7 +61,7 @@ export class InvestorComponent implements OnInit {
   private readonly investorApi = inject(InvestorApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly accessControl = inject(AccessControlService);
-  private readonly defaultPageSize = 10;
+  private readonly defaultPageSize = 100;
 
   readonly canEditAliasAssignment = this.accessControl.canEditAliasAssignment;
 
@@ -295,7 +296,6 @@ export class InvestorComponent implements OnInit {
     }
 
     this.selectedInvestorCodes.set([...this.selectedInvestorCodes(), row.investorCode]);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
   }

@@ -9,7 +9,7 @@
       </div>
 
       <div class="ks-fp__filters-compact">
-        <div class="ks-fp__search-block">
+        <div class="ks-fp__search-block" (searchDismissed)="$event.picked && updateSearch('')">
           <label class="ks-fp__filter-label" for="loanSearch">Search Loans</label>
           <input
             id="loanSearch"

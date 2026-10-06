@@ -10,6 +10,12 @@ const DEFAULT_STATUS_LABEL_ALIASES = new Set([
   'indefault',
 ]);
 
+/** True when a funding status name means the loan is in default (e.g. "Default", "Defaulted"). */
+export function isDefaultStatusLabel(statusName: string): boolean {
+  const label = statusName.trim().toLowerCase();
+  return DEFAULT_STATUS_LABEL_ALIASES.has(label) || label === 'defaulted';
+}
+
 const DEFAULT_STATUS_VALUE_ALIASES = new Set(['2', 'default', 'in_default', 'in default']);
 
 /**
@@ -33,6 +39,15 @@ export function resolveDefaultStatusValues(options: LoanStatusFilterOption[]): s
 
   const fallback = options.find((option) => option.value !== '(null)') ?? options[0];
   return [preferred?.value ?? fallback.value];
+}
+
+/** Status keys for "Funded" + "Default", the default Status filter on subjective input pages. */
+export function resolveFundedAndDefaultStatusValues(options: LoanStatusFilterOption[]): string[] {
+  const funded = options
+    .filter((option) => option.displayLabel.trim().toLowerCase() === 'funded')
+    .map((option) => option.value);
+  const defaults = resolveDefaultStatusValues(options).filter((value) => !funded.includes(value));
+  return [...funded, ...defaults];
 }
 
 export function toStatusSelectOptions(

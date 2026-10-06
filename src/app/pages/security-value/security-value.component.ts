@@ -14,6 +14,7 @@ import {
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
+import { SearchDropdownDirective } from '../../shared/directives/search-dropdown.directive';
 import {
   LoanSecurityValueApiService,
   LoanSecurityValueBulkUpdateRequest,
@@ -72,7 +73,7 @@ const SECURITY_VALUE_TABLE_COLUMNS: SecurityValueTableColumn[] = [
 @Component({
   selector: 'app-security-value',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SearchDropdownDirective],
   templateUrl: './security-value.component.html',
   styleUrl: './security-value.component.css',
 })
@@ -80,7 +81,7 @@ export class SecurityValueComponent implements OnInit {
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
-  private readonly defaultPageSize = 10;
+  private readonly defaultPageSize = 100;
 
   readonly tableColumns = SECURITY_VALUE_TABLE_COLUMNS;
 
@@ -296,7 +297,6 @@ export class SecurityValueComponent implements OnInit {
     }
 
     this.updateSelectedAliases([...this.selectedLoanAliasIds(), alias.loanAliasId]);
-    this.searchText.set('');
   }
 
   removeSelectedAlias(loanAliasId: number): void {

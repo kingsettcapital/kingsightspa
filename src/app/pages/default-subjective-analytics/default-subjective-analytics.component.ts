@@ -13,7 +13,7 @@ import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search'
 import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import {
   normalizeStatusOptions,
-  resolveDefaultStatusValues,
+  resolveFundedAndDefaultStatusValues,
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
@@ -24,6 +24,7 @@ import {
   DefaultSubjectiveAnalyticsRowDto,
 } from '../../core/services/default-subjective-analytics-api.service';
 import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
+import { SearchDropdownDirective } from '../../shared/directives/search-dropdown.directive';
 import {
   LoanSecurityValueApiService,
   LoanStatusFilterOption,
@@ -102,7 +103,7 @@ const LEGACY_EXIT_PLAN_ALIASES: Record<string, string> = {
 @Component({
   selector: 'app-default-subjective-analytics',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectComponent],
+  imports: [CommonModule, FormsModule, NgSelectComponent, SearchDropdownDirective],
   templateUrl: './default-subjective-analytics.component.html',
   styleUrl: './default-subjective-analytics.component.css',
 })
@@ -111,7 +112,7 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
-  private readonly defaultPageSize = 10;
+  private readonly defaultPageSize = 100;
 
   readonly tableColumns = SUBJECTIVE_TABLE_COLUMNS;
 
@@ -278,7 +279,6 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
       return;
     }
     this.selectedAliasNames.set([...this.selectedAliasNames(), name]);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
@@ -295,7 +295,7 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedAliasNames.set([]);
-    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
+    this.selectedStatuses.set(resolveFundedAndDefaultStatusValues(this.statusOptions()));
     this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
@@ -493,8 +493,7 @@ export class DefaultSubjectiveAnalyticsComponent implements OnInit {
         this.aliasOptions.set(this.normalizeAliases(aliases));
         const statusOpts = normalizeStatusOptions(statuses);
         this.statusOptions.set(statusOpts);
-        // This screen captures defaulted loans — Status defaults to "Default".
-        this.selectedStatuses.set(resolveDefaultStatusValues(statusOpts));
+        this.selectedStatuses.set(resolveFundedAndDefaultStatusValues(statusOpts));
         this.applyLookupOptions(lookups);
         this.isLoadingFilters.set(false);
         this.loadGrid();

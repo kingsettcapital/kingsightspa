@@ -8,6 +8,8 @@ import { catchError } from 'rxjs/operators';
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
 import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import {
+  isDefaultStatusLabel,
+  resolveDefaultStatusValues,
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
@@ -23,6 +25,7 @@ import {
 } from '../../core/services/loan-security-value-api.service';
 import { LoanAlias, LoanAliasApiService } from '../../core/services/loan-alias-api.service';
 import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
+import { SearchDropdownDirective } from '../../shared/directives/search-dropdown.directive';
 
 type AliasOption = {
   loanAliasId: number;
@@ -36,6 +39,7 @@ type DefaultDateRow = {
   loanAliasName: string;
   loanTermDefaultDate: string;
   defaultDate: string;
+  isDefaulted: boolean;
   userUpdatedBy: string;
   userUpdatedDate: string;
 };
@@ -60,7 +64,7 @@ const DEFAULT_DATE_TABLE_COLUMNS: DefaultDateTableColumn[] = [
   { key: 'loanCode', label: 'Loan Code' },
   { key: 'loanName', label: 'Loan Name' },
   { key: 'loanAliasName', label: 'Loan Alias' },
-  { key: 'loanTermDefaultDate', label: 'Loan Term Default Date' },
+  { key: 'loanTermDefaultDate', label: 'Yardi Default Date' },
   { key: 'defaultDate', label: 'Default Date', editable: true },
   { key: 'userUpdatedBy', label: 'Modified By', audit: true },
   { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
@@ -69,7 +73,7 @@ const DEFAULT_DATE_TABLE_COLUMNS: DefaultDateTableColumn[] = [
 @Component({
   selector: 'app-default-date-capture',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectComponent],
+  imports: [CommonModule, FormsModule, NgSelectComponent, SearchDropdownDirective],
   templateUrl: './default-date-capture.component.html',
   styleUrl: './default-date-capture.component.css',
 })
@@ -79,7 +83,7 @@ export class DefaultDateCaptureComponent implements OnInit {
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly notificationUnreadCount = inject(NotificationUnreadCountService);
-  private readonly defaultPageSize = 10;
+  private readonly defaultPageSize = 100;
 
   readonly tableColumns = DEFAULT_DATE_TABLE_COLUMNS;
 
@@ -244,7 +248,6 @@ export class DefaultDateCaptureComponent implements OnInit {
       return;
     }
     this.selectedAliasNames.set([...this.selectedAliasNames(), name]);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
@@ -261,7 +264,7 @@ export class DefaultDateCaptureComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedAliasNames.set([]);
-    this.selectedStatuses.set([]);
+    this.selectedStatuses.set(resolveDefaultStatusValues(this.statusOptions()));
     this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
@@ -435,8 +438,9 @@ export class DefaultDateCaptureComponent implements OnInit {
     }).subscribe({
       next: ({ aliases, statuses }) => {
         this.aliasOptions.set(this.normalizeAliases(aliases));
-        this.statusOptions.set(this.normalizeStatusOptions(statuses));
-        this.selectedStatuses.set([]);
+        const statusOpts = this.normalizeStatusOptions(statuses);
+        this.statusOptions.set(statusOpts);
+        this.selectedStatuses.set(resolveDefaultStatusValues(statusOpts));
         this.isLoadingFilters.set(false);
         this.loadGrid();
       },
@@ -482,6 +486,7 @@ export class DefaultDateCaptureComponent implements OnInit {
       loanAliasName: record.loanAliasName?.trim() || '—',
       loanTermDefaultDate: loanTerm,
       defaultDate: stored || loanTerm,
+      isDefaulted: isDefaultStatusLabel(record.fundingStatusName ?? ''),
       userUpdatedBy: record.userUpdatedBy?.trim() ?? '',
       userUpdatedDate: record.userUpdatedDate ?? '',
     };

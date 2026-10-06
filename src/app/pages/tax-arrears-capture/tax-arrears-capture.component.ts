@@ -22,6 +22,7 @@ import {
   LoanStatusFilterOption,
 } from '../../core/services/loan-security-value-api.service';
 import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
+import { SearchDropdownDirective } from '../../shared/directives/search-dropdown.directive';
 import {
   TaxArrearsCaptureApiService,
   TaxArrearsCaptureBulkUpdateRequest,
@@ -103,7 +104,7 @@ const TAX_ARREAR_TABLE_COLUMNS: TaxArrearTableColumn[] = [
 @Component({
   selector: 'app-tax-arrears-capture',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectComponent],
+  imports: [CommonModule, FormsModule, NgSelectComponent, SearchDropdownDirective],
   templateUrl: './tax-arrears-capture.component.html',
   styleUrl: './tax-arrears-capture.component.css',
 })
@@ -113,7 +114,7 @@ export class TaxArrearsCaptureComponent implements OnInit {
   private readonly loansApi = inject(LoansApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
-  private readonly defaultPageSize = 10;
+  private readonly defaultPageSize = 100;
 
   readonly tableColumns = TAX_ARREAR_TABLE_COLUMNS;
 
@@ -335,6 +336,20 @@ export class TaxArrearsCaptureComponent implements OnInit {
     return rows.slice(start, start + pageSize);
   });
 
+  /** Rows on the current page whose loan matches the row above; loan identity cells are left blank. */
+  readonly repeatedLoanRowIds = computed(() => {
+    const repeated = new Set<TaxArrearRow['stableRowId']>();
+    let previousLoanCode: string | null = null;
+    for (const row of this.paginatedRows()) {
+      const loanCode = row.loanCode?.trim().toUpperCase() || null;
+      if (loanCode && loanCode === previousLoanCode) {
+        repeated.add(row.stableRowId);
+      }
+      previousLoanCode = loanCode;
+    }
+    return repeated;
+  });
+
   readonly pageRangeLabel = computed(() => {
     const total = this.filteredRows().length;
     if (total === 0) {
@@ -408,7 +423,6 @@ export class TaxArrearsCaptureComponent implements OnInit {
       return;
     }
     this.selectedLoanCodes.set([...this.selectedLoanCodes(), row.loanCode]);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
