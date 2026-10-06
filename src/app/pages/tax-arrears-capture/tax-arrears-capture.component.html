@@ -10,7 +10,7 @@
       </div>
 
       <div class="ks-fp__filters-compact">
-        <div class="ks-fp__search-block">
+        <div class="ks-fp__search-block" (searchDismissed)="$event.picked && updateSearch('')">
           <label class="ks-fp__filter-label" for="taxArrearsLoanSearch">Search Loans</label>
           <input
             id="taxArrearsLoanSearch"
@@ -131,9 +131,15 @@
             </td>
             <td class="hidden-column">{{ row.taxArrearKey }}</td>
             <td class="hidden-column">{{ row.loanKey }}</td>
-            <td>{{ row.loanCode }}</td>
-            <td>{{ row.loanName }}</td>
-            <td>{{ row.loanAliasName }}</td>
+            @if (repeatedLoanRowIds().has(row.stableRowId)) {
+              <td class="loan-repeat-cell" [attr.title]="row.loanCode"></td>
+              <td class="loan-repeat-cell" [attr.title]="row.loanName"></td>
+              <td class="loan-repeat-cell" [attr.title]="row.loanAliasName"></td>
+            } @else {
+              <td>{{ row.loanCode }}</td>
+              <td>{{ row.loanName }}</td>
+              <td>{{ row.loanAliasName }}</td>
+            }
             <td>
               <input
                 type="date"

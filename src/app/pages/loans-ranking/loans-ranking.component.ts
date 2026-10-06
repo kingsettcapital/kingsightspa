@@ -9,6 +9,7 @@ import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search'
 import { buildMortgageGridLoadMessage } from '../../core/utils/mortgage-grid-load-message.util';
 import {
   normalizeStatusOptions,
+  resolveFundedAndDefaultStatusValues,
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
@@ -18,6 +19,7 @@ import {
   LoanStatusFilterOption,
 } from '../../core/services/loan-security-value-api.service';
 import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
+import { SearchDropdownDirective } from '../../shared/directives/search-dropdown.directive';
 import {
   LoanAliasOptionDto,
   LoanAttributeUpdatePayload,
@@ -92,7 +94,7 @@ const LOAN_ATTRIBUTE_TABLE_COLUMNS: LoanAttributeTableColumn[] = [
 @Component({
   selector: 'app-loans-ranking',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectComponent],
+  imports: [CommonModule, FormsModule, NgSelectComponent, SearchDropdownDirective],
   templateUrl: './loans-ranking.component.html',
   styleUrl: './loans-ranking.component.css',
 })
@@ -101,7 +103,7 @@ export class LoansRankingComponent implements OnInit {
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
   private readonly notificationUnreadCount = inject(NotificationUnreadCountService);
-  private readonly defaultPageSize = 10;
+  private readonly defaultPageSize = 100;
 
   readonly tableColumns = LOAN_ATTRIBUTE_TABLE_COLUMNS;
 
@@ -111,6 +113,7 @@ export class LoansRankingComponent implements OnInit {
   readonly selectedLoanCodes = signal<string[]>([]);
   readonly statusOptions = signal<LoanStatusFilterOption[]>([]);
   readonly selectedStatuses = signal<string[]>([]);
+  private statusDefaultApplied = false;
   /** Alias names that match the selected Status filter (from LoanSecurityValue). */
   readonly statusMessage = signal('');
   readonly errorMessage = signal('');
@@ -347,7 +350,6 @@ export class LoansRankingComponent implements OnInit {
     }
 
     this.selectedLoanCodes.set([...this.selectedLoanCodes(), row.loanCode]);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
   }
@@ -394,7 +396,7 @@ export class LoansRankingComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedLoanCodes.set([]);
-    this.selectedStatuses.set([]);
+    this.selectedStatuses.set(resolveFundedAndDefaultStatusValues(this.statusOptions()));
     this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
@@ -513,7 +515,12 @@ export class LoansRankingComponent implements OnInit {
 
     this.securityValueApi.getStatuses().pipe(catchError(() => of([]))).subscribe({
       next: (statuses) => {
-        this.statusOptions.set(normalizeStatusOptions(statuses));
+        const statusOpts = normalizeStatusOptions(statuses);
+        this.statusOptions.set(statusOpts);
+        if (!this.statusDefaultApplied && statusOpts.length) {
+          this.statusDefaultApplied = true;
+          this.selectedStatuses.set(resolveFundedAndDefaultStatusValues(statusOpts));
+        }
         const selectedStatuses = this.selectedStatuses();
 
         forkJoin({

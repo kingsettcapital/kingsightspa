@@ -12,6 +12,7 @@ import {
   parseCurrencyInput,
 } from '../../core/utils/mortgage-currency-input.util';
 import {
+  resolveFundedAndDefaultStatusValues,
   toStatusSelectOptions,
 } from '../../core/utils/mortgage-status-filter.util';
 import { CurrentAppUserService } from '../../core/services/current-app-user.service';
@@ -22,6 +23,7 @@ import {
   OtherCostCaptureRowDto,
 } from '../../core/services/other-cost-capture-api.service';
 import { formatModifiedDate as formatAuditModifiedDate } from '../../core/utils/format-modified-date.util';
+import { SearchDropdownDirective } from '../../shared/directives/search-dropdown.directive';
 import {
   LoanSecurityValueApiService,
   LoanStatusFilterOption,
@@ -79,7 +81,7 @@ const OTHER_COST_TABLE_COLUMNS: OtherCostTableColumn[] = [
 @Component({
   selector: 'app-other-cost-capture',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectComponent],
+  imports: [CommonModule, FormsModule, NgSelectComponent, SearchDropdownDirective],
   templateUrl: './other-cost-capture.component.html',
   styleUrl: './other-cost-capture.component.css',
 })
@@ -88,7 +90,7 @@ export class OtherCostCaptureComponent implements OnInit {
   private readonly loanAliasApi = inject(LoanAliasApiService);
   private readonly securityValueApi = inject(LoanSecurityValueApiService);
   private readonly currentAppUser = inject(CurrentAppUserService);
-  private readonly defaultPageSize = 10;
+  private readonly defaultPageSize = 100;
 
   readonly tableColumns = OTHER_COST_TABLE_COLUMNS;
 
@@ -259,7 +261,6 @@ export class OtherCostCaptureComponent implements OnInit {
       return;
     }
     this.selectedLoanAliasIds.set([...this.selectedLoanAliasIds(), alias.loanAliasId]);
-    this.searchText.set('');
     this.currentPage.set(1);
     this.clearMessages();
     this.loadGrid();
@@ -375,7 +376,7 @@ export class OtherCostCaptureComponent implements OnInit {
   clearSelection(): void {
     this.searchText.set('');
     this.selectedLoanAliasIds.set([]);
-    this.selectedStatuses.set([]);
+    this.selectedStatuses.set(resolveFundedAndDefaultStatusValues(this.statusOptions()));
     this.revertUnsavedChanges();
     this.currentPage.set(1);
     this.clearMessages();
@@ -474,7 +475,9 @@ export class OtherCostCaptureComponent implements OnInit {
             .filter((alias) => alias.loanAliasId > 0 && alias.loanAliasName.length > 0)
             .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
         );
-        this.statusOptions.set(this.normalizeStatusOptions(statuses));
+        const statusOpts = this.normalizeStatusOptions(statuses);
+        this.statusOptions.set(statusOpts);
+        this.selectedStatuses.set(resolveFundedAndDefaultStatusValues(statusOpts));
         this.isLoadingFilters.set(false);
         this.loadGrid();
       },

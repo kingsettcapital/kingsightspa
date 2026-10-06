@@ -13,7 +13,7 @@
       </div>
 
       <div class="ks-fp__filters-compact">
-        <div class="ks-fp__search-block">
+        <div class="ks-fp__search-block" (searchDismissed)="$event.picked && updateSearch('')">
           <label class="ks-fp__filter-label" for="loanAliasSearch">Search</label>
           <input
             id="loanAliasSearch"
@@ -37,11 +37,22 @@
             </ul>
           }
 
+          @if (selectedAliasNames().length > 0) {
+            <div class="selected-alias-tags">
+              @for (name of selectedAliasNames(); track name) {
+                <button type="button" class="alias-tag" (click)="removeSelectedAlias(name)">
+                  <span>{{ name }}</span>
+                  <span class="tag-close">×</span>
+                </button>
+              }
+            </div>
+          }
+
           <button
             type="button"
             class="ks-fp__clear-selection"
             (click)="clearSelection()"
-            [disabled]="!searchTerm().trim().length"
+            [disabled]="!searchTerm().trim().length && !selectedAliasNames().length"
           >
             Clear Selection
           </button>
