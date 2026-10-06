@@ -60,9 +60,9 @@ export type ManagementSummaryFilters = {
   defaultDateTo: string;
   maturityDateFrom: string;
   maturityDateTo: string;
-  sponsor: string;
+  sponsors: string[];
   riskLevels: string[];
-  status: string;
+  statuses: string[];
   investorAliases: string[];
 };
 

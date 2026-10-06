@@ -31,8 +31,11 @@ import {
   formatActiveFiltersDisplay,
   investorAliasesFromFilters,
   loanDetailFiltersFromQuery,
+  sponsorsFromFilters,
   statusesFromFilters,
+  toggleExclusiveSelection,
 } from '../management-summary/management-summary-filter.util';
+import { MultiSelectFilterComponent } from '../../shared/components/multi-select-filter/multi-select-filter.component';
 import type { LoanDetailReportData, LoanPortfolioDetailRow } from './loan-detail-report.models';
 
 Chart.register(...registerables);
@@ -77,7 +80,7 @@ function rankSortValue(rank: string): number {
 @Component({
   selector: 'app-loan-detail-report',
   standalone: true,
-  imports: [CommonModule, RouterLink, MatIconModule],
+  imports: [CommonModule, RouterLink, MatIconModule, MultiSelectFilterComponent],
   templateUrl: './loan-detail-report.component.html',
   styleUrl: './loan-detail-report.component.css',
 })
@@ -124,8 +127,6 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   readonly filters = signal<ManagementSummaryFilters>(
     createLoanDetailDefaultFilters(this.filterState.getFilters().asOfDate),
   );
-  readonly openFilterMenu = signal<'sponsor' | 'investor' | null>(null);
-
   /** Face-of-report active filters (skips All / empty). */
   readonly activeFiltersDisplay = computed(() => formatActiveFiltersDisplay(this.filters()));
 
@@ -133,9 +134,6 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   readonly sponsorOptions = signal<string[]>(this.filterState.getFilterOptions().sponsors);
   readonly investorAliasOptions = signal<string[]>(this.filterState.getFilterOptions().investorAliases);
   readonly statusOptions = signal<string[]>(this.filterState.getFilterOptions().statuses);
-
-  readonly selectedInvestorAlias = computed(() => this.filters().investorAliases[0] ?? 'All');
-
   /** Syndicate + main loans only (aggregate_flag = Y); whole loan excluded. */
   readonly portfolioDisplayRows = computed(() =>
     this.report().portfolioRows.filter(isPortfolioAggregateRow),
@@ -221,12 +219,7 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   }
 
   closeFilters(): void {
-    this.openFilterMenu.set(null);
     this.filtersOpen.set(false);
-  }
-
-  toggleFilterMenu(menu: 'sponsor' | 'investor'): void {
-    this.openFilterMenu.update((current) => (current === menu ? null : menu));
   }
 
   isRiskSelected(level: string): boolean {
@@ -234,33 +227,23 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   }
 
   toggleRisk(level: string): void {
-    this.filters.update((current) => {
-      if (level === 'ALL') {
-        return { ...current, riskLevels: ['ALL'] };
-      }
-      const withoutAll = current.riskLevels.filter((item) => item !== 'ALL');
-      const nextLevels = withoutAll.includes(level)
-        ? withoutAll.filter((item) => item !== level)
-        : [...withoutAll, level];
-      return { ...current, riskLevels: nextLevels.length ? nextLevels : ['ALL'] };
-    });
+    this.updateFilterField('riskLevels', toggleExclusiveSelection(this.filters().riskLevels, level, 'ALL'));
   }
 
-  setStatus(status: string): void {
-    this.updateFilterField('status', status);
+  isStatusSelected(status: string): boolean {
+    return this.filters().statuses.some((item) => item.toLowerCase() === status.toLowerCase());
   }
 
-  setSponsor(sponsor: string): void {
-    this.updateFilterField('sponsor', sponsor || 'All');
-    this.openFilterMenu.set(null);
+  toggleStatus(status: string): void {
+    this.updateFilterField('statuses', toggleExclusiveSelection(this.filters().statuses, status, 'All'));
   }
 
-  setInvestorAlias(alias: string): void {
-    this.filters.update((current) => ({
-      ...current,
-      investorAliases: [alias || 'All'],
-    }));
-    this.openFilterMenu.set(null);
+  setSponsors(sponsors: string[]): void {
+    this.updateFilterField('sponsors', sponsors);
+  }
+
+  setInvestorAliases(aliases: string[]): void {
+    this.updateFilterField('investorAliases', aliases);
   }
 
   updateFilterField<K extends keyof ManagementSummaryFilters>(key: K, value: ManagementSummaryFilters[K]): void {
@@ -301,7 +284,7 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
         defaultDateTo: filters.defaultDateTo || undefined,
         maturityDateFrom: filters.maturityDateFrom || undefined,
         maturityDateTo: filters.maturityDateTo || undefined,
-        sponsor: filters.sponsor,
+        sponsors: sponsorsFromFilters(filters),
         riskLevels: filters.riskLevels,
         statuses,
         investorAliases: investorAliasesFromFilters(filters),

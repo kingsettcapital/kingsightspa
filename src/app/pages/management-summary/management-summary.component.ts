@@ -42,15 +42,18 @@ import { mapManagementSummaryDashboard } from './management-summary-dashboard.ma
 import {
   loanDetailEntryQueryParams,
   formatActiveFiltersDisplay,
+  sponsorsFromFilters,
   statusesFromFilters,
+  toggleExclusiveSelection,
 } from './management-summary-filter.util';
+import { MultiSelectFilterComponent } from '../../shared/components/multi-select-filter/multi-select-filter.component';
 
 Chart.register(...registerables);
 
 @Component({
   selector: 'app-management-summary',
   standalone: true,
-  imports: [CommonModule, MatIconModule, RouterLink],
+  imports: [CommonModule, MatIconModule, RouterLink, MultiSelectFilterComponent],
   templateUrl: './management-summary.component.html',
   styleUrl: './management-summary.component.css',
 })
@@ -252,19 +255,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   }
 
   closeFilters(): void {
-    this.openFilterMenu.set(null);
     this.filtersOpen.set(false);
-  }
-
-  readonly selectedInvestorAlias = computed(() => this.filters().investorAliases[0] ?? 'All');
-  readonly openFilterMenu = signal<'sponsor' | 'investor' | null>(null);
-
-  toggleFilterMenu(menu: 'sponsor' | 'investor'): void {
-    this.openFilterMenu.update((current) => (current === menu ? null : menu));
-  }
-
-  closeFilterMenus(): void {
-    this.openFilterMenu.set(null);
   }
 
   isRiskSelected(level: string): boolean {
@@ -272,45 +263,23 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
   }
 
   toggleRisk(level: string): void {
-    this.filters.update((current) => {
-      if (level === 'ALL') {
-        const next = { ...current, riskLevels: ['ALL'] };
-        this.filterState.saveFilters(next);
-        return next;
-      }
-      const withoutAll = current.riskLevels.filter((item) => item !== 'ALL');
-      const nextLevels = withoutAll.includes(level)
-        ? withoutAll.filter((item) => item !== level)
-        : [...withoutAll, level];
-      const next = { ...current, riskLevels: nextLevels.length ? nextLevels : ['ALL'] };
-      this.filterState.saveFilters(next);
-      return next;
-    });
+    this.updateFilterField('riskLevels', toggleExclusiveSelection(this.filters().riskLevels, level, 'ALL'));
   }
 
-  setStatus(status: string): void {
-    this.filters.update((current) => {
-      const next = { ...current, status };
-      this.filterState.saveFilters(next);
-      return next;
-    });
+  isStatusSelected(status: string): boolean {
+    return this.filters().statuses.some((item) => item.toLowerCase() === status.toLowerCase());
   }
 
-  setSponsor(sponsor: string): void {
-    this.updateFilterField('sponsor', sponsor || 'All');
-    this.closeFilterMenus();
+  toggleStatus(status: string): void {
+    this.updateFilterField('statuses', toggleExclusiveSelection(this.filters().statuses, status, 'All'));
   }
 
-  setInvestorAlias(alias: string): void {
-    this.filters.update((current) => {
-      const next = {
-        ...current,
-        investorAliases: [alias || 'All'],
-      };
-      this.filterState.saveFilters(next);
-      return next;
-    });
-    this.closeFilterMenus();
+  setSponsors(sponsors: string[]): void {
+    this.updateFilterField('sponsors', sponsors);
+  }
+
+  setInvestorAliases(aliases: string[]): void {
+    this.updateFilterField('investorAliases', aliases);
   }
 
   updateFilterField<K extends keyof ManagementSummaryFilters>(key: K, value: ManagementSummaryFilters[K]): void {
@@ -373,7 +342,7 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
         defaultDateTo: filters.defaultDateTo || undefined,
         maturityDateFrom: filters.maturityDateFrom || undefined,
         maturityDateTo: filters.maturityDateTo || undefined,
-        sponsor: filters.sponsor,
+        sponsors: sponsorsFromFilters(filters),
         riskLevels: filters.riskLevels,
         statuses,
         investorAliases: filters.investorAliases,
