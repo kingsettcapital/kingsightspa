@@ -93,3 +93,9 @@
     align-items: stretch;
   }
 }
+
+/* Laptops: compact currency columns so the grid fits without a horizontal scroll. */
+@media (max-width: 1439.98px) {
+  .numeric-col { min-width: 6rem; }
+  .value-input { min-width: 5rem; }
+}

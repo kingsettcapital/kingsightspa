@@ -221,3 +221,9 @@
   padding: 0.85rem 1.35rem 1.15rem;
   border-top: 1px solid #f3f4f6;
 }
+
+/* Laptops: let per-row alias dropdowns shrink so the grid fits without a horizontal scroll. */
+@media (max-width: 1439.98px) {
+  .alias-select { min-width: 8rem; }
+  .alias-ng-select { min-width: 10rem; }
+}

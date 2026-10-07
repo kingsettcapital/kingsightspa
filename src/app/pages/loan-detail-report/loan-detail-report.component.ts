@@ -37,8 +37,13 @@ import {
 } from '../management-summary/management-summary-filter.util';
 import { MultiSelectFilterComponent } from '../../shared/components/multi-select-filter/multi-select-filter.component';
 import type { LoanDetailReportData, LoanPortfolioDetailRow } from './loan-detail-report.models';
+import { PropertyStatsEditDialogComponent } from './edit-dialogs/property-stats-edit-dialog.component';
+import { RankingEditDialogComponent } from './edit-dialogs/ranking-edit-dialog.component';
+import { TaxMemoAddDialogComponent } from './edit-dialogs/tax-memo-add-dialog.component';
 
 Chart.register(...registerables);
+
+type ReportEditDialog = 'propertyStats' | 'ranking' | 'taxMemo';
 
 type PortfolioSortColumn =
   | 'loanId'
@@ -80,7 +85,15 @@ function rankSortValue(rank: string): number {
 @Component({
   selector: 'app-loan-detail-report',
   standalone: true,
-  imports: [CommonModule, RouterLink, MatIconModule, MultiSelectFilterComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    MatIconModule,
+    MultiSelectFilterComponent,
+    PropertyStatsEditDialogComponent,
+    RankingEditDialogComponent,
+    TaxMemoAddDialogComponent,
+  ],
   templateUrl: './loan-detail-report.component.html',
   styleUrl: './loan-detail-report.component.css',
 })
@@ -100,8 +113,11 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   private readonly breakdownChartContainer = viewChild<ElementRef<HTMLElement>>('breakdownChartContainer');
   private readonly reportRoot = viewChild<ElementRef<HTMLElement>>('reportRoot');
 
-  private loanAliasKey = 0;
+  loanAliasKey = 0;
   private loanAliasName = '';
+
+  readonly editDialog = signal<ReportEditDialog | null>(null);
+  readonly editStatusMessage = signal('');
 
   readonly report = signal<LoanDetailReportData>(
     mapLoanDetailReportDashboard({
@@ -267,6 +283,26 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   /** Return to Management Summary without overwriting its session filters. */
   backToManagementSummary(): void {
     // no-op: MS filters remain in ManagementSummaryFilterStateService
+  }
+
+  /** Display name for the edit popups (route alias, else report header). */
+  editAliasName(): string {
+    return this.loanAliasName || this.report().loanAlias;
+  }
+
+  openEditDialog(dialog: ReportEditDialog): void {
+    this.editStatusMessage.set('');
+    this.editDialog.set(dialog);
+  }
+
+  closeEditDialog(): void {
+    this.editDialog.set(null);
+  }
+
+  onEditSaved(message: string): void {
+    this.editDialog.set(null);
+    this.editStatusMessage.set(message);
+    this.loadReport();
   }
 
   private loadReport(): void {

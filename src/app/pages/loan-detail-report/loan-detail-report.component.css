@@ -344,6 +344,73 @@
   color: #fde68a;
 }
 
+.ldr-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ldr-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-left: 0.25rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.ldr-edit-btn mat-icon {
+  width: 1rem;
+  height: 1rem;
+  font-size: 1rem;
+}
+
+.ldr-edit-btn:hover:not(:disabled) {
+  border-color: currentColor;
+}
+
+.ldr-edit-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ldr-section--tax .ldr-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+}
+
+.ldr-section--tax .ldr-section__head h2 {
+  flex: 1 1 auto;
+}
+
+.ldr-section--tax .ldr-section__head p {
+  order: 2;
+  flex-basis: 100%;
+}
+
+.ldr-add-row-btn {
+  order: 1;
+}
+
+.ldr-edit-status {
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.88rem;
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
 .ldr-info-card h2[title],
 .ldr-info-card dt[title],
 .ldr-th-sort[title] {

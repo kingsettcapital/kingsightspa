@@ -68,3 +68,9 @@
 .banner-error {
   margin-bottom: 0.75rem;
 }
+
+/* Laptops: compact currency columns so the grid fits without a horizontal scroll. */
+@media (max-width: 1439.98px) {
+  .numeric-col { min-width: 6.5rem; }
+  .cost-input { min-width: 5.5rem; }
+}
