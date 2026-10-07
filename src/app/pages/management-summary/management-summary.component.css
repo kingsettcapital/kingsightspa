@@ -464,13 +464,34 @@
   width: 6.5%;
 }
 
-.ms-table--loan-summary .ms-col--exit,
 .ms-table--loan-summary .ms-col--ltv {
   width: 4.5%;
 }
 
+.ms-table--loan-summary .ms-col--exit {
+  width: 6.5%;
+  min-width: 5.5rem;
+}
+
+.ms-table--loan-summary td.ms-col--exit {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.25;
+}
+
+/* Fixed width fits totals like 1,038,307,056; on laptops the wrapper scrolls instead of overlapping. */
+.ms-table--loan-summary {
+  min-width: 100rem;
+}
+
 .ms-table--loan-summary .ms-col--num {
-  width: 5%;
+  width: 6.75rem;
+}
+
+.ms-table--loan-summary td.num {
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
 }
 
 .ms-table--loan-summary thead th {
