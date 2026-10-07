@@ -401,3 +401,11 @@
     align-items: flex-start;
   }
 }
+
+@media (max-width: 1439.98px) {
+  .la-table { min-width: 0; }
+}
+
+@media (max-width: 1023.98px) {
+  .la-table { min-width: 40rem; }
+}

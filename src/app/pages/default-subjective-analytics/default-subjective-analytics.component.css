@@ -73,6 +73,45 @@
   word-break: break-word;
 }
 
+/* Laptops / iPad landscape: percentage columns (sum 100%) so the grid fits without a horizontal scroll. */
+@media (max-width: 1439.98px) {
+  .subjective-page .table-wrap table {
+    min-width: 0;
+  }
+
+  .subjective-page .table-wrap .dsa-col--code { width: 7%; min-width: 0; }
+  .subjective-page .table-wrap .dsa-col--name { width: 14%; min-width: 0; }
+  .subjective-page .table-wrap .dsa-col--alias { width: 11%; min-width: 0; }
+  .subjective-page .table-wrap .dsa-col--maturity { width: 8%; min-width: 0; }
+  .subjective-page .table-wrap .dsa-col--default-status,
+  .subjective-page .table-wrap .dsa-col--exit-plan { width: 10%; }
+  .subjective-page .table-wrap .dsa-col--exit-date { width: 11%; min-width: 0; }
+  .subjective-page .table-wrap .dsa-col--maturity-detail { width: 12%; }
+
+  .subjective-page .table-wrap .dsa-col--audit-by.audit-col,
+  .subjective-page .table-wrap thead th.dsa-col--audit-by,
+  .subjective-page .table-wrap .dsa-col--audit-date.audit-col,
+  .subjective-page .table-wrap thead th.dsa-col--audit-date,
+  .subjective-page .table-wrap col.dsa-col--audit-by,
+  .subjective-page .table-wrap col.dsa-col--audit-date {
+    width: 8.5%;
+    min-width: 0;
+    max-width: none;
+    white-space: normal;
+  }
+
+  .subjective-page .table-wrap .dsa-col--maturity {
+    white-space: normal;
+  }
+}
+
+/* Tablets / phones: keep columns readable and scroll inside the grid frame. */
+@media (max-width: 1023.98px) {
+  .subjective-page .table-wrap table {
+    min-width: 62rem;
+  }
+}
+
 .grid-loading {
   margin: 0 0 0.75rem;
 }
@@ -100,6 +139,15 @@
   min-width: 0;
   width: 100%;
   background: #ffffff;
+}
+
+@media (max-width: 1439.98px) {
+  .select-input,
+  .date-input,
+  .text-input {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.3rem;
+  }
 }
 
 .select-input {

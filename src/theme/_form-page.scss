@@ -536,7 +536,10 @@
   color: var(--ks-color-table-head-text);
   border-bottom: 1px solid var(--ks-color-table-head-border);
   border-top: 2px solid var(--ks-color-table-head-border-top);
-  white-space: nowrap;
+  /* Wrap at spaces only so long labels never force a column wider than the viewport. */
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
   background: var(--ks-color-table-head-bg);
   box-shadow: 0 1px 0 var(--ks-color-table-head-border);
 }
@@ -588,6 +591,7 @@
   color: var(--ks-color-text);
   vertical-align: middle;
   border-bottom: 1px solid var(--ks-color-table-border);
+  overflow-wrap: break-word;
 }
 
 .ks-fp .empty-row,
@@ -840,6 +844,53 @@
   .ks-fp .table-wrap .ng-select.ks-ng-select,
   .ks-fp__table .ng-select.ks-ng-select {
     font-size: 0.75rem;
+  }
+
+  /* Laptops: fit the grid to the content width instead of a fixed minimum. */
+  .ks-fp__table,
+  .ks-fp .table-wrap table,
+  .ks-fp .la-table,
+  .ks-fp .ia-table {
+    min-width: 0;
+  }
+
+  .ks-fp .table-wrap input:not([type='checkbox']):not([type='radio']),
+  .ks-fp .table-wrap select,
+  .ks-fp .table-wrap .ng-select,
+  .ks-fp__table input:not([type='checkbox']):not([type='radio']),
+  .ks-fp__table select,
+  .ks-fp__table .ng-select {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .ks-fp .table-wrap input[type='date'],
+  .ks-fp__table input[type='date'] {
+    padding-left: 0.3rem;
+    padding-right: 0.2rem;
+  }
+}
+
+/* Tablets / phones: the grid keeps a readable minimum and scrolls inside its own frame. */
+@media (max-width: #{$ks-bp-lg - 1px}) {
+  .ks-fp__table,
+  .ks-fp .table-wrap table,
+  .ks-fp .la-table,
+  .ks-fp .ia-table {
+    min-width: 48rem;
+  }
+
+  .ks-fp__table-wrap,
+  .ks-fp .table-wrap,
+  .ks-fp .la-table-wrap,
+  .ks-fp .ia-table-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ks-fp .pagination,
+  .ks-fp .la-pagination,
+  .ks-fp .ia-pagination {
+    justify-content: center;
   }
 }
 

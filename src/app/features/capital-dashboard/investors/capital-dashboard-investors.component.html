@@ -145,6 +145,20 @@
             </div>
           </label>
 
+          <label class="cdt-filters-bar__field">
+            <span class="cdt-filters-bar__label">FUND</span>
+            <div class="cdt-filters-bar__select">
+              <select [ngModel]="fundFilter()"
+                (ngModelChange)="fundFilter.set($event); currentPage.set(1)" aria-label="Fund">
+                <option value="all">All Funds</option>
+                @for (option of fundOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+              <mat-icon class="cdt-filters-bar__chevron" aria-hidden="true">expand_more</mat-icon>
+            </div>
+          </label>
+
           @if (activeFilterCount() > 0) {
           <button type="button" class="cdt-filters-bar__clear" (click)="clearAllFilters()">
             <mat-icon aria-hidden="true">close</mat-icon>

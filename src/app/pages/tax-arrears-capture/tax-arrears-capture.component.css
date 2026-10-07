@@ -283,3 +283,11 @@ textarea.modal-field-control {
   padding: 0.85rem 1.35rem 1.15rem;
   border-top: 1px solid #f3f4f6;
 }
+
+/* Laptops: compact editors so the grid fits without a horizontal scroll. */
+@media (max-width: 1439.98px) {
+  .date-input { min-width: 8rem; }
+  .select-input { min-width: 5.5rem; }
+  .value-input { min-width: 6rem; }
+  .text-input { min-width: 7rem; }
+}

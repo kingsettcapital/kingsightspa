@@ -34,6 +34,7 @@ export interface InvestorsFilterOptionsDto {
   investor_types?: InvestorsFilterOptionDto[] | null;
   investorTypes?: InvestorsFilterOptionDto[] | null;
   relationships?: InvestorsFilterOptionDto[] | null;
+  funds?: InvestorsFilterOptionDto[] | null;
   calendar_years?: InvestorsFilterOptionDto[] | null;
   calendarYears?: InvestorsFilterOptionDto[] | null;
   quarterly_periods?: InvestorsQuarterlyPeriodDto[] | null;
@@ -45,6 +46,7 @@ export interface InvestorsListQueryParams extends ListQueryParams {
   dateKey?: number;
   investorType?: string;
   relationship?: string;
+  fundCode?: string;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
 }
