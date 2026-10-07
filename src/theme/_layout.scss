@@ -1,4 +1,5 @@
 @use 'mixins' as *;
+@use 'variables' as *;
 
 /* App shell — viewport-locked; scroll only inside .ks-page */
 .ks-app-shell {
@@ -551,7 +552,8 @@
 
 /* Page title typography + vertical line: see _brand-elements.scss (.ks-page__heading) */
 
-@include bp-md-down {
+/* Phones + tablets (incl. iPad portrait): off-canvas sidebar so tables get the full width. */
+@include bp-down($ks-bp-lg - 1px) {
   .ks-sidebar {
     position: fixed;
     z-index: 50;
@@ -593,7 +595,7 @@
   }
 }
 
-@include bp-md-up {
+@include bp-up($ks-bp-lg) {
   .ks-sidebar-backdrop {
     display: none;
   }

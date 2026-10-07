@@ -20,6 +20,7 @@ export interface InvestorsQuarterlyPeriodOption {
 export interface InvestorsFilterOptions {
   investorTypes: InvestorsFilterOption[];
   relationships: InvestorsFilterOption[];
+  funds: InvestorsFilterOption[];
   calendarYears: InvestorsFilterOption[];
   quarterlyPeriods: InvestorsQuarterlyPeriodOption[];
 }
@@ -27,6 +28,7 @@ export interface InvestorsFilterOptions {
 export const EMPTY_INVESTORS_FILTER_OPTIONS: InvestorsFilterOptions = {
   investorTypes: [],
   relationships: [],
+  funds: [],
   calendarYears: [],
   quarterlyPeriods: [],
 };
@@ -100,6 +102,7 @@ export function normalizeInvestorsFilterOptions(
     relationships: mapFilterOptions(
       (record['relationships']) as InvestorsFilterOptionDto[] | null | undefined,
     ),
+    funds: mapFilterOptions((record['funds'] ?? record['Funds']) as InvestorsFilterOptionDto[] | null | undefined),
     calendarYears: mapFilterOptions(
       (record['calendar_years'] ?? record['calendarYears']) as InvestorsFilterOptionDto[] | null | undefined,
     ),

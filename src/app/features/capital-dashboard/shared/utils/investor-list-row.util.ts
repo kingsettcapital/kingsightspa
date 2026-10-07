@@ -298,6 +298,7 @@ export function buildInvestorsListCacheKey(filters: {
   dateKey: number | null;
   investorType: string;
   relationship: string;
+  fundCode?: string;
   sortBy: string | null;
   sortDir: InvestorsTableSortDirection | null;
   pageSize?: number;
@@ -307,6 +308,7 @@ export function buildInvestorsListCacheKey(filters: {
     filters.dateKey ?? '',
     filters.investorType,
     filters.relationship,
+    filters.fundCode ?? 'all',
     filters.sortBy ?? '',
     filters.sortDir ?? '',
     filters.pageSize ?? '',

@@ -2,7 +2,12 @@ import { Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { environment } from '../../../../environments/environment';
-import { isMortgageApproverRole, isMortgageSuperUserRole, isMortgageUserRole } from '../../../core/access/access.model';
+import {
+  isAdminRole,
+  isMortgageApproverRole,
+  isMortgageSuperUserRole,
+  isMortgageUserRole,
+} from '../../../core/access/access.model';
 import { CurrentAppUserService } from '../../../core/services/current-app-user.service';
 import { MORTGAGE_DEFAULT_ROUTE, MORTGAGE_NAV_ITEMS } from '../../mortgage/mortgage-nav.config';
 
@@ -47,6 +52,7 @@ export class DashboardComponent {
   readonly lateInterestWarning = computed(() => {
     const roleName = this.currentAppUser.user()?.roleName;
     if (
+      !isAdminRole(roleName) &&
       !isMortgageSuperUserRole(roleName) &&
       !isMortgageApproverRole(roleName) &&
       !isMortgageUserRole(roleName)

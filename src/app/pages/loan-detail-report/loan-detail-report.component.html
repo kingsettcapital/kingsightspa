@@ -47,6 +47,36 @@
   @if (isLoading()) {
     <p class="ldr-loading">Loading loan report…</p>
   }
+  @if (editStatusMessage()) {
+    <p class="ldr-edit-status ks-no-print">{{ editStatusMessage() }}</p>
+  }
+
+  @switch (editDialog()) {
+    @case ('propertyStats') {
+      <app-property-stats-edit-dialog
+        [loanAliasKey]="loanAliasKey"
+        [loanAliasName]="editAliasName()"
+        (saved)="onEditSaved('Property Stats saved — report refreshed.')"
+        (closed)="closeEditDialog()"
+      />
+    }
+    @case ('ranking') {
+      <app-ranking-edit-dialog
+        [loanAliasKey]="loanAliasKey"
+        [loanAliasName]="editAliasName()"
+        (saved)="onEditSaved('Ranking saved — report refreshed.')"
+        (closed)="closeEditDialog()"
+      />
+    }
+    @case ('taxMemo') {
+      <app-tax-memo-add-dialog
+        [loanAliasKey]="loanAliasKey"
+        [loanAliasName]="editAliasName()"
+        (saved)="onEditSaved('Tax arrears row added — report refreshed.')"
+        (closed)="closeEditDialog()"
+      />
+    }
+  }
 
   <div class="ldr-kpi-row">
     <article class="ldr-kpi-card">
@@ -92,7 +122,19 @@
     </article>
 
     <article class="ldr-info-card">
-      <h2>Property Stats</h2>
+      <h2 class="ldr-card-title-row">
+        Property Stats
+        <button
+          type="button"
+          class="ldr-edit-btn ks-no-print"
+          (click)="openEditDialog('propertyStats')"
+          [disabled]="isLoading() || isExporting()"
+          aria-label="Edit Property Stats"
+          title="Edit Loan Exposure Markers"
+        >
+          <mat-icon aria-hidden="true">edit</mat-icon>
+        </button>
+      </h2>
       <dl>
         <div><dt>Security Value</dt><dd>{{ formatMillions(report().propertyStats.securityValue) }}</dd></div>
         <div><dt>Units / Size</dt><dd>{{ report().propertyStats.unitsSize }}</dd></div>
@@ -217,6 +259,16 @@
               <button type="button" class="ldr-th-sort" (click)="togglePortfolioSort('rank')">
                 Rank
                 <span class="ldr-th-sort__icon" aria-hidden="true">{{ portfolioSortIndicator('rank') }}</span>
+              </button>
+              <button
+                type="button"
+                class="ldr-edit-btn ks-no-print"
+                (click)="openEditDialog('ranking')"
+                [disabled]="isLoading() || isExporting()"
+                aria-label="Edit Ranking"
+                title="Edit Loan Attribute Assignment"
+              >
+                <mat-icon aria-hidden="true">edit</mat-icon>
               </button>
             </th>
             <th class="num">
@@ -403,6 +455,14 @@
     <div class="ldr-section__head">
       <h2>Tax Arrears As At {{ report().taxArrearsAsAt }}</h2>
       <p>Latest Tax Memo Date — amounts by year</p>
+      <button
+        type="button"
+        class="ldr-btn ldr-btn--ghost ldr-add-row-btn ks-no-print"
+        (click)="openEditDialog('taxMemo')"
+        [disabled]="isLoading() || isExporting()"
+      >
+        + Add Row
+      </button>
     </div>
     <div class="ldr-table-wrap ldr-table-wrap--narrow">
       <table class="ldr-table ldr-table--tax">

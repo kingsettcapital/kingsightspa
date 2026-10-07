@@ -61,6 +61,7 @@ export class CapitalDashboardInvestorsComponent {
   readonly filterOptions = signal<InvestorsFilterOptions>(EMPTY_INVESTORS_FILTER_OPTIONS);
   readonly investorTypeFilter = signal('all');
   readonly relationshipFilter = signal('all');
+  readonly fundFilter = signal('all');
   readonly filtersPanelVisible = signal(true);
   readonly sortColumn = signal<InvestorsTableSortColumn | null>(null);
   readonly sortDir = signal<InvestorsTableSortDirection>('desc');
@@ -146,6 +147,9 @@ export class CapitalDashboardInvestorsComponent {
     if (this.relationshipFilter() !== 'all') {
       count += 1;
     }
+    if (this.fundFilter() !== 'all') {
+      count += 1;
+    }
     return count;
   });
 
@@ -158,6 +162,8 @@ export class CapitalDashboardInvestorsComponent {
   readonly investorTypeOptions = computed(() => this.filterOptions().investorTypes);
 
   readonly relationshipOptions = computed(() => this.filterOptions().relationships);
+
+  readonly fundOptions = computed(() => this.filterOptions().funds);
 
   readonly pageTotals = computed(() => {
     const rows = this.rows();
@@ -246,6 +252,7 @@ export class CapitalDashboardInvestorsComponent {
       this.year();
       this.investorTypeFilter();
       this.relationshipFilter();
+      this.fundFilter();
       this.sortColumn();
       this.sortDir();
       this.currentPage();
@@ -292,6 +299,7 @@ export class CapitalDashboardInvestorsComponent {
     this.tableSearch.set('');
     this.investorTypeFilter.set('all');
     this.relationshipFilter.set('all');
+    this.fundFilter.set('all');
     this.currentPage.set(1);
   }
 
@@ -405,6 +413,7 @@ export class CapitalDashboardInvestorsComponent {
       ...(this.relationshipFilter() !== 'all'
         ? { relationship: this.relationshipFilter() }
         : {}),
+      ...(this.fundFilter() !== 'all' ? { fundCode: this.fundFilter() } : {}),
     };
   }
 
@@ -421,6 +430,7 @@ export class CapitalDashboardInvestorsComponent {
       dateKey: activeDateKey,
       investorType: this.investorTypeFilter(),
       relationship: this.relationshipFilter(),
+      fundCode: this.fundFilter(),
       sortBy: sortBy ?? null,
       sortDir: sortDir ?? null,
       pageSize: this.pageSize(),

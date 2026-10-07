@@ -1,0 +1,118 @@
+.red-modal {
+  width: min(44rem, 100%);
+}
+
+.red-modal--wide {
+  width: min(64rem, 100%);
+}
+
+.red-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+.red-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.red-field--full {
+  grid-column: 1 / -1;
+}
+
+.red-readonly {
+  padding: 0.45rem 0;
+  font-size: 0.875rem;
+  color: var(--ks-color-text);
+}
+
+.red-table-wrap {
+  overflow: auto;
+  max-height: 55vh;
+  border: 1px solid var(--ks-color-border);
+}
+
+.red-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.red-table th,
+.red-table td {
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid var(--ks-color-table-border, #e5e7eb);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.red-table th {
+  position: sticky;
+  top: 0;
+  background: var(--ks-color-table-head-bg, #f3f4f6);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.red-table .ks-input,
+.red-table .ks-select {
+  height: 2rem;
+  font-size: 0.8125rem;
+}
+
+.red-num {
+  text-align: right;
+}
+
+.red-textarea {
+  min-height: 4.5rem;
+  height: auto;
+  padding-top: 0.45rem;
+  resize: vertical;
+}
+
+.ks-modal__body > .red-field + .red-field,
+.ks-modal__body > .red-field + .red-grid,
+.ks-modal__body > .red-grid + .red-field {
+  margin-top: 0.85rem;
+}
+
+:host ::ng-deep .red-loan-select .ng-dropdown-panel {
+  z-index: 1200;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+:host ::ng-deep .red-loan-select .ng-dropdown-panel .ng-option,
+:host ::ng-deep .red-loan-select .ng-dropdown-panel .ng-option-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.red-rank-input {
+  width: 5rem;
+}
+
+.red-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.8125rem;
+}
+
+.red-muted {
+  margin: 0;
+  color: var(--ks-color-text-muted);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 640px) {
+  .red-grid {
+    grid-template-columns: 1fr;
+  }
+}

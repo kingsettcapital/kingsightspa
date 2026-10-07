@@ -406,3 +406,9 @@ select.cell-input {
     grid-template-columns: 1fr;
   }
 }
+
+/* 27 columns always scroll; on laptops wrap headers and tighten the minimum so less scrolling is needed. */
+@media (max-width: 1439.98px) {
+  .non-ks-page .table-wrap table { min-width: 92rem; }
+  .non-ks-th-sort { white-space: normal; text-align: left; }
+}
