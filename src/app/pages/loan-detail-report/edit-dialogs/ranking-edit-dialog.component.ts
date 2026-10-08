@@ -9,6 +9,7 @@ type RankingRow = {
   loanKey: number;
   loanCode: string;
   loanDesc: string;
+  investorAlias: string;
   loanAliasKey: number;
   ranking: number;
   dummyLoanLink: string;
@@ -41,6 +42,7 @@ type RankingRow = {
                   <tr>
                     <th>Loan Code</th>
                     <th>Loan Name</th>
+                    <th>Investor Alias</th>
                     <th>Ranking</th>
                     <th>Dummy Loan Link</th>
                     <th>Late Interest Applicable</th>
@@ -52,6 +54,7 @@ type RankingRow = {
                     <tr>
                       <td>{{ row.loanCode }}</td>
                       <td>{{ row.loanDesc }}</td>
+                      <td>{{ row.investorAlias }}</td>
                       <td>
                         <input class="ks-input red-rank-input" type="text" inputmode="numeric" placeholder="0"
                           [value]="row.ranking > 0 ? row.ranking : ''"
@@ -233,6 +236,7 @@ export class RankingEditDialogComponent implements OnInit {
       loanKey: loan.loanKey,
       loanCode: loan.loanCode?.trim() ?? '',
       loanDesc: loan.loanDesc?.trim() || '—',
+      investorAlias: loan.investorAliasName?.trim() || '—',
       loanAliasKey: Number(loan.loanAliasKey) > 0 ? Number(loan.loanAliasKey) : this.loanAliasKey(),
       ranking: Number.isFinite(ranking) && ranking > 0 ? Math.trunc(ranking) : 0,
       dummyLoanLink: loan.dummyLoanLink?.trim() ?? '',
