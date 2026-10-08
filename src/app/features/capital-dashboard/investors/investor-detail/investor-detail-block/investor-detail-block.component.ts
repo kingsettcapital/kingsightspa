@@ -135,12 +135,12 @@ export class InvestorDetailBlockComponent {
       return [];
     }
     const variants = block.shareVariants;
-    if (!variants) {
-      return block.leftItems;
-    }
-    return this.financialMetricsShareBasis() === 'full'
-      ? variants.at100.leftItems
-      : variants.atShare.leftItems;
+    const items = !variants
+      ? block.leftItems
+      : this.financialMetricsShareBasis() === 'full'
+        ? variants.at100.leftItems
+        : variants.atShare.leftItems;
+    return items.filter((item) => !item.hidden);
   }
 
   financialMetricsRightItems(): Array<{
@@ -155,12 +155,12 @@ export class InvestorDetailBlockComponent {
       return [];
     }
     const variants = block.shareVariants;
-    if (!variants) {
-      return block.rightItems;
-    }
-    return this.financialMetricsShareBasis() === 'full'
-      ? variants.at100.rightItems
-      : variants.atShare.rightItems;
+    const items = !variants
+      ? block.rightItems
+      : this.financialMetricsShareBasis() === 'full'
+        ? variants.at100.rightItems
+        : variants.atShare.rightItems;
+    return items.filter((item) => !item.hidden);
   }
 
   financialMetricDisplayValue(item: {
