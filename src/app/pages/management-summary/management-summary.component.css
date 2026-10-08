@@ -434,59 +434,121 @@
   hyphens: none;
 }
 
+/*
+ * All columns use rem widths (no % mix): with table-layout: fixed, % columns were squeezed
+ * below their content on laptops and Default Date / Exit text spilled into neighbours.
+ * min-width = sum of column widths; wider screens spread the extra space.
+ */
+.ms-table--loan-summary {
+  min-width: 112rem;
+}
+
+.ms-table--loan-summary .ms-col--alias {
+  width: 9rem;
+}
+
+.ms-table--loan-summary .ms-col--sponsor {
+  width: 8.5rem;
+}
+
+.ms-table--loan-summary .ms-col--date {
+  width: 6.5rem;
+}
+
 .ms-table--loan-summary .ms-col--interest-status {
-  width: 15%;
-  min-width: 10rem;
+  width: 10.5rem;
   white-space: normal;
-  overflow-wrap: normal;
+  overflow-wrap: anywhere;
   word-break: normal;
   hyphens: none;
   text-align: left;
 }
 
-.ms-table--loan-summary .ms-col--alias {
-  width: 13%;
-  min-width: 8.5rem;
+.ms-table--loan-summary .ms-col--exit {
+  width: 7rem;
 }
 
-.ms-table--loan-summary .ms-col--sponsor {
-  width: 13%;
-  min-width: 8.5rem;
-}
-
-.ms-table--loan-summary .ms-col--risk {
-  width: 8%;
-  min-width: 5.75rem;
-  white-space: nowrap;
-}
-
-.ms-table--loan-summary .ms-col--date {
-  width: 6.5%;
+.ms-table--loan-summary .ms-col--num {
+  width: 6.5rem;
 }
 
 .ms-table--loan-summary .ms-col--ltv {
-  width: 4.5%;
+  width: 4rem;
 }
 
-.ms-table--loan-summary .ms-col--exit {
-  width: 6.5%;
-  min-width: 5.5rem;
+.ms-table--loan-summary .ms-col--risk {
+  width: 6rem;
+  white-space: nowrap;
 }
 
-.ms-table--loan-summary td.ms-col--exit {
+.ms-table--loan-summary col.ms-table__chevron-col {
+  width: 1.75rem;
+}
+
+/* Text cells wrap inside their own column — never overlap the next one. */
+.ms-table--loan-summary tbody td.ms-col--alias,
+.ms-table--loan-summary tbody td.ms-col--sponsor,
+.ms-table--loan-summary tbody td.ms-col--date,
+.ms-table--loan-summary tbody td.ms-col--exit {
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: normal;
   line-height: 1.25;
 }
 
-/* Fixed width fits totals like 1,038,307,056; on laptops the wrapper scrolls instead of overlapping. */
-.ms-table--loan-summary {
-  min-width: 100rem;
+.ms-table--loan-summary tbody td {
+  overflow: hidden;
 }
 
-.ms-table--loan-summary .ms-col--num {
-  width: 6.75rem;
+/* Laptops: tighter columns + smaller type so less of the table needs the in-frame scroll. */
+@media (max-width: 1439px) {
+  .ms-table--loan-summary {
+    min-width: 97rem;
+  }
+
+  .ms-table--loan-summary thead th,
+  .ms-table--loan-summary tbody td,
+  .ms-table--loan-summary tfoot td {
+    font-size: 0.7rem;
+    padding-left: 0.3rem;
+    padding-right: 0.3rem;
+  }
+
+  .ms-table--loan-summary .ms-col--alias {
+    width: 7.5rem;
+  }
+
+  .ms-table--loan-summary .ms-col--sponsor {
+    width: 7rem;
+  }
+
+  .ms-table--loan-summary .ms-col--date {
+    width: 5.5rem;
+  }
+
+  .ms-table--loan-summary .ms-col--interest-status {
+    width: 9rem;
+  }
+
+  .ms-table--loan-summary .ms-col--exit {
+    width: 6rem;
+  }
+
+  .ms-table--loan-summary .ms-col--num {
+    width: 5.75rem;
+  }
+
+  .ms-table--loan-summary .ms-col--ltv {
+    width: 3.5rem;
+  }
+
+  .ms-table--loan-summary .ms-col--risk {
+    width: 5rem;
+  }
+
+  .ms-table--loan-summary col.ms-table__chevron-col {
+    width: 1.5rem;
+  }
 }
 
 .ms-table--loan-summary td.num {
@@ -1013,7 +1075,7 @@
   padding: 0.35rem 0.5rem;
   border-bottom: 1px solid #f1f5f9;
   color: #1e293b;
-  overflow-wrap: normal;
+  overflow-wrap: anywhere;
   word-break: normal;
   hyphens: none;
 }

@@ -548,6 +548,7 @@
   padding: 0.35rem 0.5rem;
   border-bottom: 1px solid #f1f5f9;
   color: #1e293b;
+  overflow-wrap: anywhere;
 }
 
 .ldr-mini-table thead th.num,
@@ -600,6 +601,34 @@
 .ldr-risk--low {
   background: #dcfce7;
   color: #15803d;
+}
+
+/*
+ * Laptops / tablets / phones: % column widths squeeze nowrap amounts into neighbouring
+ * columns. Size columns to content and scroll inside the frame instead (PDF export uses
+ * its own 1600px clone, so this does not affect the export).
+ */
+@media (max-width: 1439px) {
+  .ldr-table-wrap {
+    overflow-x: auto;
+  }
+
+  .ldr-table--portfolio {
+    table-layout: auto;
+  }
+
+  .ldr-table--portfolio thead th,
+  .ldr-table--portfolio tbody td,
+  .ldr-table--portfolio tfoot td {
+    font-size: 0.72rem;
+    padding-left: 0.3rem;
+    padding-right: 0.3rem;
+  }
+
+  .ldr-table--portfolio tbody td:not(.num) {
+    min-width: 5rem;
+    overflow-wrap: anywhere;
+  }
 }
 
 @media (max-width: 1200px) {

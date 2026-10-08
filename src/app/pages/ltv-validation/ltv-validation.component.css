@@ -254,14 +254,15 @@
 /* ── Table layout — fit viewport, no horizontal scroll ───────────────────── */
 
 .ltv-validation-page .table-wrap {
-  overflow-x: hidden;
+  overflow-x: auto;
   /* Keep usable height when few loans so Reason dropdown isn't cramped against footer. */
   min-height: min(28rem, 55vh);
 }
 
+/* Floor keeps % columns readable beside the slide pane; narrower frames scroll inside. */
 .ltv-validation-page .table-wrap table {
   width: 100%;
-  min-width: 0;
+  min-width: 90rem;
   table-layout: fixed;
 }
 
@@ -388,6 +389,19 @@
   white-space: normal;
   overflow: visible;
   text-overflow: unset;
+}
+
+.ltv-validation-page .table-wrap tbody td.ltv-col--currency,
+.ltv-validation-page .table-wrap tbody td.ltv-col--sec-value,
+.ltv-validation-page .table-wrap tbody td.ltv-col--exposure,
+.ltv-validation-page .table-wrap tbody td.ltv-col--rank,
+.ltv-validation-page .table-wrap tbody td.ltv-col--prior-ltv,
+.ltv-validation-page .table-wrap tbody td.ltv-col--ltv,
+.ltv-validation-page .table-wrap tbody td.ltv-col--ltv-change,
+.ltv-validation-page .table-wrap tbody td.ltv-col--confidence {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-wrap: normal;
 }
 
 .ltv-validation-page .table-wrap tbody td.ltv-col--ltv {
