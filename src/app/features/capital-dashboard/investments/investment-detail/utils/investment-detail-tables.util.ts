@@ -952,7 +952,7 @@ function buildFundFinancialMetricsBlock(
       { label: 'Debt', value: currency(metrics?.fundDebt) },
       { label: 'Equity', value: currency(metrics?.fundEquity) },
       { label: 'LTV', value: percent(metrics?.fundLtv) },
-      { label: 'Cash at Quarter End', value: currency(metrics?.fundCashAtQuarterEnd) },
+      { label: 'Cash at Quarter End', value: currency(metrics?.fundCashAtQuarterEnd), hidden: true },
       { label: 'Total Number JV Partners', value: count(metrics?.jvPartnersCount) },
       { label: 'JV Investments Amount', value: currency(metrics?.jvInvestmentsAmount) },
       { label: 'JV Investments % of GAV', value: percent(metrics?.jvInvestmentsPctOfGav) },

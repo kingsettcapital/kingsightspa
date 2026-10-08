@@ -51,6 +51,8 @@ export interface InvestorDetailFieldItem {
   atShareAmount?: number | null;
   /** When true, 100% mode shows atShareAmount / (ownershipPct / 100). */
   scaleWithOwnership?: boolean;
+  /** Kept in the block definition but not rendered. */
+  hidden?: boolean;
 }
 
 export interface InvestorDetailFieldColumn {
@@ -263,6 +265,8 @@ export interface InvestorDetailRiskFlag {
   atShareAmount?: number | null;
   /** When true, 100% mode shows atShareAmount / (ownershipPct / 100). */
   scaleWithOwnership?: boolean;
+  /** Kept in the block definition but not rendered. */
+  hidden?: boolean;
 }
 
 export interface InvestorDetailRiskInsuranceBlock {
