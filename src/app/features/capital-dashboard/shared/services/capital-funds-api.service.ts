@@ -79,8 +79,12 @@ export class CapitalFundsApiService {
     return this.api.get<FundsFilterOptionsDto>('api/Funds/filter-options');
   }
 
-  getFund(fundKey: number): Observable<FundDetailDto> {
-    return this.api.get<FundDetailDto>(`api/Funds/${fundKey}`);
+  /** Omit dateKey for ITD header metrics; pass a quarterly dateKey for that quarter. */
+  getFund(fundKey: number, dateKey?: number | null): Observable<FundDetailDto> {
+    return this.api.get<FundDetailDto>(
+      `api/Funds/${fundKey}`,
+      (dateKey != null ? { dateKey } : undefined) as any,
+    );
   }
 
   getFundFinancialMetrics(
