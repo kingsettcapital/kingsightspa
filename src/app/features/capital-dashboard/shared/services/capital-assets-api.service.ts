@@ -46,24 +46,42 @@ export class CapitalAssetsApiService {
     );
   }
 
-  getAsset(propertyKey: number): Observable<PropertyDetailDto> {
-    return this.api.get<PropertyDetailDto>(`api/Assets/${propertyKey}`);
+  getAsset(propertyKey: number, dateKey?: number | null): Observable<PropertyDetailDto> {
+    return this.api.get<PropertyDetailDto>(
+      `api/Assets/${propertyKey}`,
+      dateKey != null ? { dateKey } : undefined,
+    );
   }
 
-  getAssetLeasingSummary(propertyKey: number): Observable<PropertyLeasingSummaryDto> {
-    return this.api.get<PropertyLeasingSummaryDto>(`api/Assets/${propertyKey}/leasing-summary`);
+  getAssetLeasingSummary(
+    propertyKey: number,
+    dateKey?: number | null,
+  ): Observable<PropertyLeasingSummaryDto> {
+    return this.api.get<PropertyLeasingSummaryDto>(
+      `api/Assets/${propertyKey}/leasing-summary`,
+      dateKey != null ? { dateKey } : undefined,
+    );
   }
 
   getAssetFundHoldings(propertyKey: number): Observable<AssetFundHoldingDto[]> {
     return this.api.get<AssetFundHoldingDto[]>(`api/Assets/${propertyKey}/fund-holdings`);
   }
 
-  getAssetPropertyDetails(propertyKey: number): Observable<AssetPropertyDetailDto[]> {
-    return this.api.get<AssetPropertyDetailDto[]>(`api/Assets/${propertyKey}/property-details`);
+  getAssetPropertyDetails(
+    propertyKey: number,
+    dateKey?: number | null,
+  ): Observable<AssetPropertyDetailDto[]> {
+    return this.api.get<AssetPropertyDetailDto[]>(
+      `api/Assets/${propertyKey}/property-details`,
+      dateKey != null ? { dateKey } : undefined,
+    );
   }
 
-  getAssetTypeSummary(propertyKey: number): Observable<AssetTypeSummaryDto[]> {
-    return this.api.get<AssetTypeSummaryDto[]>(`api/Assets/${propertyKey}/asset-type-summary`);
+  getAssetTypeSummary(propertyKey: number, dateKey?: number | null): Observable<AssetTypeSummaryDto[]> {
+    return this.api.get<AssetTypeSummaryDto[]>(
+      `api/Assets/${propertyKey}/asset-type-summary`,
+      dateKey != null ? { dateKey } : undefined,
+    );
   }
 
   getAssetFinancialMetrics(

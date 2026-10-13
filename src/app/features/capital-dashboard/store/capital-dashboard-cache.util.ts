@@ -1466,6 +1466,7 @@ export interface AssetDetailCacheEntry {
   financialMetrics: AssetFinancialMetricsRow | null;
   financialMetricsAt100: AssetFinancialMetricsRow | null;
   acquisitionSale: AssetAcquisitionSaleRow | null;
+  dateKey?: number | null;
 }
 
 export function capitalDashboardAssetFundHoldingsCacheKey(propertyKey: number): string {

@@ -336,6 +336,10 @@ export class InvestmentDetailComponent {
   /** Fund header for the selected quarter (null = ITD / no quarter selected). */
   readonly periodDetail = signal<FundDetailDto | null>(null);
   private lastPeriodDetailLoadKey = '';
+  /** Selected quarter's dateKey; null for ITD or "All" quarters. */
+  readonly selectedQuarterDateKey = computed(() =>
+    this.timeframe() === 'quarterly' && this.quarterScope() !== 'all' ? this.dateKey() : null,
+  );
 
   readonly kpiCards = computed(() => {
     const detail = this.periodDetail() ?? this.detail();
@@ -616,8 +620,7 @@ export class InvestmentDetailComponent {
 
     effect(() => {
       const fundKey = this.fundKey();
-      const dateKey =
-        this.timeframe() === 'quarterly' && this.quarterScope() !== 'all' ? this.dateKey() : null;
+      const dateKey = this.selectedQuarterDateKey();
       if (fundKey == null) {
         return;
       }
@@ -627,7 +630,11 @@ export class InvestmentDetailComponent {
         return;
       }
       this.lastPeriodDetailLoadKey = loadKey;
-      untracked(() => this.loadPeriodDetail(fundKey, dateKey));
+      untracked(() => {
+        this.loadPeriodDetail(fundKey, dateKey);
+        this.loadFundAssetOverview(fundKey, dateKey);
+        this.loadFundAssetsPage(1);
+      });
     });
 
     effect((onCleanup) => {
@@ -927,11 +934,11 @@ export class InvestmentDetailComponent {
 
   private loadFundData(fundKey: number): void {
     this.store.dispatch(FundsApiActions.loadDetail({ fundKey }));
-    this.loadFundAssetsPage(1);
     this.documentCategory.set('interim');
     this.loadFundDocuments(fundKey);
-    this.loadFundAssetOverview(fundKey);
     this.lastFinancialMetricsLoadKey = '';
+    // Header, Asset Overview and Asset Holdings load from the period effect (fund + quarter).
+    this.lastPeriodDetailLoadKey = '';
   }
 
   private loadFinancialMetrics(
@@ -968,10 +975,10 @@ export class InvestmentDetailComponent {
       });
   }
 
-  private loadFundAssetOverview(fundKey: number): void {
+  private loadFundAssetOverview(fundKey: number, dateKey: number | null): void {
     this.assetOverview.set(null);
     this.fundsApi
-      .getFundAssetOverview(fundKey)
+      .getFundAssetOverview(fundKey, dateKey)
       .pipe(take(1))
       .subscribe((dto) => {
         this.assetOverview.set(dto);
@@ -1023,6 +1030,7 @@ export class InvestmentDetailComponent {
         page,
         search: '',
         replace: true,
+        dateKey: this.selectedQuarterDateKey(),
       }),
     );
   }

@@ -4150,8 +4150,9 @@ export const capitalDashboardFeature = createFeature({
     })),
 
     // Assets detail
-    on(AssetsApiActions.loadDetail, (state, { propertyKey }) => {
-      const cached = state.assets.cache.details[propertyKey];
+    on(AssetsApiActions.loadDetail, (state, { propertyKey, dateKey }) => {
+      const entry = state.assets.cache.details[propertyKey];
+      const cached = entry && (entry.dateKey ?? null) === (dateKey ?? null) ? entry : undefined;
       const fundHoldingsReset = {
         fundHoldings: [] as AssetsDetailState['fundHoldings'],
         fundHoldingsLoading: false,
@@ -4202,7 +4203,7 @@ export const capitalDashboardFeature = createFeature({
         },
       };
     }),
-    on(AssetsApiActions.loadDetailSuccess, (state, { propertyKey, detail, leasingSummary, propertyDetails, assetTypeSummary, financialMetrics, financialMetricsAt100, acquisitionSale }) => ({
+    on(AssetsApiActions.loadDetailSuccess, (state, { propertyKey, dateKey, detail, leasingSummary, propertyDetails, assetTypeSummary, financialMetrics, financialMetricsAt100, acquisitionSale }) => ({
       ...state,
       assets: {
         ...state.assets,
@@ -4233,6 +4234,7 @@ export const capitalDashboardFeature = createFeature({
               financialMetrics,
               financialMetricsAt100,
               acquisitionSale,
+              dateKey: dateKey ?? null,
             },
           },
         },

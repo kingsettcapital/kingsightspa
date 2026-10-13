@@ -251,8 +251,8 @@ export class CapitalDashboardEffects {
   readonly loadFundAssetsPage$ = createEffect(() =>
     this.actions$.pipe(
       ofType(FundsApiActions.loadFundAssetsPage),
-      switchMap(({ fundKey, page, search, replace = true }) =>
-        this.fundsApi.getFundUnderlyingAssetsPage(fundKey, { page, search }).pipe(
+      switchMap(({ fundKey, page, search, replace = true, dateKey }) =>
+        this.fundsApi.getFundUnderlyingAssetsPage(fundKey, { page, search, dateKey }).pipe(
           map((result) => {
             const items = mapFundAssetsToTabRows(extractPagedItems(result));
             return FundsApiActions.loadFundAssetsPageSuccess({
@@ -1576,7 +1576,10 @@ export class CapitalDashboardEffects {
       ofType(AssetsApiActions.loadDetail),
       withLatestFrom(this.store.select(selectAssets)),
       switchMap(([request, assets]) => {
-        const cached = assets.cache.details[request.propertyKey];
+        const dateKey = request.dateKey ?? null;
+        const cacheEntry = assets.cache.details[request.propertyKey];
+        const cached =
+          cacheEntry && (cacheEntry.dateKey ?? null) === dateKey ? cacheEntry : undefined;
         const period = request.period?.trim() || 'ITD';
         const periodOpts = { period };
         const financialMetricsKs$ = this.assetsApi.getAssetFinancialMetrics(request.propertyKey, {
@@ -1601,6 +1604,7 @@ export class CapitalDashboardEffects {
             map(({ financialMetrics, financialMetricsAt100, acquisitionSale }) =>
               AssetsApiActions.loadDetailSuccess({
                 propertyKey: request.propertyKey,
+                dateKey,
                 detail: cached.detail,
                 leasingSummary: cached.leasingSummary,
                 propertyDetails: [],
@@ -1614,7 +1618,7 @@ export class CapitalDashboardEffects {
         }
         if (cached) {
           return forkJoin({
-            assetTypeSummary: this.assetsApi.getAssetTypeSummary(request.propertyKey).pipe(
+            assetTypeSummary: this.assetsApi.getAssetTypeSummary(request.propertyKey, dateKey).pipe(
               catchError(() => of([])),
             ),
             financialMetrics: financialMetricsKs$,
@@ -1624,6 +1628,7 @@ export class CapitalDashboardEffects {
             map(({ assetTypeSummary, financialMetrics, financialMetricsAt100, acquisitionSale }) =>
               AssetsApiActions.loadDetailSuccess({
                 propertyKey: request.propertyKey,
+                dateKey,
                 detail: cached.detail,
                 leasingSummary: cached.leasingSummary,
                 propertyDetails: [],
@@ -1636,11 +1641,11 @@ export class CapitalDashboardEffects {
           );
         }
         return forkJoin({
-          detail: this.assetsApi.getAsset(request.propertyKey),
-          leasingSummary: this.assetsApi.getAssetLeasingSummary(request.propertyKey).pipe(
+          detail: this.assetsApi.getAsset(request.propertyKey, dateKey),
+          leasingSummary: this.assetsApi.getAssetLeasingSummary(request.propertyKey, dateKey).pipe(
             catchError(() => of(null)),
           ),
-          assetTypeSummary: this.assetsApi.getAssetTypeSummary(request.propertyKey).pipe(
+          assetTypeSummary: this.assetsApi.getAssetTypeSummary(request.propertyKey, dateKey).pipe(
             catchError(() => of([])),
           ),
           financialMetrics: financialMetricsKs$,
@@ -1658,6 +1663,7 @@ export class CapitalDashboardEffects {
             }) =>
               AssetsApiActions.loadDetailSuccess({
                 propertyKey: request.propertyKey,
+                dateKey,
                 detail,
                 leasingSummary,
                 propertyDetails: [],

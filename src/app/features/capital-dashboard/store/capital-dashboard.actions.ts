@@ -368,7 +368,14 @@ export const FundsApiActions = createActionGroup({
       detail: FundDetailDto;
     }>(),
     'Load Detail Failure': props<{ error: string }>(),
-    'Load Fund Assets Page': props<{ fundKey: number; page: number; search: string; replace?: boolean }>(),
+    'Load Fund Assets Page': props<{
+      fundKey: number;
+      page: number;
+      search: string;
+      replace?: boolean;
+      /** Quarterly period; omit for latest metrics. */
+      dateKey?: number | null;
+    }>(),
     'Load Fund Assets Page Success': props<{
       page: number;
       pageSize: number;
@@ -657,9 +664,10 @@ export const AssetsApiActions = createActionGroup({
     'Load List Success': props<{ result: AssetsPagedResult; replace: boolean }>(),
     'Load List Failure': props<{ error: string }>(),
     'Load List More': emptyProps(),
-    'Load Detail': props<{ propertyKey: number; period?: string | null }>(),
+    'Load Detail': props<{ propertyKey: number; period?: string | null; dateKey?: number | null }>(),
     'Load Detail Success': props<{
       propertyKey: number;
+      dateKey?: number | null;
       detail: PropertyDetailDto;
       leasingSummary: PropertyLeasingSummaryDto | null;
       propertyDetails: AssetPropertyDetailTabRow[];

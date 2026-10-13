@@ -72,8 +72,11 @@ export class CapitalInvestorsApiService {
     return this.api.get<InvestorsFilterOptionsDto>('api/CapitalInvestors/filter-options');
   }
 
-  getInvestor(investorKey: number): Observable<InvestorDetailDto> {
-    return this.api.get<InvestorDetailDto>(`api/CapitalInvestors/${investorKey}`);
+  getInvestor(investorKey: number, dateKey?: number | null): Observable<InvestorDetailDto> {
+    return this.api.get<InvestorDetailDto>(
+      `api/CapitalInvestors/${investorKey}`,
+      dateKey != null ? { view: 'quarterly', dateKey } : undefined,
+    );
   }
 
   getInvestorFundsPage(
@@ -332,9 +335,11 @@ export class CapitalInvestorsApiService {
 
   getInvestorFundHoldings(
     investorKey: number,
+    dateKey?: number | null,
   ): Observable<InvestorFundHoldingsResponseDto> {
     return this.api.get<InvestorFundHoldingsResponseDto>(
       `api/CapitalInvestors/${investorKey}/fund-holdings`,
+      dateKey != null ? { dateKey } : undefined,
     );
   }
 
