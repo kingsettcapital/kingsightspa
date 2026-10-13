@@ -30,6 +30,8 @@ export interface AssetFinancialMetricsRow {
   currentCostAmount: number | null;
   budgetedNoiCurrentYear: number | null;
   forecastedNoiCurrentYear: number | null;
+  budgetedFfoCurrentYear: number | null;
+  forecastedFfoCurrentYear: number | null;
 }
 
 function readString(dto: AssetFinancialMetricsDto, snake: string, camel: string): string {
@@ -111,5 +113,7 @@ export function mapAssetFinancialMetricsToRow(
       'forecasted_noi_current_year',
       'forecastedNoiCurrentYear',
     ),
+    budgetedFfoCurrentYear: readNumber(dto, 'budgeted_ffo', 'budgetedFfo'),
+    forecastedFfoCurrentYear: readNumber(dto, 'forecasted_ffo', 'forecastedFfo'),
   };
 }

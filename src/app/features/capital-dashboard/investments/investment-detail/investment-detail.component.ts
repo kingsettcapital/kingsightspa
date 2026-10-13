@@ -18,7 +18,7 @@ import { catchError, debounceTime, distinctUntilChanged, map, Observable, of, Su
 
 import { KsCurrencyPipe } from '../../../../shared/pipes/ks-currency.pipe';
 import { CapitalFundsApiService } from '../../shared/services/capital-funds-api.service';
-import { InvestorTransactionTableFiltersDto, FundAssetOverviewDto } from '../../shared/models/api.models';
+import { InvestorTransactionTableFiltersDto, FundAssetOverviewDto, FundDetailDto } from '../../shared/models/api.models';
 import {
   FundFinancialMetricsRow,
   mapFundFinancialMetricsToRow,
@@ -109,7 +109,21 @@ export class InvestmentDetailComponent {
 
   private static readonly SECTION_SCROLL_GAP_PX = 8;
 
-  readonly sidebarSections = INVESTMENT_DETAIL_SIDEBAR_SECTIONS;
+  /** Fund Financial Metrics is only shown for CREIF. */
+  readonly showFinancialMetrics = computed(
+    () =>
+      (readFundDetailString(this.detail(), 'fund_code', 'fundCode') || this.financialMetrics()?.fundCode || '')
+        .trim()
+        .toUpperCase() === 'CREIF',
+  );
+  readonly sidebarSections = computed(() =>
+    this.showFinancialMetrics()
+      ? INVESTMENT_DETAIL_SIDEBAR_SECTIONS
+      : INVESTMENT_DETAIL_SIDEBAR_SECTIONS.map((section) => ({
+          ...section,
+          items: section.items.filter((item) => item.id !== 'financial-metrics'),
+        })),
+  );
   readonly activeSectionId = signal<InvestmentDetailSectionId>('overview');
   private readonly scrollSpyPaused = signal(false);
   readonly timeframe = signal<InvestmentDetailTimeframe>('ltd');
@@ -319,8 +333,12 @@ export class InvestmentDetailComponent {
     this.timeframe() === 'daily' ? 'Unfunded' : 'Uncalled',
   );
 
+  /** Fund header for the selected quarter (null = ITD / no quarter selected). */
+  readonly periodDetail = signal<FundDetailDto | null>(null);
+  private lastPeriodDetailLoadKey = '';
+
   readonly kpiCards = computed(() => {
-    const detail = this.detail();
+    const detail = this.periodDetail() ?? this.detail();
     if (fundDetailHasProfileData(detail)) {
       const fromDetail = kpiCardsFromFundDetail(detail);
       if (fromDetail.unfunded != null) {
@@ -420,7 +438,10 @@ export class InvestmentDetailComponent {
       this.advisoryDocuments().length,
     );
 
-    return base.map((item) => {
+    const showFinancialMetrics = this.showFinancialMetrics();
+    return base
+      .filter((item) => showFinancialMetrics || item.sectionId !== 'financial-metrics')
+      .map((item) => {
       if (item.block.kind !== 'transaction-hub') {
         return item;
       }
@@ -593,6 +614,22 @@ export class InvestmentDetailComponent {
       untracked(() => this.loadFinancialMetrics(fundKey, metricsView, dateKey));
     });
 
+    effect(() => {
+      const fundKey = this.fundKey();
+      const dateKey =
+        this.timeframe() === 'quarterly' && this.quarterScope() !== 'all' ? this.dateKey() : null;
+      if (fundKey == null) {
+        return;
+      }
+
+      const loadKey = `${fundKey}|${dateKey ?? ''}`;
+      if (loadKey === this.lastPeriodDetailLoadKey) {
+        return;
+      }
+      this.lastPeriodDetailLoadKey = loadKey;
+      untracked(() => this.loadPeriodDetail(fundKey, dateKey));
+    });
+
     effect((onCleanup) => {
       if (this.contentLoading()) {
         return;
@@ -624,7 +661,7 @@ export class InvestmentDetailComponent {
       const frame = requestAnimationFrame(() => {
         detachSpy = bindDetailSectionScrollSpy({
           main,
-          sectionIds: flattenSidebarSectionIds(this.sidebarSections),
+          sectionIds: flattenSidebarSectionIds(INVESTMENT_DETAIL_SIDEBAR_SECTIONS),
           activeSectionId: this.activeSectionId,
           isPaused: () => this.scrollSpyPaused(),
           sectionActivationOffset: () =>
@@ -910,6 +947,24 @@ export class InvestmentDetailComponent {
       .pipe(take(1))
       .subscribe((dto) => {
         this.financialMetrics.set(mapFundFinancialMetricsToRow(dto));
+      });
+  }
+
+  private loadPeriodDetail(fundKey: number, dateKey: number | null): void {
+    this.periodDetail.set(null);
+    if (dateKey == null) {
+      return;
+    }
+    this.fundsApi
+      .getFund(fundKey, dateKey)
+      .pipe(take(1))
+      .subscribe({
+        next: (dto) => {
+          if (this.lastPeriodDetailLoadKey === `${fundKey}|${dateKey}`) {
+            this.periodDetail.set(dto);
+          }
+        },
+        error: () => this.periodDetail.set(null),
       });
   }
 
