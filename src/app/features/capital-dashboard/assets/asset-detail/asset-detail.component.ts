@@ -76,6 +76,17 @@ export class AssetDetailComponent {
   private readonly listQuarter = signal<number | null>(null);
   private readonly listYear = signal<number | null>(null);
 
+  /** Quarter-end date key; the API resolves its quarter_year, so any date in the quarter works. */
+  private readonly selectedQuarterDateKey = computed(() => {
+    const quarter = this.listQuarter();
+    const year = this.listYear();
+    if (this.listView() !== 'quarterly' || quarter == null || year == null || quarter < 1 || quarter > 4) {
+      return null;
+    }
+    const quarterEnd = [331, 630, 930, 1231][quarter - 1];
+    return year * 10000 + quarterEnd;
+  });
+
   private readonly detailState = this.store.selectSignal(selectAssetsDetail);
 
   readonly loading = computed(() => this.detailState().loading);
@@ -222,6 +233,7 @@ export class AssetDetailComponent {
           AssetsApiActions.loadDetail({
             propertyKey,
             period: this.reportingPeriod(),
+            dateKey: this.selectedQuarterDateKey(),
           }),
         );
         this.store.dispatch(AssetsApiActions.loadFundHoldings({ propertyKey }));

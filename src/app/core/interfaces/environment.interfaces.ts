@@ -36,4 +36,9 @@ export interface Environment {
    * Admin routes/components remain in the codebase.
    */
   showUserManagement?: boolean;
+  /**
+   * When false, the entire Mortgage area is disabled for everyone: sidebar hidden,
+   * /mortgage URLs redirect to Capital, notification polling off.
+   */
+  showMortgage?: boolean;
 }

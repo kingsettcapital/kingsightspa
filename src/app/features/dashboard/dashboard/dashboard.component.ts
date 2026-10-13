@@ -50,6 +50,9 @@ export class DashboardComponent {
 
   /** Shown from the 1st of the month through the 1st + 5 business days, to Mortgage groups only. */
   readonly lateInterestWarning = computed(() => {
+    if (environment.showMortgage === false) {
+      return null;
+    }
     const roleName = this.currentAppUser.user()?.roleName;
     if (
       !isAdminRole(roleName) &&

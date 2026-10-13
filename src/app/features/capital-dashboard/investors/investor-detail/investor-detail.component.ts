@@ -19,7 +19,12 @@ import { catchError, debounceTime, distinctUntilChanged, map, Observable, of, Su
 
 import { KsCurrencyPipe } from '../../../../shared/pipes/ks-currency.pipe';
 import { CapitalInvestorsApiService } from '../../shared/services/capital-investors-api.service';
-import { InvestorTransactionTableFiltersDto } from '../../shared/models/api.models';
+import {
+  InvestorDetailDto,
+  InvestorFundHoldingTabRow,
+  InvestorTransactionTableFiltersDto,
+} from '../../shared/models/api.models';
+import { mapInvestorFundHoldingsResponse } from '../../shared/mappers/investor-fund-holdings.mapper';
 import { InvestorTableRow } from '../../shared/utils/investor-list-row.util';
 import { fundTableRowFromFundExposure } from '../../shared/utils/fund-list-row.util';
 import { InvestorDetailTableRow } from './models/investor-detail-table.models';
@@ -208,9 +213,21 @@ export class InvestorDetailComponent {
     () => investorDetailHasProfileData(this.detail()) || this.listRow() != null,
   );
 
-  readonly fundHoldingsTable = computed(() => {
+  private readonly effectiveFundHoldings = computed(() => {
+    const period = this.periodFundHoldings();
+    if (period) {
+      return period;
+    }
+    if (this.selectedQuarterDateKey() != null) {
+      return { dateKey: null, items: [] as InvestorFundHoldingTabRow[] };
+    }
     const state = this.detailState();
-    return buildFundHoldingsTable(state.fundHoldings, state.fundHoldingsDateKey);
+    return { dateKey: state.fundHoldingsDateKey, items: state.fundHoldings };
+  });
+
+  readonly fundHoldingsTable = computed(() => {
+    const holdings = this.effectiveFundHoldings();
+    return buildFundHoldingsTable(holdings.items, holdings.dateKey);
   });
 
   readonly periodLabel = computed(() => {
@@ -250,10 +267,27 @@ export class InvestorDetailComponent {
   });
 
 
+  private readonly periodDetail = signal<InvestorDetailDto | null>(null);
+  private readonly periodFundHoldings = signal<{
+    dateKey: number | null;
+    items: InvestorFundHoldingTabRow[];
+  } | null>(null);
+  private lastPeriodLoadKey = '';
+
+  private readonly selectedQuarterDateKey = computed(() =>
+    this.timeframe() === 'quarterly' ? this.dateKey() : null,
+  );
+
   readonly kpiCards = computed(() => {
-    const detail = this.detail();
-    if (investorDetailHasProfileData(detail)) {
-      return kpiCardsFromInvestorDetail(detail);
+    const periodDetail = this.periodDetail();
+    if (periodDetail && investorDetailHasProfileData(periodDetail)) {
+      return kpiCardsFromInvestorDetail(periodDetail);
+    }
+    if (this.selectedQuarterDateKey() == null) {
+      const detail = this.detail();
+      if (investorDetailHasProfileData(detail)) {
+        return kpiCardsFromInvestorDetail(detail);
+      }
     }
     return kpiCardsFromListRow(this.listRow());
   });
@@ -324,10 +358,11 @@ export class InvestorDetailComponent {
         'Active',
       address: formatInvestorAddress(this.detail(), this.listRow()?.address ?? ''),
     };
+    const holdings = this.effectiveFundHoldings();
     const base = buildFlatInvestorBlocks(
       state.detail,
-      state.fundHoldings,
-      state.fundHoldingsDateKey,
+      holdings.items,
+      holdings.dateKey,
       state.capitalInvestments,
       {
         page: state.capitalInvestmentsPage,
@@ -419,6 +454,37 @@ export class InvestorDetailComponent {
 
     this.destroyRef.onDestroy(() => {
       this.store.dispatch(InvestorsApiActions.clearDetail());
+    });
+
+    effect((onCleanup) => {
+      const investorKey = this.investorKey();
+      const dateKey = this.selectedQuarterDateKey();
+      const loadKey = `${investorKey ?? ''}|${dateKey ?? ''}`;
+      if (loadKey === this.lastPeriodLoadKey) {
+        return;
+      }
+      this.lastPeriodLoadKey = loadKey;
+
+      untracked(() => {
+        this.periodDetail.set(null);
+        this.periodFundHoldings.set(null);
+      });
+      if (investorKey == null || dateKey == null) {
+        return;
+      }
+
+      const detailSub = this.investorsApi
+        .getInvestor(investorKey, dateKey)
+        .pipe(catchError(() => of(null)))
+        .subscribe((detail) => this.periodDetail.set(detail));
+      const holdingsSub = this.investorsApi
+        .getInvestorFundHoldings(investorKey, dateKey)
+        .pipe(catchError(() => of(null)))
+        .subscribe((result) => this.periodFundHoldings.set(mapInvestorFundHoldingsResponse(result)));
+      onCleanup(() => {
+        detailSub.unsubscribe();
+        holdingsSub.unsubscribe();
+      });
     });
 
     effect(() => {
