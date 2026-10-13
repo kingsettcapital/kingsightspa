@@ -492,6 +492,8 @@ function buildFinancialMetricsFieldSets(metrics: AssetFinancialMetricsRow | null
       { label: 'Total NOI Growth %', value: ratioPercent(metrics?.totalNoiGrowthPct) },
       { label: 'Budgeted NOI (Current Year)', value: currency(metrics?.budgetedNoiCurrentYear) },
       { label: 'Forecasted NOI (Current Year)', value: currency(metrics?.forecastedNoiCurrentYear) },
+      { label: 'Budgeted FFO (Current Year)', value: currency(metrics?.budgetedFfoCurrentYear) },
+      { label: 'Forecasted FFO (Current Year)', value: currency(metrics?.forecastedFfoCurrentYear) },
     ],
   };
 }

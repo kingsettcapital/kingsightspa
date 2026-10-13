@@ -1,7 +1,7 @@
 <section class="inv-detail" aria-label="Investment profile">
   <aside class="inv-detail__sidebar">
     <app-investor-detail-sidebar
-      [sections]="sidebarSections"
+      [sections]="sidebarSections()"
       [activeSectionId]="activeSectionId()"
       (sectionSelect)="scrollToSection($event)"
     />
