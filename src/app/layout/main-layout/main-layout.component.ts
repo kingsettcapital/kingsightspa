@@ -78,7 +78,9 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   hideAppSidebar = signal(this.shouldHideAppChrome(this.router.url));
 
   ngOnInit(): void {
-    this.notificationUnreadCount.start();
+    if (this.showMortgage) {
+      this.notificationUnreadCount.start();
+    }
     this.syncDropdownToRoute(this.router.url);
     this.hideAppSidebar.set(this.shouldHideAppChrome(this.router.url));
 
@@ -88,7 +90,9 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
         const navigation = event as NavigationEnd;
         this.syncDropdownToRoute(navigation.urlAfterRedirects);
         this.hideAppSidebar.set(this.shouldHideAppChrome(navigation.urlAfterRedirects));
-        this.notificationUnreadCount.refresh();
+        if (this.showMortgage) {
+          this.notificationUnreadCount.refresh();
+        }
         this.closeMobileNav();
       });
   }
@@ -121,6 +125,9 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   readonly showHomeCapitalAndDataExplorer = computed(() =>
     this.accessControl.isFeatureVisible(environment.showHomeCapitalAndDataExplorer),
   );
+
+  /** Env flag only — hidden for admins too. */
+  readonly showMortgage = environment.showMortgage !== false;
 
   /** Env flag, or admin. */
   readonly showAiAssistant = computed(() =>

@@ -108,10 +108,13 @@ export class CapitalFundsApiService {
     );
   }
 
-  getFundAssetOverview(fundKey: number): Observable<FundAssetOverviewDto | null> {
-    return this.api.get<FundAssetOverviewDto>(`api/Funds/${fundKey}/asset-overview`).pipe(
-      catchError(() => of(null)),
-    );
+  getFundAssetOverview(fundKey: number, dateKey?: number | null): Observable<FundAssetOverviewDto | null> {
+    return this.api
+      .get<FundAssetOverviewDto>(
+        `api/Funds/${fundKey}/asset-overview`,
+        (dateKey != null ? { dateKey } : undefined) as any,
+      )
+      .pipe(catchError(() => of(null)));
   }
 
   getFundDocuments(
@@ -125,13 +128,14 @@ export class CapitalFundsApiService {
 
   getFundUnderlyingAssetsPage(
     fundKey: number,
-    params: { page?: number; pageSize?: number; search?: string } = {},
+    params: { page?: number; pageSize?: number; search?: string; dateKey?: number | null } = {},
     pageSize = LIST_PAGE_SIZE,
   ): Observable<PagedResult<FundAssetDto>> {
     const query = {
       page: params.page ?? 1,
       pageSize: params.pageSize ?? pageSize,
       ...(params.search?.trim() ? { search: params.search.trim() } : {}),
+      ...(params.dateKey != null ? { dateKey: params.dateKey } : {}),
     };
     return this.api.get<PagedResult<FundAssetDto>>(`api/Funds/${fundKey}/underlying-assets`, query as any);
   }

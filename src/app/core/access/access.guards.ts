@@ -1,5 +1,5 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { CanActivateFn, CanMatchFn, Router } from '@angular/router';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { filter, map, take } from 'rxjs';
 
@@ -22,8 +22,17 @@ function whenAccessReady<T>(decide: (access: AccessControlService) => T) {
 }
 
 function mortgageFallback(router: Router) {
+  if (environment.showMortgage === false) {
+    return router.createUrlTree(['/capital-dashboard']);
+  }
   return router.createUrlTree(['/mortgage', MORTGAGE_DEFAULT_ROUTE]);
 }
+
+/** Blocks the whole Mortgage area (including direct URLs) when the env flag is off. */
+export const mortgageEnabledGuard: CanMatchFn = () =>
+  environment.showMortgage === false
+    ? inject(Router).createUrlTree(['/capital-dashboard'])
+    : true;
 
 /** admin (active user_master role) only. */
 export const userManagementGuard: CanActivateFn = () => {

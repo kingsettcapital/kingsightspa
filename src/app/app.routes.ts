@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { MsalGuard } from '@azure/msal-angular';
 
 import { environment } from '../environments/environment';
+import { mortgageEnabledGuard } from './core/access/access.guards';
 
 export const routes: Routes = [
   {
@@ -42,6 +43,7 @@ export const routes: Routes = [
       },
       {
         path: 'mortgage',
+        canMatch: [mortgageEnabledGuard],
         loadChildren: () =>
           import('./features/mortgage/mortgage.routes').then(
             (m) => m.MORTGAGE_ROUTES

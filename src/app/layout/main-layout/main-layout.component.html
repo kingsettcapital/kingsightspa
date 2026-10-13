@@ -52,6 +52,7 @@
         </a>
       }
 
+      @if (showMortgage) {
       <div
         class="ks-sidebar__group"
         [class.ks-sidebar__group--expanded]="openDropdown() === 'Loans'"
@@ -210,6 +211,7 @@
           </div>
         }
       </div>
+      }
 
       @if (showHomeCapitalAndDataExplorer()) {
         <a
