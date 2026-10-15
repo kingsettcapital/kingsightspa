@@ -59,6 +59,7 @@ export function mapColumnGroupsToDataProducts(groups: DataExplorerColumnGroupDto
         label: column.label,
         type: mapColumnType(column),
         dataKey: column.field,
+        plainNumber: /year|date_?key/i.test(column.field),
       })),
   }));
 }

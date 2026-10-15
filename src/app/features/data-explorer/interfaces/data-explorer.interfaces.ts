@@ -9,6 +9,8 @@ export interface DataProductField {
   label: string;
   type: DataColumnType;
   dataKey: string;
+  /** Numeric identifiers (year, date key) shown without thousands separators. */
+  plainNumber?: boolean;
 }
 
 export interface DataProduct {
