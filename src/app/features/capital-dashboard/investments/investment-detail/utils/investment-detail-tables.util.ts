@@ -949,7 +949,7 @@ function buildFundFinancialMetricsBlock(
       { label: 'Total Asset Value', value: currency(metrics?.fundTotalAssetValue) },
       { label: 'GAV Amount', value: currency(metrics?.fundGavAmount) },
       { label: 'NAV Amount', value: currency(metrics?.fundNavAmount) },
-      { label: 'Debt', value: currency(metrics?.fundDebt) },
+      { label: 'Debt (excluding AP)', value: currency(metrics?.fundDebt) },
       { label: 'Equity', value: currency(metrics?.fundEquity) },
       { label: 'LTV', value: percent(metrics?.fundLtv) },
       { label: 'Cash at Quarter End', value: currency(metrics?.fundCashAtQuarterEnd), hidden: true },

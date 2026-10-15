@@ -75,11 +75,11 @@
         <button
           type="button"
           class="de-explorer__action-btn de-explorer__action-btn--export"
-          [disabled]="!hasQuery() || totalRecords() === 0"
+          [disabled]="!hasQuery() || totalRecords() === 0 || exporting()"
           (click)="exportData()"
         >
           <lucide-icon [img]="exportIcon" [size]="16" color="currentColor"></lucide-icon>
-          <span class="de-explorer__action-btn-label">Export</span>
+          <span class="de-explorer__action-btn-label">{{ exporting() ? 'Exporting…' : 'Export' }}</span>
         </button>
       </div>
     </div>

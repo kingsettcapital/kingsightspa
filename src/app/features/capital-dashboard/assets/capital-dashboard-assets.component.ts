@@ -167,7 +167,16 @@ export class CapitalDashboardAssetsComponent {
   readonly statusOptions = computed(() => this.filterOptions().statuses);
   readonly fundCodeOptions = computed(() => this.filterOptions().fundCodes);
 
+  /** Footer totals across all filtered properties (same as KPI cards), not just the current page. */
   readonly pageTotals = computed(() => {
+    const summary = this.listState().summary;
+    if (summary) {
+      return {
+        glaSf: summary.totalGla ?? 0,
+        committedSf: summary.totalCommittedArea ?? 0,
+        vacantSf: summary.totalVacantArea ?? 0,
+      };
+    }
     const rows = this.rows();
     return {
       glaSf: rows.reduce((sum, row) => sum + row.glaSf, 0),
