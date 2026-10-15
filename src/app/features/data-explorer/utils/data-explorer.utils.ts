@@ -15,7 +15,11 @@ export function getRecordValue(record: DataExplorerRow, field: DataProductField)
   return String(value);
 }
 
-export function formatCellValue(value: string | number, type: DataProductField['type']): string {
+export function formatCellValue(
+  value: string | number,
+  type: DataProductField['type'],
+  plainNumber = false,
+): string {
   if (value === '' || value === null || value === undefined) {
     return '—';
   }
@@ -39,7 +43,7 @@ export function formatCellValue(value: string | number, type: DataProductField['
         ? `${value.toFixed(1)}%`
         : String(value);
     case 'number':
-      return typeof value === 'number' ? value.toLocaleString('en-CA') : String(value);
+      return typeof value === 'number' && !plainNumber ? value.toLocaleString('en-CA') : String(value);
     default:
       return String(value);
   }
@@ -111,7 +115,7 @@ function getComparableValues(record: DataExplorerRow, field: DataProductField): 
     return [raw.toLowerCase()];
   }
 
-  const formatted = formatCellValue(rawValue as string | number, field.type);
+  const formatted = formatCellValue(rawValue as string | number, field.type, field.plainNumber);
   if (formatted !== '—') {
     values.add(formatted.toLowerCase());
     values.add(stripFormattedValue(formatted, field.type).toLowerCase());

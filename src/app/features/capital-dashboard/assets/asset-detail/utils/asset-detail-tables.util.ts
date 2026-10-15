@@ -474,7 +474,7 @@ function buildFinancialMetricsFieldSets(metrics: AssetFinancialMetricsRow | null
       { label: 'Total Asset Value', value: currency(metrics?.assetTotalAssetValue) },
       { label: 'GAV Amount', value: currency(metrics?.assetGavAmount) },
       { label: 'NAV Amount', value: currency(metrics?.assetNavAmount) },
-      { label: 'Debt', value: currency(metrics?.assetDebt) },
+      { label: 'Debt (excluding AP)', value: currency(metrics?.assetDebt) },
       { label: 'Equity', value: currency(metrics?.assetEquity) },
       { label: 'LTV', value: ratioPercent(metrics?.assetLtv) },
       { label: 'Cash at Quarter End', value: currency(metrics?.assetCashAtQuarterEnd) },

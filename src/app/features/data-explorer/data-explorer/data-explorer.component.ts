@@ -27,9 +27,21 @@ import {
   Trash2,
   Users,
 } from 'lucide-angular';
-import { catchError, debounceTime, of, Subject } from 'rxjs';
+import {
+  catchError,
+  debounceTime,
+  finalize,
+  from,
+  map,
+  mergeMap,
+  of,
+  Subject,
+  switchMap,
+  toArray,
+} from 'rxjs';
 
 import { ExcelService } from '../../../core/services/excel.service';
+import { ToastService } from '../../../core/services/toast.service';
 import {
   FILTER_OPERATORS,
   QUICK_START_TEMPLATES,
@@ -70,11 +82,15 @@ import {
   groupRecords,
   isFilterApplied,
 } from '../utils/data-explorer.utils';
+import { buildDataExplorerDataRequest } from '../utils/data-explorer.mapper';
 import { KsCurrencyPipe } from '../../../shared/pipes/ks-currency.pipe';
 import { SaveQueryModalComponent } from './save-query-modal/save-query-modal.component';
 import { SavedQueriesModalComponent } from './saved-queries-modal/saved-queries-modal.component';
 
 const VISIBLE_PAGE_BUTTON_COUNT = 3;
+/** API caps Data Explorer pages at 200 rows. */
+const EXPORT_PAGE_SIZE = 200;
+const EXPORT_CONCURRENCY = 4;
 
 @Component({
   selector: 'app-data-explorer',
@@ -123,8 +139,10 @@ export class DataExplorerComponent {
   private readonly dataExplorerService = inject(DataExplorerService);
   private readonly dataExplorerApi = inject(DataExplorerApiService);
   private readonly excelService = inject(ExcelService);
+  private readonly toast = inject(ToastService);
   private readonly filterReload$ = new Subject<void>();
   private readonly pendingSavedQuery = signal<SavedQuery | null>(null);
+  readonly exporting = signal(false);
 
   private readonly columnsState = this.store.selectSignal(selectDataExplorerColumns);
   private readonly rowsState = this.store.selectSignal(selectDataExplorerRowsList);
@@ -555,7 +573,7 @@ export class DataExplorerComponent {
 
   formatValue(record: DataExplorerRow, field: DataProductField): string {
     const value = record[field.dataKey];
-    return formatCellValue(value as string | number, field.type);
+    return formatCellValue(value as string | number, field.type, field.plainNumber);
   }
 
   getNumericCellValue(record: DataExplorerRow, field: DataProductField): number | null {
@@ -942,23 +960,72 @@ export class DataExplorerComponent {
       });
   }
 
+  /** Exports every row matching the current query (all pages), not just the visible page. */
   exportData(): void {
     const columns = this.selectedFields();
-    const rows = this.sortedRecords();
-
-    if (!columns.length || !rows.length) {
+    const product = this.selectedProduct();
+    if (!columns.length || !product || this.exporting() || this.totalAvailableRecords() === 0) {
       return;
     }
 
-    this.excelService.export<DataExplorerRow>({
-      filename: `data-explorer-${new Date().toISOString().slice(0, 10)}.xlsx`,
-      sheetName: 'Data Explorer',
-      title: 'Data Explorer',
-      columns: columns.map((field) => ({
-        header: field.label,
-        value: (row: DataExplorerRow) => this.formatValue(row, field),
-      })),
-      rows,
-    });
+    const buildRequest = (page: number) =>
+      buildDataExplorerDataRequest({
+        product,
+        columns: this.selectedFieldIds(),
+        groupByFieldId: this.groupByFieldId(),
+        filters: this.filters(),
+        filterLogic: this.filterLogic(),
+        sortBy: this.sortFieldId() ?? '',
+        sortDir: this.sortDirection(),
+        page,
+        pageSize: EXPORT_PAGE_SIZE,
+      });
+
+    this.exporting.set(true);
+    this.dataExplorerApi
+      .queryData(buildRequest(1))
+      .pipe(
+        switchMap((first) => {
+          const remaining = Array.from(
+            { length: Math.max(0, first.totalPages - 1) },
+            (_, index) => index + 2,
+          );
+          if (remaining.length === 0) {
+            return of(first.rows ?? []);
+          }
+          return from(remaining).pipe(
+            mergeMap(
+              (page) =>
+                this.dataExplorerApi.queryData(buildRequest(page)).pipe(map((result) => ({ page, rows: result.rows ?? [] }))),
+              EXPORT_CONCURRENCY,
+            ),
+            toArray(),
+            map((pages) => [
+              ...(first.rows ?? []),
+              ...pages.sort((a, b) => a.page - b.page).flatMap((p) => p.rows),
+            ]),
+          );
+        }),
+        finalize(() => this.exporting.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (rows) => {
+          if (!rows.length) {
+            return;
+          }
+          this.excelService.export<DataExplorerRow>({
+            filename: `data-explorer-${new Date().toISOString().slice(0, 10)}.xlsx`,
+            sheetName: 'Data Explorer',
+            title: 'Data Explorer',
+            columns: columns.map((field) => ({
+              header: field.label,
+              value: (row: DataExplorerRow) => this.formatValue(row, field),
+            })),
+            rows,
+          });
+        },
+        error: () => this.toast.error('Export failed. Please try again.'),
+      });
   }
 }

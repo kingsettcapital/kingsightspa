@@ -165,7 +165,18 @@ export class CapitalDashboardInvestorsComponent {
 
   readonly fundOptions = computed(() => this.filterOptions().funds);
 
+  /** Footer totals across all filtered investors (same as KPI cards), not just the current page. */
   readonly pageTotals = computed(() => {
+    const summary = this.listState().summary;
+    if (summary) {
+      return {
+        commitment: summary.totalCommitment ?? 0,
+        netInvestedCapital: summary.netInvestedCapital ?? 0,
+        netDistributed: summary.netDistributed ?? 0,
+        reservedUncalled: summary.reservedUncalled ?? 0,
+        unfunded: summary.unfunded ?? 0,
+      };
+    }
     const rows = this.rows();
     return {
       commitment: rows.reduce((sum, row) => sum + row.commitment, 0),
