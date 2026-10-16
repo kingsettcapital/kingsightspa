@@ -490,10 +490,10 @@ function buildFinancialMetricsFieldSets(metrics: AssetFinancialMetricsRow | null
       { label: 'YTD Net Income', value: currency(metrics?.assetNetIncome) },
       { label: 'Total NOI Growth', value: currency(metrics?.totalNoiGrowthAmount), hidden: true },
       { label: 'Total NOI Growth %', value: ratioPercent(metrics?.totalNoiGrowthPct), hidden: true },
-      { label: 'Budgeted NOI (Current Year)', value: currency(metrics?.budgetedNoiCurrentYear) },
-      { label: 'Forecasted NOI (Current Year)', value: currency(metrics?.forecastedNoiCurrentYear) },
-      { label: 'Budgeted FFO (Current Year)', value: currency(metrics?.budgetedFfoCurrentYear) },
-      { label: 'Forecasted FFO (Current Year)', value: currency(metrics?.forecastedFfoCurrentYear) },
+      { label: 'Budgeted NOI (Current Year)', value: currency(metrics?.budgetedNoiCurrentYear), hidden: true },
+      { label: 'Forecasted NOI (Current Year)', value: currency(metrics?.forecastedNoiCurrentYear), hidden: true },
+      { label: 'Budgeted FFO (Current Year)', value: currency(metrics?.budgetedFfoCurrentYear), hidden: true },
+      { label: 'Forecasted FFO (Current Year)', value: currency(metrics?.forecastedFfoCurrentYear), hidden: true },
     ],
   };
 }
