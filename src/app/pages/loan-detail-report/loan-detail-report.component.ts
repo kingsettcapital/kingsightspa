@@ -10,6 +10,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
@@ -17,6 +18,7 @@ import { combineLatest } from 'rxjs';
 
 import { ManagementSummaryApiService } from '../../core/services/management-summary-api.service';
 import { ManagementSummaryFilterStateService } from '../../core/services/management-summary-filter-state.service';
+import { PropertyImageApiService } from '../../core/services/property-image-api.service';
 import { ReportPrintExportService } from '../../core/services/report-print-export.service';
 import { extractApiError } from '../../core/utils/api-error.util';
 import { mapLoanDetailReportDashboard } from './loan-detail-report.mapper';
@@ -37,13 +39,14 @@ import {
 } from '../management-summary/management-summary-filter.util';
 import { MultiSelectFilterComponent } from '../../shared/components/multi-select-filter/multi-select-filter.component';
 import type { LoanDetailReportData, LoanPortfolioDetailRow } from './loan-detail-report.models';
+import { PropertyImageUploadDialogComponent } from './edit-dialogs/property-image-upload-dialog.component';
 import { PropertyStatsEditDialogComponent } from './edit-dialogs/property-stats-edit-dialog.component';
 import { RankingEditDialogComponent } from './edit-dialogs/ranking-edit-dialog.component';
 import { TaxMemoAddDialogComponent } from './edit-dialogs/tax-memo-add-dialog.component';
 
 Chart.register(...registerables);
 
-type ReportEditDialog = 'propertyStats' | 'ranking' | 'taxMemo';
+type ReportEditDialog = 'propertyStats' | 'propertyImage' | 'ranking' | 'taxMemo';
 
 type PortfolioSortColumn =
   | 'loanId'
@@ -90,6 +93,7 @@ function rankSortValue(rank: string): number {
     RouterLink,
     MatIconModule,
     MultiSelectFilterComponent,
+    PropertyImageUploadDialogComponent,
     PropertyStatsEditDialogComponent,
     RankingEditDialogComponent,
     TaxMemoAddDialogComponent,
@@ -103,6 +107,7 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   private readonly summaryApi = inject(ManagementSummaryApiService);
   private readonly filterState = inject(ManagementSummaryFilterStateService);
   private readonly reportPrintExport = inject(ReportPrintExportService);
+  private readonly propertyImageApi = inject(PropertyImageApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly compositionChart = new DashboardChartLifecycle(this.destroyRef);
   private readonly breakdownChart = new DashboardChartLifecycle(this.destroyRef);
@@ -118,6 +123,9 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
 
   readonly editDialog = signal<ReportEditDialog | null>(null);
   readonly editStatusMessage = signal('');
+  /** Object URL for the loan alias' property image (null when none uploaded). */
+  readonly propertyImageUrl = signal<string | null>(null);
+  private propertyImageAliasKey = 0;
 
   readonly report = signal<LoanDetailReportData>(
     mapLoanDetailReportDashboard({
@@ -200,6 +208,10 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
       this.loanAliasName = alias;
       this.hydrateFilterOptions(loanFilters.asOfDate);
       this.loadReport();
+      // Image is per loan alias, not per filter — skip reloads on filter-only query changes.
+      if (this.propertyImageAliasKey !== loanAliasKey) {
+        this.loadPropertyImage();
+      }
     });
   }
 
@@ -209,6 +221,7 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     // Do not overwrite Management Summary session filters.
+    this.setPropertyImageUrl(null);
   }
 
   async exportPdf(): Promise<void> {
@@ -303,6 +316,41 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
     this.editDialog.set(null);
     this.editStatusMessage.set(message);
     this.loadReport();
+  }
+
+  onPropertyImageSaved(message: string): void {
+    this.editDialog.set(null);
+    this.editStatusMessage.set(message);
+    this.loadPropertyImage();
+  }
+
+  private loadPropertyImage(): void {
+    const loanAliasKey = this.loanAliasKey;
+    this.propertyImageAliasKey = loanAliasKey;
+    if (loanAliasKey <= 0) {
+      this.setPropertyImageUrl(null);
+      return;
+    }
+    this.propertyImageApi
+      .getImageBlob(loanAliasKey)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (blob) => {
+          if (this.loanAliasKey === loanAliasKey) {
+            this.setPropertyImageUrl(URL.createObjectURL(blob));
+          }
+        },
+        // 404 = no image uploaded for this loan alias yet.
+        error: () => this.setPropertyImageUrl(null),
+      });
+  }
+
+  private setPropertyImageUrl(url: string | null): void {
+    const previous = this.propertyImageUrl();
+    if (previous) {
+      URL.revokeObjectURL(previous);
+    }
+    this.propertyImageUrl.set(url);
   }
 
   private loadReport(): void {
