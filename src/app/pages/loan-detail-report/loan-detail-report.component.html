@@ -60,6 +60,15 @@
         (closed)="closeEditDialog()"
       />
     }
+    @case ('propertyImage') {
+      <app-property-image-upload-dialog
+        [loanAliasKey]="loanAliasKey"
+        [loanAliasName]="editAliasName()"
+        [currentImageUrl]="propertyImageUrl()"
+        (saved)="onPropertyImageSaved($event)"
+        (closed)="closeEditDialog()"
+      />
+    }
     @case ('ranking') {
       <app-ranking-edit-dialog
         [loanAliasKey]="loanAliasKey"
@@ -95,7 +104,9 @@
     </article>
   </div>
 
-  <div class="ldr-info-grid">
+  <!-- Columns 1-2 stack the detail / interest cards; column 3 is Property Stats at full height. -->
+  <div class="ldr-info-grid ldr-info-grid--split">
+    <div class="ldr-info-stack">
     <article class="ldr-info-card">
       <h2>Report Details</h2>
       <dl>
@@ -107,49 +118,6 @@
       </dl>
     </article>
 
-    <article class="ldr-info-card">
-      <h2 title="Dates shown below are the Earliest date related to the Capital Stack">Key Dates</h2>
-      <dl>
-        <div><dt>Date of Advance</dt><dd>{{ report().keyDates.dateOfAdvance }}</dd></div>
-        <div><dt>Date of Default</dt><dd>{{ report().keyDates.dateOfDefault }}</dd></div>
-        <div><dt>Maturity Date</dt><dd>{{ report().keyDates.maturityDate }}</dd></div>
-        <div><dt>Interest Off Date</dt><dd>{{ report().keyDates.interestOffDate }}</dd></div>
-        <div>
-          <dt>Days in Default</dt>
-          <dd class="ldr-negative">{{ report().keyDates.daysInDefault || '—' }}</dd>
-        </div>
-      </dl>
-    </article>
-
-    <article class="ldr-info-card">
-      <h2 class="ldr-card-title-row">
-        Property Stats
-        <button
-          type="button"
-          class="ldr-edit-btn ks-no-print"
-          (click)="openEditDialog('propertyStats')"
-          [disabled]="isLoading() || isExporting()"
-          aria-label="Edit Property Stats"
-          title="Edit Loan Exposure Markers"
-        >
-          <mat-icon aria-hidden="true">edit</mat-icon>
-        </button>
-      </h2>
-      <dl>
-        <div><dt>Security Value</dt><dd>{{ formatMillions(report().propertyStats.securityValue) }}</dd></div>
-        <div><dt>Units / Size</dt><dd>{{ report().propertyStats.unitsSize }}</dd></div>
-        <div><dt>Value / Unit</dt><dd>{{ formatMillions(report().propertyStats.valuePerUnit) }}</dd></div>
-        <div><dt>Exposure / Unit</dt><dd>{{ formatMillions(report().propertyStats.exposurePerUnit) }}</dd></div>
-        <div>
-          <dt>Risk Status</dt>
-          <dd><span [class]="riskClass(report().propertyStats.riskStatus)">{{ report().propertyStats.riskStatus }}</span></dd>
-        </div>
-      </dl>
-    </article>
-
-  </div>
-
-  <div class="ldr-info-grid ldr-info-grid--interest">
     <article class="ldr-info-card">
       <h2>Interest Reserve</h2>
       <dl>
@@ -164,6 +132,42 @@
         <div>
           <dt># Of Months Interest Covered by Interest Reserve</dt>
           <dd>{{ report().interestReserve.monthsCoveredByReserve }}</dd>
+        </div>
+      </dl>
+    </article>
+
+    <article class="ldr-info-card">
+      <h2>Interest Disbursed</h2>
+      <dl>
+        <div>
+          <dt title="SMF and MLP Loan Interest Due before Interest Off Date">Interest Disbursed</dt>
+          <dd>{{ formatMillions(report().interestSummary.interestDisbursed) }}</dd>
+        </div>
+        <div>
+          <dt title="SMF and MLP Loan Interest Due after Interest Off Date to the Report As Of Date">
+            Interest Not Disbursed
+          </dt>
+          <dd>{{ formatMillions(report().interestSummary.interestNotDisbursed) }}</dd>
+        </div>
+        <div>
+          <dt># Months in Arrears</dt>
+          <dd class="ldr-negative">{{ report().interestSummary.monthsInArrears || '—' }}</dd>
+        </div>
+      </dl>
+    </article>
+    </div>
+
+    <div class="ldr-info-stack">
+    <article class="ldr-info-card">
+      <h2 title="Dates shown below are the Earliest date related to the Capital Stack">Key Dates</h2>
+      <dl>
+        <div><dt>Date of Advance</dt><dd>{{ report().keyDates.dateOfAdvance }}</dd></div>
+        <div><dt>Date of Default</dt><dd>{{ report().keyDates.dateOfDefault }}</dd></div>
+        <div><dt>Maturity Date</dt><dd>{{ report().keyDates.maturityDate }}</dd></div>
+        <div><dt>Interest Off Date</dt><dd>{{ report().keyDates.interestOffDate }}</dd></div>
+        <div>
+          <dt>Days in Default</dt>
+          <dd class="ldr-negative">{{ report().keyDates.daysInDefault || '—' }}</dd>
         </div>
       </dl>
     </article>
@@ -189,23 +193,63 @@
         </div>
       </dl>
     </article>
+    </div>
 
-    <article class="ldr-info-card">
-      <h2>Interest Disbursed</h2>
+    <article class="ldr-info-card ldr-info-card--property">
+      <h2 class="ldr-card-title-row">
+        Property Stats
+        <span class="ldr-card-actions ks-no-print">
+          <button
+            type="button"
+            class="ldr-edit-btn"
+            (click)="openEditDialog('propertyImage')"
+            [disabled]="isLoading() || isExporting()"
+            aria-label="Upload property image"
+            title="Upload Property Image"
+          >
+            <mat-icon aria-hidden="true">add_a_photo</mat-icon>
+          </button>
+          <button
+            type="button"
+            class="ldr-edit-btn"
+            (click)="openEditDialog('propertyStats')"
+            [disabled]="isLoading() || isExporting()"
+            aria-label="Edit Property Stats"
+            title="Edit Loan Exposure Markers"
+          >
+            <mat-icon aria-hidden="true">edit</mat-icon>
+          </button>
+        </span>
+      </h2>
+      @if (propertyImageUrl(); as imageUrl) {
+        <button
+          type="button"
+          class="ldr-property-image"
+          (click)="openEditDialog('propertyImage')"
+          [disabled]="isExporting()"
+          title="Change Property Image"
+        >
+          <img [src]="imageUrl" [alt]="report().loanAlias + ' property'" />
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="ldr-property-image-empty ks-no-print"
+          (click)="openEditDialog('propertyImage')"
+          [disabled]="isLoading() || isExporting()"
+        >
+          <mat-icon aria-hidden="true">add_photo_alternate</mat-icon>
+          Add property image
+        </button>
+      }
       <dl>
+        <div><dt>Security Value</dt><dd>{{ formatMillions(report().propertyStats.securityValue) }}</dd></div>
+        <div><dt>Units / Size</dt><dd>{{ report().propertyStats.unitsSize }}</dd></div>
+        <div><dt>Value / Unit</dt><dd>{{ formatMillions(report().propertyStats.valuePerUnit) }}</dd></div>
+        <div><dt>Exposure / Unit</dt><dd>{{ formatMillions(report().propertyStats.exposurePerUnit) }}</dd></div>
         <div>
-          <dt title="SMF and MLP Loan Interest Due before Interest Off Date">Interest Disbursed</dt>
-          <dd>{{ formatMillions(report().interestSummary.interestDisbursed) }}</dd>
-        </div>
-        <div>
-          <dt title="SMF and MLP Loan Interest Due after Interest Off Date to the Report As Of Date">
-            Interest Not Disbursed
-          </dt>
-          <dd>{{ formatMillions(report().interestSummary.interestNotDisbursed) }}</dd>
-        </div>
-        <div>
-          <dt># Months in Arrears</dt>
-          <dd class="ldr-negative">{{ report().interestSummary.monthsInArrears || '—' }}</dd>
+          <dt>Risk Status</dt>
+          <dd><span [class]="riskClass(report().propertyStats.riskStatus)">{{ report().propertyStats.riskStatus }}</span></dd>
         </div>
       </dl>
     </article>
