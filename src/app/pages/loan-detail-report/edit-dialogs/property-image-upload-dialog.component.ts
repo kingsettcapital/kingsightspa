@@ -56,14 +56,21 @@ import { extractApiError } from '../../../core/utils/api-error.util';
               #viewer
               class="red-viewer"
               [class.red-viewer--zoomed]="zoom() > 1"
+              [class.red-viewer--panning]="isPanning()"
               [class.red-drop--over]="isDragOver()"
               (wheel)="onWheel($event)"
+              (mousedown)="startPan($event)"
+              (mousemove)="pan($event)"
+              (mouseup)="endPan()"
+              (mouseleave)="endPan()"
               (dragover)="onDragOver($event)"
               (dragleave)="isDragOver.set(false)"
               (drop)="onDrop($event)"
             >
               <img
+                #previewImage
                 class="red-viewer__image"
+                draggable="false"
                 [src]="previewUrl() || src"
                 alt="Property image preview"
                 [style.width.px]="imageWidth()"
@@ -94,7 +101,7 @@ import { extractApiError } from '../../../core/utils/api-error.util';
               JPG, PNG or WEBP · max 10 MB{{ currentImageUrl() ? ' · uploading replaces the current image' : '' }}
             }
             @if (previewUrl() || currentImageUrl()) {
-              · Ctrl + scroll to zoom
+              · Ctrl + scroll to zoom, drag to move · the visible area is what shows on the report
             }
           </p>
           @if (error()) {
@@ -108,8 +115,8 @@ import { extractApiError } from '../../../core/utils/api-error.util';
             </button>
           }
           <button type="button" class="ks-btn ks-btn--accent" (click)="close()" [disabled]="isSaving()">Cancel</button>
-          <button type="button" class="ks-btn ks-btn--accent" (click)="upload()" [disabled]="isSaving() || !file()">
-            {{ isSaving() ? 'Saving…' : 'Upload and Close' }}
+          <button type="button" class="ks-btn ks-btn--accent" (click)="upload()" [disabled]="isSaving() || !canSave()">
+            {{ isSaving() ? 'Saving…' : file() ? 'Upload and Close' : 'Save and Close' }}
           </button>
         </footer>
       </div>
@@ -140,7 +147,12 @@ export class PropertyImageUploadDialogComponent implements OnDestroy {
   readonly zoom = signal(1);
   readonly zoomLabel = computed(() => `${Math.round(this.zoom() * 100)}%`);
   private readonly viewer = viewChild<ElementRef<HTMLElement>>('viewer');
+  private readonly previewImage = viewChild<ElementRef<HTMLImageElement>>('previewImage');
   private readonly fitWidth = signal<number | null>(null);
+  readonly isPanning = signal(false);
+  private panStart: { x: number; y: number; left: number; top: number } | null = null;
+  /** A new file, or a zoomed-in view of the current image, can be saved. */
+  readonly canSave = computed(() => !!this.file() || (!!this.currentImageUrl() && this.zoom() > 1));
   readonly imageWidth = computed(() => {
     const fit = this.fitWidth();
     return fit == null ? null : Math.round(fit * this.zoom());
@@ -185,6 +197,30 @@ export class PropertyImageUploadDialogComponent implements OnDestroy {
     }
   }
 
+  startPan(event: MouseEvent): void {
+    const box = this.viewer()?.nativeElement;
+    if (!box || this.zoom() <= 1 || event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    this.panStart = { x: event.clientX, y: event.clientY, left: box.scrollLeft, top: box.scrollTop };
+    this.isPanning.set(true);
+  }
+
+  pan(event: MouseEvent): void {
+    const box = this.viewer()?.nativeElement;
+    if (!box || !this.panStart) {
+      return;
+    }
+    box.scrollLeft = this.panStart.left - (event.clientX - this.panStart.x);
+    box.scrollTop = this.panStart.top - (event.clientY - this.panStart.y);
+  }
+
+  endPan(): void {
+    this.panStart = null;
+    this.isPanning.set(false);
+  }
+
   onDragOver(event: DragEvent): void {
     event.preventDefault();
     this.isDragOver.set(true);
@@ -202,9 +238,8 @@ export class PropertyImageUploadDialogComponent implements OnDestroy {
     inputEl.value = '';
   }
 
-  upload(): void {
-    const file = this.file();
-    if (!file || this.isSaving()) {
+  async upload(): Promise<void> {
+    if (!this.canSave() || this.isSaving()) {
       return;
     }
     const updatedBy = this.currentAppUser.getUpdatedBy();
@@ -215,6 +250,27 @@ export class PropertyImageUploadDialogComponent implements OnDestroy {
 
     this.isSaving.set(true);
     this.error.set('');
+    let cropped: File | null;
+    try {
+      cropped = await this.cropToVisibleArea();
+    } catch {
+      this.isSaving.set(false);
+      this.error.set('Unable to prepare the image. Try a different file.');
+      return;
+    }
+    const file = cropped ?? this.file();
+    if (!file) {
+      // Current image fully visible: nothing changed.
+      this.isSaving.set(false);
+      this.closed.emit();
+      return;
+    }
+    if (file.size > PROPERTY_IMAGE_MAX_BYTES) {
+      this.isSaving.set(false);
+      this.error.set('Image is too large. Maximum upload size is 10 MB.');
+      return;
+    }
+
     this.propertyImageApi.upload(this.loanAliasKey(), file, updatedBy).subscribe({
       next: () => {
         this.isSaving.set(false);
@@ -283,6 +339,49 @@ export class PropertyImageUploadDialogComponent implements OnDestroy {
     this.fitWidth.set(null);
     this.file.set(file);
     this.previewUrl.set(URL.createObjectURL(file));
+  }
+
+  /**
+   * The part of the image visible in the viewer, at the original resolution.
+   * Returns null when the whole image is visible (nothing to crop).
+   */
+  private async cropToVisibleArea(): Promise<File | null> {
+    const box = this.viewer()?.nativeElement;
+    const img = this.previewImage()?.nativeElement;
+    if (!box || !img?.naturalWidth || !img.naturalHeight) {
+      return null;
+    }
+
+    const boxRect = box.getBoundingClientRect();
+    const imgRect = img.getBoundingClientRect();
+    const left = Math.max(boxRect.left + box.clientLeft, imgRect.left);
+    const top = Math.max(boxRect.top + box.clientTop, imgRect.top);
+    const right = Math.min(boxRect.left + box.clientLeft + box.clientWidth, imgRect.right);
+    const bottom = Math.min(boxRect.top + box.clientTop + box.clientHeight, imgRect.bottom);
+    if (right - left >= imgRect.width - 1 && bottom - top >= imgRect.height - 1) {
+      return null;
+    }
+
+    const scale = img.naturalWidth / imgRect.width;
+    const sx = Math.round((left - imgRect.left) * scale);
+    const sy = Math.round((top - imgRect.top) * scale);
+    const sw = Math.max(1, Math.round((right - left) * scale));
+    const sh = Math.max(1, Math.round((bottom - top) * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = sw;
+    canvas.height = sh;
+    canvas.getContext('2d')?.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+
+    const source = this.file();
+    const type = source && PROPERTY_IMAGE_MIME_TYPES.includes(source.type) ? source.type : 'image/jpeg';
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.92));
+    if (!blob) {
+      return null;
+    }
+    const extension = type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg';
+    const baseName = source?.name.replace(/\.[^.]+$/, '') ?? 'property-image';
+    return new File([blob], `${baseName}-cropped.${extension}`, { type });
   }
 
   private revokePreview(): void {
