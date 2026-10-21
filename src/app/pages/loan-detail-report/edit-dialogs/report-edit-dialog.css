@@ -206,6 +206,12 @@
 
 .red-viewer--zoomed {
   display: block;
+  cursor: grab;
+}
+
+.red-viewer--panning {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .red-viewer__image {

@@ -195,15 +195,7 @@
 }
 
 .ldr-info-card--property .ldr-property-image {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 12rem;
-}
-
-.ldr-info-card--property .ldr-property-image img {
-  position: absolute;
-  inset: 0;
-  height: 100%;
+  flex: 0 0 auto;
 }
 
 .ldr-info-card--property .ldr-property-image-empty {
@@ -418,11 +410,13 @@
   cursor: pointer;
 }
 
+/* Box follows the image's aspect ratio; very tall images are capped and shown whole. */
 .ldr-property-image img {
   display: block;
   width: 100%;
-  height: 9rem;
-  object-fit: cover;
+  height: auto;
+  max-height: 24rem;
+  object-fit: contain;
 }
 
 .ldr-property-image-empty {
