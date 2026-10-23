@@ -491,6 +491,7 @@ export class SecurityValueComponent implements OnInit {
   private loadInitialData(): void {
     this.isLoadingAliases.set(true);
     this.errorMessage.set('');
+    this.loadGridData();
 
     this.loanAliasApi.getAll().pipe(catchError(() => of([]))).subscribe({
       next: (aliases) => {
@@ -506,8 +507,6 @@ export class SecurityValueComponent implements OnInit {
             'Unable to load loan alias list. Search tags are unavailable until GET /api/LoanAlias succeeds.',
           );
         }
-
-        this.loadGridData();
       },
       error: () => {
         this.aliasOptions.set([]);

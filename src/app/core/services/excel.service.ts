@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import * as XLSX from 'xlsx-js-style';
+import type * as XLSXTypes from 'xlsx-js-style';
 
 import { TableExportOptions } from '../interfaces/export.interfaces';
 
@@ -16,10 +16,12 @@ const MAX_COLUMN_WIDTH = 52;
   providedIn: 'root',
 })
 export class ExcelService {
-  export<T>(options: TableExportOptions<T>): void {
+  async export<T>(options: TableExportOptions<T>): Promise<void> {
     if (!options.rows.length) {
       return;
     }
+
+    const XLSX = await import('xlsx-js-style');
 
     const sheetRows = options.rows.map((row) => {
       const record: Record<string, string | number | boolean> = {};
@@ -30,7 +32,7 @@ export class ExcelService {
     });
 
     const worksheet = XLSX.utils.json_to_sheet(sheetRows);
-    this.applyHeaderStyles(worksheet);
+    this.applyHeaderStyles(XLSX, worksheet);
     worksheet['!cols'] = this.buildColumnWidths(options);
 
     const workbook = XLSX.utils.book_new();
@@ -43,7 +45,7 @@ export class ExcelService {
     XLSX.writeFile(workbook, filename);
   }
 
-  private applyHeaderStyles(worksheet: XLSX.WorkSheet): void {
+  private applyHeaderStyles(XLSX: typeof XLSXTypes, worksheet: XLSXTypes.WorkSheet): void {
     const range = worksheet['!ref'] ? XLSX.utils.decode_range(worksheet['!ref']) : null;
     if (!range) {
       return;
@@ -59,7 +61,7 @@ export class ExcelService {
     }
   }
 
-  private buildColumnWidths<T>(options: TableExportOptions<T>): XLSX.ColInfo[] {
+  private buildColumnWidths<T>(options: TableExportOptions<T>): XLSXTypes.ColInfo[] {
     return options.columns.map((column) => {
       let maxLength = column.header.length;
 

@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgSelectComponent } from '@ng-select/ng-select';
-import { forkJoin, of } from 'rxjs';
+import { of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { filterRowsByTableSearch } from '../../core/utils/mortgage-table-search';
@@ -432,12 +432,13 @@ export class DefaultDateCaptureComponent implements OnInit {
     this.isLoadingFilters.set(true);
     this.errorMessage.set('');
 
-    forkJoin({
-      aliases: this.loanAliasApi.getAll().pipe(catchError(() => of([]))),
-      statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
-    }).subscribe({
-      next: ({ aliases, statuses }) => {
-        this.aliasOptions.set(this.normalizeAliases(aliases));
+    this.loanAliasApi
+      .getAll()
+      .pipe(catchError(() => of([])))
+      .subscribe((aliases) => this.aliasOptions.set(this.normalizeAliases(aliases)));
+
+    this.securityValueApi.getStatuses().pipe(catchError(() => of([]))).subscribe({
+      next: (statuses) => {
         const statusOpts = this.normalizeStatusOptions(statuses);
         this.statusOptions.set(statusOpts);
         this.selectedStatuses.set(resolveDefaultStatusValues(statusOpts));

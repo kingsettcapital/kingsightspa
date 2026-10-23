@@ -1,4 +1,5 @@
 import { effect, inject, Injectable, signal, untracked } from '@angular/core';
+import { catchError, map, of, switchMap } from 'rxjs';
 
 import { AuthService } from './auth.service';
 import { UserDto, UserManagementApiService } from './user-management-api.service';
@@ -75,13 +76,34 @@ export class CurrentAppUserService {
 
     untracked(() => this.isLoading.set(true));
 
-    this.userManagementApi.getUsers().subscribe({
-      next: (users) => {
+    // Fall back to the full list when /users/me can't match (older API, or token UPN differs).
+    this.userManagementApi
+      .getCurrentUser()
+      .pipe(
+        map((user): UserDto | null =>
+          user?.email?.trim().toLowerCase() === email ? user : null,
+        ),
+        catchError(() => of(null)),
+        switchMap((user) =>
+          user
+            ? of(user)
+            : this.userManagementApi
+                .getUsers()
+                .pipe(
+                  map(
+                    (users) =>
+                      users.find((candidate) => candidate.email.trim().toLowerCase() === email) ??
+                      null,
+                  ),
+                ),
+        ),
+      )
+      .subscribe({
+      next: (match) => {
         if (requestId !== this.loadRequestId) {
           return;
         }
 
-        const match = users.find((user) => user.email.trim().toLowerCase() === email) ?? null;
         untracked(() => {
           this.user.set(match);
           this.isLoading.set(false);

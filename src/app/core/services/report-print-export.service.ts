@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Chart } from 'chart.js';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+import type { jsPDF } from 'jspdf';
 
 /** Table thead / body extents (px, relative to the capture root) for repeating headers. */
 type TableRegion = { headTop: number; headBottom: number; bottom: number };
@@ -57,6 +56,7 @@ export class ReportPrintExportService {
   }
 
   async exportElementToPdf(element: HTMLElement, filename: string): Promise<void> {
+    const librariesLoading = Promise.all([import('html2canvas'), import('jspdf')]);
     const pageScroller = element.closest('.ks-page') as HTMLElement | null;
     const prevScroll = pageScroller?.scrollTop ?? 0;
     if (pageScroller) {
@@ -85,6 +85,7 @@ export class ReportPrintExportService {
     document.body.appendChild(host);
 
     try {
+      const [{ default: html2canvas }, { jsPDF }] = await librariesLoading;
       await this.waitForPaint();
       this.neutralizeCloneLayout(clone);
       await this.waitForPaint();
