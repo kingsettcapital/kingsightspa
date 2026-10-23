@@ -74,6 +74,7 @@ import {
 import {
   InvestorTransactionCategoryId,
   InvestorTransactionFilterOption,
+  TRANSACTION_HUB_PREFETCH_DELAY_MS,
 } from './models/investor-transaction-hub.models';
 
 type DetailTimeframe = 'ltd' | 'quarterly' | 'daily';
@@ -314,6 +315,9 @@ export class InvestorDetailComponent {
   private lastTransactionHubPeriodLoadKey = '';
 
   private lastTransactionHubFilterPeriodLoadKey = '';
+  private readonly transactionHubFiltersLoaded = new Set<InvestorTransactionCategoryId>();
+  private readonly transactionHubTablesLoaded = new Set<InvestorTransactionCategoryId>();
+  private transactionHubPrefetchTimer: ReturnType<typeof setTimeout> | null = null;
 
   private lastHubResetKey = '';
   /** List period to restore after hub reset (reset otherwise forces quarterScope=all). */
@@ -453,6 +457,7 @@ export class InvestorDetailComponent {
     this.applyListReportingPeriod(navigationState);
 
     this.destroyRef.onDestroy(() => {
+      this.cancelTransactionHubPrefetch();
       this.store.dispatch(InvestorsApiActions.clearDetail());
     });
 
@@ -632,6 +637,8 @@ export class InvestorDetailComponent {
 
   onTransactionHubCategoryChange(categoryId: InvestorTransactionCategoryId): void {
     this.transactionHubCategory.set(categoryId);
+    this.loadTransactionHubTableOnce(categoryId);
+    this.loadAllTransactionHubFilters();
   }
 
   onTransactionHubPageChange(page: number): void {
@@ -917,15 +924,36 @@ export class InvestorDetailComponent {
   }
 
   private loadAllTransactionHubTables(): void {
-    const state = untracked(() => this.detailState());
-    for (const categoryId of this.visibleTransactionHubCategories()) {
-      this.loadTransactionHubCategory(
-        categoryId,
-        hubCategorySearchKey(categoryId, state),
-        1,
-      );
-    }
+    this.transactionHubTablesLoaded.clear();
+    this.cancelTransactionHubPrefetch();
+    this.loadTransactionHubTableOnce(untracked(() => this.transactionHubCategory()));
     this.loadAllTransactionHubFilters();
+    // Open tab first; the others follow shortly so every tab count still fills in.
+    this.transactionHubPrefetchTimer = setTimeout(() => {
+      this.transactionHubPrefetchTimer = null;
+      for (const categoryId of this.visibleTransactionHubCategories()) {
+        this.loadTransactionHubTableOnce(categoryId);
+      }
+    }, TRANSACTION_HUB_PREFETCH_DELAY_MS);
+  }
+
+  private loadTransactionHubTableOnce(categoryId: InvestorTransactionCategoryId): void {
+    if (
+      this.transactionHubTablesLoaded.has(categoryId) ||
+      !this.visibleTransactionHubCategories().includes(categoryId)
+    ) {
+      return;
+    }
+    this.transactionHubTablesLoaded.add(categoryId);
+    const state = untracked(() => this.detailState());
+    this.loadTransactionHubCategory(categoryId, hubCategorySearchKey(categoryId, state), 1);
+  }
+
+  private cancelTransactionHubPrefetch(): void {
+    if (this.transactionHubPrefetchTimer != null) {
+      clearTimeout(this.transactionHubPrefetchTimer);
+      this.transactionHubPrefetchTimer = null;
+    }
   }
 
   private loadAllTransactionHubFilters(): void {
@@ -954,14 +982,21 @@ export class InvestorDetailComponent {
       view === 'quarterly' ? (dateKey ?? '') : '',
     ].join('|');
 
-    if (filterLoadKey === this.lastTransactionHubFilterPeriodLoadKey) {
+    if (filterLoadKey !== this.lastTransactionHubFilterPeriodLoadKey) {
+      this.lastTransactionHubFilterPeriodLoadKey = filterLoadKey;
+      this.transactionHubFiltersLoaded.clear();
+    }
+
+    // Filter options only feed the open tab's dropdown; other tabs load theirs when opened.
+    const categoryId = untracked(() => this.transactionHubCategory());
+    if (
+      this.transactionHubFiltersLoaded.has(categoryId) ||
+      !this.visibleTransactionHubCategories().includes(categoryId)
+    ) {
       return;
     }
-    this.lastTransactionHubFilterPeriodLoadKey = filterLoadKey;
-
-    for (const categoryId of this.visibleTransactionHubCategories()) {
-      this.loadTransactionHubFilters(categoryId);
-    }
+    this.transactionHubFiltersLoaded.add(categoryId);
+    this.loadTransactionHubFilters(categoryId);
   }
 
   private loadTransactionHubFilters(categoryId: InvestorTransactionCategoryId): void {

@@ -52,6 +52,10 @@ export class UserManagementApiService {
     return this.http.get<UserDto[]>(`${this.baseUrl}/users`);
   }
 
+  getCurrentUser() {
+    return this.http.get<UserDto>(`${this.baseUrl}/users/me`);
+  }
+
   getUser(userId: number) {
     return this.http.get<UserDto>(`${this.baseUrl}/users/${userId}`);
   }
