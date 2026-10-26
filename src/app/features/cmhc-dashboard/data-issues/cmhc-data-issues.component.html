@@ -1,0 +1,61 @@
+<div class="notes-wrap">
+  <div class="notes-header">
+    <h2>Data Issues</h2>
+    <p>Fields that are missing or malformed in the source export. Click any file to open it; fix these in Dealpath to improve report accuracy.</p>
+  </div>
+
+  <div class="di-filterbar" style="margin-bottom:10px">
+    <div class="person-pick">
+      @for (m of modes(); track m.id) {
+        <div class="person-chip" [class.active]="mode() === m.id" (click)="setMode(m.id)">
+          {{ m.label }} <span style="opacity:0.6">{{ m.n }}</span>
+        </div>
+      }
+    </div>
+    <button type="button" class="di-export-btn" [disabled]="exporting()" (click)="exportToExcel()">
+      @if (exporting()) {
+        Building…
+      } @else {
+        &#8681; Export to Excel
+      }
+    </button>
+  </div>
+
+  <div class="di-filterbar">
+    <div class="person-pick">
+      <div class="person-chip" [class.active]="activeFilter() === ''" (click)="uwFilter.set('')">
+        All <span style="opacity:0.6">{{ totalAll() }}</span>
+      </div>
+      @for (o of owners(); track o.name) {
+        <div class="person-chip" [class.active]="o.name === activeFilter()" (click)="uwFilter.set(o.name)">
+          {{ firstName(o.name) }} <span style="opacity:0.6">{{ o.n }}</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div>
+    @if (funded()) {
+      <div style="font-size:0.75rem;color:var(--text-3);margin:-4px 0 14px;line-height:1.5">
+        Source-data problems on files that have already funded, on or after January 1, 2025. Counted separately from the active pipeline.
+      </div>
+    }
+    @if (!total()) {
+      <div class="di-clean">
+        &#10003; No {{ funded() ? 'funded-file' : 'active-pipeline' }} data issues{{
+          activeFilter() ? ' for ' + activeFilter() : ' detected in this dataset'
+        }}.
+      </div>
+    } @else {
+      @for (c of cats(); track c.title) {
+        <div class="di-cat" (click)="openCategory(c)">
+          <div>
+            <div class="di-card-title">{{ c.title }}<span class="n">{{ c.deals.length }}</span></div>
+            <div class="di-card-desc">{{ c.desc }}</div>
+          </div>
+          <div class="di-cat-go">View {{ c.deals.length }} file{{ c.deals.length === 1 ? '' : 's' }}<span class="chev">&rsaquo;</span></div>
+        </div>
+      }
+    }
+  </div>
+</div>

@@ -26,5 +26,16 @@ export type CmhcDeal = any;
 /** What the shared list modal is showing. */
 export type CmhcListPopup =
   | { kind: 'deals'; name: string; sub: string; deals: CmhcDeal[]; showOrig: boolean }
+  | { kind: 'issue'; category: CmhcIssueCategory; funded: boolean; uwFilter: string }
   | { kind: 'move'; pool: string }
   | { kind: 'funded'; pool: string };
+
+/** One Data Issues category (v4 computeDataIssues / computeFundedIssues). */
+export interface CmhcIssueCategory {
+  title: string;
+  desc: string;
+  dot: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  deals: any[];
+  key?: string | null;
+}

@@ -28,7 +28,11 @@ export const CMHC_DASHBOARD_ROUTES: Routes = [
       { path: 'capacity', loadComponent: comingSoon, data: { title: 'Capacity' } },
       { path: 'pools', loadComponent: personView, data: { type: 'pool' } },
       { path: 'timelines', loadComponent: comingSoon, data: { title: 'Timelines' } },
-      { path: 'data-issues', loadComponent: comingSoon, data: { title: 'Data Issues' } },
+      {
+        path: 'data-issues',
+        loadComponent: () =>
+          import('./data-issues/cmhc-data-issues.component').then((m) => m.CmhcDataIssuesComponent),
+      },
       { path: 'methodology', loadComponent: comingSoon, data: { title: 'Methodology' } },
     ],
   },

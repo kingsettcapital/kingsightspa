@@ -112,6 +112,17 @@ export class CmhcPopupsComponent {
     const engine = this.e();
     if (!p || !data) return null;
     if (p.kind === 'deals') return { name: p.name, sub: p.sub };
+    if (p.kind === 'issue') {
+      const n = p.category.deals.length;
+      return {
+        name: p.category.title.split(' (')[0] + (p.funded ? ' — Funded Files' : ''),
+        sub:
+          `${n} ${p.funded ? 'funded ' : ''}file${n === 1 ? '' : 's'}` +
+          (p.uwFilter ? ' · ' + p.uwFilter : '') +
+          ' · ' +
+          p.category.desc,
+      };
+    }
     if (p.kind === 'move') {
       const mvs = data.poolMoves;
       const mv = mvs?.byPool?.[p.pool];

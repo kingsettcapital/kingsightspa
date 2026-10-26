@@ -4,6 +4,7 @@
 export function createLegacyEngine(state) {
   var HIST = state.hist || null;
   var POOL_WEEK_SEL = state.poolWeekSel || null;
+  var DATA = null;   /* v4's global report model; computeDataIssues() reads it */
 var FIELD_DEFS=[
   {key:'loanNo',      label:'Loan No',              required:false, aliases:['loan no','loan number','loan #','loan id','kingsett loan no']},
   {key:'name',        label:'Deal Name',            required:true,  aliases:['deal name','property','address','name']},
@@ -503,6 +504,118 @@ function todayISO(){var d=new Date();return d.getFullYear()+'-'+String(d.getMont
 
 function mondayOfWeek(iso){var d=new Date(iso+'T00:00:00');var wd=d.getDay();d.setDate(d.getDate()+(wd===0?-6:1-wd));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 
+function computeDataIssues(){
+  var deals=DATA.deals;
+  var poolNames={}; POOL_SCHEDULE.forEach(function(p){poolNames[p.pool]=1;});
+  var validPoolNames={}; POOL_SCHEDULE.forEach(function(p){validPoolNames[p.pool]=1;}); validPoolNames['No CMB']=1; validPoolNames['TBD']=1;
+  /* Files are listed against the Funder, falling back to the assigned Underwriter
+     when Funder is blank or the two carry the same name — the role actually shown
+     is tagged on the row so the attribution is never ambiguous. */
+  function mk(d,detail){var o=issueOwner(d);return {idx:DATA.deals.indexOf(d),name:d.name||'(unnamed deal)',uw:o.name,role:o.role,auw:d.assignedUw||'',detail:detail};}
+  var cats=[];
+  function add(title,desc,dot,list,key){if(list.length)cats.push({title:title,desc:desc,dot:dot,deals:list,key:key||null});}
+  add('Site-visit status blank (committed / rate-locked)',
+    'A committed or rate-locked file with no Site Visited value \u2014 the site-visit flag cannot be evaluated.','#C2410C',
+    deals.filter(function(d){return (d.status==='Commitment Signed'||d.status==='Rate Locked')&&!d.siteVisited;}).map(function(d){return mk(d,'Site Visited is blank');}),'site');
+  add('Pool',
+    'Funding date falls after the assigned CMB pool cutoff \u2014 the file is at risk of missing its pool.','#7C3AED',
+    deals.filter(function(d){return d.flags.indexOf('pool')!==-1;}).map(function(d){return mk(d, d.cutGap!=null?Math.abs(d.cutGap)+'d after cutoff':'Past pool cutoff');}),'pool');
+  add('Address',
+    'Deal name is missing a comma, a city, or a province, or the province is not a 2-letter code. Affects geography and the Long Trip flag.','#7C3AED',
+    deals.filter(function(d){return d.flags.indexOf('bad_address')!==-1;}).map(function(d){
+      var parts=(d.name||'').split(',').map(function(s){return s.trim();});
+      var last=parts[parts.length-1], commas=parts.length-1;
+      var lastToken=last.split(/\s+/).pop(), p=[];
+      if(commas<2) p.push(commas===0?'Missing commas':'Missing comma');
+      if(PROV.indexOf(last)===-1 && PROV.indexOf(lastToken)===-1) p.push(commas>=2?'Province not a 2-letter code':'Missing province');
+      return mk(d, p.join(' \u00b7 '));}),'bad_address');
+  add('Quote Date',
+    'No Quote Accepted Date \u2014 the Stale File flag cannot be evaluated for these files.','#6D28D9',
+    deals.filter(function(d){return !d.qaDate;}).map(function(d){return mk(d,'No Quote Accepted Date');}),'stale');
+  add('Funding Date Passed',
+    'Funding date has already passed but the file has not funded \u2014 the recorded funding date is in the past.','#7C3AED',
+    deals.filter(function(d){return d.flags.indexOf('old_funding')!==-1;}).map(function(d){return mk(d, (d.dtf!=null?Math.abs(d.dtf)+'d overdue':'Funding date passed'));}),'old_funding');
+  add('Missing funding date',
+    'No funding date \u2014 the file is excluded from funding, pool-cutoff, and 30/90-day calculations.','#2563EB',
+    deals.filter(function(d){return !d.fundDate;}).map(function(d){return mk(d,'No funding date');}));
+  add('Missing loan amount',
+    'No gross loan amount \u2014 the file contributes $0 to all volume totals.','#0D9488',
+    deals.filter(function(d){return d.loan==null;}).map(function(d){return mk(d,'No loan amount');}));
+  add('CMB/MBS',
+    'No CMB pool assigned, a CMB pool with no MBS Date to confirm which year it belongs to, or a CMB pool whose month doesn\u2019t match the MBS Date\u2019s month (construction loans excluded). Cutoff falls back to the nearest-occurrence guess until fixed.','#7C3AED',
+    deals.filter(function(d){return d.flags.indexOf('cmb_mbs')!==-1;}).map(function(d){
+      if(!d.cmb) return mk(d,'No pool assigned');
+      if(!d.mbsDate) return mk(d, d.cmb+' \u2014 no MBS Date');
+      return mk(d, d.cmb+' vs MBS Date '+fmtDate(d.mbsDate));
+    }),'cmb_mbs');
+  add('Pool Cutoff Passed',
+    'Deal has not funded yet but is assigned to a CMB pool whose cutoff has already passed \u2014 it cannot make that pool.','#DB2777',
+    deals.filter(function(d){return d.cmb&&d.cutoff&&dayDiff(d.cutoff,DATA.team.asOf)<0&&(d.dtf==null||d.dtf>=0);}).map(function(d){return mk(d, d.cmb+' cutoff passed '+Math.abs(dayDiff(d.cutoff,DATA.team.asOf))+'d ago');}));
+  add('Wrong Pool',
+    'Loan term does not align with the assigned pool\u2019s term \u2014 e.g. a ~10yr loan sitting in a 5yr pool, or vice versa. A term slightly longer than the pool term is fine.','#7C3AED',
+    deals.filter(function(d){return isWrongPoolTerm(d);}).map(function(d){return mk(d, d.termYrs.toFixed(1)+'yr term in '+d.cmb);}),'wrong_pool');
+  add('Funder',
+    'No Funder recorded on an active file \u2014 the report falls back to the assigned Underwriter for grouping, credit and reporting.','#7C3AED',
+    deals.filter(function(d){return d.flags.indexOf('funder_missing')!==-1;}).map(function(d){return mk(d, d.assignedUw?('Funder blank \u2014 using '+d.assignedUw):'Funder and Underwriter both blank');}),'funder_missing');
+  add('COIP Status',
+    'COIP status is blank, or the file is committed but its COIP status is not Applied or Approved.','#7C3AED',
+    deals.filter(function(d){return !d.coip||(isCommitted(d)&&d.coip!=='Applied'&&d.coip!=='Approved');}).map(function(d){return mk(d, !d.coip?'COIP status blank':'Committed but COIP is \u201c'+d.coip+'\u201d');}));
+  add('Unassigned \u2014 no Funder or Underwriter',
+    'Neither a Funder nor an Underwriter is recorded \u2014 the file is grouped under \u201cUnassigned\u201d on the Underwriter tab instead of a named pipeline.','#64748B',
+    deals.filter(function(d){return !d.underwriter;}).map(function(d){return mk(d,'No funder or underwriter');}));
+  add('Missing originator',
+    'No originator assigned in the source file \u2014 the file is grouped under \u201cUnassigned\u201d on the Originator tab. Every deal should have an originator; fix this at the source.','#64748B',
+    deals.filter(function(d){return !d.originator;}).map(function(d){return mk(d,'No originator');}));
+  /* Fields added to the export to weigh file complexity. A blank stops the file
+     being scored properly, so it is worth chasing on active files. */
+  [['housingType','Housing Type'],['mixedUse','Mixed Use'],['programType','Program Type'],['sourceType','Source Type'],['assetStage','Asset Stage'],['coiSource','COI Source'],['formOfCoip','Form of COIP']].forEach(function(f){
+    var miss=deals.filter(function(d){return (f[0] in d)&&!d[f[0]];});
+    add(f[1]+' blank',
+      f[1]+' is not recorded \u2014 the file cannot be weighed properly for complexity.','#0891B2',
+      miss.map(function(d){return mk(d,f[1]+' is blank');}));
+  });
+  add('Loan Type and Asset Stage disagree',
+    'One column says Construction and the other does not \u2014 construction complexity is not applied until the two agree.','#DB2777',
+    deals.filter(isStageConflict).map(function(d){return mk(d,'Loan Type \u201c'+(d.loanType||'blank')+'\u201d vs Asset Stage \u201c'+(d.assetStage||'blank')+'\u201d');}));
+  add('Form of COIP and COI Source disagree',
+    'Form of COIP implies a specific COI Source \u2014 KingSett-prepared or Correspondent should read \u201cKingSett\u201d, COI In Place should read \u201cBroker\u201d \u2014 but the two columns disagree.','#DB2777',
+    deals.filter(isCoiSourceMismatch).map(function(d){return mk(d,'Form of COIP \u201c'+(d.formOfCoip||'blank')+'\u201d vs COI Source \u201c'+(d.coiSource||'blank')+'\u201d');}));
+  var LR={funding:0,site:1,long_trip:2,early:3,stale:4,cmb_mbs:5,pool:6,funder_missing:6.5,bad_address:7,old_funding:8};
+  cats.sort(function(a,b){
+    var ra=a.key!=null&&LR[a.key]!=null?LR[a.key]:99;
+    var rb=b.key!=null&&LR[b.key]!=null?LR[b.key]:99;
+    return ra-rb;
+  });
+  return cats;
+}
+
+function computeFundedIssues(){
+  var fd=(DATA&&DATA.fundedRecent)||[];
+  var cats=[];
+  function mkf(d,detail){return {name:d.name||'(unnamed deal)',uw:d.underwriter||'\u2014',auw:d.assignedUw||'',url:d.url||null,fundDate:d.fundDate||null,detail:detail};}
+  function add(title,desc,dot,list){if(list.length)cats.push({title:title,desc:desc,dot:dot,deals:list});}
+  function withFlag(k){return fd.filter(function(d){return d.flags.indexOf(k)!==-1;});}
+  add('Funder',
+    'Funded on or after January 1, 2025 with no Funder recorded \u2014 the file is credited to its assigned Underwriter instead.','#7C3AED',
+    withFlag('funder_missing').map(function(d){return mkf(d, d.assignedUw?('Funder blank \u2014 using '+d.assignedUw):'Funder and Underwriter both blank');}));
+  add('Address',
+    'Deal name is missing a comma, a city, or a province, or the province is not a 2-letter code.','#7C3AED',
+    withFlag('bad_address').map(function(d){return mkf(d,'Deal name formatting');}));
+  add('CMB/MBS',
+    'No CMB pool assigned, no MBS Date to confirm the pool year, or a CMB/MBS month mismatch.','#7C3AED',
+    withFlag('cmb_mbs').map(function(d){return mkf(d, !d.cmb?'No pool assigned':(!d.mbsDate?(d.cmb+' \u2014 no MBS Date'):(d.cmb+' vs MBS Date '+fmtDate(d.mbsDate))));}));
+  add('Wrong Pool',
+    'Loan term does not align with the assigned pool\u2019s term.','#7C3AED',
+    withFlag('wrong_pool').map(function(d){return mkf(d, d.termYrs.toFixed(1)+'yr term in '+d.cmb);}));
+  add('Missing loan amount',
+    'No gross loan amount \u2014 the file contributes $0 to funded-volume totals.','#0D9488',
+    fd.filter(function(d){return d.loan==null;}).map(function(d){return mkf(d,'No loan amount');}));
+  add('Missing originator',
+    'No originator recorded on a funded file.','#64748B',
+    fd.filter(function(d){return !d.originator;}).map(function(d){return mkf(d,'No originator');}));
+  return cats;
+}
+
 function emptyHist(){return {version:1,snapshots:[],loans:{}};}
 
 function normKey(s){return String(s==null?'':s).toLowerCase().replace(/[^a-z0-9]+/g,'');}
@@ -592,6 +705,7 @@ function computePoolMoves(records,asOf){
   return {
     get HIST() { return HIST; }, set HIST(v) { HIST = v; },
     get POOL_WEEK_SEL() { return POOL_WEEK_SEL; }, set POOL_WEEK_SEL(v) { POOL_WEEK_SEL = v; },
+    get DATA() { return DATA; }, set DATA(v) { DATA = v; },
     normHdr,
     autoMap,
     excelSerialToISO,
@@ -651,6 +765,8 @@ function computePoolMoves(records,asOf){
     defaultBaselineWeek,
     activeBaselineWeek,
     computePoolMoves,
+    computeDataIssues,
+    computeFundedIssues,
     FIELD_DEFS,
     POOL_SCHEDULE,
     POOL_MONTH_MAP,

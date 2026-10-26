@@ -112,6 +112,30 @@
                 </div>
               }
             }
+            @case ('issue') {
+              @for (d of p.category.deals; track $index) {
+                <div class="di-row" [style.cursor]="p.funded ? 'default' : null" (click)="!p.funded && openDeal(d.idx)">
+                  <div>
+                    <div class="di-row-name">
+                      @if (p.funded && d.url) {
+                        <a [href]="d.url" target="_blank" rel="noopener">{{ d.name }}</a>
+                      } @else {
+                        {{ d.name }}
+                      }
+                    </div>
+                    <div class="di-row-detail">
+                      {{ d.detail }}@if (p.funded && d.fundDate) { · funded {{ engine.fmtDate(d.fundDate) }} }
+                    </div>
+                  </div>
+                  <div class="di-row-uw">
+                    {{ d.uw }}
+                    @if (!p.funded && d.role) {
+                      <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-3);margin-top:2px">{{ d.role }}</div>
+                    }
+                  </div>
+                </div>
+              }
+            }
             @case ('move') {
               <div class="list-table-hdr">
                 <div>Deal</div>

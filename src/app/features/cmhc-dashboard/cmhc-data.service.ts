@@ -69,6 +69,7 @@ export class CmhcDataService {
         await this.saveHist(engine.HIST);
       }
 
+      engine.DATA = data;
       this.engine.set(engine);
       this.asOf.set(pipeline.asOf);
       this.data.set(data);
@@ -93,7 +94,9 @@ export class CmhcDataService {
     }
     const data = this.data();
     if (data) {
-      this.data.set({ ...data, poolMoves: engine.computePoolMoves(this.records, asOf) });
+      const next = { ...data, poolMoves: engine.computePoolMoves(this.records, asOf) };
+      engine.DATA = next;
+      this.data.set(next);
     }
   }
 
@@ -105,6 +108,7 @@ export class CmhcDataService {
     // Like v4: nothing opens when there is nothing to list.
     const data = this.data();
     if (popup.kind === 'deals' && !popup.deals.length) return;
+    if (popup.kind === 'issue' && !popup.category.deals.length) return;
     if (popup.kind === 'funded') {
       const pool = (data?.pools ?? []).find((x: { pool: string }) => x.pool === popup.pool);
       if (!pool?.fundedList?.length) return;
