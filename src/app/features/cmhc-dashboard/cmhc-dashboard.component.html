@@ -1,0 +1,36 @@
+<div class="cmhc-dash">
+  <header>
+    <div class="hdr-left">
+      <a class="hdr-home" routerLink="/" aria-label="Back to KingSight home">
+        <mat-icon aria-hidden="true">home</mat-icon>
+      </a>
+      <app-kingsett-logo variant="reversed" size="sm" />
+      <div class="hdr-title">Monday Pipeline Review</div>
+    </div>
+    <div class="hdr-right">
+      <div class="view-toggle">
+        @for (tab of tabs(); track tab.path) {
+          <button type="button" [routerLink]="tab.path" routerLinkActive="active">{{ tab.label }}</button>
+        }
+      </div>
+      <div class="hdr-date">{{ headerDate() }}</div>
+    </div>
+  </header>
+
+  <main>
+    @if (dataService.loading() && !dataService.data()) {
+      <div class="notes-header"><p>Loading the live pipeline…</p></div>
+    } @else if (dataService.error()) {
+      <div class="scr-err" style="display:block">{{ dataService.error() }}</div>
+      <button type="button" class="scr-btn" (click)="reload()">Try again</button>
+    } @else if (dataService.data()) {
+      <router-outlet />
+    }
+  </main>
+
+  <footer>
+    KingSett Mortgage Corporation &mdash; CMHC Pipeline &middot; <b>Confidential &mdash; internal use only.</b>
+  </footer>
+
+  <app-cmhc-popups />
+</div>

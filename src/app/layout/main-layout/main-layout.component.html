@@ -50,6 +50,15 @@
           <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
           <span class="ks-sidebar__link-label">Capital</span>
         </a>
+        <a
+          routerLink="/cmhc-dashboard"
+          routerLinkActive="ks-sidebar__link--active"
+          [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }"
+          class="ks-sidebar__link"
+        >
+          <lucide-icon [img]="chartBarIcon" color="currentColor" [size]="22"></lucide-icon>
+          <span class="ks-sidebar__link-label">CMHC Dashboard</span>
+        </a>
       }
 
       @if (showMortgage) {

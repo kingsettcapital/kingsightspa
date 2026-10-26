@@ -1,0 +1,110 @@
+@let t = team();
+@let engine = e();
+
+<div class="ov-hero">
+  <div class="kpi-band">
+    <div class="kpi-band-title-row">
+      <div class="kpi-band-title">Active Pipeline</div>
+      <div class="kpi-band-title">Funding Pipeline</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="k-val">{{ engine.Mr(t.activeVol) }}</div>
+        <div class="k-label">{{ engine.fmtComma(t.activeCount) }} active files · total volume</div>
+      </div>
+      <div class="kpi">
+        <div class="k-val">{{ engine.Mr(t.ytdFundedVol) }}</div>
+        <div class="k-label">{{ engine.fmtComma(t.ytdFundedCount) }} files · funded YTD</div>
+      </div>
+      <div class="kpi">
+        <div class="k-val">{{ engine.Mr(t.next30Vol) }}</div>
+        <div class="k-label">{{ t.next30Count }} files · funding within 30 days</div>
+      </div>
+      <div class="kpi">
+        <div class="k-val">{{ engine.Mr(t.remYearVol) }}</div>
+        <div class="k-label">{{ engine.fmtComma(t.remYearCount) }} files · remaining in {{ t.ytdYear }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="alert-band">
+    <div class="alert-band-title">Needs attention this week</div>
+    <div>
+      @for (a of alerts(); track a.key) {
+        <div class="alert-row clickable" (click)="openAlert(a.key)">
+          <div class="alert-label"><span class="alert-dot" [style.background]="a.dot"></span>{{ a.label }}</div>
+          <div class="alert-count" style="color:var(--text-1)">{{ a.n }}</div>
+        </div>
+      } @empty {
+        <div class="alert-row">
+          <div class="alert-label">
+            <span class="alert-dot" style="background:var(--green)"></span>Nothing flagged for discussion this week
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<div class="section-label"><h2>Securitization pools</h2></div>
+<div class="pool-grid">
+  @for (p of pools(); track p.pool) {
+    @let mv = poolMove(p);
+    <div class="pool-card {{ poolClass(p) }}" (click)="openPool(p.pool)">
+      <div class="pool-name">{{ p.pool }}</div>
+      <div class="pool-cutoff">
+        Cutoff <b>{{ engine.fmtDate(p.cutoff) }}</b> &middot;
+        <span class="countdown" [style]="countdownStyle(p)">{{ engine.fmtDays(p.cutoffDays) }}</span>
+      </div>
+      <div class="pool-vol">{{ engine.Mr(p.vol) }}</div>
+      <div class="pool-meta">{{ p.count }} file{{ plural(p.count) }}</div>
+      <div class="pool-risk">
+        <span class="r-label">At risk</span>
+        <span [style.font-weight]="700" [style.color]="p.atRisk > 0 ? 'var(--amber)' : 'var(--green)'">{{
+          p.atRisk > 0 ? engine.Mr(p.atRisk) + ' (' + p.atRiskCount + ')' : '—'
+        }}</span>
+      </div>
+      <div class="pool-move" [class.live]="mv.live" [attr.title]="mv.title" (click)="mv.live && openMove(p.pool, $event)">
+        <span class="r-label">{{ moveLabel() }}</span>
+        <span class="mv" [style.color]="mv.color">{{ mv.txt }}</span>
+      </div>
+      <div
+        class="pool-move live"
+        [attr.title]="p.fundedCount + ' loan' + plural(p.fundedCount) + ' funded into this pool — click for the list'"
+        (click)="openFunded(p.pool, $event)"
+      >
+        <span class="r-label">Funded</span>
+        <span class="mv" style="color:var(--text-3)">{{
+          p.fundedCount ? engine.M(p.fundedVol) + ' (' + p.fundedCount + ')' : '—'
+        }}</span>
+      </div>
+    </div>
+  }
+</div>
+
+<div class="section-label" style="margin-top:24px"><h2>Underwriters</h2></div>
+<div class="uw-grid">
+  @for (u of data().underwriters; track u.name; let i = $index) {
+    <div class="uw-card" [class.has-flags]="u.flagged > 0" (click)="openPerson('uw', i)">
+      <div class="uw-card-name">{{ u.name }}</div>
+      <div class="uw-card-stats">
+        <div class="uw-card-stat"><div class="s-v">{{ u.count }}</div><div class="s-l">Files</div></div>
+        <div class="uw-card-stat"><div class="s-v">{{ engine.Mr(u.volume) }}</div><div class="s-l">Volume</div></div>
+        <div class="uw-card-stat"><div class="s-v">{{ engine.Mr(u.next30vol) }}</div><div class="s-l">Next 30d</div></div>
+      </div>
+    </div>
+  }
+</div>
+
+<div class="section-label" style="margin-top:24px"><h2>Originators</h2></div>
+<div class="uw-grid">
+  @for (u of data().originators; track u.name; let i = $index) {
+    <div class="uw-card" [class.has-flags]="u.flagged > 0" (click)="openPerson('orig', i)">
+      <div class="uw-card-name">{{ u.name }}</div>
+      <div class="uw-card-stats">
+        <div class="uw-card-stat"><div class="s-v">{{ u.count }}</div><div class="s-l">Files</div></div>
+        <div class="uw-card-stat"><div class="s-v">{{ engine.Mr(u.volume) }}</div><div class="s-l">Volume</div></div>
+        <div class="uw-card-stat"><div class="s-v">{{ engine.Mr(u.next30vol) }}</div><div class="s-l">Next 30d</div></div>
+      </div>
+    </div>
+  }
+</div>
