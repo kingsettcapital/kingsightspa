@@ -383,6 +383,61 @@ var LEGEND_ITEMS = [
 
 var LEGEND_DESC={}; LEGEND_ITEMS.forEach(function(li){if(li.key)LEGEND_DESC[li.key]=li.desc.replace(/<[^>]+>/g,'');});
 
+var REPORT_NOTES = [
+  {cat:'Methodology', title:'Flag Legend \u2014 ranked order', flagLegend:true,
+   body:'Every flag defined in this report, listed in ranking order with its legend colour.'},
+  {cat:'Methodology', tabs:['Overview'], title:'How \u201cAt Risk\u201d is calculated on the pool cards and pool modals',
+   body:'The At Risk figure on each securitization pool \u2014 both the Overview pool cards and the pool modal opened from them \u2014 is the total volume and count of every file assigned to that pool that carries a Pool Risk flag: its COIP Status is Preparing, Applied, or blank and the pool\u2019s cutoff is within 45 days. It measures how much of the pool\u2019s committed volume still needs COIP work to make the cutoff.'},
+  {cat:'Methodology', tabs:['Overview','Underwriter','Originator','Reviewer','Pools','Timelines','Data Issues'], title:'One person prepares the report; everyone else gets a view-only copy',
+   body:'Datasets are uploaded only in the preparation copy of this tool. Share report downloads a separate, self-contained view-only file with the dataset and history baked in: it opens on any computer or phone with no spreadsheet, and it carries no upload path, no New data button and no Share report button, so the numbers cannot drift between readers. A view-only copy is marked \u201cView only\u201d in its header.'},
+  {cat:'Methodology', tabs:['Underwriter','Originator','Reviewer','Pools'], title:'The Dealpath link on each loan',
+   body:'The detailed view of a loan links straight to its Dealpath record. Dealpath writes that link onto the Deal Name cell of the export as a cell hyperlink, so the link is read from the spreadsheet itself \u2014 a row exported without a hyperlink shows \u201cNo Dealpath link on this row in the source export\u201d instead.'},
+  {cat:'Methodology', tabs:['Overview','Pools'], title:'How weekly pool movement (loans added / removed) is measured',
+   body:'The first dataset loaded in a given Monday-to-Sunday week freezes that week\u2019s pool membership as a baseline, locked once set \u2014 a later upload dated in the same week never overwrites it, and each new week starts its own baseline without disturbing the ones before it. The figure is week-over-week: the current dataset is compared by default against the most recent baseline from a week EARLIER than the current one \u2014 Monday to Monday \u2014 not against this week\u2019s own baseline, which on the day of the pull would be the same file compared to itself. Comparing: a loan in the pool now but not in the baseline counts as added; a loan in the baseline but no longer in the pool counts as removed; a loan that changed pools counts on both sides, removed from the first pool and added to the second; and a loan whose pool assignment goes blank, TBD, or No CMB counts as removed. A loan that funded during the period is split out and reported neutrally as funded rather than removed \u2014 it left the pool by completing \u2014 so the green/red net is added minus removed only, with the funded count shown beside it. The net is a loan count and a gross loan volume, green when the pool gained and red when it lost. Clicking the figure lists the loans behind it, grouped Added / Removed / Funded and sorted by soonest funding date; a removed loan that has left the export entirely is shown but cannot be opened. Loan amounts revised mid-period are not movement \u2014 only loans entering and leaving count. The report keeps the trailing eight weekly baselines, and the Pools tab can measure from an earlier one; that pick also drives the Overview cards, survives reopening the report, travels with a shared copy, and resets to the default (last week) on the next upload.'},
+  {cat:'Methodology', tabs:['Overview'], title:'How the Pool Risk flag is defined',
+   body:'A file is flagged Pool Risk when its COIP Status is Preparing, Applied, or blank AND the cutoff of its assigned CMB pool is between today and 45 days (a month and a half) away. Files whose COIP is already Approved, or whose pool cutoff is more than 45 days out or already passed, are not flagged.'},
+  {cat:'Methodology', tabs:['Overview'], title:'How pool cutoff dates are determined',
+   body:'Each CMB pool\u2019s effective cutoff is the first business day of the pool month if that day is a business day, otherwise the last business day of the prior month \u2014 skipping weekends and Canadian statutory holidays. Pools recur annually, so each is resolved to whichever year\u2019s occurrence is nearest the report date. A pool card stops showing on the Overview once the first business day of its own month has passed.'},
+  {cat:'Methodology', tabs:['Overview','Data Issues'], title:'How the correct pool YEAR is determined from CMB and MBS Date',
+   body:'The CMB column names a pool that recurs every year (e.g. \u201cMar 5yr\u201d), so on its own it cannot say which year\u2019s occurrence a given loan belongs to. The MBS Date column resolves that: when its month matches the CMB pool\u2019s month, that date\u2019s year drives the exact cutoff \u2014 e.g. a \u201cMar 5yr\u201d file with an MBS Date in March 2027 uses the March 2027 cutoff, not March 2026. No CMB pool, a recognized pool with no MBS Date, or a month mismatch between the two is flagged CMB/MBS. Either way, until the data is fixed, the cutoff falls back to whichever year\u2019s occurrence of the CMB pool is nearest the report date \u2014 the prior, ambiguous behaviour.'},
+  {cat:'Methodology', tabs:['Overview'], title:'The spreadsheet summary / total row is always excluded',
+   body:'The informational summary row at the bottom of the pipeline export (a purely numeric row, or one whose name begins with Summary / Total / Subtotal) is detected and dropped before any calculation, so it never appears as a deal or contributes to any total.'},
+  {cat:'Methodology', tabs:['Overview','Data Issues'], title:'Volume totals use gross loan amount; blanks count as $0',
+   body:'Every dollar figure in the report sums the gross loan amount. A file with no loan amount contributes $0 to all volume totals and is listed on the Data Issues tab under \u201cMissing loan amount\u201d.'},
+  {cat:'Methodology', tabs:['Overview','Underwriter','Originator','Reviewer'], title:'Underwriter / Originator / Reviewer cards are ranked by file count',
+   body:'Cards on the Overview tab (Underwriters, Originators) and the person chips / navigation on the Underwriter, Originator, and Reviewer tabs are sorted by descending number of active files.'},
+  {cat:'Methodology', tabs:['Overview','Underwriter','Originator','Reviewer','Pools','Data Issues','Timelines'], title:'Funded files are removed from every tab except Timelines',
+   body:'A file whose Deal Status is exactly \u201cFunded\u201d has left the working pipeline. It is excluded from the Overview, Underwriter, Originator, Reviewer, Pools, and Data Issues tabs \u2014 including every volume, count, pool, and flag calculation \u2014 so those tabs only ever show active files the team is still working towards closing. Funded files remain visible on the Timelines tab, which exists to measure how long they took. Because funded files drop out week over week, active counts and volumes will fall between reports even when nothing else changes.'},
+  {cat:'Methodology', tabs:['Underwriter','Originator','Reviewer'], title:'How the COIP / Submitted / CCS / Funding tags are defined on the Underwriter, Originator, and Reviewer tabs',
+   body:'Each file shows one stage pill, driving the header tallies and filter buttons: COIP \u2014 COIP Status blank or other. Submitted \u2014 COIP Status is Applied. CCS \u2014 COIP Status is Approved. Funding \u2014 Deal Status is Commitment Signed or Rate Locked (takes priority over COIP Status).'},
+  {cat:'Methodology', tabs:['Underwriter','Originator','Reviewer','Data Issues'], title:'Files missing an underwriter, originator, or reviewer are grouped under \u201cUnassigned\u201d',
+   body:'On the Underwriter, Originator, and Reviewer tabs, any file with no value in that role in the source dataset is collected into an \u201cUnassigned\u201d group rather than being dropped, so every file is accounted for in the tab totals. Missing assignments are also listed on the Data Issues tab.'},
+  {cat:'Methodology', tabs:['Underwriter','Originator','Reviewer','Data Issues'], title:'COIP Applied milestone is derived from the COIP status field',
+   body:'The milestone track in the deal modal marks COIP Applied when the file\u2019s COIP status is Applied or Approved, and treats any committed file (Commitment Signed or Rate Locked) as COIP-applied. The Site Visit milestone is inferred from status plus the Site Visited field. Files with a blank or inconsistent COIP status are listed under the Data Issues tab as a COIP Status issue.'},
+  {cat:'Methodology', tabs:['Underwriter','Originator','Reviewer'], title:'COIP / Submitted / CCS / Funding stage tags are hidden but still active',
+   body:'The stage pill shown next to each deal\u2019s status has been hidden from view per request. The underlying stage logic and the filter buttons on each underwriter, originator, and reviewer tab still run against it \u2014 only the visual tag on each row was removed.'},
+  {cat:'Methodology', tabs:['Timelines'], title:'How time to fund and slippage are measured on the Timelines tab',
+   body:'Time to fund is the number of calendar days from a file\u2019s Quote Accepted Date to the Initial Loan Funded Date recorded when its Deal Status became Funded. Slippage is the number of calendar days between the very first funding date ever recorded for that loan and its final funding date at Funded \u2014 it measures how far the target moved, where time to fund measures elapsed time. Both the median and the mean are shown, because a single very slow file distorts a mean when a person has only a handful of funded loans.'},
+  {cat:'Methodology', tabs:['Timelines'], title:'Historical funding-date baseline import',
+   body:'The Original Funding Date for loans in the current pipeline and everything that funded in 2026 was backfilled from a separate historical export (matched on Loan No), rather than left to whichever date this tool happened to see first. This gives an accurate first date to measure slippage against for files this tool did not track from origination.'},
+  {cat:'Methodology', tabs:['Timelines'], title:'The timeline history log, and why some files show no slippage',
+   body:'Each upload records one snapshot. The first time a loan appears, its funding date is logged as that loan\u2019s original funding date; if the date is blank, the first date populated later is used instead and the loan shows N/A until then. Loans are matched between uploads on a normalized deal name plus sponsor. A loan that was already Funded the first time it was ever seen has no earlier snapshot to compare against, so its slippage is unmeasurable and it is excluded from slippage averages \u2014 it still counts toward time to fund, which needs only the quote accepted and funding dates. The history is kept even after a funded loan drops out of the export, and travels with the file when you click Share report. Re-uploading a date already recorded, or a file older than the last snapshot, leaves the history untouched.'},
+  {cat:'Methodology', tabs:['Timelines'], title:'Leaderboard Excel export',
+   body:'Export to Excel on the Leaderboard writes one row per file behind the boards: the file, its original funding date and the source file that date came from, its current funding date and the source file that date came from, plus the underwriter and originator so the rows roll up the same way the boards do. Time to Fund and Slippage are always both written, on separate sheets \u2014 Time to Fund lists every file with a measurable elapsed time, Slippage every file with a measurable move. Whether those sheets hold funded or active files follows the Funded / Active toggle, and the tab\u2019s purpose, province, year, and back-book filters apply. Source files are named by the upload they came from; snapshots recorded before uploads carried their file name are identified by their as-of date, and dates backfilled from the historical baseline are named after that export (“Active pipeline historical data.xlsx — historical baseline”).'},
+  {cat:'Methodology', tabs:['Timelines','Data Issues'], title:'Deal names in Excel exports link back to Dealpath',
+   body:'Every Excel export this tool produces hyperlinks each deal name to its Dealpath record. The links are not typed in — they are read out of the uploaded Dealpath export itself, which carries a link on each Deal Name cell, and they are remembered in the timeline history so a funded loan keeps its link after it drops out of the weekly export. If the uploaded dataset carries no links (for example a spreadsheet re-saved by hand, or an export produced without them), the report warns before building the file and the names are written as plain text.'},
+  {cat:'Methodology', tabs:['Timelines'], title:'How Province and CMHC Application Purpose are derived on the Timelines tab',
+   body:'Province is read from the two-letter code in the City / Region column, falling back to the deal name; files with neither are grouped under \u201cUnknown\u201d. CMHC Application Purpose is read from its own column when present, and files with no value are grouped under \u201cUnspecified\u201d. Purchase and Purchase w/Improvements are combined into Purchase; Refinance, Refinance w/Improvements, and Refinance Existing CMHC are combined into Refinance.'},
+  {cat:'Methodology', tabs:['Overview','Underwriter','Originator','Reviewer','Pools','Timelines','Data Issues'], title:'The underwriter shown is the Funder, falling back to the assigned Underwriter',
+   body:'Someone other than the underwriter assigned to a file regularly funds it, so every underwriter name in this report reads from the Funder column of the export first. When Funder is blank, the report falls back to the Underwriter column so no file goes unattributed. This drives the Underwriter tab grouping and cards, deal rows, the deal detail, the Timelines leaderboards, and every Excel export \u2014 exports carry a Funder column and the assigned Underwriter column side by side.'},
+  {cat:'Methodology', tabs:['Underwriter','Originator','Reviewer','Pools','Data Issues'], title:'A blank Funder is flagged as a data issue',
+   body:'Every active file with no Funder carries a purple Funder flag on its deal row and in its deal detail, and is listed under Funder on the Data Issues tab. Files that have already funded are flagged only when they funded on or after January 1, 2025 \u2014 before that date the Funder field was not in regular use, so attributing those files to the historical underwriter is correct. A file carrying neither a Funder nor an Underwriter is additionally listed under \u201cUnassigned \u2014 no Funder or Underwriter\u201d.'},
+  {cat:'Methodology', tabs:['Data Issues'], title:'The Active / Funded filter on the Data Issues tab',
+   body:'The tab shows one register at a time. Active lists data issues across the working pipeline. Funded lists blank Funder, address formatting, CMB/MBS, Wrong Pool, missing loan amount and missing originator for every file funded on or after January 1, 2025 \u2014 funded files are excluded from every other tab, but these problems are still worth fixing. The underwriter chips below count only the register on show, so the two sets of numbers never mix; the Excel export always writes both as separate sheets.'},
+  {cat:'Methodology', tabs:['Data Issues','Overview'], title:'Purple data-quality flags appear on the Data Issues tab, not the Overview',
+   body:'Flags shown in purple (e.g. Address, Pool, Wrong Pool, COIP Status, CMB/MBS, Funding Date Passed) indicate a data-quality problem in the source export rather than a deal action item. These are routed to the Data Issues tab and excluded from the Overview alert list, keeping the Overview focused on actionable deal risk.'},
+];
+
 function esc(v){if(v==null)return'';return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 
 function fmtComma(n){return n.toLocaleString('en-CA',{maximumFractionDigits:0});}
@@ -415,6 +470,18 @@ function fmtDays(d){if(d==null)return'—';if(d<0)return Math.abs(d)+'d ago';if(
 function tlWk(d){if(d==null||isNaN(d))return'\u2014';return (Math.round(d/7*2)/2).toFixed(1);}
 
 function abbrevName(s){if(!s||s==='nan')return s;var p=String(s).trim().split(/\s+/);if(p.length<2)return p[0];return p[0]+' '+p[p.length-1].charAt(0).toUpperCase()+'.';}
+
+function patchNotes(){
+  var pp = DATA.team.pastPools;
+  var note = REPORT_NOTES.find(function(n){return n.body.indexOf('DATA_PAST_POOLS_PLACEHOLDER')!==-1;});
+  if(note){
+    if(pp && pp.length){
+      note.body = pp.map(function(p){return p.pool+' (cutoff '+fmtDate(p.cutoff)+', '+p.daysPast+'d past) had '+p.dealCount+' deal'+(p.dealCount!==1?'s':'')+' assigned and was excluded from pool cards.';}).join(' ');
+    } else {
+      note.body = 'No past-cutoff pools had deals assigned in this report cycle.';
+    }
+  }
+}
 
 var METRO_CITIES = ['toronto','scarborough','etobicoke','north york','york','east york','mississauga','brampton','markham','vaughan','richmond hill','oakville','burlington','ajax','pickering','oshawa','whitby','newmarket','aurora','barrie','hamilton','stoney creek','grimsby','vancouver','burnaby','surrey','richmond','delta','coquitlam','port coquitlam','port moody','new westminster','langley','abbotsford','maple ridge','pitt meadows','white rock','north vancouver','west vancouver','montreal','montréal','laval','longueuil','brossard','terrebonne','repentigny','blainville','mirabel','châteauguay','chateauguay','vaudreuil','boucherville','saint-lambert','varennes','mascouche','sainte-julie','mont-saint-hilaire','chambly'];
 
@@ -506,6 +573,8 @@ function dealFlags(d){
   f.sort(function(a,b){return (rank[a]==null?99:rank[a])-(rank[b]==null?99:rank[b]);});
   return f;
 }
+
+var NOTES_TABS=['Overview','Underwriter','Originator','Reviewer','Pools','Timelines','Data Issues'];
 
 function todayISO(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 
@@ -1644,6 +1713,41 @@ function allocTestBreakdown(c,W){
   return out;
 }
 
+(function(){
+  var i=NOTES_TABS.indexOf('Reviewer');
+  NOTES_TABS.splice(i<0?NOTES_TABS.length:i+1,0,'Allocations');
+  REPORT_NOTES.push(
+   {cat:'Methodology', tabs:['Allocations'], title:'The Allocations tab is not shared with the team',
+    body:'This tab, its scoring engine, the weights, proposed assignments and availability dates exist only in the preparation copy. Share report strips all of it out, so the file the team receives has no Allocations tab and carries none of its data.'},
+   {cat:'Methodology', tabs:['Allocations'], title:'How the Workload score is calculated',
+    body:'Every file starts at one point, counted once. Confirmed Construction, Housing Type, Program Type and Source Type each adjust it once, whatever stage the file is at. COI Source, Form of COIP, CMHC Application Purpose, Mixed-Use, Affordable and the FR Deal weight are read at the file\u2019s current stage only. Points move in half-point steps, every weight is adjustable under Scoring weights, and no file ever scores less than 0.5 \u2014 a file whose characteristics net out below that still takes real work, so it always counts towards someone\u2019s load.'},
+   {cat:'Methodology', tabs:['Allocations'], title:'Each file sits at exactly one stage',
+    body:'The work is sequential, so a file is never counted twice. COIP means the COIP status is blank or Preparing. CCS means it is Approved but not yet committed. Funding means the file is committed or rate-locked \u2014 which confirms the COIP was approved whatever the column still says. A file sitting at Applied without being committed is with CMHC and carries no workload; if it is committed while still reading Applied, that is a data issue on the Data Issues tab. The workload total covers every open COIP, every CCS, and fundings inside three weeks.'},
+   {cat:'Methodology', tabs:['Allocations'], title:'The FR Deal weight, and how French is recorded',
+    body:'French documentation creates real extra work for anyone who does not read French. The export carries no Language column, so both halves of that judgement are set by hand under Languages: which Quebec files are documented in French (FR, EN, or not set) and which people on the team read French. A file carries the FR Deal weight only when it is marked FR and the person holding it is not marked as reading French \u2014 a file left unset carries nothing, and neither does an EN file. That makes a file\u2019s score depend on its assignee, which is why moving one can lower the total. Both settings are held in this browser and survive a new export, matched to the file by Loan No.'},
+   {cat:'Methodology', tabs:['Allocations'], title:'Workload score against total score',
+    body:'The big number is this week\u2019s live load: every open COIP, every CCS, and fundings inside three weeks. The figure under it is the total score across every file assigned to that person at any stage, and the file counts beside their name read the same way \u2014 how many files are in the live score, and how many are assigned in total, matching the Underwriter tab. The pair is the point: someone can be light this week and still be carrying a great deal overall. A file waiting at CMHC has no active stage, so it is scored at the stage it comes back to for the total.'},
+   {cat:'Methodology', tabs:['Allocations'], title:'Unsaved scoring weights are flagged',
+    body:'A weight you type changes nothing until you save it. Any field that differs from the saved value is marked with a gold dot and border, the field just edited flashes, and a banner sits at the top of the tab counting the changes until you either save or discard them. Closing the page with changes outstanding prompts a browser warning \u2014 the draft is not kept.'},
+   {cat:'Methodology', tabs:['Allocations'], title:'Loan size does not move the score',
+    body:'Nothing in the score reflects the size of the loan \u2014 a $116M construction file and a $3M one score the same on everything except their characteristics. That is deliberate: the work a file creates comes from its complexity, not its dollar value. Volume is reported beside the files and on the Calendar, but it never moves a workload score.'},
+   {cat:'Methodology', tabs:['Allocations'], title:'Capacity is measured against the median, not the average',
+    body:'One very heavy pipeline inflates a standard deviation enough to hide the next-heaviest person behind it, so the tab compares everyone to the team median instead. Over capacity means more than one and a half times the median; room means less than two thirds of it. The median also anchors the score colour, which runs from KingSett Blue on the lightest load through neutral grey at the median to oxblood on the heaviest. Files with nobody assigned are left out of the statistics entirely \u2014 they live in the To Allocate panel.'},
+   {cat:'Methodology', tabs:['Allocations'], title:'How the over capacity line is calculated',
+    body:'The red dashed line on the Workload bar marks one and a half times the team median score. It moves with the roster \u2014 as the median shifts week to week, so does the line. Anyone whose bar crosses it is tagged Over; anyone under two thirds of the median is tagged Under. The line reflects saved weights only \u2014 it does not move with unsaved draft weight changes.'},
+   {cat:'Methodology', tabs:['Allocations'], title:'What the Funding Calendar shows',
+    body:'The calendar reads live, not as of the dataset: today is outlined in gold and rolls forward on its own as the week passes. Days already gone are greyed out, and because funded files leave the working pipeline they would otherwise read as empty \u2014 so each past day shows how many files funded on it and for how much. Scheduled fundings still appear as chips coloured by the file\u2019s score, with a dot marking a proposed assignment.'},
+   {cat:'Methodology', tabs:['Allocations'], title:'Unassigned files are listed, not recommended',
+    body:'Every file in the workload with no underwriter recorded is listed under To Allocate with its score and the make-up of that score, so it can be weighed against the team\u2019s loads directly. The tab names nobody \u2014 that call is yours. The FR Deal weight is left out of the figure shown there, because it depends on who ends up holding the file.'},
+   {cat:'Methodology', tabs:['Allocations'], title:'Proposed assignments are held in this browser',
+    body:'A proposal changes nothing in Dealpath. It is stored locally, matched to the file by Loan No, and carried across weekly uploads so Monday\u2019s thinking survives a new export. Once the export shows the assignment, the proposal clears itself with no further notice.'},
+   {cat:'Methodology', tabs:['Allocations'], title:'COI Source and Form of COIP count once, never both',
+    body:'The two columns record the same fact about a file, and both carry weights only so a file populated in one column and blank in the other still scores. A file therefore takes exactly one COI adjustment: the COI Source weight whenever COI Source is populated, and the Form of COIP weight only as the fallback when it is blank. Where the two columns disagree, COI Source governs the score and the disagreement is reported on Data Issues. At COIP, COI Broker and Form of COIP: COI In Place are locked at zero \u2014 a broker-held COI means there is nothing to prepare at that stage.'},
+   {cat:'Methodology', tabs:['Allocations','Data Issues'], title:'Construction needs Loan Type and Asset Stage to agree',
+    body:'Both columns describe whether a file is a construction deal. The construction weight only applies when they agree; a file where one says Construction and the other does not is scored as a term deal and listed on the Data Issues tab until the source is fixed.'}
+  );
+})();
+
   return {
     get HIST() { return HIST; }, set HIST(v) { HIST = v; },
     get POOL_WEEK_SEL() { return POOL_WEEK_SEL; }, set POOL_WEEK_SEL(v) { POOL_WEEK_SEL = v; },
@@ -1750,6 +1854,7 @@ function allocTestBreakdown(c,W){
     tlExportRows,
     applyHistSeed,
     ingestSnapshot,
+    patchNotes,
     allocPurposes,
     allocDefaults,
     allocLocked,
@@ -1823,6 +1928,8 @@ function allocTestBreakdown(c,W){
     HIST_SEED_FILE,
     TL_PURPOSE_ORDER,
     TL_HIDDEN_KEY,
+    REPORT_NOTES,
+    NOTES_TABS,
     FRANCO_SEED,
     ALLOC_FUND_DAYS,
     ALLOC_SCORE_FLOOR,

@@ -11,9 +11,6 @@ const capacityTabGuard = () =>
 const personView = () =>
   import('./person/cmhc-person-view.component').then((m) => m.CmhcPersonViewComponent);
 
-const comingSoon = () =>
-  import('./cmhc-coming-soon.component').then((m) => m.CmhcComingSoonComponent);
-
 export const CMHC_DASHBOARD_ROUTES: Routes = [
   {
     path: '',
@@ -27,7 +24,7 @@ export const CMHC_DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import('./overview/cmhc-overview.component').then((m) => m.CmhcOverviewComponent),
       },
-      // Person views share one component; the tabs below them are built in later steps.
+      // Underwriter, Originator, Reviewer and Pools share one person-view component.
       { path: 'underwriter', loadComponent: personView, data: { type: 'uw' } },
       { path: 'originator', loadComponent: personView, data: { type: 'orig' } },
       { path: 'reviewer', loadComponent: personView, data: { type: 'rev' } },
@@ -48,7 +45,11 @@ export const CMHC_DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import('./data-issues/cmhc-data-issues.component').then((m) => m.CmhcDataIssuesComponent),
       },
-      { path: 'methodology', loadComponent: comingSoon, data: { title: 'Methodology' } },
+      {
+        path: 'methodology',
+        loadComponent: () =>
+          import('./methodology/cmhc-methodology.component').then((m) => m.CmhcMethodologyComponent),
+      },
     ],
   },
 ];
