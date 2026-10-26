@@ -1,6 +1,12 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Router, Routes } from '@angular/router';
 
+import { environment } from '../../../environments/environment';
 import { homeCapitalDataExplorerGuard } from '../../core/access/access.guards';
+
+/** Capacity is shown to everyone unless the environment flag switches it off (to be tied to a permission later). */
+const capacityTabGuard = () =>
+  environment.showCmhcCapacityTab !== false || inject(Router).createUrlTree(['/cmhc-dashboard', 'overview']);
 
 const personView = () =>
   import('./person/cmhc-person-view.component').then((m) => m.CmhcPersonViewComponent);
@@ -25,7 +31,12 @@ export const CMHC_DASHBOARD_ROUTES: Routes = [
       { path: 'underwriter', loadComponent: personView, data: { type: 'uw' } },
       { path: 'originator', loadComponent: personView, data: { type: 'orig' } },
       { path: 'reviewer', loadComponent: personView, data: { type: 'rev' } },
-      { path: 'capacity', loadComponent: comingSoon, data: { title: 'Capacity' } },
+      {
+        path: 'capacity',
+        canActivate: [capacityTabGuard],
+        loadComponent: () =>
+          import('./capacity/cmhc-capacity.component').then((m) => m.CmhcCapacityComponent),
+      },
       { path: 'pools', loadComponent: personView, data: { type: 'pool' } },
       {
         path: 'timelines',

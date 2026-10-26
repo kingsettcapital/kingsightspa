@@ -5,6 +5,8 @@ export function createLegacyEngine(state) {
   var HIST = state.hist || null;
   var POOL_WEEK_SEL = state.poolWeekSel || null;
   var DATA = null;   /* v4's global report model; computeDataIssues() reads it */
+  /* v4 kept Capacity settings in localStorage; the host supplies a storage adapter so shared keys reach the API. */
+  var localStorage = state.storage || (typeof window !== 'undefined' ? window.localStorage : undefined);
   var CUR_META = null;      /* asOf and fileName of the dataset on show */
   var HIST_NOTICE = '';
   /* v4 persisted these to localStorage; the host app persists them through callbacks instead. */
@@ -1272,6 +1274,376 @@ function tlExportRows(metric){
     });
 }
 
+var FRANCO_SEED=['Mehdi Mezghani','Cynthia Di Santo'];
+
+var ALLOC_W_KEY='cmhc_alloc_weights_v1', ALLOC_WD_KEY='cmhc_alloc_weights_default_v1', ALLOC_LOCKED_KEY='cmhc_alloc_locked_v1', ALLOC_P_KEY='cmhc_alloc_proposals_v1', ALLOC_A_KEY='cmhc_alloc_away_v1';
+
+var ALLOC_FR_KEY='cmhc_alloc_francophones_v1', ALLOC_LANG_KEY='cmhc_alloc_deal_language_v1';
+
+var ALLOC_FUND_DAYS=21;          /* the “next three weeks of fundings” window */
+var ALLOC_SCORE_FLOOR=0.5;       /* no file is free: every file counts at least this much */
+var ALLOC_STAGES=[['coip','COIP','#ACC4E3','#0C274A'],['ccs','CCS','#00529B','#FFFFFF'],['funding','Funding','#0C274A','#FFFFFF']];
+
+var ALLOC_SCORE_FLOOR=0.5;       /* no file is free: every file counts at least this much */
+var ALLOC_STAGES=[['coip','COIP','#ACC4E3','#0C274A'],['ccs','CCS','#00529B','#FFFFFF'],['funding','Funding','#0C274A','#FFFFFF']];
+
+var ALLOC_STAGES=[['coip','COIP','#ACC4E3','#0C274A'],['ccs','CCS','#00529B','#FFFFFF'],['funding','Funding','#0C274A','#FFFFFF']];
+
+var ALLOC_ROLES=[['underwriter','Underwriter']];
+
+var HOUSING_TYPES=['Standard Rental Housing','Student Housing','Single Room Occupancy','Retirement Housing','Supportive Housing'];
+
+var PROGRAM_TYPES=['Market','Select'];   /* Flex is defunct — deliberately not offered */
+var SOURCE_TYPES=['Broker','Direct'];
+
+var SOURCE_TYPES=['Broker','Direct'];
+
+var COI_SOURCES=['Broker','KingSett'];
+
+var FORM_OF_COIP=['COI In Place','Correspondent','KingSett'];
+
+var PURPOSE_SEED={'Completion Take-out':0.5,'Construction Financing':0.5,'Refinance Existing CMHC':-0.5};
+
+function allocPurposes(){
+  var seen={},out=[];
+  ((DATA&&DATA.deals)||[]).forEach(function(d){if(d.purpose&&!seen[d.purpose]){seen[d.purpose]=1;out.push(d.purpose);}});
+  Object.keys(PURPOSE_SEED).forEach(function(p){if(!seen[p]){seen[p]=1;out.push(p);}});
+  return out.sort();
+}
+
+function allocDefaults(){
+  var W={base:1,construction:2,mixedUse:{coip:0.5,ccs:0.5,funding:0.5},housing:{},program:{},sourceType:{Broker:-0.5,Direct:0.5},
+    coiSource:{Broker:{coip:-0.5,ccs:0.5,funding:0},KingSett:{coip:0.5,ccs:-0.5,funding:0}},
+    formOfCoip:{'COI In Place':{coip:-0.5,ccs:0.5,funding:0},'Correspondent':{coip:0,ccs:0,funding:0},'KingSett':{coip:0.5,ccs:-0.5,funding:0}},
+    purpose:{},affordable:{coip:0.5,ccs:0.5,funding:0},qc:{coip:1,ccs:1,funding:1}};
+  HOUSING_TYPES.forEach(function(h){var v=(h==='Retirement Housing'||h==='Student Housing')?0.5:0;W.housing[h]=v;});
+  PROGRAM_TYPES.forEach(function(p){var v=(p==='Select')?0.5:0;W.program[p]=v;});
+  allocPurposes().forEach(function(p){var v=PURPOSE_SEED[p]||0;W.purpose[p]={coip:v,ccs:v,funding:0};});
+  return W;
+}
+
+var ALLOC_LOCKED=null;
+
+function allocLocked(){
+  if(!ALLOC_LOCKED){
+    try{ALLOC_LOCKED=JSON.parse(localStorage.getItem(ALLOC_LOCKED_KEY)||'null');}catch(e){}
+    /* A broker-sourced COI at COIP means there is nothing to submit — the file
+       skips straight to CCS, so that weight is irrelevant at that stage. */
+    if(!ALLOC_LOCKED){ALLOC_LOCKED={'coiSource.Broker.coip':true};}
+    /* Same reasoning on the Form of COIP side: "COI In Place" means the COI is
+       already done, so there is nothing to weigh at COIP. Applied once. */
+    var m=null; try{m=localStorage.getItem(ALLOC_LOCKED_KEY+'_coi2');}catch(e){}
+    if(!m){ALLOC_LOCKED['formOfCoip.COI In Place.coip']=true;try{localStorage.setItem(ALLOC_LOCKED_KEY+'_coi2','1');}catch(e){}}
+    saveAllocLocked();
+  }
+  return ALLOC_LOCKED;
+}
+
+function saveAllocLocked(){try{localStorage.setItem(ALLOC_LOCKED_KEY,JSON.stringify(ALLOC_LOCKED||{}));}catch(e){}}
+
+function isLocked(path){return !!allocLocked()[path];}
+
+function setWeightPath(W,path,val){var parts=path.split('.'),o=W;for(var i=0;i<parts.length-1;i++)o=o[parts[i]];o[parts[parts.length-1]]=val;}
+
+function enforceLocks(W){Object.keys(allocLocked()).forEach(function(p){setWeightPath(W,p,0);});return W;}
+
+var ALLOC_W=null;
+
+function allocDefaultBase(){
+  var d=allocDefaults(), saved=null;
+  try{saved=JSON.parse(localStorage.getItem(ALLOC_WD_KEY)||'null');}catch(e){}
+  if(saved) deepFill(d,saved);
+  return enforceLocks(d);
+}
+
+function allocW(){
+  if(ALLOC_W) return ALLOC_W;
+  var d=allocDefaultBase(), saved=null;
+  try{saved=JSON.parse(localStorage.getItem(ALLOC_W_KEY)||'null');}catch(e){}
+  if(saved) deepFill(d,saved);
+  ALLOC_W=enforceLocks(d); return ALLOC_W;
+}
+
+function deepFill(target,src){
+  Object.keys(target).forEach(function(k){
+    if(src[k]==null) return;
+    if(typeof target[k]==='object') deepFill(target[k],src[k]);
+    else if(typeof src[k]==='number') target[k]=src[k];
+  });
+}
+
+function saveAllocW(){try{localStorage.setItem(ALLOC_W_KEY,JSON.stringify(ALLOC_W));}catch(e){}}
+
+var ALLOC_W_DRAFT=null;
+
+function allocWDraft(){if(!ALLOC_W_DRAFT)ALLOC_W_DRAFT=JSON.parse(JSON.stringify(allocW()));return ALLOC_W_DRAFT;}
+
+var ALLOC_P=null, ALLOC_AWAY=null;
+
+function allocProposals(){if(!ALLOC_P){try{ALLOC_P=JSON.parse(localStorage.getItem(ALLOC_P_KEY)||'{}');}catch(e){ALLOC_P={};}}return ALLOC_P;}
+
+function saveAllocP(){try{localStorage.setItem(ALLOC_P_KEY,JSON.stringify(ALLOC_P||{}));}catch(e){}}
+
+function allocAway(){if(!ALLOC_AWAY){try{ALLOC_AWAY=JSON.parse(localStorage.getItem(ALLOC_A_KEY)||'{}');}catch(e){ALLOC_AWAY={};}}return ALLOC_AWAY;}
+
+function saveAllocAway(){try{localStorage.setItem(ALLOC_A_KEY,JSON.stringify(ALLOC_AWAY||{}));}catch(e){}}
+
+function allocKey(d){return d.loanNo?('L:'+d.loanNo):('N:'+normKey(d.name));}
+
+function allocRoleField(role){return role==='underwriter'?'underwriter':'reviewer';}
+
+function allocActual(d,role){return d[allocRoleField(role)]||'';}
+
+function allocHolder(d,role){
+  var p=allocProposals()[allocKey(d)];
+  if(p&&p[role]) return p[role];
+  return allocActual(d,role);
+}
+
+function allocIsProposed(d,role){var p=allocProposals()[allocKey(d)];return !!(p&&p[role]&&p[role]!==allocActual(d,role));}
+
+function reconcileProposals(){
+  var P=allocProposals(), byKey={}, dirty=false;
+  ((DATA&&DATA.deals)||[]).forEach(function(d){byKey[allocKey(d)]=d;});
+  Object.keys(P).forEach(function(k){
+    var d=byKey[k];
+    if(!d){delete P[k];dirty=true;return;}
+    /* Proposals stored under the old separate 'funder' role carry over. */
+    if(P[k].funder){if(!P[k].underwriter)P[k].underwriter=P[k].funder;delete P[k].funder;dirty=true;}
+    /* Once the export itself names someone for a role, that's a real assignment —
+       it overrides any proposal we were holding, whether or not the names match. */
+    ['underwriter'].forEach(function(role){
+      if(P[k][role]&&allocActual(d,role)){delete P[k][role];dirty=true;}
+    });
+    if(!Object.keys(P[k]).length){delete P[k];dirty=true;}
+  });
+  if(dirty) saveAllocP();
+}
+
+function proposalCount(){var P=allocProposals(),n=0;Object.keys(P).forEach(function(k){n+=Object.keys(P[k]).length;});return n;}
+
+function allocProv(d){
+  var c=d.city||d.name||'';
+  var m=/\b([A-Z]{2})\b/.exec(c.toUpperCase());
+  return (m&&PROV.indexOf(m[1])!==-1)?m[1]:null;
+}
+
+function allocIsQc(d){return allocProv(d)==='QC';}
+
+var ALLOC_FR=null, ALLOC_LANG=null;
+
+function allocFranco(){
+  if(!ALLOC_FR){
+    try{ALLOC_FR=JSON.parse(localStorage.getItem(ALLOC_FR_KEY)||'null');}catch(e){}
+    if(!ALLOC_FR){ALLOC_FR={};FRANCO_SEED.forEach(function(n){ALLOC_FR[n]=true;});saveAllocFranco();}
+  }
+  return ALLOC_FR;
+}
+
+function saveAllocFranco(){try{localStorage.setItem(ALLOC_FR_KEY,JSON.stringify(ALLOC_FR||{}));}catch(e){}}
+
+function isFrancophone(name){return !!allocFranco()[name];}
+
+function francophoneCount(){var F=allocFranco();return Object.keys(F).filter(function(k){return F[k];}).length;}
+
+function allocLangMap(){if(!ALLOC_LANG){try{ALLOC_LANG=JSON.parse(localStorage.getItem(ALLOC_LANG_KEY)||'{}');}catch(e){ALLOC_LANG={};}}return ALLOC_LANG;}
+
+function saveAllocLang(){try{localStorage.setItem(ALLOC_LANG_KEY,JSON.stringify(ALLOC_LANG||{}));}catch(e){}}
+
+function dealLang(d){return allocLangMap()[allocKey(d)]||'';}
+
+function isFrDeal(d){return allocIsQc(d)&&dealLang(d)==='FR';}
+
+function qcDeals(){return ((DATA&&DATA.deals)||[]).filter(allocIsQc).sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});}
+
+function allocStage(d){
+  if(isCommitted(d)) return 'funding';
+  if(d.coip==='Approved') return 'ccs';
+  if(d.coip==='Applied') return null;
+  return 'coip';
+}
+
+function inWorkload(d){
+  var s=allocStage(d);
+  if(!s) return false;
+  if(s!=='funding') return true;
+  return d.dtf==null||d.dtf<=ALLOC_FUND_DAYS;
+}
+
+function half(n){return Math.round(n*2)/2;}
+
+function coiPick(W,coiSource,formOfCoip,st){
+  var cs=coiSource?W.coiSource[coiSource]:null, fc=formOfCoip?W.formOfCoip[formOfCoip]:null;
+  if(cs) return {v:cs[st]||0, l:'COI '+coiSource, alt:fc?('Form of COIP: '+formOfCoip):null};
+  if(fc) return {v:fc[st]||0, l:'Form of COIP: '+formOfCoip, alt:null};
+  return {v:0,l:null,alt:null};
+}
+
+function allocScore(d,holder,role,Wover){
+  var W=Wover||allocW(), st=allocStage(d);
+  if(!st) return 0;
+  var s2=W.base;
+  if(isConfirmedConstruction(d)) s2+=W.construction;
+  s2+=(W.housing[d.housingType]||0);
+  if(d.mixedUse==='Yes') s2+=((W.mixedUse&&W.mixedUse[st])||0);
+  s2+=(W.program[d.programType]||0);
+  s2+=(W.sourceType[d.sourceType]||0);
+  s2+=coiPick(W,d.coiSource,d.formOfCoip,st).v;
+  var pp=W.purpose[d.purpose];     if(pp) s2+=(pp[st]||0);
+  if(d.affordable==='Yes') s2+=(W.affordable[st]||0);
+  if(isFrDeal(d)&&holder&&!isFrancophone(holder)) s2+=(W.qc[st]||0);
+  /* Floor: a file whose characteristics net out below half a point still takes
+     real work, so it never falls off someone's plate entirely. */
+  return Math.max(ALLOC_SCORE_FLOOR,half(s2));
+}
+
+function allocScoreAny(d,holder,role,Wover){
+  if(allocStage(d)) return allocScore(d,holder,role,Wover);
+  var c=Object.assign({},d); c.coip='Approved';
+  return allocScore(c,holder,role,Wover);
+}
+
+function allocBreakdown(d,holder,role){
+  var R=allocW(), st=allocStage(d), out=[];
+  if(!st) return out;
+  function push(l,v){if(v) out.push({l:l,v:v});}
+  out.push({l:'Base',v:R.base});
+  if(isConfirmedConstruction(d)) push('Construction',R.construction);
+  push(d.housingType||'Housing Type',R.housing[d.housingType]||0);
+  if(d.mixedUse==='Yes') push('Mixed Use',(R.mixedUse&&R.mixedUse[st])||0);
+  push('Program '+(d.programType||''),R.program[d.programType]||0);
+  push('Source '+(d.sourceType||''),R.sourceType[d.sourceType]||0);
+  var coi=coiPick(R,d.coiSource,d.formOfCoip,st);
+  if(coi.l) push(coi.l+(coi.alt?' (counted once \u2014 '+coi.alt+' not added)':''),coi.v);
+  var pp=R.purpose[d.purpose];
+  push(d.purpose||'Purpose',pp?(pp[st]||0):0);
+  if(d.affordable==='Yes') push('Affordable',R.affordable[st]||0);
+  if(isFrDeal(d)&&holder&&!isFrancophone(holder)) push('FR Deal',R.qc[st]||0);
+  var raw=half(out.reduce(function(s,b){return s+b.v;},0));
+  if(raw<ALLOC_SCORE_FLOOR) out.push({l:'Minimum '+fmtScore(ALLOC_SCORE_FLOOR)+' floor',v:half(ALLOC_SCORE_FLOOR-raw)});
+  return out;
+}
+
+function fmtScore(v){var n=half(v);return (n%1===0?String(n):n.toFixed(1));}
+
+function fmtW(v){return (v>0?'+':'')+(v%1===0?String(v):v.toFixed(1));}
+
+function allocRoster(role){
+  var seen={},out=[];
+  ((DATA&&DATA.deals)||[]).forEach(function(d){
+    var n=allocHolder(d,role); if(!n||n==='nan')return;
+    if(!seen[n]){seen[n]=1;out.push(n);}
+  });
+  return out.sort();
+}
+
+function allocFiles(role,name){
+  return ((DATA&&DATA.deals)||[]).filter(function(d){
+    if(allocHolder(d,role)!==name) return false;
+    return inWorkload(d);
+  });
+}
+
+function allocAllFiles(role,name){
+  return ((DATA&&DATA.deals)||[]).filter(function(d){return allocHolder(d,role)===name;});
+}
+
+function allocTotals(role){
+  var rows=allocRoster(role).map(function(n){
+    var files=allocFiles(role,n), byStage={coip:0,ccs:0,funding:0}, total=0;
+    files.forEach(function(d){
+      var st=allocStage(d)||'coip', s=allocScore(d,n,role);
+      byStage[st]+=s; total+=s;
+    });
+    var all=allocAllFiles(role,n), allScore=0;
+    all.forEach(function(d){allScore+=allocScoreAny(d,n,role);});
+    return {name:n,files:files,byStage:byStage,total:half(total),count:files.length,allCount:all.length,allScore:half(allScore)};
+  });
+  var vals=rows.map(function(r){return r.total;});
+  var mean=vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:0;
+  /* Median, not mean: one very heavy person inflates a standard deviation enough to
+     hide the next one behind it. Over capacity is 1.5x the median, room is half it. */
+  var sorted=vals.slice().sort(function(a,b){return a-b;});
+  var median=sorted.length?(sorted.length%2?sorted[(sorted.length-1)/2]:(sorted[sorted.length/2-1]+sorted[sorted.length/2])/2):0;
+  var overLine=half(median*1.5), roomLine=half(median*2/3);
+  var maxDev=Math.max.apply(null,[0.01].concat(vals.map(function(v){return Math.abs(v-median);})));
+  var max=Math.max.apply(null,[1].concat(vals));
+  rows.sort(function(a,b){return b.total-a.total||a.name.localeCompare(b.name);});
+  return {rows:rows,mean:mean,median:median,overLine:overLine,roomLine:roomLine,maxDev:maxDev,max:max};
+}
+
+function scoreColor(v,centre,maxDev,away){
+  if(away) return '#86898E';
+  var t=Math.max(-1,Math.min(1,(v-centre)/(maxDev||1)));
+  var mid=[134,137,142], lo=[0,82,155], hi=[102,25,16];
+  var b=t<0?lo:hi, k=Math.abs(t);
+  return 'rgb('+[0,1,2].map(function(i){return Math.round(mid[i]+(b[i]-mid[i])*k);}).join(',')+')';
+}
+
+function allocBand(s){
+  if(s<1)    return {bg:'#E6EDF7',fg:'#003666',label:'Lighter than standard (under 1)'};
+  if(s<=1.5) return {bg:'#ACC4E3',fg:'#0C274A',label:'Standard (1\u20131.5)'};
+  if(s<=3)   return {bg:'#00529B',fg:'#FFFFFF',label:'Heavy (2\u20133)'};
+  return {bg:'#661910',fg:'#FFFFFF',label:'Complex (3.5+)'};
+}
+
+function isAway(name,iso){
+  var a=allocAway()[name]; if(!a||!a.from||!a.to) return false;
+  var day=iso||(DATA&&DATA.team.asOf)||todayISO();
+  return day>=a.from&&day<=a.to;
+}
+
+function getWeightPath(W,path){var parts=path.split('.'),o=W;for(var i=0;i<parts.length;i++){if(o==null)return undefined;o=o[parts[i]];}return o;}
+
+function allocChangedPaths(){
+  var out=[]; if(!ALLOC_W_DRAFT) return out;
+  (function walk(a,b,pre){
+    Object.keys(a).forEach(function(k){
+      var p=pre?pre+'.'+k:k, av=a[k], bv=b?b[k]:undefined;
+      if(av&&typeof av==='object') walk(av,bv||{},p);
+      else if(av!==bv) out.push(p);
+    });
+  })(ALLOC_W_DRAFT,allocW(),'');
+  return out;
+}
+
+function allocDirty(){return allocChangedPaths().length>0;}
+
+function allocTestDefault(){return {stage:'coip',housing:'',program:'',sourceType:'',coiSource:'',formOfCoip:'',purpose:'',construction:false,mixedUse:false,affordable:false,qc:false};}
+
+function allocTestScore(c,W){
+  var st=c.stage, s=W.base;
+  if(c.construction) s+=W.construction;
+  s+=(W.housing[c.housing]||0);
+  if(c.mixedUse) s+=((W.mixedUse&&W.mixedUse[st])||0);
+  s+=(W.program[c.program]||0);
+  s+=(W.sourceType[c.sourceType]||0);
+  s+=coiPick(W,c.coiSource,c.formOfCoip,st).v;
+  var pp=W.purpose[c.purpose]; if(pp) s+=(pp[st]||0);
+  if(c.affordable) s+=(W.affordable[st]||0);
+  if(c.qc) s+=(W.qc[st]||0);
+  return Math.max(ALLOC_SCORE_FLOOR,half(s));
+}
+
+function allocTestBreakdown(c,W){
+  var st=c.stage, out=[];
+  function push(l,v){if(v) out.push({l:l,v:v});}
+  out.push({l:'Base',v:W.base});
+  if(c.construction) push('Construction',W.construction);
+  push(c.housing||'Housing Type',W.housing[c.housing]||0);
+  if(c.mixedUse) push('Mixed-Use',(W.mixedUse&&W.mixedUse[st])||0);
+  push('Program '+(c.program||''),W.program[c.program]||0);
+  push('Source '+(c.sourceType||''),W.sourceType[c.sourceType]||0);
+  var coi=coiPick(W,c.coiSource,c.formOfCoip,st);
+  if(coi.l) push(coi.l+(coi.alt?' (counted once \u2014 '+coi.alt+' not added)':''),coi.v);
+  var pp=W.purpose[c.purpose]; push(c.purpose||'Purpose',pp?(pp[st]||0):0);
+  if(c.affordable) push('Affordable',W.affordable[st]||0);
+  if(c.qc) push('FR Deal',W.qc[st]||0);
+  var raw=half(out.reduce(function(s,b){return s+b.v;},0));
+  if(raw<ALLOC_SCORE_FLOOR) out.push({l:'Minimum '+fmtScore(ALLOC_SCORE_FLOOR)+' floor',v:half(ALLOC_SCORE_FLOOR-raw)});
+  return out;
+}
+
   return {
     get HIST() { return HIST; }, set HIST(v) { HIST = v; },
     get POOL_WEEK_SEL() { return POOL_WEEK_SEL; }, set POOL_WEEK_SEL(v) { POOL_WEEK_SEL = v; },
@@ -1286,6 +1658,20 @@ function tlExportRows(metric){
     get TL_HIDDEN() { return TL_HIDDEN; }, set TL_HIDDEN(v) { TL_HIDDEN = v; },
     get HIST_NOTICE() { return HIST_NOTICE; }, set HIST_NOTICE(v) { HIST_NOTICE = v; },
     get CUR_META() { return CUR_META; }, set CUR_META(v) { CUR_META = v; },
+    get ALLOC_LOCKED() { return ALLOC_LOCKED; }, set ALLOC_LOCKED(v) { ALLOC_LOCKED = v; },
+    get ALLOC_W() { return ALLOC_W; }, set ALLOC_W(v) { ALLOC_W = v; },
+    get ALLOC_W_DRAFT() { return ALLOC_W_DRAFT; }, set ALLOC_W_DRAFT(v) { ALLOC_W_DRAFT = v; },
+    get ALLOC_P() { return ALLOC_P; }, set ALLOC_P(v) { ALLOC_P = v; },
+    get ALLOC_AWAY() { return ALLOC_AWAY; }, set ALLOC_AWAY(v) { ALLOC_AWAY = v; },
+    get ALLOC_FR() { return ALLOC_FR; }, set ALLOC_FR(v) { ALLOC_FR = v; },
+    get ALLOC_LANG() { return ALLOC_LANG; }, set ALLOC_LANG(v) { ALLOC_LANG = v; },
+    get ALLOC_W_KEY() { return ALLOC_W_KEY; }, set ALLOC_W_KEY(v) { ALLOC_W_KEY = v; },
+    get ALLOC_WD_KEY() { return ALLOC_WD_KEY; }, set ALLOC_WD_KEY(v) { ALLOC_WD_KEY = v; },
+    get ALLOC_LOCKED_KEY() { return ALLOC_LOCKED_KEY; }, set ALLOC_LOCKED_KEY(v) { ALLOC_LOCKED_KEY = v; },
+    get ALLOC_P_KEY() { return ALLOC_P_KEY; }, set ALLOC_P_KEY(v) { ALLOC_P_KEY = v; },
+    get ALLOC_A_KEY() { return ALLOC_A_KEY; }, set ALLOC_A_KEY(v) { ALLOC_A_KEY = v; },
+    get ALLOC_FR_KEY() { return ALLOC_FR_KEY; }, set ALLOC_FR_KEY(v) { ALLOC_FR_KEY = v; },
+    get ALLOC_LANG_KEY() { return ALLOC_LANG_KEY; }, set ALLOC_LANG_KEY(v) { ALLOC_LANG_KEY = v; },
     normHdr,
     autoMap,
     excelSerialToISO,
@@ -1364,6 +1750,62 @@ function tlExportRows(metric){
     tlExportRows,
     applyHistSeed,
     ingestSnapshot,
+    allocPurposes,
+    allocDefaults,
+    allocLocked,
+    saveAllocLocked,
+    isLocked,
+    setWeightPath,
+    enforceLocks,
+    allocDefaultBase,
+    allocW,
+    deepFill,
+    saveAllocW,
+    allocWDraft,
+    allocProposals,
+    saveAllocP,
+    allocAway,
+    saveAllocAway,
+    allocKey,
+    allocRoleField,
+    allocActual,
+    allocHolder,
+    allocIsProposed,
+    reconcileProposals,
+    proposalCount,
+    allocProv,
+    allocIsQc,
+    allocFranco,
+    saveAllocFranco,
+    isFrancophone,
+    francophoneCount,
+    allocLangMap,
+    saveAllocLang,
+    dealLang,
+    isFrDeal,
+    qcDeals,
+    allocStage,
+    inWorkload,
+    half,
+    coiPick,
+    allocScore,
+    allocScoreAny,
+    allocBreakdown,
+    fmtScore,
+    fmtW,
+    allocRoster,
+    allocFiles,
+    allocAllFiles,
+    allocTotals,
+    scoreColor,
+    allocBand,
+    isAway,
+    getWeightPath,
+    allocChangedPaths,
+    allocDirty,
+    allocTestDefault,
+    allocTestScore,
+    allocTestBreakdown,
     FIELD_DEFS,
     POOL_SCHEDULE,
     POOL_MONTH_MAP,
@@ -1381,5 +1823,16 @@ function tlExportRows(metric){
     HIST_SEED_FILE,
     TL_PURPOSE_ORDER,
     TL_HIDDEN_KEY,
+    FRANCO_SEED,
+    ALLOC_FUND_DAYS,
+    ALLOC_SCORE_FLOOR,
+    ALLOC_STAGES,
+    ALLOC_ROLES,
+    HOUSING_TYPES,
+    PROGRAM_TYPES,
+    SOURCE_TYPES,
+    COI_SOURCES,
+    FORM_OF_COIP,
+    PURPOSE_SEED,
   };
 }

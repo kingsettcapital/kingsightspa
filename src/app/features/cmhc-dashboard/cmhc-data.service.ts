@@ -20,6 +20,32 @@ export interface CmhcTimelineState {
   year: string;
 }
 
+/**
+ * v4 kept Capacity settings in localStorage. The engine now reads and writes them through an adapter:
+ * these keys are shared with the team through the API, anything else (proposed assignments, who reads
+ * French, per-file language) stays in this browser exactly as in v4.
+ */
+const ALLOC_LOCKED_KEY = 'cmhc_alloc_locked_v1';
+const ALLOC_WEIGHTS_KEY = 'cmhc_alloc_weights_v1';
+const ALLOC_WEIGHTS_DEFAULT_KEY = 'cmhc_alloc_weights_default_v1';
+const ALLOC_AWAY_KEY = 'cmhc_alloc_away_v1';
+const ALLOC_STATE_BY_KEY: Record<string, CmhcStateKey> = {
+  [ALLOC_LOCKED_KEY]: 'alloc-locked',
+  [ALLOC_LOCKED_KEY + '_coi2']: 'alloc-locked',
+  [ALLOC_WEIGHTS_KEY]: 'alloc-weights',
+  [ALLOC_WEIGHTS_DEFAULT_KEY]: 'alloc-weights',
+  [ALLOC_AWAY_KEY]: 'alloc-workdays',
+};
+const ALLOC_STATE_KEYS: CmhcStateKey[] = ['alloc-locked', 'alloc-weights', 'alloc-workdays'];
+
+const parseJson = (s: string | undefined): unknown => {
+  try {
+    return s ? JSON.parse(s) : null;
+  } catch {
+    return null;
+  }
+};
+
 /** History is compared without snapshot timestamps so reloading the page doesn't count as a change. */
 const histSignature = (hist: unknown) => JSON.stringify(hist, (k, v) => (k === 'at' ? undefined : v));
 
@@ -67,6 +93,9 @@ export class CmhcDataService {
   private records: any[] = [];
   private histState: CmhcReportStateDto = { key: 'hist', value: null, version: 0 };
   private tlHiddenState: CmhcReportStateDto = { key: 'tl-hidden', value: null, version: 0 };
+  private readonly sharedStates: Partial<Record<CmhcStateKey, CmhcReportStateDto>> = {};
+  private readonly allocStore = new Map<string, string>();
+  private readonly allocSaveTimers: Partial<Record<CmhcStateKey, ReturnType<typeof setTimeout>>> = {};
 
   async load(asOf?: string): Promise<void> {
     this.loading.set(true);
@@ -75,6 +104,8 @@ export class CmhcDataService {
       const pipeline = await firstValueFrom(this.api.getPipeline(asOf));
       this.histState = await this.loadState('hist');
       this.tlHiddenState = await this.loadState('tl-hidden');
+      for (const key of ALLOC_STATE_KEYS) this.sharedStates[key] = await this.loadState(key);
+      this.hydrateAllocStore();
 
       const hist = this.histState.value as { loans?: unknown } | null;
 
@@ -84,6 +115,7 @@ export class CmhcDataService {
         hist: hist && hist.loans ? hist : null,
         poolWeekSel: this.readPoolWeek(),
         onTlHiddenChange: (hidden: unknown) => void this.saveTlHidden(hidden),
+        storage: this.allocStorage(),
       });
       engine.TL_HIDDEN = this.normalizeTlHidden(this.tlHiddenState.value);
 
@@ -215,6 +247,85 @@ export class CmhcDataService {
     const engine = this.engine();
     if (engine) engine.HIST_NOTICE = '';
     this.histNotice.set('');
+  }
+
+  /** Seeds the engine's storage with what the team has saved, in the shapes v4's own code expects. */
+  private hydrateAllocStore(): void {
+    this.allocStore.clear();
+    const locked = this.sharedStates['alloc-locked']?.value as { locked?: unknown; markers?: Record<string, string> } | null;
+    if (locked?.locked) {
+      this.allocStore.set(ALLOC_LOCKED_KEY, JSON.stringify(locked.locked));
+      Object.entries(locked.markers ?? {}).forEach(([k, v]) => this.allocStore.set(`${ALLOC_LOCKED_KEY}_${k}`, v));
+    }
+    const weights = this.sharedStates['alloc-weights']?.value as { current?: unknown; default?: unknown } | null;
+    if (weights?.current) this.allocStore.set(ALLOC_WEIGHTS_KEY, JSON.stringify(weights.current));
+    if (weights?.default) this.allocStore.set(ALLOC_WEIGHTS_DEFAULT_KEY, JSON.stringify(weights.default));
+    const away = this.sharedStates['alloc-workdays']?.value;
+    if (away) this.allocStore.set(ALLOC_AWAY_KEY, JSON.stringify(away));
+  }
+
+  /** localStorage look-alike: shared keys live in memory and are saved to the API, the rest pass through. */
+  /** Also used by the Capacity tab to save the weights' "Set as default" baseline. */
+  allocStorage() {
+    const local = (): Storage | null => {
+      try {
+        return localStorage;
+      } catch {
+        return null;
+      }
+    };
+    return {
+      getItem: (k: string): string | null =>
+        k in ALLOC_STATE_BY_KEY ? (this.allocStore.get(k) ?? null) : (local()?.getItem(k) ?? null),
+      setItem: (k: string, v: string): void => {
+        if (k in ALLOC_STATE_BY_KEY) {
+          this.allocStore.set(k, v);
+          this.scheduleAllocSave(ALLOC_STATE_BY_KEY[k]);
+        } else {
+          local()?.setItem(k, v);
+        }
+      },
+      removeItem: (k: string): void => {
+        if (k in ALLOC_STATE_BY_KEY) {
+          this.allocStore.delete(k);
+          this.scheduleAllocSave(ALLOC_STATE_BY_KEY[k]);
+        } else {
+          local()?.removeItem(k);
+        }
+      },
+    };
+  }
+
+  private scheduleAllocSave(key: CmhcStateKey): void {
+    clearTimeout(this.allocSaveTimers[key]);
+    this.allocSaveTimers[key] = setTimeout(() => void this.persistAlloc(key), 400);
+  }
+
+  private allocValue(key: CmhcStateKey): unknown {
+    const get = (k: string) => this.allocStore.get(k);
+    if (key === 'alloc-locked') {
+      const coi2 = get(`${ALLOC_LOCKED_KEY}_coi2`);
+      return { locked: parseJson(get(ALLOC_LOCKED_KEY)) ?? {}, markers: coi2 ? { coi2 } : {} };
+    }
+    if (key === 'alloc-weights') {
+      return { current: parseJson(get(ALLOC_WEIGHTS_KEY)), default: parseJson(get(ALLOC_WEIGHTS_DEFAULT_KEY)) };
+    }
+    return parseJson(get(ALLOC_AWAY_KEY)) ?? {};
+  }
+
+  /** Capacity settings are shared; a stale version (409) is retried once on the latest version. */
+  private async persistAlloc(key: CmhcStateKey): Promise<void> {
+    const value = this.allocValue(key);
+    try {
+      this.sharedStates[key] = await firstValueFrom(this.api.putState(key, value, this.sharedStates[key]?.version ?? 0));
+    } catch {
+      try {
+        const latest = await this.loadState(key);
+        this.sharedStates[key] = await firstValueFrom(this.api.putState(key, value, latest.version));
+      } catch {
+        /* the setting still applies for this session */
+      }
+    }
   }
 
   private async loadState(key: CmhcStateKey): Promise<CmhcReportStateDto> {
