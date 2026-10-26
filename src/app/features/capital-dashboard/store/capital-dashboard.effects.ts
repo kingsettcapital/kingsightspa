@@ -40,6 +40,7 @@ import { mapAssetTypeSummaryToRows } from '../shared/mappers/asset-type-summary.
 import { mapAssetFinancialMetricsToRow } from '../shared/mappers/asset-financial-metrics.mapper';
 import { mapAssetAcquisitionSaleToRow } from '../shared/mappers/asset-acquisition-sale.mapper';
 import { mapInvestorUnderlyingInvestmentsToTabRows } from '../shared/mappers/investor-underlying-investments.mapper';
+import { SHOW_ASSET_FINANCIAL_METRICS } from '../assets/asset-detail/models/asset-detail-sidebar.config';
 import { AssetsApiActions, FundsApiActions, InvestorsApiActions } from './capital-dashboard.actions';
 import {
   readFundCommitmentsPageCache,
@@ -1582,14 +1583,18 @@ export class CapitalDashboardEffects {
           cacheEntry && (cacheEntry.dateKey ?? null) === dateKey ? cacheEntry : undefined;
         const period = request.period?.trim() || 'ITD';
         const periodOpts = { period };
-        const financialMetricsKs$ = this.assetsApi.getAssetFinancialMetrics(request.propertyKey, {
-          ...periodOpts,
-          shareBasis: 'ks',
-        });
-        const financialMetricsAt100$ = this.assetsApi.getAssetFinancialMetrics(request.propertyKey, {
-          ...periodOpts,
-          shareBasis: 'full',
-        });
+        const financialMetricsKs$ = SHOW_ASSET_FINANCIAL_METRICS
+          ? this.assetsApi.getAssetFinancialMetrics(request.propertyKey, {
+              ...periodOpts,
+              shareBasis: 'ks',
+            })
+          : of(null);
+        const financialMetricsAt100$ = SHOW_ASSET_FINANCIAL_METRICS
+          ? this.assetsApi.getAssetFinancialMetrics(request.propertyKey, {
+              ...periodOpts,
+              shareBasis: 'full',
+            })
+          : of(null);
         const acquisitionSale$ = this.assetsApi.getAssetAcquisitionSale(
           request.propertyKey,
           periodOpts,

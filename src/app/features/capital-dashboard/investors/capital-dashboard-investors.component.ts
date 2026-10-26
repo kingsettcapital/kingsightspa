@@ -242,6 +242,8 @@ export class CapitalDashboardInvestorsComponent {
     Math.min(this.currentPage() * this.pageSize(), this.totalCount()),
   );
 
+  private lastLoadRequestKey: string | null = null;
+
   constructor() {
     this.routeSearchSync.bindTableSearch(this.tableSearch, () => this.currentPage.set(1));
 
@@ -352,7 +354,7 @@ export class CapitalDashboardInvestorsComponent {
   }
 
   retryLoad(): void {
-    this.dispatchLoad(true);
+    this.dispatchLoad(true, true);
   }
 
   openInvestor(row: InvestorTableRow): void {
@@ -428,7 +430,17 @@ export class CapitalDashboardInvestorsComponent {
     };
   }
 
-  private dispatchLoad(replace: boolean): void {
+  private dispatchLoad(replace: boolean, force = false): void {
+    const requestKey = JSON.stringify([
+      this.buildListQueryParams(),
+      this.currentPage(),
+      this.pageSize(),
+    ]);
+    if (!force && requestKey === this.lastLoadRequestKey) {
+      return;
+    }
+    this.lastLoadRequestKey = requestKey;
+
     const activeSortColumn = this.sortColumn();
     const sortBy = activeSortColumn
       ? INVESTORS_TABLE_SORT_API_FIELDS[activeSortColumn]

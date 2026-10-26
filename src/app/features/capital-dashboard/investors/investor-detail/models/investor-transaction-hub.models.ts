@@ -8,6 +8,9 @@ export type InvestorTransactionCategoryId =
   | 'capital-obligations'
   | 'net-assets';
 
+/** Delay before background-loading the transaction tabs that are not open. */
+export const TRANSACTION_HUB_PREFETCH_DELAY_MS = 600;
+
 export interface InvestorTransactionCategory {
   id: InvestorTransactionCategoryId;
   label: string;

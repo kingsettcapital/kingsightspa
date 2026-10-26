@@ -1088,13 +1088,20 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
     this.isLoadingFilters.set(true);
     this.errorMessage.set('');
 
+    this.cmhcUploadApi
+      .getHistory()
+      .pipe(catchError(() => of([])))
+      .subscribe((uploads) => this.qrSlideUploads.set(this.normalizeQrSlideUploads(uploads)));
+    this.ltvApi
+      .getColumnDates()
+      .pipe(catchError(() => of(null)))
+      .subscribe((columnDates) => this.applyColumnDates(columnDates));
+
     forkJoin({
       aliases: this.loanAliasApi.getAll().pipe(catchError(() => of([]))),
       statuses: this.securityValueApi.getStatuses().pipe(catchError(() => of([]))),
-      uploads: this.cmhcUploadApi.getHistory().pipe(catchError(() => of([]))),
-      columnDates: this.ltvApi.getColumnDates().pipe(catchError(() => of(null))),
     }).subscribe({
-      next: ({ aliases, statuses, uploads, columnDates }) => {
+      next: ({ aliases, statuses }) => {
         this.aliasOptions.set(
           aliases
             .map((a) => ({
@@ -1108,8 +1115,6 @@ export class LtvValidationComponent implements OnInit, OnDestroy {
         const statusOpts = normalizeStatusOptions(statuses);
         this.statusOptions.set(statusOpts);
         this.selectedStatuses.set(resolveFundedAndDefaultStatusValues(statusOpts));
-        this.qrSlideUploads.set(this.normalizeQrSlideUploads(uploads));
-        this.applyColumnDates(columnDates);
         this.isLoadingFilters.set(false);
 
         if (!this.aliasOptions().length) {

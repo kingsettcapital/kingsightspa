@@ -111,6 +111,119 @@
   font-size: 0.8125rem;
 }
 
+.red-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 14rem;
+  margin-bottom: 0.6rem;
+  padding: 0.75rem;
+  border: 1px dashed var(--ks-color-border);
+  border-radius: 4px;
+  color: var(--ks-color-text-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.red-drop:hover,
+.red-drop--over {
+  border-color: var(--ks-color-text);
+  background: var(--ks-color-table-head-bg, #f3f4f6);
+}
+
+.red-drop mat-icon {
+  width: 2rem;
+  height: 2rem;
+  font-size: 2rem;
+}
+
+.red-viewer-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.red-viewer-tools__spacer {
+  flex: 1;
+}
+
+.red-viewer-tools__choose {
+  height: 2rem;
+  font-size: 0.75rem;
+}
+
+.red-zoom-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.4rem;
+  border: 1px solid var(--ks-color-border);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--ks-color-text);
+  cursor: pointer;
+}
+
+.red-zoom-btn:hover:not(:disabled) {
+  border-color: var(--ks-color-text);
+}
+
+.red-zoom-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.red-zoom-btn--label {
+  min-width: 3.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.red-zoom-btn mat-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  font-size: 1.15rem;
+}
+
+/* Fitted image centred; once zoomed past fit, scroll both ways from the top-left. */
+.red-viewer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 22rem;
+  margin-bottom: 0.6rem;
+  overflow: auto;
+  border: 1px solid var(--ks-color-border);
+  border-radius: 4px;
+  background: var(--ks-color-table-head-bg, #f3f4f6);
+}
+
+.red-viewer--zoomed {
+  display: block;
+  cursor: grab;
+}
+
+.red-viewer--panning {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.red-viewer__image {
+  display: block;
+  max-width: none;
+  height: auto;
+}
+
+.red-viewer--zoomed .red-viewer__image {
+  margin: 0 auto;
+}
+
 @media (max-width: 640px) {
   .red-grid {
     grid-template-columns: 1fr;

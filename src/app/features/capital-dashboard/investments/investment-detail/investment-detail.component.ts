@@ -45,7 +45,10 @@ import {
   bindDetailSectionScrollSpy,
   flattenSidebarSectionIds,
 } from '../../shared/utils/detail-section-scroll-spy.util';
-import { INVESTMENT_DETAIL_SIDEBAR_SECTIONS } from './models/investment-detail-sidebar.config';
+import {
+  INVESTMENT_DETAIL_SIDEBAR_SECTIONS,
+  SHOW_FUND_FINANCIAL_METRICS,
+} from './models/investment-detail-sidebar.config';
 import {
   buildFlatInvestmentBlocks,
   FundOverviewInput,
@@ -69,6 +72,7 @@ import {
 import {
   InvestorTransactionCategoryId,
   InvestorTransactionFilterOption,
+  TRANSACTION_HUB_PREFETCH_DELAY_MS,
 } from '../../investors/investor-detail/models/investor-transaction-hub.models';
 import { INVESTMENT_DETAIL_DUMMY } from './data/investment-detail-dummy.data';
 
@@ -112,6 +116,7 @@ export class InvestmentDetailComponent {
   /** Fund Financial Metrics is only shown for CREIF. */
   readonly showFinancialMetrics = computed(
     () =>
+      SHOW_FUND_FINANCIAL_METRICS &&
       (readFundDetailString(this.detail(), 'fund_code', 'fundCode') || this.financialMetrics()?.fundCode || '')
         .trim()
         .toUpperCase() === 'CREIF',
@@ -374,6 +379,9 @@ export class InvestmentDetailComponent {
   private lastTransactionHubPeriodLoadKey = '';
 
   private lastTransactionHubFilterPeriodLoadKey = '';
+  private readonly transactionHubFiltersLoaded = new Set<InvestorTransactionCategoryId>();
+  private readonly transactionHubTablesLoaded = new Set<InvestorTransactionCategoryId>();
+  private transactionHubPrefetchTimer: ReturnType<typeof setTimeout> | null = null;
 
   private lastHubResetKey = '';
   /** List period to restore after hub reset (reset otherwise forces quarterScope=all). */
@@ -467,7 +475,11 @@ export class InvestmentDetailComponent {
   constructor() {
     effect(() => {
       if (!this.showNetAssetsHubCategory() && this.transactionHubCategory() === 'net-assets') {
-        untracked(() => this.transactionHubCategory.set('capital-activities'));
+        untracked(() => {
+          this.transactionHubCategory.set('capital-activities');
+          this.loadTransactionHubTableOnce('capital-activities');
+          this.loadAllTransactionHubFilters();
+        });
       }
     });
 
@@ -534,6 +546,7 @@ export class InvestmentDetailComponent {
     this.applyListReportingPeriod(navigationState);
 
     this.destroyRef.onDestroy(() => {
+      this.cancelTransactionHubPrefetch();
       this.store.dispatch(FundsApiActions.clearDetail());
     });
 
@@ -595,7 +608,7 @@ export class InvestmentDetailComponent {
     effect(() => {
       const fundKey = this.fundKey();
       const view = this.timeframe();
-      if (fundKey == null) {
+      if (fundKey == null || !SHOW_FUND_FINANCIAL_METRICS) {
         return;
       }
 
@@ -729,6 +742,8 @@ export class InvestmentDetailComponent {
       return;
     }
     this.transactionHubCategory.set(categoryId);
+    this.loadTransactionHubTableOnce(categoryId);
+    this.loadAllTransactionHubFilters();
   }
 
   onTransactionHubPageChange(page: number): void {
@@ -1045,15 +1060,36 @@ export class InvestmentDetailComponent {
   }
 
   private loadAllTransactionHubTables(): void {
-    const state = untracked(() => this.detailState());
-    for (const categoryId of this.visibleTransactionHubCategories()) {
-      this.loadTransactionHubCategory(
-        categoryId,
-        fundHubCategorySearchKey(categoryId, state),
-        1,
-      );
-    }
+    this.transactionHubTablesLoaded.clear();
+    this.cancelTransactionHubPrefetch();
+    this.loadTransactionHubTableOnce(untracked(() => this.transactionHubCategory()));
     this.loadAllTransactionHubFilters();
+    // Open tab first; the others follow shortly so every tab count still fills in.
+    this.transactionHubPrefetchTimer = setTimeout(() => {
+      this.transactionHubPrefetchTimer = null;
+      for (const categoryId of this.visibleTransactionHubCategories()) {
+        this.loadTransactionHubTableOnce(categoryId);
+      }
+    }, TRANSACTION_HUB_PREFETCH_DELAY_MS);
+  }
+
+  private loadTransactionHubTableOnce(categoryId: InvestorTransactionCategoryId): void {
+    if (
+      this.transactionHubTablesLoaded.has(categoryId) ||
+      !this.visibleTransactionHubCategories().includes(categoryId)
+    ) {
+      return;
+    }
+    this.transactionHubTablesLoaded.add(categoryId);
+    const state = untracked(() => this.detailState());
+    this.loadTransactionHubCategory(categoryId, fundHubCategorySearchKey(categoryId, state), 1);
+  }
+
+  private cancelTransactionHubPrefetch(): void {
+    if (this.transactionHubPrefetchTimer != null) {
+      clearTimeout(this.transactionHubPrefetchTimer);
+      this.transactionHubPrefetchTimer = null;
+    }
   }
 
   private loadAllTransactionHubFilters(): void {
@@ -1082,14 +1118,21 @@ export class InvestmentDetailComponent {
       view === 'quarterly' ? (dateKey ?? '') : '',
     ].join('|');
 
-    if (filterLoadKey === this.lastTransactionHubFilterPeriodLoadKey) {
+    if (filterLoadKey !== this.lastTransactionHubFilterPeriodLoadKey) {
+      this.lastTransactionHubFilterPeriodLoadKey = filterLoadKey;
+      this.transactionHubFiltersLoaded.clear();
+    }
+
+    // Filter options only feed the open tab's dropdown; other tabs load theirs when opened.
+    const categoryId = untracked(() => this.transactionHubCategory());
+    if (
+      this.transactionHubFiltersLoaded.has(categoryId) ||
+      !this.visibleTransactionHubCategories().includes(categoryId)
+    ) {
       return;
     }
-    this.lastTransactionHubFilterPeriodLoadKey = filterLoadKey;
-
-    for (const categoryId of this.visibleTransactionHubCategories()) {
-      this.loadTransactionHubFilters(categoryId);
-    }
+    this.transactionHubFiltersLoaded.add(categoryId);
+    this.loadTransactionHubFilters(categoryId);
   }
 
   private loadTransactionHubFilters(categoryId: InvestorTransactionCategoryId): void {

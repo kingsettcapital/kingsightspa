@@ -2,6 +2,7 @@ import { DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import {
   catchError,
+  debounceTime,
   distinctUntilChanged,
   EMPTY,
   filter,
@@ -35,6 +36,8 @@ export class NotificationUnreadCountService {
   constructor() {
     this.refreshTrigger
       .pipe(
+        // start(), the first NavigationEnd and login all fire together; send one request.
+        debounceTime(300),
         switchMap(() =>
           this.notificationsApi.getAll().pipe(
             map((rows) => rows.filter((row) => !row.isRead).length),

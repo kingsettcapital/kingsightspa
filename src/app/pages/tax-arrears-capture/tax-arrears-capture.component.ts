@@ -913,6 +913,8 @@ export class TaxArrearsCaptureComponent implements OnInit {
   private loadFilters(): void {
     this.isLoadingFilters.set(true);
     this.errorMessage.set('');
+    this.selectedStatuses.set([]);
+    this.loadGrid();
 
     forkJoin({
       aliases: this.loanAliasApi.getAll().pipe(catchError(() => of([]))),
@@ -931,11 +933,10 @@ export class TaxArrearsCaptureComponent implements OnInit {
             .sort((a, b) => a.loanAliasName.localeCompare(b.loanAliasName)),
         );
         this.statusOptions.set(this.normalizeStatusOptions(statuses));
-        this.selectedStatuses.set([]);
         this.allLoans.set(Array.isArray(loans) ? loans : []);
         this.taxYearOptions.set(this.buildTaxYearOptions(lookups));
+        this.mergeTaxYearsFromRows(this.rows());
         this.isLoadingFilters.set(false);
-        this.loadGrid();
       },
       error: () => {
         this.isLoadingFilters.set(false);
