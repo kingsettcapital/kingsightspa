@@ -45,7 +45,10 @@ import {
   bindDetailSectionScrollSpy,
   flattenSidebarSectionIds,
 } from '../../shared/utils/detail-section-scroll-spy.util';
-import { INVESTMENT_DETAIL_SIDEBAR_SECTIONS } from './models/investment-detail-sidebar.config';
+import {
+  INVESTMENT_DETAIL_SIDEBAR_SECTIONS,
+  SHOW_FUND_FINANCIAL_METRICS,
+} from './models/investment-detail-sidebar.config';
 import {
   buildFlatInvestmentBlocks,
   FundOverviewInput,
@@ -113,6 +116,7 @@ export class InvestmentDetailComponent {
   /** Fund Financial Metrics is only shown for CREIF. */
   readonly showFinancialMetrics = computed(
     () =>
+      SHOW_FUND_FINANCIAL_METRICS &&
       (readFundDetailString(this.detail(), 'fund_code', 'fundCode') || this.financialMetrics()?.fundCode || '')
         .trim()
         .toUpperCase() === 'CREIF',
@@ -604,7 +608,7 @@ export class InvestmentDetailComponent {
     effect(() => {
       const fundKey = this.fundKey();
       const view = this.timeframe();
-      if (fundKey == null) {
+      if (fundKey == null || !SHOW_FUND_FINANCIAL_METRICS) {
         return;
       }
 

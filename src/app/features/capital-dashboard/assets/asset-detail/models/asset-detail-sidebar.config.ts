@@ -1,6 +1,9 @@
 import { InvestorDetailSidebarSection } from '../../../investors/investor-detail/models/investor-detail-table.models';
 
-export const ASSET_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] = [
+/** Financial Metrics is hidden for now; set to true to show the section (and load its data) again. */
+export const SHOW_ASSET_FINANCIAL_METRICS = false;
+
+const ALL_ASSET_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] = [
   {
     title: 'Overview',
     items: [{ id: 'overview', label: 'Overview' }],
@@ -17,3 +20,11 @@ export const ASSET_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] = [
     ],
   },
 ];
+
+export const ASSET_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] =
+  ALL_ASSET_DETAIL_SIDEBAR_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter(
+      (item) => SHOW_ASSET_FINANCIAL_METRICS || item.id !== 'financial-metrics',
+    ),
+  }));
