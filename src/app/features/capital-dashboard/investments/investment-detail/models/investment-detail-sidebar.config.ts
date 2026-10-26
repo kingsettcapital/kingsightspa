@@ -1,5 +1,8 @@
 import { InvestorDetailSidebarSection } from '../../../investors/investor-detail/models/investor-detail-table.models';
 
+/** Financial Metrics is hidden for now; set to true to show the section (CREIF only) and load its data again. */
+export const SHOW_FUND_FINANCIAL_METRICS = false;
+
 /** Left-nav order for the investment fund drill-down. */
 export const INVESTMENT_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] = [
   {
