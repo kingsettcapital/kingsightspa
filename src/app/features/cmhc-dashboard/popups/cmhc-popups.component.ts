@@ -1,5 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, computed, HostListener, inject } from '@angular/core';
 
 import { CmhcData, CmhcDeal } from '../cmhc-dashboard.models';
 import { CmhcDataService } from '../cmhc-data.service';
@@ -32,7 +31,6 @@ interface MilestoneStep {
 })
 export class CmhcPopupsComponent {
   private readonly dataService = inject(CmhcDataService);
-  private readonly router = inject(Router);
 
   readonly e = computed(() => this.dataService.engine());
   readonly popup = this.dataService.listPopup;
@@ -230,8 +228,12 @@ export class CmhcPopupsComponent {
   /** A flag chip jumps to the Methodology tab's flag legend (v4 goToFlagLegend). */
   goToFlagLegend(event: Event): void {
     event.stopPropagation();
+    this.dataService.goToFlagLegend();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
     this.dataService.closePopups();
-    void this.router.navigate(['/cmhc-dashboard', 'methodology'], { fragment: 'legend-note-card' });
   }
 
   meta(flag: string): CmhcData {

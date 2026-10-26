@@ -1,4 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { CmhcApiService } from './cmhc-api.service';
@@ -15,6 +16,7 @@ const POOL_WEEK_STORAGE_KEY = 'cmhc_pool_week_v1';
 @Injectable({ providedIn: 'root' })
 export class CmhcDataService {
   private readonly api = inject(CmhcApiService);
+  private readonly router = inject(Router);
 
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
@@ -26,6 +28,9 @@ export class CmhcDataService {
 
   /** Selected person per person-view (uw / orig / rev / pool), as v4's curUW / curOrig / curRev / curPool. */
   readonly curPerson = signal<Record<string, number>>({ uw: 0, orig: 0, rev: 0, pool: 0 });
+
+  /** Stage filter chips per person-view (v4 STAGE_FILTER). */
+  readonly stageFilter = signal<Record<string, string[]>>({ uw: [], orig: [], rev: [], pool: [] });
 
   readonly dealPopup = signal<number | null>(null);
   readonly listPopup = signal<CmhcListPopup | null>(null);
@@ -97,7 +102,33 @@ export class CmhcDataService {
   }
 
   openList(popup: CmhcListPopup): void {
+    // Like v4: nothing opens when there is nothing to list.
+    const data = this.data();
+    if (popup.kind === 'deals' && !popup.deals.length) return;
+    if (popup.kind === 'funded') {
+      const pool = (data?.pools ?? []).find((x: { pool: string }) => x.pool === popup.pool);
+      if (!pool?.fundedList?.length) return;
+    }
+    if (popup.kind === 'move') {
+      const mv = data?.poolMoves?.byPool?.[popup.pool];
+      if (!mv || (!mv.addN && !mv.remN && !mv.fundN)) return;
+    }
     this.listPopup.set(popup);
+  }
+
+  /** Empty stage clears the filter; otherwise toggles that stage on or off. */
+  toggleStage(type: string, stage: string): void {
+    this.stageFilter.update((all) => {
+      const cur = all[type] ?? [];
+      const next = stage === '' ? [] : cur.includes(stage) ? cur.filter((s) => s !== stage) : [...cur, stage];
+      return { ...all, [type]: next };
+    });
+  }
+
+  /** A flag chip jumps to the Methodology tab's flag legend (v4 goToFlagLegend). */
+  goToFlagLegend(): void {
+    this.closePopups();
+    void this.router.navigate(['/cmhc-dashboard', 'methodology'], { fragment: 'legend-note-card' });
   }
 
   closePopups(): void {

@@ -1,0 +1,126 @@
+@let engine = e();
+
+@if (type === 'pool' && weekPick(); as weeks) {
+  <div class="wk-pick">
+    <label for="wk-sel">Movement measured since</label>
+    <select id="wk-sel" (change)="setWeek($any($event.target).value)">
+      @for (w of weeks; track w.value) {
+        <option [value]="w.value" [selected]="w.selected">{{ w.label }}</option>
+      }
+    </select>
+  </div>
+}
+
+<div class="present-nav">
+  <button type="button" class="nav-btn" (click)="step(-1)">&#8249;</button>
+  <div class="person-pick">
+    @for (p of people(); track p.name; let i = $index) {
+      <div class="person-chip" [class.active]="i === current()" (click)="select(i)">
+        {{ chipLabel(p) }} <span style="opacity:0.6">{{ p.count }}</span>
+      </div>
+    }
+  </div>
+  <button type="button" class="nav-btn" (click)="step(1)">&#8250;</button>
+</div>
+
+@if (person(); as p) {
+  <div class="stage-filter">
+    <div class="stage-btn" [class.active]="stageSel().length === 0" (click)="toggleStage('')">
+      All <span class="sc">{{ deals().length }}</span>
+    </div>
+    @for (s of stages; track s) {
+      <div class="stage-btn" [class.active]="stageSel().includes(s)" (click)="toggleStage(s)">
+        {{ s }} <span class="sc">{{ stageCounts()[s] }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="person-header">
+    @if (type === 'pool') {
+      @let mv = poolMove();
+      <div class="ph-name">{{ p.name }} Pool</div>
+      <div class="ph-stats">
+        <div class="ph-stat"><div class="v">{{ p.count }}</div><div class="l">Files</div></div>
+        <div class="ph-stat"><div class="v">{{ engine.Mr(p.volume) }}</div><div class="l">Volume</div></div>
+        <div class="ph-stat">
+          <div class="v" [style.color]="(p.atRisk || 0) > 0 ? 'var(--amber)' : '#fff'">{{
+            (p.atRisk || 0) > 0 ? engine.Mr(p.atRisk) + ' (' + p.atRiskCount + ')' : '—'
+          }}</div>
+          <div class="l">At risk</div>
+        </div>
+        <div class="ph-stat" [class.live]="mv.live" [attr.title]="mv.title" (click)="mv.live && openMove(p.name)">
+          <div class="v"><span [style.color]="mv.dark">{{ mv.txt }}</span></div>
+          <div class="l">{{ poolMoveLabel() }}</div>
+        </div>
+        <div
+          class="ph-stat"
+          [class.live]="p.fundedCount"
+          [attr.title]="p.fundedCount + ' loan' + plural(p.fundedCount) + ' funded into this pool'"
+          (click)="p.fundedCount && openFunded(p.name)"
+        >
+          <div class="v" style="color:#fff">{{ p.fundedCount ? engine.M(p.fundedVol) + ' (' + p.fundedCount + ')' : '—' }}</div>
+          <div class="l">Funded</div>
+        </div>
+      </div>
+    } @else {
+      <div class="ph-name">{{ p.name }}</div>
+      <div class="ph-stats">
+        <div class="ph-stat"><div class="v">{{ stageCounts()['Submitted'] }}</div><div class="l">Submitted</div></div>
+        <div class="ph-stat"><div class="v">{{ activeCount() }}</div><div class="l">Active</div></div>
+        <div class="ph-stat"><div class="v">{{ engine.Mr(p.volume) }}</div><div class="l">Volume</div></div>
+        <div class="ph-stat"><div class="v gold">{{ engine.Mr(next30Vol()) }}</div><div class="l">Next 30d</div></div>
+      </div>
+    }
+  </div>
+
+  <div class="deal-list">
+    @for (g of groups(); track g.title) {
+      <div class="deal-month">{{ g.title }} ({{ g.count }})</div>
+      @for (r of g.rows; track r.index) {
+        <div class="deal-row {{ r.rowClass }}" (click)="openDeal(r.index)">
+          <div class="dr-date">
+            <div class="d-day">{{ r.day }}</div>
+            <div class="d-mon">{{ r.mon }}</div>
+            @if (r.dtfStyle) {
+              <span class="d-dtf" [style]="r.dtfStyle">{{ engine.fmtDays(r.deal.dtf) }}</span>
+            }
+          </div>
+          <div class="dr-stage">
+            <span class="status-badge {{ r.statusClass }}">{{ r.status }}</span>
+            <span class="stage-pill stage-{{ r.stage.toLowerCase() }}">{{ r.stage }}</span>
+          </div>
+          <div>
+            <div class="d-name">{{ r.deal.name || '—' }}</div>
+            <div class="d-sub">
+              <b>{{ r.deal.sponsor || '' }}</b>{{ r.sub2 }}
+              @if (r.construction) {
+                &middot; <b style="color:var(--orange)">Construction</b>
+              }
+              @if (r.deal.affordable === 'Yes') {
+                &middot; <b style="color:var(--green)">Affordable</b>
+              }
+            </div>
+          </div>
+          <div class="dr-update" [class.empty]="!r.deal.statusNote">{{ r.deal.statusNote || '—' }}</div>
+          <div class="dr-amount">
+            <div class="a-loan">{{ engine.M(r.deal.loan || 0) }}</div>
+            <div class="a-sub">{{ r.deal.cmb || '' }}</div>
+          </div>
+          @if (r.flags.length) {
+            <div class="dr-flags">
+              @for (f of r.flags; track f) {
+                @if (flagMeta(f); as m) {
+                  <span class="flag-chip {{ m.cls }}" [attr.title]="flagTitle(f)" (click)="goToFlagLegend($event)">{{ m.label }}</span>
+                }
+              }
+            </div>
+          } @else {
+            <div class="dr-clean">&#10003; on track</div>
+          }
+        </div>
+      }
+    }
+  </div>
+} @else {
+  <div class="person-header"><div class="ph-name">No {{ emptyLabel }} in this dataset</div></div>
+}
