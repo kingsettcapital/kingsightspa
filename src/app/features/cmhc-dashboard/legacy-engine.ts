@@ -5,6 +5,11 @@ export function createLegacyEngine(state) {
   var HIST = state.hist || null;
   var POOL_WEEK_SEL = state.poolWeekSel || null;
   var DATA = null;   /* v4's global report model; computeDataIssues() reads it */
+  var CUR_META = null;      /* asOf and fileName of the dataset on show */
+  var HIST_NOTICE = '';
+  /* v4 persisted these to localStorage; the host app persists them through callbacks instead. */
+  function saveHist() { if (state.onHistChange) state.onHistChange(HIST); }
+  function saveTlHidden() { if (state.onTlHiddenChange) state.onTlHiddenChange(TL_HIDDEN); }
 var FIELD_DEFS=[
   {key:'loanNo',      label:'Loan No',              required:false, aliases:['loan no','loan number','loan #','loan id','kingsett loan no']},
   {key:'name',        label:'Deal Name',            required:true,  aliases:['deal name','property','address','name']},
@@ -702,10 +707,585 @@ function computePoolMoves(records,asOf){
   return out;
 }
 
+var HIST_SEED_VERSION='2026-08-18-2';
+
+var HIST_SEED=[
+["301-339 Rue Hurteau, Dollards-des-Ormeaux, QC","Alan Mak","2026-01-14","2025-07-10","C1732"],
+["1325 Pendrell Street, Vancouver, BC","Alan Mak","2026-01-16","2025-09-23","C1823"],
+["511 Braid Street, Penticton, BC","Alan Mak","2026-01-27","2025-10-21","C1856"],
+["7100 rue Viau, Montreal, QC","Alan Mak","2026-01-28","2025-04-24","C1610"],
+["7150 rue Viau, Montreal, QC","Alan Mak","2026-01-28","2025-04-24","C1611"],
+["2206 30 Street SW, Calgary AB","Vishnu Katyal","2026-01-29","2025-12-15","C1661"],
+["400 Albert St., Ottawa, ON","Vishnu Katyal","2026-01-29","2025-07-08","C1723"],
+["527 18 Avenue SW, Calgary, AB","Vishnu Katyal","2026-01-29","2025-12-23","C1950"],
+["2 Ackerman St, Prince Edward, ON","Arshan Bains","2026-01-30","2025-08-26","C1800"],
+["160 Cockburn St, Campbellford, ON","Arshan Bains","2026-01-30","2025-08-26","C1802"],
+["507-513 Herring Cove Road, Halifax, NS","Alan Mak","2026-01-30","2025-10-27","C1862"],
+["240 Back Road, Courtenay, BC","Vishnu Katyal","2026-01-30","2025-11-27","C1913"],
+["252 Phillip Street, Waterloo, ON","Jacquie Tam","2026-02-02","2025-10-20","C1765"],
+["1960 Macdonald St, Vancouver, BC","Vishnu Katyal","2026-02-02","2025-10-27","C1870"],
+["11302 72 Avenue NW, Edmonton, Alberta","Alan Mak","2026-02-05","2025-07-09","C1735"],
+["43 Batavia Ave, Toronto, ON","Mark Tamberg","2026-02-06","2025-07-10","C1722"],
+["79 Marquette Ave, Ottawa, ON","Alan Mak","2026-02-06","2025-07-14","C1756"],
+["215 Raglan St, Woodstock, ON","Mark Tamberg","2026-02-10","2025-06-18","C1687"],
+["3705 Bathurst Street, Toronto, ON","Vishnu Katyal","2026-02-11","2025-03-18","C1589"],
+["505 Kingston Road, Toronto, ON","Vishnu Katyal","2026-02-11","2025-03-18","C1588"],
+["201 Rue Saint-Georges, Saint-Jean-sur-Richelieu, QC","Alan Mak","2026-02-12","2025-10-27","C1920"],
+["245 Boulevard Robert-Bourassa, Montreal, QC","Jacquie Tam","2026-02-13","2025-11-10","C1846"],
+["146-148 Montée de Saint-Sulpice, Saint-Sulpice, QC","Jacquie Tam","2026-02-17","2025-07-07","C1727"],
+["218 2 Street Northeast, Medicine Hat, AB","Jacquie Tam","2026-02-17","2025-10-22","C1861"],
+["15-21 Rue de Liverpool, Gatineau, QC","Jessica Froese","2026-02-19","2025-10-17","C1852"],
+["1040 Clarence St, North Bay, ON","Mark Tamberg","2026-02-20","2025-05-20","C1631"],
+["2710 Rue Provost, Montreal, QC","Mark Tamberg","2026-02-20","2025-12-02","C1825"],
+["1037 East 8th Ave, Vancouver, BC","Jessica Froese","2026-02-23","2025-10-15","C1848"],
+["4570 Avenue Saint-Kevin, Montreal, QC","Alan Mak","2026-02-23","2026-01-05","C1926"],
+["1126-1154 Adelaide Street North, London, ON","Vishnu Katyal","2026-02-25","2025-09-04","C1775"],
+["330 Nancy Elliott, Gatineau, QC","Vishnu Katyal","2026-02-26","2025-07-11","C1742"],
+["366 Howard Avenue, Burnaby, BC","Arshan Bains","2026-02-26","2025-11-26","C1909"],
+["300 rue Young, Montreal, Qc","Mark Tamberg","2026-02-27","2025-07-11","C1743"],
+["48-66 rue des Bouleaux","Mark Tamberg","2026-02-27","2025-10-02","C1815"],
+["1137 Dovercourt Road, Toronto, ON","Alan Mak","2026-02-27","2025-11-06","C1888"],
+["14 Salem Avenue, Toronto, ON","Alan Mak","2026-02-27","2025-11-06","C1887"],
+["50 Raglan Avenue, Toronto ON","Vishnu Katyal","2026-02-27","2025-11-25","C1910"],
+["750-800 Rue Flavie Poirier, Saint-Charles-Borromée, QC","Vishnu Katyal","2026-03-02","2025-07-07","C1726"],
+["10924 82 Street NW, Edmonton, AB","Vishnu Katyal","2026-03-02","2026-01-15","C1983"],
+["525 32 Avenue, Montreal, QC","Jessica Froese","2026-03-03","2025-09-11","C1819"],
+["443 Pearl Street","Vishnu Katyal","2026-03-04","2025-10-21","C1857"],
+["995-1005-1015 Montée Masson, Mascouche, QC","Alan Mak","2026-03-09","2025-10-16","C1839"],
+["538 Union Street, Vancouver, BC","Alan Mak","2026-03-09","2025-11-05","C1889"],
+["32 East 17th Avenue, Vancouver, BC","Alan Mak","2026-03-09","2025-11-05","C1886"],
+["1155 Rue Saint-Charles Ouest, Longueuil, QC","Vishnu Katyal","2026-03-10","2025-10-29","C1838"],
+["330 McLeod Avenue, Ottawa, ON","Mark Tamberg","2026-03-11","2025-06-05","C1698"],
+["12932 118 Avenue NW, Edmonton, AB","Vishnu Katyal","2026-03-11","2025-11-27","C1912"],
+["813-823 6e Avenue, Montréal, QC","Jacquie Tam","2026-03-12","2025-09-20","C1820"],
+["2588 Rue Joliette, Montreal, QC","Jessica Froese","2026-03-12","2025-11-26","C1877"],
+["4455 Rue de Bellechasse, Montreal, QC","Alan Mak","2026-03-13","2025-12-05","C1878"],
+["1125 Rue Notre-Dame, Montreal, QC","Jessica Froese","2026-03-19","2025-10-11","C1827"],
+["2029 Visitation, Saint-Charles-Borromée, QC","Jacquie Tam","2026-03-20","2025-10-20","C1855"],
+["1866 Bergemont, Québec, QC","Jacquie Tam","2026-03-25","2026-01-06","C1957"],
+["4662-4670 ave Papineau, Montreal, QC","Jessica Froese","2026-03-26","2025-12-03","C1907"],
+["129 32 Avenue NE, Calgary, AB","Alan Mak","2026-03-27","2026-01-28","C2005"],
+["5280 Beaubien, Montreal, QC","Mark Tamberg","2026-03-30","2025-10-21","C1947"],
+["10 Wasdale Crescent, North York, ON","Alan Mak","2026-04-01","2026-01-12","C1967"],
+["6520 ave de Lorimier, Montreal, QC","Mark Tamberg","2026-04-01","2026-01-26","C1975"],
+["8160 rue Chambord, Montreal, QC","Mark Tamberg","2026-04-01","2026-01-26","C1976"],
+["15 Millwood Crescent, Kitchener ON","Vishnu Katyal","2026-04-02","2025-11-20","C1906"],
+["522 East 8th Avenue, Vancouver, BC","Jessica Froese","2026-04-02","2026-02-03","C2014"],
+["587 9 Ave, Kamloops, BC","Jessica Froese","2026-04-07","2025-10-08","C1844"],
+["35 Rue Perreault, Victoriaville, QC","Jacquie Tam","2026-04-08","2026-01-26","C2002"],
+["1024 King Street East, Hamilton, ON","Mark Tamberg","2026-04-09","2026-01-05","C1960"],
+["253 York Street, Ottawa ON","Vishnu Katyal","2026-04-10","2025-05-28","C1637"],
+["82-94 Carden Street & 75-87 Macdonell Street, Guelph, ON","Alan Mak","2026-04-10","2026-01-12","C1968"],
+["89 Ofield Road, Hamilton, ON","Jacquie Tam","2026-04-10","2026-01-26","C1992"],
+["232 Pockwock Road, Hammons Plains, NS","Mark Tamberg","2026-04-10","2026-01-24","C1995"],
+["2001 Dubreuil, Sherbrooke, QC","Jacquie Tam","2026-04-13","2025-11-10","C1868"],
+["2940 Mazenod, Longueuil, QC","Jessica Froese","2026-04-13","2025-12-08","C1943"],
+["230 Turcotte, Longueuil, QC","Jessica Froese","2026-04-13","2025-12-08","C1914"],
+["4740 Boulevard Dagenais Ouest, Laval, QC","Alan Mak","2026-04-14","2025-10-22","C1840"],
+["4225 Rue Olivier-Fournier, Longueuil, QC","Jacquie Tam","2026-04-14","2026-01-26","C1921"],
+["4218 Portage Road, Niagara Falls, ON","Vishnu Katyal","2026-04-15","2025-12-10","C1929"],
+["4520 47 Street, Leduc, AB","Jacquie Tam","2026-04-16","2026-02-12","C2036"],
+["612 East 7th Avenue, Vancouver, BC","Jessica Froese","2026-04-16","2026-02-03","C2015"],
+["1344 East 1st Avenue, Vancouver, BC","Jessica Froese","2026-04-16","2026-02-03","C2016"],
+["1216 15 Avenue SW, Calgary, AB","Vishnu Katyal","2026-04-17","2026-01-13","C1984"],
+["1741 University Avenue West, Windsor, ON","Alan Mak","2026-04-17","2026-01-15","C1982"],
+["59 Lunness Road, Toronto, ON","Mark Tamberg","2026-04-20","2025-12-16","C1930"],
+["14-16A Cross Street, Dundas, ON","Vishnu Katyal","2026-04-22","2026-03-16","C2094"],
+["269 Rue Marie-Anne, Montreal, QC ","Mark Tamberg","2026-04-23","2026-01-20","C1949"],
+["727 East 7th Avenue, Vancouver, BC","Jessica Froese","2026-04-24","2026-02-03","C2013"],
+["2760 Place de Darlington, Montreal, QC","Jessica Froese","2026-04-27","2025-12-18","C1940"],
+["2800 Place de Darlington, Montreal, QC","Jessica Froese","2026-04-27","2025-12-18","C1941"],
+["2865 Place de Darlington, Montreal, QC","Jessica Froese","2026-04-27","2025-12-18","C1942"],
+["2740 Place de Darlington, Montreal, QC","Jessica Froese","2026-04-27","2026-02-06","C2007"],
+["418 Hartleigh Ave, Ottawa, ON","Alan Mak","2026-04-30","2025-10-01","C1836"],
+["651 Victoria Street, Kingston, ON","Vishnu Katyal","2026-04-30","2026-03-05","C2086"],
+["677 East 7th Avenue, Vancouver, BC","Jessica Froese","2026-05-06","2026-02-03","C2012"],
+["1805 Avenue Cardinal, Dorval, QC","Alan Mak","2026-05-07","2026-03-05","C2020"],
+["320 9 Street NW, Calgary AB","Vishnu Katyal","2026-05-12","2026-01-08","C1961"],
+["459 Lyndoch Street, Corunna, ON","Alan Mak","2026-05-13","2026-01-12","C1970"],
+["1243 Bay Street, Victoria, BC","Jessica Froese","2026-05-14","2025-11-17","C1905"],
+["3880 Plamondon, Montreal, QC","Jessica Froese","2026-05-21","2026-02-02","C2018"],
+["909 7th Avenue SW, Calgary, AB (Garden Towers)","Mark Tamberg","2026-05-25","2025-09-09","C1807"],
+["3275 Mont Royal, Longueuil, QC","Mark Tamberg","2026-05-27","2026-02-02","C1919"],
+["14 Fead St & 9 McCarthy St, Orangeville, ON","Derrick Yick","2026-05-28","2025-10-08","C1843"],
+["9950 Bottom Wood Lake Rd, Lake Country, BC (Phase II)","Vishnu Katyal","2026-05-28","2026-03-20","C2101"],
+["322 Frontenac Street, Ottawa, ON","Mark Tamberg","2026-05-28","2026-03-05","C2019"],
+["9368-9382 Rue Sherbrooke Est, Montreal, QC","Vishnu Katyal","2026-05-28","2026-03-04","C2030"],
+["9384-9406 Rue Sherbrooke Est, Montreal, QC","Vishnu Katyal","2026-05-28","2026-03-04","C2031"],
+["422 Barrie Street, Kingston, ON","Vishnu Katyal","2026-05-28","2026-03-05","C2072"],
+["190 Wilson, Sherbrooke, QC","Alan Mak","2026-05-29","2026-01-08","C2211"],
+["59-63 St. Anthony Street, Chatham, ON","Alan Mak","2026-05-29","2026-01-12","C1969"],
+["959 Dubuisson, Longueuil, QC","Jessica Froese","2026-05-29","2026-02-18","C2052"],
+["370 Lakeshore Road E, Oakville, ON","Vishnu Katyal","2026-05-29","2026-02-23","C2061"],
+["17990 Rue Victor, Mirabel, QC","Jessica Froese","2026-05-29","2026-03-31","C2117"],
+["15 Goyette Street, Gatineau, QC","Jessica Froese","2026-06-01","2025-12-11","C1916"],
+["179 Berry Road, Toronto, ON","Vishnu Katyal","2026-06-01","2026-02-12","C2035"],
+["10-27 Rue de Jouvence, Montreal, QC","Jessica Froese","2026-06-01","2026-02-17","C2038"],
+["2 Torbolton Drive, Etobicoke, ON","Vishnu Katyal","2026-06-01","2026-04-15","C2161"],
+["4010 Lawrence Ave, Toronto, ON (1st Mtg)","Jessica Froese","2026-06-01","2026-03-18","C2082"],
+["9950 Bottom Wood Lake Rd, Lake Country, BC (Phase III)","Vishnu Katyal","2026-06-01","2026-05-05","C2214"],
+["884-886 Byron Avenue, Ottawa, ON","Mark Tamberg","2026-06-05","2025-10-30","C1872"],
+["2000-2022 Laurier Avenue East, Montreal, QC","Jessica Froese","2026-06-04","2025-12-15","C1946"],
+["462 Northcliffe Boulevard, Toronto, ON","Vishnu Katyal","2026-06-12","2026-02-18","C2048"],
+["11820 105 Street NW, Edmonton","Jessica Froese","2026-06-01","2025-07-15","C1748"],
+["5769 Rue Hamilton, Montreal, QC","Jessica Froese","2026-06-10","2026-03-16","C2064"],
+["228-234 Amsterdam, Gatineau, QC","Jessica Froese","2026-06-05","2025-11-26","C1948"],
+["2730 Rue Goyer, Montreal, QC","Mark Tamberg","2026-07-10","2026-03-05","C2055"],
+["1065 a Rue de la Visitation, Saint-Charles-Borromee, QC","Jessica Froese","2026-06-17","2026-02-04","C1963"],
+["200 Commissioners Rd W, London, ON","Mark Tamberg","2026-06-26","2026-01-25","C1993"],
+["330-334 Ferguson Place, London, ON","Mark Tamberg","2026-06-26","2026-01-25","C1994"],
+["1472-1486 Valois, Montréal, QC","Jessica Froese","2026-07-30","2026-03-10","C2085"],
+["915 Rue Walsh, Sherbrooke, QC","Alan Mak","2026-06-17","2026-02-26","C2024"],
+["5735 Chemin Hudson, Montreal, QC","Jessica Froese","2026-06-12","2026-04-21","C2159"],
+["3175 Boulevard LaSalle, Montreal, QC","Jessica Froese","2026-06-10","2026-04-21","C2160"],
+["8665 Osler Street, Vancouver, BC","Mark Tamberg","2026-07-10","2026-03-20","C2096"],
+["90-106 Jean-Paul-Vincent, Longueuil, QC","Vishnu Katyal","2026-06-15","2026-03-12","C1834"],
+["67-71 St. Anthony Street, Chatham, ON","Alan Mak","2026-06-05","2026-01-12","C1974"],
+["6050 27e Avenue, Montreal, QC","Derrick Yick","2026-06-17","2026-03-09","C2041"],
+["91 Rue Barker, Cowansville, QC","Jessica Froese","2026-06-12","2025-12-08","C1939"],
+["73-75 Broadway Avenue, Toronto, ON","Mark Tamberg","2026-06-29","2025-11-24","C1908"],
+["410 Rue Talbot, Longueuil, QC","Mark Tamberg","2026-06-26","2026-02-26","C1928"],
+["5687 Rue Saint-Hubert, Montreal, QC","Jessica Froese","2026-07-22","2026-04-06","C2123"],
+["919 Beaudry, Saint-Jean-sur-Richelieu, QC","Alan Mak","2026-08-01","2026-05-13","C2232"],
+["56 Evans Avenue, Halifax, NS",null,"2026-07-30","2026-05-21","C2256"],
+["11310 72 Avenue NW, Edmonton, AB","Mark Tamberg","2026-07-20","2025-07-09","C1736"],
+["2555 Rue Davidson, Montreal, QC","Matthew Flick","2026-07-29","2026-05-08","C2068"],
+["3101 Lakeshore Rd, Kelowna, BC","Vishnu Katyal","2026-07-23","2026-06-25","C1753"],
+["11 Albion Street, Belleville, ON","Jessica Froese","2026-07-22","2026-02-05","C2021"],
+["11250 Boulevard Lacordaire, Montreal, QC","Matthew Flick","2026-07-22","2026-04-06","C2100"],
+["22 Rue Du Barry, Gatineau, QC","Mehdi Mezghani","2026-07-03","2026-04-17","C2139"],
+["32 Pleasant Street, Bridgewater, NS","Vishnu Katyal","2026-09-09","2026-05-21","C2255"],
+["2449 Chemin Athlone, Montreal, QC","Vishnu Katyal","2026-08-01","2026-06-15","C2238"],
+["1186 Rue Soucy, Longueuil, QC","Alan Mak","2026-07-29","2026-04-17","C2093"],
+["9900 Rue Clark, Montreal, QC","Alan Mak","2026-07-24","2026-06-12","C1918"],
+["216 Boulevard Cartier Ouest, Laval, QC","Tyler Liukkonen","2026-08-31","2026-04-09","C2177"],
+["220 Boulevard Cartier Ouest, Laval, QC","Tyler Liukkonen","2026-08-31","2026-04-09","C2181"],
+["224 Boulevard Cartier Ouest, Laval, QC","Tyler Liukkonen","2026-08-31","2026-04-09","C2183"],
+["228 Boulevard Cartier Ouest, Laval, QC","Tyler Liukkonen","2026-08-31","2026-04-09","C2179"],
+["236 Boulevard Cartier Ouest, Laval, QC","Tyler Liukkonen","2026-08-31","2026-04-09","C2182"],
+["240 Boulevard Cartier Ouest, Laval, QC","Tyler Liukkonen","2026-08-31","2026-04-09","C2180"],
+["313 Boulevard Cartier Ouest, Laval, QC","Tyler Liukkonen","2026-08-31","2026-04-09","C2178"],
+["84 Rosemount Avenue, Ottawa, ON","Pouya Pourrezaei","2026-07-31","2026-06-15","C2310"],
+["23 Crystal Drive, Dartmouth, NS","Vishnu Katyal","2026-09-09","2026-06-02","C2283"],
+["797 Jane Street, Toronto, ON","Vishnu Katyal","2026-07-17","2026-03-05","C2058"],
+["50 Driftwood Avenue, Toronto, ON","Vishnu Katyal","2026-07-17","2026-03-05","C2070"],
+["7763 Rue Saint-Hubert, Montreal, QC","Vishnu Katyal","2026-08-14","2026-04-06","C2132"],
+["1705 Rue Caumartin, Longueuil, QC","Tyler Liukkonen","2026-08-26","2026-05-07","C2184"],
+["3080-3090 Rue Masson, Longueuil, QC","Mehdi Mezghani","2026-07-10","2026-07-06","C2282"],
+["1077 Dominion St, Kamloops, BC","Mark Tamberg","2026-07-10","2026-07-13","C2316"],
+["3505 Avenue Papineau, Montréal, QC","Alan Mak","2026-06-30","2025-10-23","C1824"],
+["3119 12 Avenue Southwest, Calgary, AB","Jessica Froese","2026-07-15","2026-06-18","C2318"],
+["3890-3900 Avenue Barclay, Montreal, QC","Alan Mak","2026-07-15","2026-03-30","C2133"],
+["4500-4520 Avenue Barclay, Montreal, QC","Alan Mak","2026-07-15","2026-03-30","C2135"],
+["3891-3901 Avenue Barclay, Montreal, QC","Alan Mak","2026-07-15","2026-03-30","C2134"],
+["420 Holly Ave, Nanaimo, BC","Alan Mak","2026-06-30","2026-03-16","C2097"],
+["19 Rue Notre Dame Ouest, Victoriaville, QC","Pouya Pourrezaei","2026-09-23","2026-06-11","C2236"],
+["35 Rue Jacques-Cartier Sud, Saint-Jean-sur-Richelieu, QC","Mehdi Mezghani","2026-09-23","2026-06-08","C2287"],
+["9800 Williams Road, Richmond, BC","Jessica Froese","2026-07-02","2026-02-02","C2011"],
+["64 Rue Richelieu, Saint-Jean-sur-Richelieu, QC","Tyler Liukkonen","2026-07-20","2026-05-21","C2231"],
+["6988 15e Avenue, Montreal, QC","Jessica Froese","2026-08-26","2026-06-02","C2241"],
+["102 Boultbee Avenue, Toronto, ON ","Jessica Froese","2026-07-16","2025-12-05","C1923"],
+["94 Sanford St, Barrie, ON","Tyler Liukkonen","2026-07-06","2026-04-15","C2162"],
+["880 Colborne Road, Sarnia, ON","Vishnu Katyal","2026-07-24","2026-06-02","C2240"],
+["10633 River Drive, Richmond, BC","Derrick Yick","2026-06-30","2026-05-11","C1760"],
+["1303 Rue des Blés, Sherbrooke, QC","Pouya Pourrezaei","2026-07-02","2026-03-31","C2102"],
+["7345-7355 Chemin de Chambly, Longueuil, QC","Matthew Flick","2026-07-14","2026-04-20","C2137"],
+["50 3e Avenue, Louiseville, QC","Alan Mak","2026-07-31","2026-06-04","C2276"],
+["4160 46e Rue, Montreal, QC","Alan Mak","2026-07-31","2026-06-04","C2277"],
+["268 Rue Bonet, Repentigny, QC","Alan Mak","2026-07-31","2026-06-04","C2279"],
+["270 Rue Bonet, Repentigny, QC","Alan Mak","2026-07-31","2026-06-04","C2274"],
+["4175 Central Boulevard, Burnaby, BC","Matthew Flick","2026-09-01","2026-06-03","C2224"],
+["12075 Boul Armand-Bombardier, Montreal, QC","Alan Mak","2026-07-31","2026-06-04","C2278"],
+["11905 Avenue Allard, Montreal, QC","Alan Mak","2026-07-31","2026-06-18","C2319"],
+["159 Locksley Avenue, Toronto, ON","Matthew Flick","2026-07-02","2025-11-03","C1882"],
+["8750 Osler St, Vancouver, BC","Jessica Froese","2026-08-27","2026-03-18","C2103"],
+["2373 Gamache, Longueuil, QC","Matthew Flick","2026-09-01","2026-05-20","C2245"],
+["1635 Wilfrid-Pelletier, Saint-Jérôme, QC","Jessica Froese","2026-09-01","2026-06-02","C2273"],
+["18 Haggart St, Perth, ON","Matthew Flick","2026-07-06","2026-06-08","C2294"],
+["157 St Clarens Ave, Toronto, ON","Pouya Pourrezaei","2026-09-03","2026-06-04","C2285"],
+["10 rue Perreault & 15 rue Lanouette, Trois-Rivieres, QC","Vishnu Katyal","2026-07-31","2025-10-23","C1837"],
+["2780 Avenue Willowdale, Montreal, QC","Vishnu Katyal","2026-10-30","2026-04-24","C2060"],
+["2618-2630 Rue Masson and 5350-5380 2e Ave, Montreal, QC","Mark Tamberg","2026-07-22","2026-04-06","C2128"],
+["3870 Rue Sherbrooke Est, Montreal, QC","Alan Mak","2026-07-31","2026-06-04","C2275"],
+["1357-1359 Davenport Road, Toronto, ON","Matthew Flick","2026-08-28","2026-06-04","C2297"],
+["1170 Rue Soucy, Longueuil, QC","Mehdi Mezghani","2026-08-30","2026-07-15","C2375"],
+["12936 118 Avenue NW, Edmonton, AB","Alan Mak","2026-08-19","2026-02-02","C2017"],
+["11135 77th Avenue NW, Edmonton, AB","Alan Mak","2026-08-31","2026-06-29","C2344"],
+["549 Fanshawe Park Rd W, London, ON","Jessica Froese","2026-11-01","2026-03-19","C2115"],
+["1215 Boulevard Alexis-Nihon, Montreal, QC","Pouya Pourrezaei","2026-07-22","2026-05-28","C2152"],
+["1728 Yew Street, Vancouver, BC","Pouya Pourrezaei","2026-09-01","2026-06-10","C2301"],
+["3425 rue Laure-Conan, Sherbrooke, QC","Mark Tamberg","2026-08-28","2026-04-23","C2186"],
+["10750 Rue de Saint-Réal, Montreal, QC","Pouya Pourrezaei","2026-08-02","2026-05-19","C2218"],
+["3306 1 Street NE, Calgary, AB","Mark Tamberg","2026-07-24","2026-06-30","C2343"],
+["4205 Rue Olivier-Fournier, Longueuil, QC","Pouya Pourrezaei","2026-09-02","2026-05-08","C2215"],
+["674 rue de l'Église, Ottawa, ON","Mark Tamberg","2026-08-19","2026-04-06","C2074"],
+["7425 20 Street SE, Calgary, AB","Mark Tamberg","2026-09-11","2026-03-26","C2130"],
+["3412-3430 Harvard, Montréal, QC","Mark Tamberg","2026-09-01","2026-04-27","C2193"],
+["855 Maloney Est, Gatineau, QC","Mark Tamberg","2026-09-01","2026-05-13","C2228"],
+["110 Leblanc, Longueuil, QC","Pouya Pourrezaei","2026-09-01","2026-06-18","C2328"],
+["103 Emerald Street S, Hamilton, ON","Matthew Flick","2026-07-10","2026-03-04","C2069"],
+["47 Wellington Street, Kingston, ON","Vishnu Katyal","2026-07-31","2026-05-28","C2280"],
+["2421 16 Street Southwest, Calgary, AB","Tyler Liukkonen","2026-08-14","2026-06-08","C2300"],
+["830 Rue Fréchette, Longueuil, QC","Cynthia Di Santo","2026-09-14","2026-07-27","C2396"],
+["840 Rue Fréchette, Longueuil, QC","Cynthia Di Santo","2026-09-14","2026-07-27","C2397"],
+["17865, 17875 & 17885 Boulevard de Versailles, Mirabel, QC","Vishnu Katyal","2026-09-15","2026-04-28","C2206"],
+["184 East Street, Goderich, ON","Tyler Liukkonen","2026-08-14","2026-06-15","C2322"],
+["93 Sunnylea Crescent, Guelph, ON","Pouya Pourrezaei","2026-09-15","2026-06-24","C2331"],
+["100 Sunnylea Crescent, Guelph, ON","Pouya Pourrezaei","2026-09-15","2026-06-24","C2332"],
+["117 Superior Street, Victoria, BC","Matthew Flick","2026-09-15","2026-06-26","C2337"],
+["30 Springhurst Avenue, Toronto, ON","Pouya Pourrezaei","2026-09-15","2026-07-08","C2350"],
+["130 20e Ave, Deux-Montagnes, QC","Jessica Froese","2026-07-29","2026-04-22","C2187"],
+["231 Dufferin Ave, Quinte West, ON","Alan Mak","2026-08-21","2026-03-18","C2110"],
+["36 Raglan St, Greater Napanee, ON","Alan Mak","2026-08-21","2026-03-18","C2112"],
+["165 First Ave & 266 Belleville, Greater Napanee, ON","Alan Mak","2026-08-21","2026-03-18","C2111"],
+["252 Belleville Road, Napanee, ON","Alan Mak","2026-08-21","2026-03-18","C2109"],
+["847 Simcoe St N, Oshawa, ON","Alan Mak","2026-08-21","2026-03-18","C2113"],
+["8196 McLeod Road, Niagara Falls, ON","Alan Mak","2026-08-21","2026-03-18","C2108"],
+["3420 7th St, Laval, QC","Jessica Froese","2026-08-28","2026-06-04","C2259"],
+["1825, 1835, 1855, 1865 Rue Belvédère Sud, Sherbrooke, QC","Mark Tamberg","2026-09-16","2026-06-04","C2264"],
+["8803 101 Street Northwest, Edmonton, AB","Vishnu Katyal","2026-09-16","2026-06-02","C2290"],
+["7260 Durocher, Montréal, QC","Jessica Froese","2026-09-01","2026-06-05","C2291"],
+["519-529 Sunnydale Pl, Waterloo, ON","Mark Tamberg","2026-08-28","2026-06-19","C2194"],
+["6253 Rue Sherbrooke Ouest, Montreal, QC","Vishnu Katyal","2026-08-27","2026-06-02","C2247"],
+["8770-8786 Rue Sainte-Claire, Montreal, QC","Mehdi Mezghani","2026-07-10","2026-06-04","C2286"],
+["7305 Rue Cartier, Montreal, QC","Pouya Pourrezaei","2026-08-28","2026-07-02","C2341"],
+["1915 Rue L.-O.-David, Montreal, QC","Pouya Pourrezaei","2026-08-28","2026-07-02","C2340"],
+["144 Dovercourt Road, Toronto, ON","Alan Mak","2026-09-23","2026-01-06","C1959"],
+["1124 Gabriel Street, Ottawa, ON","Matthew Flick","2026-09-23","2026-06-01","C2213"],
+["390 Rue Rielle, Montreal, QC","Alan Mak","2026-09-23","2026-06-04","C2270"],
+["2705 Avenue Kent, Montreal, QC","Alan Mak","2026-09-23","2026-06-04","C2271"],
+["1485-1507 Avenue de la Gare, Mascouche, QC","Matthew Flick","2026-09-23","2026-06-05","C2288"],
+["4775 Uplands Drive, Nanaimo, BC","Matthew Flick","2026-09-24","2026-07-20","C2386"],
+["3595 Rue Bélanger, Montreal, QC","Cynthia Di Santo","2026-09-24","2026-08-04","C2411"],
+["351 Friel Street, Ottawa, ON","Mark Tamberg","2026-09-25","2025-06-05","C1654"],
+["99 Knox Avenue, Toronto, ON","Pouya Pourrezaei","2026-08-15","2026-06-04","C2289"],
+["3290 Avenue Van Horne, Montreal, QC","Mehdi Mezghani","2026-08-30","2026-07-02","C2342"],
+["12803 124 Avenue NW, Edmonton, AB","Vishnu Katyal","2026-09-30","2026-07-06","C2349"],
+["1095 Lucknow Street, Halifax, NS","Jessica Froese","2026-09-25","2026-07-14","C2363"],
+["2172 Gottingen Street, Halifax, NS","Jessica Froese","2026-09-25","2026-07-14","C2364"],
+["3315 Westerwald Street, Halifax, NS","Jessica Froese","2026-09-25","2026-07-14","C2365"],
+["28-30 Primrose Street, Dartmouth, NS","Jessica Froese","2026-09-25","2026-07-14","C2366"],
+["44 Primrose Street, Dartmouth, NS","Jessica Froese","2026-09-25","2026-07-14","C2367"],
+["252 - 254 Victoria Road, Dartmouth, NS","Jessica Froese","2026-09-25","2026-07-14","C2368"],
+["23 Best Street, Dartmouth, NS","Jessica Froese","2026-09-25","2026-07-14","C2369"],
+["1097 Lucknow Street, Halifax, NS","Jessica Froese","2026-09-25","2026-07-14","C2370"],
+["57-58 Main Avenue, Halifax, NS","Alan Mak","2025-11-17","2026-07-14","C1685"],
+["50 Towerview Place, Sydney, NS","Jessica Froese","2026-09-25","2026-07-14","C2372"],
+["100 Windsor Street, Sydney, NS","Jessica Froese","2026-09-25","2026-07-14","C2373"],
+["1162 Rue Soucy, Longueuil, QC","Mehdi Mezghani","2026-09-11","2026-07-15","C2374"],
+["3815 51A Street, Red Deer, AB","Jessica Froese","2026-09-27","2026-07-31","C2414"],
+["1299 Dorchester Avenue, Ottawa, ON","Tyler Liukkonen","2026-09-30","2026-05-19","C2212"],
+["810 Drury Avenue, Calgary, AB","Matthew Flick","2026-09-01","2026-06-15","C2329"],
+["329 Upper Sherman Avenue, Hamilton, ON","Tyler Liukkonen","2026-06-22","2026-02-18","C2049"],
+["10734 84th Ave NW, Edmonton, AB","Alan Mak","2026-09-30","2026-06-29","C2345"],
+["3540 Rue du Long Sault, Quebec City, QC","Mehdi Mezghani","2026-09-01","2026-06-16","C2299"],
+["6065-6255 Blvd Joseph-Renaud, Montreal, QC","Jessica Froese","2026-09-30","2026-06-29","C2302"],
+["1226 Avenue Seymour, Montreal, QC","Cynthia Di Santo","2026-08-31","2026-07-09","C2336"],
+["10635 84 Avenue NW, Edmonton, AB","Matthew Flick","2026-09-30","2026-06-29","C2408"],
+["2330 Rue de la Golconda, Sherbrooke, QC","Cynthia Di Santo","2026-08-31","2026-07-15","C2361"],
+["39 Goulburn Avenue, Ottawa, ON","Mehdi Mezghani","2026-09-30","2026-07-21","C2393"],
+["1276 Gladstone Ave, Victoria, BC","Jessica Froese","2026-10-01","2026-07-01","C2346"],
+["3865 - 3875 Rue Fleury Est, Montreal, QC","Cynthia Di Santo","2026-10-01","2026-07-28","C2406"],
+["401 Fifth Street, New Westminster, BC","Tyler Liukkonen","2026-10-01","2026-07-28","C2421"],
+["15 Kennedy Drive, Dartmouth, NS","Vishnu Katyal","2026-10-01","2026-05-21","C2257"],
+["930 Marion Ave, Windsor, ON","Jessica Froese","2026-08-19","2025-09-15","C1812"],
+["115 & 119 Eglinton Avenue West, Toronto, ON","Mark Tamberg","2026-10-07","2026-06-17","C2260"],
+["107-109 Balsam Ave S, Hamilton, ON","Tyler Liukkonen","2026-08-14","2026-06-08","C2304"],
+["88 Spruce Street, Aurora, ON","Matthew Flick","2026-10-14","2026-08-10","C2427"],
+["2048 St. Denis, Montreal, QC","Tyler Liukkonen","2026-07-15","2025-07-08","C1741"],
+["409 Rustic Road, Toronto, ON","Matthew Flick","2026-10-15","2026-06-18","C2317"],
+["205 Rue Murray, Sherbrooke, QC","Mehdi Mezghani","2026-09-01","2026-06-18","C2321"],
+["1616 Chemin Saint-Charles, Terrebonne, QC","Alan Mak","2026-10-16","2026-07-20","C2388"],
+["4750 Boulevard Gouin, Montreal, QC","Mehdi Mezghani","2026-08-27","2026-08-05","C2192"],
+["419 Boulevard La Fayette, Longueuil, QC","Alan Mak","2026-07-29","2026-04-14","C2158"],
+["1201 Avenue Hope, Montreal, QC","Jessica Froese","2026-08-21","2026-06-08","C2298"],
+["1005 Rue de la Commune, La Prairie, QC","Mehdi Mezghani","2026-10-29","2026-07-24","C2389"],
+["4868 & 4872 Delta Street, Delta, BC","Alan Mak","2026-10-30","2026-02-09","C2028"],
+["1 Sundance NW, Edmonton, AB","Vishnu Katyal","2026-07-31","2026-03-23","C2127"],
+["22170 Dewdney Trunk Road, Maple Ridge, BC","Vishnu Katyal","2026-10-30","2026-07-16","C2380"],
+["9006 – 149 Street NW, Edmonton, AB","Mark Tamberg","2026-09-15","2026-07-27","C2405"],
+["780 Elm Street, Port Colborne, ON","Mark Tamberg","2026-10-30","2026-07-30","C2413"],
+["7095 Alexandra, Montreal, QC","Pouya Pourrezaei","2026-11-01","2026-03-17","C2114"],
+["821 Boulevard de Normandie, Saint-Jean-sur-Richelieu, QC","Matthew Flick","2026-11-02","2026-05-28","C2229"],
+["691 Ouellette Avenue, Windsor, ON","Mehdi Mezghani","2026-08-07","2026-03-16","C2098"],
+["1950-2000 rue des Fontaines, Mascouche, QC","Mark Tamberg","2026-11-13","2025-06-06","C1666"],
+["830 Ave de l’Étang, Mascouche, QC","Mark Tamberg","2026-11-13","2025-06-06","C1665"],
+["1042 Secord Avenue, Ottawa, ON","Pouya Pourrezaei","2026-11-19","2026-08-13","C2435"],
+["225 Delaware Avenue, Toronto, ON","Mark Tamberg","2026-07-03","2026-01-25","C1991"],
+["173 Henderson Avenue, Ottawa, ON","Mark Tamberg","2026-11-30","2025-06-05","C1650"],
+["95 Fourth Avenue, Ottawa, ON","Mark Tamberg","2026-11-30","2025-06-05","C1651"],
+["179-181 Henderon Avenue, Ottawa, ON","Mark Tamberg","2026-11-30","2025-06-17","C1680"],
+["10 & 20 Cityside Road NE, Calgary, AB","Vishnu Katyal","2026-09-04","2026-05-27","C2254"],
+["1375 rue la Fontaine, Montreal, QC","Matthew Flick","2026-12-01","2026-04-29","C2067"],
+["255 Radisson, Mont-Saint-Hilaire, QC","Jessica Froese","2026-12-09","2026-04-28","C2195"],
+["732 Eglinton Avenue East, Toronto, ON","Pouya Pourrezaei","2026-12-01","2026-06-02","C2296"],
+["76 Burnaby Boulevard, Toronto, ON","Pouya Pourrezaei","2026-12-01","2026-06-02","C2295"],
+["2851-2855 Agricola Street, Halifax, NS","Vishnu Katyal","2026-09-30","2026-06-03","C2293"],
+["10825 84 Avenue NW, Edmonton, AB","Matthew Flick","2026-09-30","2026-06-29",null],
+["305 & 311 Main Street, Prince Edward, ON","Vishnu Katyal","2026-10-02","2026-07-29",null],
+["287 Westdale Avenue, Kingston, ON","Vishnu Katyal","2026-11-20","2026-08-05",null]
+];
+
+function applyHistSeed(){
+  if(!HIST)HIST=emptyHist();
+  if(HIST.seedApplied===HIST_SEED_VERSION)return;
+  function stamp(e,name,uw,qaDate,loanNo,fundDate){
+    e.origFund=fundDate; e.origFundSeen='seed'; e.baseline=false;
+    if(!e.qa)e.qa=qaDate; if(!e.name)e.name=name; if(!e.uw)e.uw=uw; if(!e.loanNo)e.loanNo=loanNo;
+  }
+  HIST_SEED.forEach(function(row){
+    var name=row[0],uw=row[1],fundDate=row[2],qaDate=row[3],loanNo=row[4];
+    if(loanNo){
+      var k='ln:'+normKey(loanNo);
+      var e=HIST.loans[k];
+      if(!e)e=HIST.loans[k]={key:k,firstSeen:fundDate,origFund:null,origFundSeen:null,baseline:false,name:name,uw:uw,loanNo:loanNo};
+      stamp(e,name,uw,qaDate,loanNo,fundDate);
+      return;
+    }
+    /* No Loan No on this row (deal too early to have one assigned yet) — fall back to a
+       name match against the legacy name|sponsor keys ingestSnapshot uses for such files.
+       Only applied when the name is unambiguous (exactly one key matches its prefix); a
+       street address that collides with another file is left alone rather than guessed. */
+    var prefix=normKey(name)+'|';
+    var matches=Object.keys(HIST.loans).filter(function(k){return k.indexOf(prefix)===0;});
+    if(matches.length===1)stamp(HIST.loans[matches[0]],name,uw,qaDate,loanNo,fundDate);
+  });
+  HIST.seedApplied=HIST_SEED_VERSION;
+  saveHist();
+}
+
+function ingestSnapshot(records,asOf,fileName){
+  if(!HIST)HIST=emptyHist();
+  HIST_NOTICE='';
+  var snaps=HIST.snapshots||[];
+  /* A re-load of the same as-of date must not be dropped: the per-loan merge below is
+     idempotent (original funding dates and funded-on dates are only ever written when
+     absent), so re-ingesting adds loans the earlier file didn't carry — e.g. a back-book
+     export loaded the same day — without ever double-counting. */
+  var dup=null; snaps.forEach(function(s){if(s.asOf===asOf)dup=s;});
+  if(dup){
+    HIST_NOTICE='A snapshot dated '+fmtDate(asOf)+' was already recorded. Loans new to this file were added to the history; original funding dates already logged were left untouched.';
+  }
+  var last=null; snaps.forEach(function(s){if(!last||s.asOf>last)last=s.asOf;});
+  if(last&&asOf<last){
+    HIST_NOTICE='This export is dated '+fmtDate(asOf)+', which is older than the last recorded snapshot ('+fmtDate(last)+'). The timeline history was left unchanged to protect the original funding dates already logged.';
+    return;
+  }
+  /* name+sponsor keys shared by two or more rows in this export can never be migrated
+     safely, so they are noted up front and left alone. */
+  var claimed={}, seenLegacy={}, twinNames={};
+  records.forEach(function(r){var lk=legacyKey(r); if(seenLegacy[lk])twinNames[lk]=true; seenLegacy[lk]=true;});
+  records.forEach(function(r){
+    var k=loanKey(r); if(!k||k==='|')return;
+    var funded=isFundedRecord(r);
+    var e=HIST.loans[k];
+    /* First export to carry Loan No: adopt the history already logged under the old
+       name+sponsor key, but only when exactly one unclaimed entry matches — a property
+       with two loans keeps its entries separate rather than guessing. */
+    if(!e&&k.indexOf('ln:')===0){
+      var lk=legacyKey(r);
+      if(HIST.loans[lk]&&!claimed[lk]&&!twinNames[lk]){
+        e=HIST.loans[k]=HIST.loans[lk]; delete HIST.loans[lk]; e.key=k; claimed[lk]=true;
+      }
+    }
+    if(!e){
+      e=HIST.loans[k]={key:k,firstSeen:asOf,origFund:r.fundDate||null,origFundSeen:r.fundDate?asOf:null,baseline:funded};
+    }
+    if(e.origFund==null&&r.fundDate){e.origFund=r.fundDate;e.origFundSeen=asOf;}
+    /* Which upload the date the loan carries NOW came from: stamped only when the date
+       actually changes, so the export can name the file that moved it rather than the
+       most recent snapshot that happened to repeat it. */
+    if(e.lastFund!==(r.fundDate||null)||!e.lastFundSeen)e.lastFundSeen=asOf;
+    e.name=r.name; e.sponsor=r.sponsor||e.sponsor||null;
+    e.uw=r.underwriter||null; e.auw=r.assignedUw||null; e.orig=r.originator||null;
+    if(r.loan!=null)e.loan=r.loan;
+    e.cmb=r.cmb||null; e.city=r.city||null; e.purpose=r.purpose||null;
+    if(r.url)e.url=r.url;   /* last known Dealpath link, kept once the loan leaves the export */
+    if(r.qaDate)e.qa=r.qaDate;
+    e.lastFund=r.fundDate||null; e.lastStatus=r.status||null; e.lastSeen=asOf;
+    if(funded&&!e.fundedAsOf){e.fundedAsOf=asOf;e.fundedFund=r.fundDate||null;}
+    e.loanNo=r.loanNo||e.loanNo||null;
+  });
+  if(dup){ dup.count=records.length; dup.at=new Date().toISOString(); if(fileName)dup.file=fileName; }
+  else snaps.push({asOf:asOf,at:new Date().toISOString(),count:records.length,file:fileName||null});
+  HIST.snapshots=snaps;
+  recordPoolBaseline(records,asOf);
+  saveHist();
+}
+
+var TL_MODE='flight', TL_VIEW='fund', TL_PURPOSE='All', TL_PROV='All', TL_BACK='incl', TL_YEAR='All';
+
+var TL_HIDDEN_KEY='cmhc_tl_hidden_v2', TL_HIDDEN={uw:{All:[]},orig:{All:[]}};
+
+function tlHiddenList(role){var b=TL_HIDDEN[role];if(!b)b=TL_HIDDEN[role]={All:[]};if(!b[TL_YEAR])b[TL_YEAR]=[];return b[TL_YEAR];}
+
+function tlIsHidden(role,who){return tlHiddenList(role).indexOf(who)!==-1;}
+
+function tlMedian(a){if(!a.length)return null;var s=a.slice().sort(function(x,y){return x-y;});var m=s.length>>1;return s.length%2?s[m]:Math.round((s[m-1]+s[m])/2);}
+
+function tlMean(a){if(!a.length)return null;return Math.round(a.reduce(function(x,y){return x+y;},0)/a.length);}
+
+function provOf(o){
+  function scan(s){
+    if(!s)return null;
+    var parts=String(s).split(',');
+    for(var i=parts.length-1;i>=0;i--){
+      var toks=parts[i].trim().split(/\s+/);
+      for(var j=0;j<toks.length;j++){
+        var t=toks[j].toUpperCase().replace(/[^A-Z]/g,'');
+        if(t.length===2&&PROV.indexOf(t)!==-1)return t;
+      }
+    }
+    return null;
+  }
+  return scan(o.city)||scan(o.name)||'Unknown';
+}
+
+function purposeOf(o){
+  var p=(o.purpose||'').trim();
+  if(!p)return 'Unspecified';
+  var l=p.toLowerCase();
+  if(l.indexOf('purchase')===0)return 'Purchase';
+  if(l.indexOf('refinance')===0)return 'Refinance';
+  return p;
+}
+
+var TL_PURPOSE_ORDER=['Construction Financing','Completion Take-out','Purchase','Refinance','Top Up Financing','Unspecified'];
+
+function tlFundedLoans(){
+  if(!HIST||!HIST.loans)return [];
+  var out=[];
+  Object.keys(HIST.loans).forEach(function(k){
+    var e=HIST.loans[k];
+    if(!e.fundedAsOf)return;
+    var fund=e.fundedFund||e.lastFund||null;
+    var dRaw=(e.qa&&fund)?dayDiff(fund,e.qa):null;
+    /* A funding date that precedes its quote-accepted date is bad source data, not a
+       duration — the file is set aside so it can never skew a median or the chart. */
+    var bad=(dRaw!=null&&dRaw<0);
+    out.push({
+      name:e.name,sponsor:e.sponsor,uw:e.uw,auw:e.auw||null,orig:e.orig,loan:e.loan,cmb:e.cmb,url:e.url||null,
+      prov:provOf(e),purpose:purposeOf(e),qa:e.qa||null,fund:fund,
+      origFund:e.origFund||null,origFundSeen:e.origFundSeen||null,
+      /* A funded loan's current date is the one captured when it flipped to Funded;
+         if that snapshot carried no date, fall back to the last one that did. */
+      fundSrc:(e.fundedFund?(e.fundedAsOf||null):(e.lastFundSeen||e.lastSeen||null)),
+      baseline:!!e.baseline,fundedAsOf:e.fundedAsOf,bad:bad,
+      days:bad?null:dRaw,
+      slip:(!bad&&!e.baseline&&e.origFund&&fund)?dayDiff(fund,e.origFund):null
+    });
+  });
+  return out;
+}
+
+function tlActiveLoans(){
+  if(!DATA||!DATA.deals)return [];
+  return DATA.deals.filter(function(d){return d.qaDate&&d.fundDate;}).map(function(d){
+    var dRaw=dayDiff(d.fundDate,d.qaDate), bad=(dRaw!=null&&dRaw<0);
+    var e=(HIST&&HIST.loans)?HIST.loans[loanKey(d)]:null;
+    var slip=(e&&!e.baseline&&e.origFund)?dayDiff(d.fundDate,e.origFund):null;
+    var fundSrc=(e&&e.lastFundSeen&&e.lastFund===d.fundDate)?e.lastFundSeen:((CUR_META&&CUR_META.asOf)||null);
+    return {name:d.name,uw:d.underwriter,auw:d.assignedUw||null,orig:d.originator,loan:d.loan,cmb:d.cmb,url:d.url||(e&&e.url)||null,
+      prov:provOf(d),purpose:purposeOf(d),qa:d.qaDate,fund:d.fundDate,bad:bad,
+      origFund:(e&&e.origFund)||null,origFundSeen:(e&&e.origFundSeen)||null,fundSrc:fundSrc,
+      days:bad?null:dRaw,slip:slip};
+  });
+}
+
+function tlApplyFilters(arr,skip){
+  return arr.filter(function(o){
+    if(skip!=='purpose'&&TL_PURPOSE!=='All'&&o.purpose!==TL_PURPOSE)return false;
+    if(skip!=='prov'&&TL_PROV!=='All'&&o.prov!==TL_PROV)return false;
+    if(skip!=='year'&&TL_YEAR!=='All'&&(!o.fund||o.fund.slice(0,4)!==TL_YEAR))return false;
+    return true;
+  });
+}
+
+function tlGroup(arr,field,metric){
+  metric=metric||'days';
+  var g={},order=[];
+  arr.forEach(function(o){
+    var v=o[metric]; if(v==null)return;
+    var k=o[field]||'Unassigned';
+    if(!g[k]){g[k]={who:k,vals:[],vol:0};order.push(k);}
+    g[k].vals.push(v); g[k].vol+=(o.loan||0);
+  });
+  return order.map(function(k){var e=g[k];
+    return {who:k,n:e.vals.length,med:tlMedian(e.vals),mean:tlMean(e.vals),vol:e.vol};
+  }).sort(function(a,b){
+    if(a.who==='Unassigned')return 1; if(b.who==='Unassigned')return -1;
+    if(a.med==null)return 1; if(b.med==null)return -1;
+    return a.med-b.med;});
+}
+
+function tlHistList(kind){
+  var fundedAll=tlFundedLoans(), activeAll=tlActiveLoans();
+  if(kind==='bad')return fundedAll.filter(function(o){return o.bad;}).concat(activeAll.filter(function(o){return o.bad;}));
+  if(kind==='baseline')return fundedAll.filter(function(o){return o.baseline&&!o.bad;});
+  if(!HIST||!HIST.loans)return [];
+  return Object.keys(HIST.loans).filter(function(k){return kind==='tracked'||!HIST.loans[k].origFund;}).map(function(k){
+    var e=HIST.loans[k], fund=e.fundedFund||e.lastFund||null;
+    return {name:e.name,sponsor:e.sponsor,uw:e.uw,auw:e.auw||null,orig:e.orig,loan:e.loan,qa:e.qa||null,fund:fund,
+      status:e.lastStatus,baseline:!!e.baseline,
+      days:(e.qa&&fund&&dayDiff(fund,e.qa)>=0)?dayDiff(fund,e.qa):null};
+  }).sort(function(a,b){return (b.fund||'').localeCompare(a.fund||'');});
+}
+
+function tlCurrentRows(){
+  var f=tlFundedLoans().filter(function(o){return !o.bad;}), a=tlActiveLoans().filter(function(o){return !o.bad;});
+  if(TL_BACK==='excl')f=f.filter(function(o){return !o.baseline;});
+  return tlApplyFilters(TL_MODE==='funded'?f:a);
+}
+
+function tlSnapFiles(){
+  var m={};
+  ((HIST&&HIST.snapshots)||[]).forEach(function(s){if(s&&s.asOf&&s.file)m[s.asOf]=s.file;});
+  if(CUR_META&&CUR_META.asOf&&CUR_META.fileName&&!m[CUR_META.asOf])m[CUR_META.asOf]=CUR_META.fileName;
+  return m;
+}
+
+var HIST_SEED_FILE='Active pipeline historical data.xlsx';
+
+function tlSrcLabel(asOf,map){
+  if(!asOf)return 'Not recorded';
+  if(asOf==='seed')return HIST_SEED_FILE+' \u2014 historical baseline';
+  return map[asOf]?(map[asOf]+' \u2014 '+asOf):('Snapshot dated '+asOf);
+}
+
+function tlExportRows(metric){
+  var map=tlSnapFiles();
+  return tlCurrentRows().filter(function(o){return o[metric]!=null;})
+    .sort(function(a,b){
+      var au=a.uw||'\uffff', bu=b.uw||'\uffff';
+      if(au!==bu)return au.localeCompare(bu);
+      return (a.name||'').localeCompare(b.name||'');
+    })
+    .map(function(o){
+      return [{t:o.name||'',u:o.url||null},
+        o.origFund?{d:o.origFund}:'Not recorded',
+        tlSrcLabel(o.origFundSeen,map),
+        o.fund?{d:o.fund}:'Not recorded',
+        tlSrcLabel(o.fundSrc,map),
+        o.uw||'Unassigned',
+        o.auw||'',
+        o.orig||'Unassigned'];
+    });
+}
+
   return {
     get HIST() { return HIST; }, set HIST(v) { HIST = v; },
     get POOL_WEEK_SEL() { return POOL_WEEK_SEL; }, set POOL_WEEK_SEL(v) { POOL_WEEK_SEL = v; },
     get DATA() { return DATA; }, set DATA(v) { DATA = v; },
+    saveHist, saveTlHidden,
+    get TL_MODE() { return TL_MODE; }, set TL_MODE(v) { TL_MODE = v; },
+    get TL_VIEW() { return TL_VIEW; }, set TL_VIEW(v) { TL_VIEW = v; },
+    get TL_PURPOSE() { return TL_PURPOSE; }, set TL_PURPOSE(v) { TL_PURPOSE = v; },
+    get TL_PROV() { return TL_PROV; }, set TL_PROV(v) { TL_PROV = v; },
+    get TL_BACK() { return TL_BACK; }, set TL_BACK(v) { TL_BACK = v; },
+    get TL_YEAR() { return TL_YEAR; }, set TL_YEAR(v) { TL_YEAR = v; },
+    get TL_HIDDEN() { return TL_HIDDEN; }, set TL_HIDDEN(v) { TL_HIDDEN = v; },
+    get HIST_NOTICE() { return HIST_NOTICE; }, set HIST_NOTICE(v) { HIST_NOTICE = v; },
+    get CUR_META() { return CUR_META; }, set CUR_META(v) { CUR_META = v; },
     normHdr,
     autoMap,
     excelSerialToISO,
@@ -767,6 +1347,23 @@ function computePoolMoves(records,asOf){
     computePoolMoves,
     computeDataIssues,
     computeFundedIssues,
+    tlHiddenList,
+    tlIsHidden,
+    tlMedian,
+    tlMean,
+    provOf,
+    purposeOf,
+    tlFundedLoans,
+    tlActiveLoans,
+    tlApplyFilters,
+    tlGroup,
+    tlHistList,
+    tlCurrentRows,
+    tlSnapFiles,
+    tlSrcLabel,
+    tlExportRows,
+    applyHistSeed,
+    ingestSnapshot,
     FIELD_DEFS,
     POOL_SCHEDULE,
     POOL_MONTH_MAP,
@@ -779,5 +1376,10 @@ function computePoolMoves(records,asOf){
     LEGEND_ITEMS,
     LEGEND_DESC,
     METRO_CITIES,
+    HIST_SEED_VERSION,
+    HIST_SEED,
+    HIST_SEED_FILE,
+    TL_PURPOSE_ORDER,
+    TL_HIDDEN_KEY,
   };
 }

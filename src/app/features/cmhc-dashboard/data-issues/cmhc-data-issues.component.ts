@@ -2,15 +2,10 @@ import { Component, computed, inject, signal } from '@angular/core';
 
 import { CmhcIssueCategory } from '../cmhc-dashboard.models';
 import { CmhcDataService } from '../cmhc-data.service';
+import { xlsxDate, xlsxHeader, xlsxLink, xlsxSheet } from '../cmhc-xlsx.util';
 
 type IssueMode = 'active' | 'funded';
 
-const NAVY_HEADER = {
-  font: { bold: true, sz: 11, color: { rgb: 'FFFFFF' } },
-  fill: { fgColor: { rgb: '0D1F3C' } },
-  alignment: { vertical: 'center', horizontal: 'left' },
-};
-const LINK_STYLE = { font: { underline: true, color: { rgb: '0563C1' } } };
 const NO_UW = '—';
 
 /** Data Issues tab: port of v4 renderDataIssues() plus its Excel export. */
@@ -148,24 +143,14 @@ export class CmhcDataIssuesComponent {
       );
       funded.sort(byOwnerThenDeal);
 
-      const link = (text: string, url: string | null) =>
-        url ? { v: text, t: 's', l: { Target: url }, s: LINK_STYLE } : { v: text, t: 's' };
-      const header = (labels: string[]) => labels.map((v) => ({ v, t: 's', s: NAVY_HEADER }));
-      const sheet = (aoa: unknown[][], widths: number[]) => {
-        const ws = XLSX.utils.aoa_to_sheet(aoa as never);
-        ws['!cols'] = widths.map((wch) => ({ wch }));
-        ws['!autofilter'] = { ref: ws['!ref'] as string };
-        (ws as Record<string, unknown>)['!freeze'] = { xSplit: 0, ySplit: 1 };
-        return ws;
-      };
-
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(
         wb,
-        sheet(
+        xlsxSheet(
+          XLSX,
           [
-            header(['Funder', 'Underwriter', 'Deal Name', 'Issue Category', 'Detail']),
-            ...active.map((r) => [r.uw, r.auw, link(r.deal, r.url), r.issue, r.detail]),
+            xlsxHeader(['Funder', 'Underwriter', 'Deal Name', 'Issue Category', 'Detail']),
+            ...active.map((r) => [r.uw, r.auw, xlsxLink(r.deal, r.url), r.issue, r.detail]),
           ],
           [22, 22, 42, 40, 46],
         ),
@@ -174,10 +159,11 @@ export class CmhcDataIssuesComponent {
       if (funded.length) {
         XLSX.utils.book_append_sheet(
           wb,
-          sheet(
+          xlsxSheet(
+            XLSX,
             [
-              header(['Funder', 'Underwriter', 'Deal Name', 'Funding Date', 'Issue Category', 'Detail']),
-              ...funded.map((r) => [r.uw, r.auw, link(r.deal, r.url), this.dateCell(r.fund), r.issue, r.detail]),
+              xlsxHeader(['Funder', 'Underwriter', 'Deal Name', 'Funding Date', 'Issue Category', 'Detail']),
+              ...funded.map((r) => [r.uw, r.auw, xlsxLink(r.deal, r.url), xlsxDate(r.fund), r.issue, r.detail]),
             ],
             [22, 22, 42, 16, 40, 46],
           ),
@@ -191,15 +177,6 @@ export class CmhcDataIssuesComponent {
     } finally {
       this.exporting.set(false);
     }
-  }
-
-  /** A real Excel date so the column sorts and filters chronologically. */
-  private dateCell(iso: string | null): unknown {
-    if (!iso) return '';
-    const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
-    const ms = Date.UTC(y, m - 1, d);
-    if (isNaN(ms)) return iso;
-    return { v: Math.round(ms / 86400000) + 25569, t: 'n', z: 'yyyy-mm-dd' };
   }
 
   private tally(list: CmhcIssueCategory[]): number {

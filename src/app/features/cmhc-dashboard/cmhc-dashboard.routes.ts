@@ -27,7 +27,11 @@ export const CMHC_DASHBOARD_ROUTES: Routes = [
       { path: 'reviewer', loadComponent: personView, data: { type: 'rev' } },
       { path: 'capacity', loadComponent: comingSoon, data: { title: 'Capacity' } },
       { path: 'pools', loadComponent: personView, data: { type: 'pool' } },
-      { path: 'timelines', loadComponent: comingSoon, data: { title: 'Timelines' } },
+      {
+        path: 'timelines',
+        loadComponent: () =>
+          import('./timelines/cmhc-timelines.component').then((m) => m.CmhcTimelinesComponent),
+      },
       {
         path: 'data-issues',
         loadComponent: () =>

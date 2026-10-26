@@ -112,6 +112,7 @@ export class CmhcPopupsComponent {
     const engine = this.e();
     if (!p || !data) return null;
     if (p.kind === 'deals') return { name: p.name, sub: p.sub };
+    if (p.kind === 'tl') return { name: p.label, sub: p.sub };
     if (p.kind === 'issue') {
       const n = p.category.deals.length;
       return {
@@ -203,6 +204,23 @@ export class CmhcPopupsComponent {
     };
     return ((pool?.fundedList as CmhcDeal[]) ?? []).slice().sort(byFund);
   });
+
+  /** Timelines rows open the matching deal (by name and sponsor, as v4 did) when it is still in the pipeline. */
+  tlDealIndex(o: CmhcDeal): number {
+    const deals: CmhcDeal[] = this.dataService.data()?.deals ?? [];
+    return deals.findIndex((d) => d.name === o.name && (d.sponsor || null) === (o.sponsor || null));
+  }
+
+  tlSub(o: CmhcDeal): string {
+    return [o.sponsor, o.uw, o.orig].filter(Boolean).join(' · ');
+  }
+
+  openTlDeal(o: CmhcDeal): void {
+    const i = this.tlDealIndex(o);
+    if (i < 0) return;
+    this.dataService.listPopup.set(null);
+    this.dataService.openDeal(i);
+  }
 
   dealIndex(d: CmhcDeal): number {
     return (this.dataService.data()?.deals as CmhcDeal[]).indexOf(d);

@@ -27,6 +27,7 @@ export type CmhcDeal = any;
 export type CmhcListPopup =
   | { kind: 'deals'; name: string; sub: string; deals: CmhcDeal[]; showOrig: boolean }
   | { kind: 'issue'; category: CmhcIssueCategory; funded: boolean; uwFilter: string }
+  | { kind: 'tl'; label: string; sub: string; list: CmhcDeal[] }
   | { kind: 'move'; pool: string }
   | { kind: 'funded'; pool: string };
 

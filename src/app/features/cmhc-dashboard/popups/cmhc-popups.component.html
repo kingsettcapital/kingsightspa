@@ -112,6 +112,27 @@
                 </div>
               }
             }
+            @case ('tl') {
+              <div class="list-table-hdr">
+                <div>Deal / Sponsor</div>
+                <div>Quote accepted</div>
+                <div>Funding date</div>
+                <div>Wks</div>
+                <div>Gross loan</div>
+              </div>
+              @for (o of p.list; track $index) {
+                <div class="list-row" [style.cursor]="tlDealIndex(o) < 0 ? 'default' : null" (click)="openTlDeal(o)">
+                  <div>
+                    <div style="font-size:0.86rem;font-weight:600;color:var(--text-1)">{{ o.name || '—' }}</div>
+                    <div style="font-size:0.72rem;color:var(--text-3);margin-top:1px">{{ tlSub(o) }}</div>
+                  </div>
+                  <div style="font-size:0.82rem;color:var(--text-2)">{{ o.qa ? engine.fmtDate(o.qa) : '—' }}</div>
+                  <div style="font-size:0.82rem;color:var(--text-2)">{{ o.fund ? engine.fmtDate(o.fund) : '—' }}</div>
+                  <div style="font-size:0.82rem;font-weight:600">{{ o.days == null ? '—' : engine.tlWk(o.days) }}</div>
+                  <div style="font-size:0.86rem;font-weight:700;text-align:right">{{ o.loan == null ? '—' : engine.M(o.loan) }}</div>
+                </div>
+              }
+            }
             @case ('issue') {
               @for (d of p.category.deals; track $index) {
                 <div class="di-row" [style.cursor]="p.funded ? 'default' : null" (click)="!p.funded && openDeal(d.idx)">
