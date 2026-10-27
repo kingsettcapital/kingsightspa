@@ -1,0 +1,224 @@
+@let engine = e();
+
+<!-- DEAL MODAL -->
+<div class="modal-ov" [class.open]="!!deal()" style="z-index:1100" (click)="backdrop($event, 'deal')">
+  @if (deal(); as d) {
+    <div class="modal" style="max-width:760px">
+      <div class="modal-head">
+        <button type="button" class="modal-close" (click)="closeDeal()">&#x2715;</button>
+        <div class="m-name">{{ d.name || '—' }}</div>
+        <div class="m-sub">
+          <b>{{ d.sponsor || '' }}</b> &middot; {{ abbrev(d.originator) }} &middot; {{ abbrev(d.underwriter) }}
+        </div>
+      </div>
+      <div class="modal-body">
+        @if (dealFlags().length) {
+          <div class="m-flagrow">
+            @for (f of dealFlags(); track f) {
+              @if (meta(f); as m) {
+                <span class="flag-chip {{ m.cls }}" [attr.title]="m.desc || ''" (click)="goToFlagLegend($event)">{{ m.label }}</span>
+              }
+            }
+          </div>
+        }
+
+        <div class="m-track">
+          @for (s of steps(); track s.label) {
+            <div class="m-track-seg" [class.done]="s.done" [class.pending]="!s.done">
+              <div>{{ s.done ? '✓' : '○' }}</div>
+              <div class="ts-l">{{ s.label }}</div>
+            </div>
+          }
+        </div>
+
+        <div class="m-grid">
+          @for (f of fields(); track f.label) {
+            <div>
+              <div class="f-l">{{ f.label }}</div>
+              <div class="f-v" [style.color]="f.color || null">{{ f.value }}</div>
+            </div>
+          }
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-bottom:16px">
+          <div style="grid-row:span 2">
+            @if (d.statusNote) {
+              <div class="m-note">
+                <div class="n-l">Status Update</div>
+                <div class="n-v">{{ d.statusNote }}</div>
+              </div>
+            }
+          </div>
+          <div style="padding-top:12px">
+            <div class="f-l">Dealpath</div>
+            @if (dealpathUrl(); as url) {
+              <a class="m-dp" [href]="url" target="_blank" rel="noopener noreferrer" (click)="$event.stopPropagation()">Link &#8599;</a>
+            } @else {
+              <span class="m-dp-none">No Dealpath link on this row in the source export</span>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- LIST MODAL (deal lists, pool movement, pool funded) -->
+<div class="modal-ov" [class.open]="!!popup()" (click)="backdrop($event, 'list')">
+  @if (popup(); as p) {
+    @if (listHeader(); as h) {
+      <div class="modal" style="max-width:860px">
+        <div class="modal-head">
+          <button type="button" class="modal-close" (click)="closeList()">&#x2715;</button>
+          <div class="m-name">{{ h.name }}</div>
+          <div class="m-sub">{{ h.sub }}</div>
+        </div>
+        <div style="max-height:72vh;overflow-y:auto">
+          @switch (p.kind) {
+            @case ('deals') {
+              <div class="list-table-hdr">
+                <div>Deal / Sponsor</div>
+                <div>Status</div>
+                <div>Loan</div>
+                <div>Days</div>
+                <div>Flags</div>
+              </div>
+              @for (d of p.deals; track $index) {
+                @let flags = dealFlagList(d);
+                <div class="list-row" (click)="openDeal(dealIndex(d))">
+                  <div>
+                    <div style="font-size:0.86rem;font-weight:600;color:var(--text-1)">{{ d.name || '—' }}</div>
+                    <div style="font-size:0.72rem;color:var(--text-3);margin-top:1px">
+                      {{ d.sponsor || '' }}
+                      @if (p.showOrig && d.originator) {
+                        &middot; {{ d.originator }}
+                      } @else if (d.underwriter) {
+                        &middot; {{ d.underwriter }}
+                      }
+                    </div>
+                  </div>
+                  <div><span class="status-badge {{ statusClass(d.status) }}">{{ d.status }}</span></div>
+                  <div style="font-size:0.86rem;font-weight:700">{{ engine.M(d.loan || 0) }}</div>
+                  <div style="font-size:0.82rem;font-weight:600" [style.color]="daysColor(d)">{{ engine.fmtDays(d.dtf) }}</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end">
+                    @for (f of flags; track f) {
+                      @if (meta(f); as m) {
+                        <span class="flag-chip {{ m.cls }}" [attr.title]="m.desc || ''" (click)="goToFlagLegend($event)">{{ m.label }}</span>
+                      }
+                    } @empty {
+                      <span style="color:var(--green);font-size:0.66rem;font-weight:600">&#10003;</span>
+                    }
+                  </div>
+                </div>
+              }
+            }
+            @case ('tl') {
+              <div class="list-table-hdr">
+                <div>Deal / Sponsor</div>
+                <div>Quote accepted</div>
+                <div>Funding date</div>
+                <div>Wks</div>
+                <div>Gross loan</div>
+              </div>
+              @for (o of p.list; track $index) {
+                <div class="list-row" [style.cursor]="tlDealIndex(o) < 0 ? 'default' : null" (click)="openTlDeal(o)">
+                  <div>
+                    <div style="font-size:0.86rem;font-weight:600;color:var(--text-1)">{{ o.name || '—' }}</div>
+                    <div style="font-size:0.72rem;color:var(--text-3);margin-top:1px">{{ tlSub(o) }}</div>
+                  </div>
+                  <div style="font-size:0.82rem;color:var(--text-2)">{{ o.qa ? engine.fmtDate(o.qa) : '—' }}</div>
+                  <div style="font-size:0.82rem;color:var(--text-2)">{{ o.fund ? engine.fmtDate(o.fund) : '—' }}</div>
+                  <div style="font-size:0.82rem;font-weight:600">{{ o.days == null ? '—' : engine.tlWk(o.days) }}</div>
+                  <div style="font-size:0.86rem;font-weight:700;text-align:right">{{ o.loan == null ? '—' : engine.M(o.loan) }}</div>
+                </div>
+              }
+            }
+            @case ('issue') {
+              @for (d of p.category.deals; track $index) {
+                <div class="di-row" [style.cursor]="p.funded ? 'default' : null" (click)="!p.funded && openDeal(d.idx)">
+                  <div>
+                    <div class="di-row-name">
+                      @if (p.funded && d.url) {
+                        <a [href]="d.url" target="_blank" rel="noopener">{{ d.name }}</a>
+                      } @else {
+                        {{ d.name }}
+                      }
+                    </div>
+                    <div class="di-row-detail">
+                      {{ d.detail }}@if (p.funded && d.fundDate) { · funded {{ engine.fmtDate(d.fundDate) }} }
+                    </div>
+                  </div>
+                  <div class="di-row-uw">
+                    {{ d.uw }}
+                    @if (!p.funded && d.role) {
+                      <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-3);margin-top:2px">{{ d.role }}</div>
+                    }
+                  </div>
+                </div>
+              }
+            }
+            @case ('move') {
+              <div class="list-table-hdr">
+                <div>Deal</div>
+                <div>Movement</div>
+                <div>Loan</div>
+                <div>Funding</div>
+                <div></div>
+              </div>
+              @for (g of moveGroups(); track g.title) {
+                <div class="mv-group" [style]="g.style">
+                  <span>{{ g.title }}</span>
+                  <span>{{ g.count }} &middot; {{ engine.M(g.vol) }}</span>
+                </div>
+                @for (r of g.rows; track $index) {
+                  <div class="list-row" [style.cursor]="r.dealIndex < 0 ? 'default' : null" (click)="openDeal(r.dealIndex)">
+                    <div>
+                      <div style="font-size:0.86rem;font-weight:600;color:var(--text-1)">{{ r.entry.name || '—' }}</div>
+                      <div style="font-size:0.72rem;color:var(--text-3);margin-top:1px">
+                        {{ r.entry.loanNo ? 'Loan ' + r.entry.loanNo : 'No loan number' }}
+                        @if (r.dealIndex < 0) {
+                          &middot; no longer in the export
+                        }
+                      </div>
+                    </div>
+                    <div><span class="mv-kind" [style]="g.kindStyle">{{ g.kindLabel }}</span></div>
+                    <div style="font-size:0.86rem;font-weight:700">{{ engine.M(r.entry.loan || 0) }}</div>
+                    <div style="font-size:0.82rem;font-weight:600;color:var(--text-3)">
+                      {{ r.entry.fundDate ? engine.fmtDateShort(r.entry.fundDate) : '—' }}
+                    </div>
+                    <div></div>
+                  </div>
+                }
+              }
+            }
+            @case ('funded') {
+              <div class="list-table-hdr">
+                <div>Deal</div>
+                <div>Movement</div>
+                <div>Loan</div>
+                <div>Funding</div>
+                <div></div>
+              </div>
+              @for (x of fundedRows(); track $index) {
+                <div class="list-row" style="cursor:default">
+                  <div>
+                    <div style="font-size:0.86rem;font-weight:600;color:var(--text-1)">{{ x.name || '—' }}</div>
+                    <div style="font-size:0.72rem;color:var(--text-3);margin-top:1px">
+                      {{ x.loanNo ? 'Loan ' + x.loanNo : 'No loan number' }}
+                    </div>
+                  </div>
+                  <div><span class="mv-kind" style="background:var(--surface);color:var(--text-2)">Funded</span></div>
+                  <div style="font-size:0.86rem;font-weight:700">{{ engine.M(x.loan || 0) }}</div>
+                  <div style="font-size:0.82rem;font-weight:600;color:var(--text-3)">
+                    {{ x.fundDate ? engine.fmtDateShort(x.fundDate) : '—' }}
+                  </div>
+                  <div></div>
+                </div>
+              }
+            }
+          }
+        </div>
+      </div>
+    }
+  }
+</div>

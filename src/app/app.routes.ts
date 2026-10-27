@@ -42,6 +42,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'cmhc-dashboard',
+        loadChildren: () =>
+          import('./features/cmhc-dashboard/cmhc-dashboard.routes').then(
+            (m) => m.CMHC_DASHBOARD_ROUTES
+          ),
+      },
+      {
         path: 'mortgage',
         canMatch: [mortgageEnabledGuard],
         loadChildren: () =>

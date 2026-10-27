@@ -210,6 +210,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     const path = url.split('?')[0];
     return (
       path.startsWith('/capital-dashboard') ||
+      path.startsWith('/cmhc-dashboard') ||
       path.startsWith('/mortgage/management-summary') ||
       path.includes('/loan-detail')
     );

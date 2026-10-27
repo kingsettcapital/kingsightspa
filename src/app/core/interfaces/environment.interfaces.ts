@@ -41,4 +41,9 @@ export interface Environment {
    * /mortgage URLs redirect to Capital, notification polling off.
    */
   showMortgage?: boolean;
+  /**
+   * When false, the CMHC Dashboard "Capacity" tab is hidden. Visible to everyone when unset;
+   * to be tied to a user permission later.
+   */
+  showCmhcCapacityTab?: boolean;
 }
