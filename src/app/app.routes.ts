@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { MsalGuard } from '@azure/msal-angular';
 
 import { environment } from '../environments/environment';
-import { mortgageEnabledGuard } from './core/access/access.guards';
+import { mortgageEnabledGuard, mortgageGuard } from './core/access/access.guards';
 
 export const routes: Routes = [
   {
@@ -42,8 +42,16 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'cmhc-dashboard',
+        loadChildren: () =>
+          import('./features/cmhc-dashboard/cmhc-dashboard.routes').then(
+            (m) => m.CMHC_DASHBOARD_ROUTES
+          ),
+      },
+      {
         path: 'mortgage',
         canMatch: [mortgageEnabledGuard],
+        canActivate: [mortgageGuard],
         loadChildren: () =>
           import('./features/mortgage/mortgage.routes').then(
             (m) => m.MORTGAGE_ROUTES
@@ -67,6 +75,13 @@ export const routes: Routes = [
         path: 'admin',
         loadChildren: () =>
           import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES),
+      },
+      {
+        path: 'no-access',
+        loadComponent: () =>
+          import('./shared/components/no-access/no-access.component').then(
+            (m) => m.NoAccessComponent
+          ),
       },
       {
         path: '**',

@@ -17,6 +17,8 @@ export class CurrentAppUserService {
 
   readonly user = signal<UserDto | null>(null);
   readonly isLoading = signal(false);
+  /** Email whose lookup has finished (found or not) — lets guards wait for the first lookup. */
+  readonly resolvedEmail = signal<string | null>(null);
 
   readonly registrationRequiredMessage =
     'Your account is not registered in User Management. Ask an administrator to add your email before saving.';
@@ -106,6 +108,7 @@ export class CurrentAppUserService {
 
         untracked(() => {
           this.user.set(match);
+          this.resolvedEmail.set(email);
           this.isLoading.set(false);
         });
       },
@@ -116,6 +119,7 @@ export class CurrentAppUserService {
 
         untracked(() => {
           this.user.set(null);
+          this.resolvedEmail.set(email);
           this.isLoading.set(false);
         });
       },

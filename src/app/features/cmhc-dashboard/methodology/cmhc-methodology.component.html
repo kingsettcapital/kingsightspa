@@ -1,0 +1,50 @@
+<div class="notes-wrap">
+  <div class="notes-header">
+    <h2>Methodology</h2>
+    <p>How every tag, flag, and figure in this report is defined and calculated.</p>
+  </div>
+
+  <div class="stage-filter">
+    <button type="button" class="stage-btn" [class.active]="filter() === ''" (click)="filter.set('')">All</button>
+    @for (t of tabs(); track t) {
+      <button type="button" class="stage-btn" [class.active]="filter() === t" (click)="filter.set(t)">{{ t }}</button>
+    }
+  </div>
+
+  <div>
+    @for (c of cards(); track c.title) {
+      <div class="note-card" [attr.id]="c.legend ? 'legend-note-card' : null">
+        @if (c.tabs.length) {
+          <div class="note-tags">
+            @for (t of c.tabs; track t) {
+              <span class="note-cat" style="background:var(--surface);color:var(--text-2)">{{ t }}</span>
+            }
+          </div>
+        }
+        <div class="note-title">{{ c.title }}</div>
+        <div class="note-body">
+          @if (c.legend) {
+            @for (li of legend(); track li.label; let i = $index) {
+              <div
+                style="display:flex;align-items:flex-start;gap:10px;padding:6px 0"
+                [style.border-top]="i ? '1px solid var(--surface)' : 'none'"
+                [style.opacity]="li.inactive ? 0.62 : null"
+              >
+                <span style="width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:5px" [style.background]="li.dot"></span>
+                <div>
+                  <b style="color:var(--text-1)">{{ li.label }}</b>
+                  @if (li.inactive) {
+                    <span style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-3);background:var(--surface);border:0.5px solid var(--border);border-radius:4px;padding:1px 6px;margin-left:4px;vertical-align:middle">Currently inactive</span>
+                  }
+                  &mdash; <span [innerHTML]="li.desc"></span>
+                </div>
+              </div>
+            }
+          } @else {
+            {{ c.body }}
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>
