@@ -1,12 +1,12 @@
 import { Routes } from '@angular/router';
 
-import { homeCapitalDataExplorerGuard } from '../../core/access/access.guards';
+import { capitalGuard } from '../../core/access/access.guards';
 import { provideCapitalDashboardStore } from './store';
 
 export const CAPITAL_DASHBOARD_ROUTES: Routes = [
   {
     path: '',
-    canActivate: [homeCapitalDataExplorerGuard],
+    canActivate: [capitalGuard],
     loadComponent: () =>
       import('./capital-dashboard/capital-dashboard.component').then((m) => m.CapitalDashboardComponent),
     providers: [...provideCapitalDashboardStore()],

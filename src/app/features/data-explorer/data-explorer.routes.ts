@@ -1,12 +1,12 @@
 import { Routes } from '@angular/router';
 
-import { homeCapitalDataExplorerGuard } from '../../core/access/access.guards';
+import { dataExplorerGuard } from '../../core/access/access.guards';
 import { provideDataExplorerStore } from './store';
 
 export const DATA_EXPLORER_ROUTES: Routes = [
   {
     path: '',
-    canActivate: [homeCapitalDataExplorerGuard],
+    canActivate: [dataExplorerGuard],
     loadComponent: () =>
       import('./data-explorer/data-explorer.component').then(
         (m) => m.DataExplorerComponent,

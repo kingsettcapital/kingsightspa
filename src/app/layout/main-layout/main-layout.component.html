@@ -31,7 +31,7 @@
     </div>
 
     <nav class="ks-sidebar__nav">
-      @if (showHomeCapitalAndDataExplorer()) {
+      @if (showHome()) {
         <a
           routerLink="/"
           routerLinkActive="ks-sidebar__link--active"
@@ -41,6 +41,8 @@
           <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
           <span class="ks-sidebar__link-label">Home</span>
         </a>
+      }
+      @if (showCapital()) {
         <a
           routerLink="/capital-dashboard"
           routerLinkActive="ks-sidebar__link--active"
@@ -50,6 +52,8 @@
           <lucide-icon [img]="homeIcon" color="currentColor" [size]="22"></lucide-icon>
           <span class="ks-sidebar__link-label">Capital</span>
         </a>
+      }
+      @if (showCmhc()) {
         <a
           routerLink="/cmhc-dashboard"
           routerLinkActive="ks-sidebar__link--active"
@@ -61,7 +65,7 @@
         </a>
       }
 
-      @if (showMortgage) {
+      @if (showMortgage()) {
       <div
         class="ks-sidebar__group"
         [class.ks-sidebar__group--expanded]="openDropdown() === 'Loans'"
@@ -222,7 +226,7 @@
       </div>
       }
 
-      @if (showHomeCapitalAndDataExplorer()) {
+      @if (showDataExplorer()) {
         <a
           routerLink="/data-explorer"
           routerLinkActive="ks-sidebar__link--active"
@@ -325,7 +329,7 @@
           <lucide-icon [img]="menuIcon" color="currentColor" [size]="22"></lucide-icon>
         </button>
         <a
-          [routerLink]="showHomeCapitalAndDataExplorer() ? '/' : '/mortgage/loan-alias-assignment'"
+          [routerLink]="logoLink()"
           class="ks-header__brand-link"
           aria-label="KingSett Capital — KingSight home"
         >

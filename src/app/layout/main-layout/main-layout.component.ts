@@ -78,7 +78,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   hideAppSidebar = signal(this.shouldHideAppChrome(this.router.url));
 
   ngOnInit(): void {
-    if (this.showMortgage) {
+    if (this.mortgageEnabled) {
       this.notificationUnreadCount.start();
     }
     this.syncDropdownToRoute(this.router.url);
@@ -90,7 +90,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
         const navigation = event as NavigationEnd;
         this.syncDropdownToRoute(navigation.urlAfterRedirects);
         this.hideAppSidebar.set(this.shouldHideAppChrome(navigation.urlAfterRedirects));
-        if (this.showMortgage) {
+        if (this.mortgageEnabled) {
           this.notificationUnreadCount.refresh();
         }
         this.closeMobileNav();
@@ -121,13 +121,18 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     this.accessControl.isFeatureVisible(environment.managementSummaryEnabled),
   );
 
-  /** Env flag, or admin (Home / Capital / Data Explorer). */
-  readonly showHomeCapitalAndDataExplorer = computed(() =>
-    this.accessControl.isFeatureVisible(environment.showHomeCapitalAndDataExplorer),
-  );
+  /** Sidebar sections — role-based (see sectionsForRole), plus env flags. */
+  readonly showHome = computed(() => this.accessControl.canAccessSection('home'));
+  readonly showCapital = computed(() => this.accessControl.canAccessSection('capital'));
+  readonly showCmhc = computed(() => this.accessControl.canAccessSection('cmhc'));
+  readonly showDataExplorer = computed(() => this.accessControl.canAccessSection('dataExplorer'));
+  readonly showMortgage = computed(() => this.accessControl.canAccessSection('mortgage'));
 
-  /** Env flag only — hidden for admins too. */
-  readonly showMortgage = environment.showMortgage !== false;
+  /** Logo goes Home when allowed, otherwise to the user's first section. */
+  readonly logoLink = computed(() => (this.showHome() ? '/' : this.accessControl.defaultRoute()));
+
+  /** Env flag only — drives notification polling regardless of role. */
+  private readonly mortgageEnabled = environment.showMortgage !== false;
 
   /** Env flag, or admin. */
   readonly showAiAssistant = computed(() =>

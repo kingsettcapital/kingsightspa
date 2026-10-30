@@ -2,7 +2,7 @@ import { inject } from '@angular/core';
 import { Router, Routes } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
-import { homeCapitalDataExplorerGuard } from '../../core/access/access.guards';
+import { cmhcGuard } from '../../core/access/access.guards';
 
 /** Capacity is shown to everyone unless the environment flag switches it off (to be tied to a permission later). */
 const capacityTabGuard = () =>
@@ -14,7 +14,7 @@ const personView = () =>
 export const CMHC_DASHBOARD_ROUTES: Routes = [
   {
     path: '',
-    canActivate: [homeCapitalDataExplorerGuard],
+    canActivate: [cmhcGuard],
     loadComponent: () =>
       import('./cmhc-dashboard.component').then((m) => m.CmhcDashboardComponent),
     children: [

@@ -65,6 +65,53 @@ export function displayAppRole(role: AppRole, fallbackName?: string | null): str
   }
 }
 
+/** Top-level areas of the app that can be shown or hidden per role. */
+export type AppSection = 'home' | 'capital' | 'cmhc' | 'mortgage' | 'dataExplorer' | 'userManagement';
+
+const ALL_SECTIONS: readonly AppSection[] = [
+  'home',
+  'capital',
+  'cmhc',
+  'mortgage',
+  'dataExplorer',
+  'userManagement',
+];
+
+/**
+ * Sections each role may open:
+ * - admin → everything
+ * - Mortgage Super User / Approver / User → Mortgage
+ * - Capital User → Capital and Data Explorer
+ * - CMHC → CMHC Dashboard
+ * - Kingsett User (legacy) → everything except User Management
+ * - any other or unknown role → nothing
+ */
+export function sectionsForRole(roleName: string | null | undefined): readonly AppSection[] {
+  if (isAdminRole(roleName)) {
+    return ALL_SECTIONS;
+  }
+
+  const normalized = normalizeRoleLabel(roleName);
+
+  if (
+    isMortgageSuperUserRole(roleName) ||
+    isMortgageApproverRole(roleName) ||
+    isMortgageUserRole(roleName)
+  ) {
+    return ['mortgage'];
+  }
+  if (normalized === 'capital user') {
+    return ['capital', 'dataExplorer'];
+  }
+  if (normalized === 'cmhc' || normalized === 'cmhc user') {
+    return ['cmhc'];
+  }
+  if (normalizeAppRole(roleName) === AppRole.KingsettUser) {
+    return ALL_SECTIONS.filter((section) => section !== 'userManagement');
+  }
+  return [];
+}
+
 /** Mortgage User — LTV Validation is read-only for this role (Admin exempt). */
 export function isMortgageUserRole(roleName: string | null | undefined): boolean {
   return normalizeRoleLabel(roleName) === 'mortgage user';
