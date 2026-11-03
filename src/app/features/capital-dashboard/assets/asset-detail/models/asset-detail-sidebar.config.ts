@@ -1,7 +1,7 @@
 import { InvestorDetailSidebarSection } from '../../../investors/investor-detail/models/investor-detail-table.models';
 
-/** Financial Metrics is hidden for now; set to true to show the section (and load its data) again. */
-export const SHOW_ASSET_FINANCIAL_METRICS = false;
+/** Set to false to hide the Financial Metrics section and skip loading its data. */
+export const SHOW_ASSET_FINANCIAL_METRICS = true;
 
 const ALL_ASSET_DETAIL_SIDEBAR_SECTIONS: InvestorDetailSidebarSection[] = [
   {
