@@ -1,6 +1,6 @@
 import { InvestorDetailSidebarSection } from '../../../investors/investor-detail/models/investor-detail-table.models';
 
-/** Set to false to hide the Financial Metrics section (CREIF only) and skip loading its data. */
+/** Set to false to hide the Financial Metrics section and skip loading its data. */
 export const SHOW_FUND_FINANCIAL_METRICS = true;
 
 /** Left-nav order for the investment fund drill-down. */

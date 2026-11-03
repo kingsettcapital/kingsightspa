@@ -113,14 +113,7 @@ export class InvestmentDetailComponent {
 
   private static readonly SECTION_SCROLL_GAP_PX = 8;
 
-  /** Fund Financial Metrics is only shown for CREIF. */
-  readonly showFinancialMetrics = computed(
-    () =>
-      SHOW_FUND_FINANCIAL_METRICS &&
-      (readFundDetailString(this.detail(), 'fund_code', 'fundCode') || this.financialMetrics()?.fundCode || '')
-        .trim()
-        .toUpperCase() === 'CREIF',
-  );
+  readonly showFinancialMetrics = computed(() => SHOW_FUND_FINANCIAL_METRICS);
   readonly sidebarSections = computed(() =>
     this.showFinancialMetrics()
       ? INVESTMENT_DETAIL_SIDEBAR_SECTIONS
