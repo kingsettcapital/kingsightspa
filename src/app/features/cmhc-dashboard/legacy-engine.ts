@@ -77,6 +77,10 @@ function toISO(v){
   if(typeof v==='number' || /^\d+(\.\d+)?$/.test(String(v).trim())){
     var n=parseFloat(v); if(n>20000&&n<80000) return excelSerialToISO(n);
   }
+  /* The API sends plain yyyy-MM-dd. new Date() reads that as UTC midnight, which is the
+     previous evening in Toronto, so getDate() came back a day early. Keep it as-is. */
+  var iso=/^(\d{4}-\d{2}-\d{2})(T00:00(:00(\.0+)?)?)?$/.exec(String(v).trim());
+  if(iso) return iso[1];
   var d=new Date(v); if(!isNaN(d.getTime())) return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   return null;
 }
