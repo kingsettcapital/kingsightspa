@@ -32,6 +32,15 @@ import {
 } from '../../shared/utils/fund-filter-options.util';
 import { buildQuarterlyTransactionPeriodParams } from '../../shared/utils/quarterly-transaction-period.util';
 import {
+  hasQuarterData,
+  latestQuarterWithData,
+  periodsWithData,
+  quarterKeysFromPeriods,
+  quarterPeriodLabel,
+  quartersWithData,
+  yearsWithData,
+} from '../../shared/utils/quarter-availability.util';
+import {
   isServerSortedTransactionTable,
   resolveTransactionTableSort,
   TransactionTableSortDir,
@@ -197,15 +206,17 @@ export class InvestmentDetailComponent {
     );
   });
 
-  readonly availableQuarters = computed(() => {
-    const periods = this.quarterlyPeriodOptions();
-    return [...new Set(periods.map((period) => period.quarter))].sort((a, b) => a - b);
-  });
+  /** Quarters this fund has data in; undefined while loading, null if the lookup failed. */
+  private readonly quarterDataKeys = signal<Set<string> | null | undefined>(undefined);
 
-  readonly availableYears = computed(() => {
-    const periods = this.quarterlyPeriodOptions();
-    return [...new Set(periods.map((period) => period.calendarYear))].sort((a, b) => b - a);
-  });
+  private readonly dataPeriods = computed(() =>
+    periodsWithData(this.quarterlyPeriodOptions(), this.quarterDataKeys()),
+  );
+
+  /** Quarters with data in the selected year; the rest show disabled. */
+  readonly availableQuarters = computed(() => quartersWithData(this.dataPeriods(), this.year()));
+
+  readonly availableYears = computed(() => yearsWithData(this.dataPeriods()));
 
   readonly fundName = computed(
     () =>
@@ -284,19 +295,7 @@ export class InvestmentDetailComponent {
 
   readonly periodLabel = computed(() => {
     if (this.timeframe() === 'quarterly') {
-      const year = this.year();
-      if (this.quarterScope() === 'all') {
-        return year != null ? `All · ${year}` : 'Quarterly';
-      }
-      const quarter = this.quarterScope();
-      if (typeof quarter !== 'number' || year == null) {
-        return year != null ? `All · ${year}` : 'Quarterly';
-      }
-
-      const period = this.quarterlyPeriodOptions().find(
-        (item) => item.quarter === quarter && item.calendarYear === year,
-      );
-      return period?.label ?? period?.quarterYear ?? `Q${quarter} ${year}`;
+      return quarterPeriodLabel(this.quarterScope(), this.year());
     }
 
     switch (this.timeframe()) {
@@ -497,9 +496,7 @@ export class InvestmentDetailComponent {
         takeUntilDestroyed(),
       )
       .subscribe((response) => {
-        const options = normalizeFundsFilterOptions(response);
-        this.filterOptions.set(options);
-        this.ensureQuarterlySelection(options);
+        this.filterOptions.set(normalizeFundsFilterOptions(response));
       });
 
     this.route.paramMap
@@ -553,9 +550,7 @@ export class InvestmentDetailComponent {
           this.lastHubResetKey = resetKey;
           this.transactionSort.set({});
           if (fundKey != null) {
-            this.applyPendingListPeriodOrDefaultAll();
-          } else if (!this.pendingListPeriod) {
-            this.quarterScope.set('all');
+            this.applyPendingListPeriod();
           }
           this.lastTransactionHubPeriodLoadKey = '';
           this.lastTransactionHubFilterPeriodLoadKey = '';
@@ -596,6 +591,26 @@ export class InvestmentDetailComponent {
       }
       this.lastTransactionHubPeriodLoadKey = loadKey;
       untracked(() => this.loadAllTransactionHubTables());
+    });
+
+    effect((onCleanup) => {
+      const fundKey = this.fundKey();
+      untracked(() => this.quarterDataKeys.set(undefined));
+      if (fundKey == null) {
+        return;
+      }
+      const sub = this.fundsApi
+        .getFundPeriodsPage(fundKey, { view: 'quarterly', source: 'commitments', pageSize: 200 })
+        .pipe(catchError(() => of(null)))
+        .subscribe((result) => this.quarterDataKeys.set(result ? quarterKeysFromPeriods(result.items) : null));
+      onCleanup(() => sub.unsubscribe());
+    });
+
+    effect(() => {
+      this.dataPeriods();
+      if (this.timeframe() === 'quarterly') {
+        untracked(() => this.ensureQuarterlySelection());
+      }
     });
 
     effect(() => {
@@ -659,15 +674,20 @@ export class InvestmentDetailComponent {
       const syncStickyOffset = (): void => {
         const offset = sticky?.offsetHeight ?? 0;
         main.style.setProperty('--inv-detail-sticky-offset', `${offset}px`);
+        // Scroll-area height: the transactions grid fills what's left below the sticky header.
+        main.style.setProperty('--inv-detail-main-height', `${main.clientHeight}px`);
         main.dispatchEvent(new Event('scroll'));
       };
 
       syncStickyOffset();
 
       let resizeObserver: ResizeObserver | undefined;
-      if (sticky && typeof ResizeObserver !== 'undefined') {
+      if (typeof ResizeObserver !== 'undefined') {
         resizeObserver = new ResizeObserver(() => syncStickyOffset());
-        resizeObserver.observe(sticky);
+        resizeObserver.observe(main);
+        if (sticky) {
+          resizeObserver.observe(sticky);
+        }
       }
 
       let detachSpy: (() => void) | undefined;
@@ -694,10 +714,10 @@ export class InvestmentDetailComponent {
     if (view === 'daily') {
       view = 'ltd';
     }
+    const switchingToQuarterly = view === 'quarterly' && this.timeframe() !== 'quarterly';
     this.timeframe.set(view);
-    if (view === 'quarterly') {
-      this.quarterScope.set('all');
-      this.ensureQuarterlySelection(this.filterOptions());
+    if (switchingToQuarterly) {
+      this.selectLatestQuarter();
     }
   }
 
@@ -706,23 +726,25 @@ export class InvestmentDetailComponent {
   }
 
   setQuarterScope(scope: number | 'all'): void {
-    this.quarterScope.set(scope);
-    if (scope !== 'all') {
-      this.quarter.set(scope);
-      this.alignYearForQuarterScope(scope);
+    if (scope === 'all') {
+      return;
     }
+    this.setQuarter(scope);
   }
 
+  /** Quarters without data are disabled, so the year never changes here. */
   setQuarter(quarter: number): void {
+    if (!hasQuarterData(this.dataPeriods(), quarter, this.year())) {
+      return;
+    }
     this.quarterScope.set(quarter);
     this.quarter.set(quarter);
-    this.alignYearToQuarter();
   }
 
   setYear(year: number): void {
     this.year.set(year);
-    if (this.timeframe() === 'quarterly' && this.quarterScope() !== 'all') {
-      this.alignQuarterToYear();
+    if (this.timeframe() === 'quarterly' && !hasQuarterData(this.dataPeriods(), this.quarterScope(), year)) {
+      this.selectLatestQuarter(year);
     }
   }
 
@@ -1294,21 +1316,25 @@ export class InvestmentDetailComponent {
     );
   }
 
-  private ensureQuarterlySelection(options: FundsFilterOptions): void {
-    const periods = options.quarterlyPeriods;
-    if (!periods.length) {
-      this.quarter.set(null);
-      this.year.set(null);
+  /** Keeps a valid quarter selected once this fund's data quarters are known. */
+  private ensureQuarterlySelection(): void {
+    const periods = this.dataPeriods();
+    if (hasQuarterData(periods, this.quarterScope(), this.year())) {
       return;
     }
-
     const year = this.year();
-    if (year != null && periods.some((period) => period.calendarYear === year)) {
+    this.selectLatestQuarter(year != null && periods.some((p) => p.calendarYear === year) ? year : null);
+  }
+
+  /** Most recent quarter with data, within `year` when given. */
+  private selectLatestQuarter(year: number | null = null): void {
+    const latest = latestQuarterWithData(this.dataPeriods(), year);
+    if (!latest) {
       return;
     }
-
-    const first = periods[0];
-    this.year.set(first.calendarYear);
+    this.year.set(latest.year);
+    this.quarter.set(latest.quarter);
+    this.quarterScope.set(latest.quarter);
   }
 
   private applyListReportingPeriod(state: {
@@ -1336,69 +1362,18 @@ export class InvestmentDetailComponent {
     this.timeframe.set(normalizedView);
   }
 
-  private applyPendingListPeriodOrDefaultAll(): void {
+  /** Restores the list page's quarter; otherwise the most recent quarter with data. */
+  private applyPendingListPeriod(): void {
     const pending = this.pendingListPeriod;
     this.pendingListPeriod = null;
 
-    if (!pending) {
-      this.quarterScope.set('all');
-      return;
-    }
-
-    if (pending.quarter != null) {
+    if (pending?.quarter != null && pending.year != null) {
       this.quarterScope.set(pending.quarter);
       this.quarter.set(pending.quarter);
-    } else {
-      this.quarterScope.set('all');
-    }
-    if (pending.year != null) {
       this.year.set(pending.year);
     }
-  }
-
-  private alignYearForQuarterScope(quarter: number): void {
-    const periods = this.quarterlyPeriodOptions();
-    const year = this.year();
-    if (
-      year != null &&
-      periods.some((period) => period.quarter === quarter && period.calendarYear === year)
-    ) {
-      return;
-    }
-
-    const match = periods.find((period) => period.quarter === quarter);
-    if (match) {
-      this.year.set(match.calendarYear);
-    }
-  }
-
-  private alignYearToQuarter(): void {
-    const years = this.availableYears();
-    const currentYear = this.year();
-    if (currentYear == null || !years.includes(currentYear)) {
-      this.year.set(years[0] ?? null);
-    }
-  }
-
-  private alignQuarterToYear(): void {
-    const year = this.year();
-    const periods = this.quarterlyPeriodOptions();
-    const quartersForYear =
-      year != null
-        ? [...new Set(periods.filter((period) => period.calendarYear === year).map((period) => period.quarter))].sort(
-            (a, b) => a - b,
-          )
-        : this.availableQuarters();
-    const currentQuarter = this.quarterScope();
-    if (typeof currentQuarter === 'number' && !quartersForYear.includes(currentQuarter)) {
-      const next = quartersForYear[0] ?? null;
-      if (next == null) {
-        this.quarterScope.set('all');
-        this.quarter.set(null);
-        return;
-      }
-      this.quarterScope.set(next);
-      this.quarter.set(next);
+    if (this.timeframe() === 'quarterly') {
+      this.ensureQuarterlySelection();
     }
   }
 }

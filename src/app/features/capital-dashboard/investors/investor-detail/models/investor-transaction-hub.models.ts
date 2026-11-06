@@ -41,7 +41,6 @@ export interface InvestorDetailTransactionHubBlock {
   subtitleAccent?: string;
   variant?: import('./investor-detail-block.models').InvestorDetailTableVariant;
   rows: InvestorDetailTableRow[];
-  totals: InvestorDetailTableRow | null;
   loading: boolean;
   periodSummary: string;
   recordCount: number;

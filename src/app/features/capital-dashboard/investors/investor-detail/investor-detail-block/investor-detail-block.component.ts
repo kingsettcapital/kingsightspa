@@ -26,6 +26,7 @@ import {
   InvestorDetailTableCellValue,
   InvestorDetailTableRow,
 } from '../models/investor-detail-table.models';
+import { ALL_QUARTERS } from '../../../shared/utils/quarter-availability.util';
 
 @Component({
   selector: 'app-investor-detail-block',
@@ -65,7 +66,9 @@ export class InvestorDetailBlockComponent {
   readonly hubQuarterScopeChange = output<number | 'all'>();
   readonly hubQuarter = input<number | null>(null);
   readonly hubYear = input<number | null>(null);
+  /** Quarters with data in the selected year; Q1–Q4 always render, the rest disabled. */
   readonly hubAvailableQuarters = input<number[]>([]);
+  readonly allQuarters = ALL_QUARTERS;
   readonly hubAvailableYears = input<number[]>([]);
   readonly underlyingInvestmentsPageChange = output<number>();
   readonly documentCategoryChange = output<FundDocumentCategoryId>();
