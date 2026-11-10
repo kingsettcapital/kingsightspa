@@ -239,3 +239,30 @@
   .alias-select { min-width: 8rem; }
   .alias-ng-select { min-width: 10rem; }
 }
+/* In Review flag: red when on, matching the Detailed Loan Summary highlight. */
+.review-cell {
+  white-space: nowrap;
+}
+
+.review-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #6b7280;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.review-toggle input {
+  accent-color: #b91c1c;
+  cursor: inherit;
+}
+
+.review-toggle input:disabled {
+  cursor: not-allowed;
+}
+
+.review-toggle--on {
+  color: #b91c1c;
+  font-weight: 600;
+}

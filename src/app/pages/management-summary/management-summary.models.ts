@@ -35,6 +35,8 @@ export type LoanAliasSummaryRow = {
   ltv: number | null;
   risk: 'HIGH' | 'ELEVATED' | 'MODERATE' | 'LOW' | string;
   isLtvConfirmed?: boolean;
+  /** Marked In Review on Loan Alias Assignment — the row shows red. */
+  isInReview?: boolean;
 };
 
 export type CmhcWatchlistRow = {

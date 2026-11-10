@@ -26,6 +26,8 @@ export type LoanDto = {
   userUpdatedBy?: string | null;
   userUpdatedDate?: string | null;
   isNonKs?: boolean | null;
+  /** loan_alias_relationship.is_in_review = 'Y' (Loan Alias Assignment). */
+  isInReview?: boolean | null;
 };
 
 export type LoanAttributeUpdatePayload = {
@@ -37,6 +39,8 @@ export type LoanAttributeUpdatePayload = {
   isLoanInterestApplicable?: boolean | null;
   lateInterestOffNote?: string | null;
   fundingStatusKey?: number | null;
+  /** Loan Alias Assignment only: writes loan_alias_relationship.is_in_review. */
+  isInReview?: boolean | null;
   userUpdatedBy: string;
 };
 
