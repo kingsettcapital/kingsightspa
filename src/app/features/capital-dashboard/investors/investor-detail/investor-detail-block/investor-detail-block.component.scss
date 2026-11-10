@@ -7,7 +7,6 @@
 }
 
 .inv-detail-transactions {
-  --inv-detail-transactions-table-max-height: 20rem;
   --inv-detail-transactions-table-min-width: 82rem;
   --inv-detail-transactions-fund-column-width: 22rem;
   --inv-detail-transactions-investor-column-width: 22rem;
@@ -303,7 +302,7 @@
     pointer-events: none;
   }
 
-  &:hover:not(&--active) {
+  &:hover:not(&--active):not(&--disabled) {
     background: #f8fafc;
     color: #334155;
   }
@@ -320,6 +319,12 @@
 
   &--active + .inv-detail-transactions__quarter-segment::after {
     display: none;
+  }
+
+  &--disabled {
+    background: transparent;
+    color: #cbd5e1;
+    cursor: not-allowed;
   }
 }
 
@@ -360,10 +365,25 @@
 .inv-detail-transactions__layout {
   display: grid;
   grid-template-columns: 12.5rem minmax(0, 1fr);
-  min-height: calc(var(--inv-detail-transactions-table-max-height) + 4rem);
+  /* Fill the page's scroll area below the sticky page header and this block's own header
+     (title, toolbar, period line). The detail pages publish both variables in syncStickyOffset. */
+  height: max(
+    24rem,
+    calc(
+      var(--inv-detail-main-height, 100vh) - var(--inv-detail-sticky-offset, 0px) -
+        var(--inv-detail-transactions-header-height, 7rem)
+    )
+  );
   border-top: 0;
   align-items: stretch;
   min-width: 0;
+}
+
+/* Below 900px the page itself scrolls (no fixed-height scroll area), so use a fixed height. */
+@media (max-width: 900px) {
+  .inv-detail-transactions__layout {
+    height: 36rem;
+  }
 }
 
 .inv-detail-transactions__categories {
@@ -1236,12 +1256,10 @@
   -webkit-overflow-scrolling: touch;
 
   &--transactions {
-    --inv-detail-transactions-table-max-height: 20rem;
     --inv-detail-transactions-table-min-width: 82rem;
     flex: 1 1 auto;
     position: relative;
     min-height: 0;
-    max-height: var(--inv-detail-transactions-table-max-height);
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;

@@ -377,6 +377,32 @@
   color: #0c274a;
 }
 
+/* Marked In Review on Loan Alias Assignment. */
+.ms-table tbody tr.ms-table__row--in-review,
+.ms-table tbody tr.ms-table__row--in-review:hover {
+  background: #fef2f2 !important;
+  box-shadow: inset 3px 0 0 #b91c1c;
+}
+
+.ms-table__row--in-review td,
+.ms-table__row--in-review .ms-drill-cell__name {
+  color: #b91c1c;
+}
+
+.ms-review-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: #b91c1c;
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
 .ms-table__chevron-col {
   width: 1.75rem;
   text-align: right;

@@ -95,6 +95,8 @@ export type ManagementSummaryDashboardDto = {
     ltv?: number | null;
     risk?: string | null;
     isLtvConfirmed?: boolean;
+    /** Any loan under this alias is marked In Review on Loan Alias Assignment. */
+    isInReview?: boolean;
   }[];
   exposureAnalysisRows?: {
     loanAliasKey: number;

@@ -88,18 +88,6 @@ function buildTotalsRow(
   return totals;
 }
 
-export function buildTableTotalsRow(
-  columns: InvestorDetailTableColumn[],
-  rows: InvestorDetailTableRow[],
-  labelKey = 'fundCode',
-  label?: string,
-): InvestorDetailTableRow | null {
-  if (!rows.length) {
-    return null;
-  }
-  return buildTotalsRow(columns, rows, labelKey, label ?? `Total — ${rows.length}`);
-}
-
 function amountByFundCode(rows: FundAmountTabRow[]): Map<string, number> {
   const map = new Map<string, number>();
   for (const row of rows) {
@@ -1118,7 +1106,7 @@ export function buildCapitalActivitiesTable(
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'fundCode', `Total — ${tableRows.length}`) : null,
+    totals: null,
   });
 }
 
@@ -1146,7 +1134,7 @@ export function buildDistributionsTable(
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'fundCode', `Total — ${tableRows.length}`) : null,
+    totals: null,
   });
 }
 
@@ -1217,7 +1205,7 @@ export function buildCapitalObligationsTable(
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'fundCode', `Total — ${tableRows.length}`) : null,
+    totals: null,
   });
 }
 
@@ -1453,7 +1441,6 @@ export function buildBlocksForSection(
           categories: [],
           columns: [],
           rows: [],
-          totals: null,
           loading: false,
           periodSummary: periodLabel,
           recordCount: 0,

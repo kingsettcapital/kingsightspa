@@ -17,7 +17,6 @@ import {
   buildDistributionsTable,
   buildIrrsTable,
   buildNetAssetsTable,
-  buildTableTotalsRow,
 } from './investment-detail-tables.util';
 
 export function normalizeFundTransactionTableFilters(
@@ -207,12 +206,6 @@ export function buildFundTransactionHubBlock(
   const table = buildCategoryTable(categoryId, state, periodSummary);
   const rows = table.rows;
   const pagination = categoryPagination(categoryId, state);
-  const totals =
-    categoryId === 'irrs' || categoryId === 'net-assets'
-      ? null
-      : rows.length
-        ? buildTableTotalsRow(table.columns, rows, 'investorName')
-        : null;
   const categories = buildFundTransactionCategories(state, showNetAssets);
   const activeCategoryId = categories.some((category) => category.id === categoryId)
     ? categoryId
@@ -231,7 +224,6 @@ export function buildFundTransactionHubBlock(
     subtitleAccent: table.subtitleAccent,
     variant: table.variant,
     rows,
-    totals,
     loading: categoryLoading(categoryId, state),
     periodSummary,
     recordCount: pagination.totalCount,
