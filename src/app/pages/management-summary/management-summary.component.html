@@ -192,10 +192,15 @@
           @for (row of sortedLoanRows(); track row.loanAliasKey) {
             <tr
               class="ms-table__row ms-table__row--clickable"
+              [class.ms-table__row--in-review]="row.isInReview"
+              [attr.title]="row.isInReview ? 'In review' : null"
               (click)="openLoanDetail(row)"
             >
               <td class="ms-col-left ms-col--alias">
                 <span class="ms-drill-cell__name">{{ row.loanAlias }}</span>
+                @if (row.isInReview) {
+                  <span class="ms-review-badge">In Review</span>
+                }
               </td>
               <td class="ms-col-left ms-col--sponsor">{{ row.sponsor }}</td>
               <td class="ms-col-center ms-col--date">{{ row.defaultDate }}</td>

@@ -219,6 +219,7 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
     ltv: row.ltv ?? null,
     risk: riskBandFromLtv(row.ltv),
     isLtvConfirmed: Boolean(row.isLtvConfirmed),
+    isInReview: Boolean(row.isInReview),
   }));
 
   const kpis: ManagementSummaryKpis = {

@@ -228,20 +228,17 @@
               <div class="inv-detail-transactions__quarter-toolbar">
                 <mat-icon class="inv-detail-transactions__quarter-calendar" aria-hidden="true">calendar_today</mat-icon>
                 <div class="inv-detail-transactions__quarter-segments" role="group" aria-label="Quarter">
-                  <button
-                    type="button"
-                    class="inv-detail-transactions__quarter-segment"
-                    [class.inv-detail-transactions__quarter-segment--active]="hubQuarterScope() === 'all'"
-                    (click)="hubQuarterScopeChange.emit('all')"
-                  >
-                    All
-                  </button>
-                  @for (option of hubAvailableQuarters(); track option) {
+                  @for (option of allQuarters; track option) {
+                    @let hasData = hubAvailableQuarters().includes(option);
+                    <!-- aria-disabled rather than disabled so the tooltip still shows on hover -->
                     <button
                       type="button"
                       class="inv-detail-transactions__quarter-segment"
-                      [class.inv-detail-transactions__quarter-segment--active]="hubQuarterScope() === option"
-                      (click)="hubQuarterScopeChange.emit(option)"
+                      [class.inv-detail-transactions__quarter-segment--active]="hasData && hubQuarterScope() === option"
+                      [class.inv-detail-transactions__quarter-segment--disabled]="!hasData"
+                      [attr.aria-disabled]="!hasData"
+                      [attr.title]="hasData ? null : 'No data for this quarter'"
+                      (click)="hasData && hubQuarterScopeChange.emit(option)"
                     >
                       Q{{ option }}
                     </button>
@@ -490,45 +487,6 @@
                             </tr>
                           }
                       </tbody>
-                      @if (
-                        current.totals &&
-                        current.rows.length &&
-                        current.activeCategoryId !== 'irrs' &&
-                        current.activeCategoryId !== 'net-assets'
-                      ) {
-                        <tfoot>
-                          <tr class="inv-detail-table__total-row">
-                            @for (column of current.columns; track column.key) {
-                              <td [class]="cellClass(column, current.totals)">
-                                @switch (column.type) {
-                                  @case ('amount') {
-                                    @if (showAmount(cellValue(current.totals, column.key))) {
-                                      {{ amountValue(cellValue(current.totals, column.key)) | ksCurrency: 'USD' : 2 : true }}
-                                    } @else {
-                                      <span class="inv-detail-table__empty">—</span>
-                                    }
-                                  }
-                                  @case ('number') {
-                                    {{ formatNumber(cellValue(current.totals, column.key)) }}
-                                  }
-                                  @case ('percent') {
-                                    {{ formatPercent(cellValue(current.totals, column.key)) }}
-                                  }
-                                  @case ('transaction-fund') {
-                                    {{ cellValue(current.totals, column.key) ?? '—' }}
-                                  }
-                                  @case ('transaction-investor') {
-                                    {{ cellValue(current.totals, column.key) ?? '—' }}
-                                  }
-                                  @default {
-                                    {{ cellValue(current.totals, column.key) ?? '—' }}
-                                  }
-                                }
-                              </td>
-                            }
-                          </tr>
-                        </tfoot>
-                      }
                     </table>
                     }
                   </div>

@@ -38,12 +38,15 @@ type LoanRow = {
   userUpdatedBy: string;
   userUpdatedDate: string;
   isNonKs: boolean;
+  /** Under review — its alias shows red on the Management Summary Detailed Loan Summary. */
+  isInReview: boolean;
 };
 
 type LoanAssignmentColumnKey =
   | 'loanCode'
   | 'loanName'
   | 'loanAliasName'
+  | 'isInReview'
   | 'userUpdatedBy'
   | 'userUpdatedDate';
 
@@ -59,6 +62,7 @@ const LOAN_ASSIGNMENT_TABLE_COLUMNS: LoanAssignmentTableColumn[] = [
   { key: 'loanCode', label: 'Loan Code' },
   { key: 'loanName', label: 'Loan Name' },
   { key: 'loanAliasName', label: 'Loan Alias' },
+  { key: 'isInReview', label: 'In Review' },
   { key: 'userUpdatedBy', label: 'Modified By', audit: true },
   { key: 'userUpdatedDate', label: 'Modified Date', audit: true },
 ];
@@ -101,6 +105,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
   readonly rows = signal<LoanRow[]>([]);
   readonly aliasOptions = signal<LoanAlias[]>([]);
   readonly originalRowState = signal<Record<string, number | null>>({});
+  private readonly originalReviewState = signal<Record<string, boolean>>({});
 
   readonly showAliasDialog = signal(false);
   readonly aliasDialogMode = signal<'create' | 'edit'>('create');
@@ -332,6 +337,8 @@ export class LoanAliasAssignmentComponent implements OnInit {
         return row.loanName;
       case 'loanAliasName':
         return row.loanAliasName;
+      case 'isInReview':
+        return row.isInReview ? 'In Review' : '';
       case 'userUpdatedBy':
         return this.displayModifiedBy(row.userUpdatedBy);
       case 'userUpdatedDate':
@@ -375,6 +382,17 @@ export class LoanAliasAssignmentComponent implements OnInit {
             }
           : row,
       ),
+    );
+    this.clearMessages();
+  }
+
+  /** Marks a loan In Review (saved with Save Changes, like alias edits). Non-KS loans have no flag. */
+  updateReview(loanCode: string, isInReview: boolean): void {
+    if (!this.canEditAliasAssignment()) {
+      return;
+    }
+    this.rows.update((rows) =>
+      rows.map((row) => (row.loanCode === loanCode && !row.isNonKs ? { ...row, isInReview } : row)),
     );
     this.clearMessages();
   }
@@ -618,7 +636,9 @@ export class LoanAliasAssignmentComponent implements OnInit {
     const selectedCodes = this.selectedLoanCodes();
     const keyword = this.searchText().trim();
     const targetRows = this.filteredRows();
-    const changedRows = this.rows().filter((row) => this.hasAliasChanged(row));
+    const changedRows = this.rows().filter(
+      (row) => this.hasAliasChanged(row) || this.hasReviewChanged(row),
+    );
 
     if (!changedRows.length) {
       this.statusMessage.set('No changes detected to save.');
@@ -648,6 +668,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
         loanKey: row.loanKey,
         loanCode: row.loanCode,
         loanAliasKey: row.loanAliasKey ?? 0,
+        isInReview: row.isNonKs ? null : row.isInReview,
         userUpdatedBy,
       })),
       auditProfile: 'loan_alias',
@@ -762,6 +783,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
       userUpdatedBy: record.userUpdatedBy?.trim() ?? '',
       userUpdatedDate: record.userUpdatedDate ?? '',
       isNonKs: !!record.isNonKs,
+      isInReview: !!record.isInReview,
     };
   }
 
@@ -818,10 +840,13 @@ export class LoanAliasAssignmentComponent implements OnInit {
     const original = this.originalRowState();
     const aliases = this.aliasOptions();
 
+    const originalReview = this.originalReviewState();
+
     this.rows.update((rows) =>
       rows.map((row) => {
         const originalKey = original[row.loanCode] ?? null;
-        if (row.loanAliasKey === originalKey) {
+        const isInReview = originalReview[row.loanCode] ?? false;
+        if (row.loanAliasKey === originalKey && row.isInReview === isInReview) {
           return row;
         }
 
@@ -834,6 +859,7 @@ export class LoanAliasAssignmentComponent implements OnInit {
           ...row,
           loanAliasKey: originalKey,
           loanAliasName: alias?.loanAliasName ?? '',
+          isInReview,
         };
       }),
     );
@@ -841,15 +867,22 @@ export class LoanAliasAssignmentComponent implements OnInit {
 
   private snapshotOriginalState(): void {
     const snapshot: Record<string, number | null> = {};
+    const reviewSnapshot: Record<string, boolean> = {};
     for (const row of this.rows()) {
       snapshot[row.loanCode] = row.loanAliasKey;
+      reviewSnapshot[row.loanCode] = row.isInReview;
     }
     this.originalRowState.set(snapshot);
+    this.originalReviewState.set(reviewSnapshot);
   }
 
   private hasAliasChanged(row: LoanRow): boolean {
     const original = this.originalRowState()[row.loanCode];
     return row.loanAliasKey !== (original ?? null);
+  }
+
+  private hasReviewChanged(row: LoanRow): boolean {
+    return row.isInReview !== (this.originalReviewState()[row.loanCode] ?? false);
   }
 
   private compareRows(left: LoanRow, right: LoanRow, column: LoanAssignmentColumnKey): number {
@@ -862,6 +895,8 @@ export class LoanAliasAssignmentComponent implements OnInit {
         return left.loanAliasName.localeCompare(right.loanAliasName, undefined, {
           sensitivity: 'base',
         });
+      case 'isInReview':
+        return Number(left.isInReview) - Number(right.isInReview);
       case 'userUpdatedBy':
         return left.userUpdatedBy.localeCompare(right.userUpdatedBy, undefined, {
           sensitivity: 'base',

@@ -159,12 +159,28 @@
                 }
               </ng-select>
             </td>
+            <td class="review-cell">
+              <label
+                class="review-toggle"
+                [class.review-toggle--on]="row.isInReview"
+                [attr.title]="row.isNonKs ? 'Review flag is not available for Non-KS loans' : null"
+              >
+                <input
+                  type="checkbox"
+                  [checked]="row.isInReview"
+                  [disabled]="!canEditAliasAssignment() || row.isNonKs"
+                  (change)="updateReview(row.loanCode, $any($event.target).checked)"
+                  [attr.aria-label]="'Mark ' + row.loanCode + ' as in review'"
+                />
+                <span>{{ row.isInReview ? 'In Review' : 'No' }}</span>
+              </label>
+            </td>
             <td class="audit-col date-cell">{{ displayModifiedBy(row.userUpdatedBy) }}</td>
             <td class="audit-col date-cell">{{ formatModifiedDate(row.userUpdatedDate) }}</td>
           </tr>
         } @empty {
           <tr>
-            <td colspan="6" class="empty-row">
+            <td colspan="7" class="empty-row">
               @if (isLoading()) {
                 Loading loans...
               } @else if (selectedLoanCodes().length || searchText().trim()) {

@@ -125,62 +125,6 @@ export interface InvestmentDetailFlatBlock {
   isSectionStart: boolean;
 }
 
-function sumColumn(rows: InvestorDetailTableRow[], key: string): number {
-  return rows.reduce((total, row) => {
-    const value = row[key];
-    return total + (typeof value === 'number' && Number.isFinite(value) ? value : 0);
-  }, 0);
-}
-
-function averageColumn(rows: InvestorDetailTableRow[], key: string): number | null {
-  const values = rows
-    .map((row) => row[key])
-    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-  if (!values.length) {
-    return null;
-  }
-  return values.reduce((total, value) => total + value, 0) / values.length;
-}
-
-function buildTotalsRow(
-  columns: InvestorDetailTableColumn[],
-  rows: InvestorDetailTableRow[],
-  labelKey = 'fundCode',
-  label = 'TOTALS',
-): InvestorDetailTableRow {
-  const totals: InvestorDetailTableRow = { [labelKey]: label };
-
-  for (const column of columns) {
-    if (column.key === labelKey) {
-      continue;
-    }
-    if (column.type === 'amount' || column.type === 'number') {
-      totals[column.key] = sumColumn(rows, column.key);
-      continue;
-    }
-    if (column.type === 'percent') {
-      const average = averageColumn(rows, column.key);
-      totals[column.key] = average ?? '—';
-      continue;
-    }
-    totals[column.key] = '—';
-  }
-
-  return totals;
-}
-
-export function buildTableTotalsRow(
-  columns: InvestorDetailTableColumn[],
-  rows: InvestorDetailTableRow[],
-  labelKey = 'investorName',
-  label?: string,
-): InvestorDetailTableRow | null {
-  if (!rows.length) {
-    return null;
-  }
-  return buildTotalsRow(columns, rows, labelKey, label ?? `Total — ${rows.length}`);
-}
-
 function formatCurrencyCompact(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) {
     return FUND_OVERVIEW_EMPTY;
@@ -802,7 +746,7 @@ export function buildCapitalActivitiesTable(
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorName', `Total — ${tableRows.length}`) : null,
+    totals: null,
   });
 }
 
@@ -831,7 +775,7 @@ export function buildDistributionsTable(
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorName', `Total — ${tableRows.length}`) : null,
+    totals: null,
   });
 }
 
@@ -894,7 +838,7 @@ export function buildCapitalObligationsTable(
     subtitleAccent: '',
     columns,
     rows: tableRows,
-    totals: tableRows.length ? buildTotalsRow(columns, tableRows, 'investorName', `Total — ${tableRows.length}`) : null,
+    totals: null,
   });
 }
 
@@ -1169,7 +1113,6 @@ export function buildBlocksForSection(
           categories: [],
           columns: [],
           rows: [],
-          totals: null,
           loading: false,
           periodSummary: periodLabel,
           recordCount: 0,

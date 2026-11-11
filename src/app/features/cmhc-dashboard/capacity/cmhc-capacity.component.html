@@ -1,0 +1,356 @@
+@let engine = e();
+@let chg = changed();
+
+<div class="al-subnav">
+  <div class="stage-btn" [class.active]="sub() === 'workload'" (click)="setSub('workload')">Team Capacity</div>
+  <div class="stage-btn" [class.active]="sub() === 'calendar'" (click)="setSub('calendar')">Funding Calendar</div>
+  <button type="button" class="al-wbtn" [class.on]="langPanel()" style="margin-left:auto" (click)="toggleLangPanel()">Languages</button>
+  <button type="button" class="al-wbtn" [class.on]="panel()" style="margin-left:0" (click)="togglePanel()">
+    Scoring weights@if (chg.length) {<span class="dot" [attr.title]="chg.length + ' unsaved change' + plural(chg.length)"></span>}
+  </button>
+</div>
+
+@if (chg.length) {
+  <div class="al-dirty">
+    <b>{{ chg.length }} scoring weight{{ plural(chg.length) }} changed, not saved.</b> Nothing in these scores has moved yet. Review the marked fields and save before you close the page — unsaved changes are lost.
+    <div class="sp">
+      <button type="button" class="ghost" (click)="discardDraft()">Discard</button>
+      @if (panel()) {
+        <button type="button" (click)="saveDraft()">Save now</button>
+      } @else {
+        <button type="button" (click)="togglePanel()">Review</button>
+      }
+    </div>
+  </div>
+}
+
+@if (panel()) {
+  <div class="al-weights">
+    <div class="al-wnote" style="margin-bottom:16px">
+      Changes apply only after you save. “Set as default” saves the current values as the baseline “Reset to default” returns to. Click a field’s name to lock it at 0 and grey it out when it’s not relevant at that stage — click again to unlock.@if (chg.length) { <b style="color:var(--navy)">{{ chg.length }} unsaved change{{ plural(chg.length) }}, marked below — save before you close the page.</b> }
+    </div>
+
+    @for (sec of weightSections(); track $index) {
+      @if (sec.title) {
+        <div class="al-wsec">{{ sec.title }}</div>
+      }
+      @if (sec.note) {
+        <div class="al-wnote" [innerHTML]="sec.note"></div>
+      }
+      @if (sec.stage) {
+        <div class="al-wsub"><span class="al-sw" [style.background]="sec.stage.bg"></span>{{ sec.stage.label }}</div>
+      }
+      <div class="al-wgrid">
+        @for (s of sec.sliders; track s.path) {
+          <div class="al-w" [class.al-w-locked]="s.locked" [class.al-w-changed]="s.moved" [class.al-w-flash]="s.flash">
+            <label [attr.title]="s.tip" (click)="toggleLock(s.path)">{{ s.label }}@if (s.moved) { <span style="color:var(--gold);font-weight:700">●</span> }</label>
+            <input
+              type="number"
+              min="-0.5"
+              max="5"
+              step="0.5"
+              [value]="s.val"
+              [disabled]="s.locked"
+              (change)="setWeight(s.path, $any($event.target).value)"
+            />
+          </div>
+        }
+      </div>
+    }
+
+    <div class="al-wsec al-collapse" [class.open]="testOpen()" (click)="testOpen.set(!testOpen())">
+      <span class="car">&#9654;</span>Test two deals
+      <span style="margin-left:auto;font-weight:600;text-transform:none;letter-spacing:0;color:var(--text-3)">{{ testOpen() ? 'Hide' : 'Show' }}</span>
+    </div>
+    @if (testOpen()) {
+      <div class="al-wnote">Set characteristics on each side to see how they score against each other under these weights, before saving.</div>
+      <div class="al-test">
+        <div class="al-test-cols">
+          @for (t of testSides(); track t.id) {
+            <div class="al-test-col">
+              <div class="al-test-hd">
+                {{ t.label }}
+                <button type="button" class="al-wbtn" style="margin:0 0 0 8px;padding:2px 9px;font-size:0.66rem" (click)="resetTest(t.id)">Reset</button>
+              </div>
+              <div class="al-w">
+                <label>Stage</label>
+                <select (change)="setTest(t.id, 'stage', $any($event.target).value)">
+                  <option value="">N/A</option>
+                  @for (s of allStages(); track s[0]) {
+                    <option [value]="s[0]" [selected]="t.c.stage === s[0]">{{ s[1] }}</option>
+                  }
+                </select>
+              </div>
+              <div class="al-w">
+                <label>Construction</label>
+                <input type="checkbox" [checked]="t.c.construction" (change)="setTest(t.id, 'construction', $any($event.target).checked)" />
+              </div>
+              @for (f of testFields(); track f.field) {
+                <div class="al-w">
+                  <label>{{ f.label }}</label>
+                  <select (change)="setTest(t.id, f.field, $any($event.target).value)">
+                    <option value="">N/A</option>
+                    @for (o of f.options; track o) {
+                      <option [value]="o" [selected]="t.c[f.field] === o">{{ o }}</option>
+                    }
+                  </select>
+                </div>
+              }
+              <div class="al-w">
+                <label>Mixed-Use</label>
+                <input type="checkbox" [checked]="t.c.mixedUse" (change)="setTest(t.id, 'mixedUse', $any($event.target).checked)" />
+              </div>
+              <div class="al-w">
+                <label>Affordable</label>
+                <input type="checkbox" [checked]="t.c.affordable" (change)="setTest(t.id, 'affordable', $any($event.target).checked)" />
+              </div>
+              <div class="al-w">
+                <label>FR Deal</label>
+                <input type="checkbox" [checked]="t.c.qc" (change)="setTest(t.id, 'qc', $any($event.target).checked)" />
+              </div>
+              <div class="al-test-score">{{ t.score }}</div>
+              <div class="al-test-bd">
+                @for (b of t.breakdown; track $index) {
+                  <div>{{ b.l }} <span>{{ b.v }}</span></div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <div style="margin-top:18px;display:flex;justify-content:flex-end;gap:8px">
+      <button type="button" class="al-wbtn" style="margin:0" (click)="resetDraft()">Reset to default</button>
+      <button type="button" class="al-wbtn" style="margin:0" (click)="setAsDefault()">Set as default</button>
+      @if (chg.length) {
+        <button type="button" class="al-wbtn" style="margin:0" (click)="discardDraft()">Discard changes</button>
+      }
+      <button type="button" class="al-wbtn on" style="margin:0" (click)="saveDraft()">Save</button>
+    </div>
+  </div>
+}
+
+@if (langPanel()) {
+  @let lg = languages();
+  <div>
+    <div class="al-card">
+      <div class="al-card-hd">
+        <h3>Who Reads French</h3>
+        <div class="sub">{{ lg.marked }} of {{ lg.rosterCount }} marked · a FR Deal costs its extra weight only when the person holding it is not on this list</div>
+      </div>
+      <div class="al-lang">
+        @for (p of lg.people; track p.i) {
+          <div class="al-lrow">
+            <span class="ln">{{ p.label }}</span>
+            <select class="al-sel" (change)="setFrancophone(p.i, $any($event.target).value === 'FR')">
+              <option value="EN" [selected]="!p.fr">English only</option>
+              <option value="FR" [selected]="p.fr">Reads French</option>
+            </select>
+          </div>
+        }
+      </div>
+    </div>
+    <div class="al-card">
+      <div class="al-card-hd">
+        <h3>Quebec Files — Document Language</h3>
+        <div class="sub">{{ lg.qcCount }} file{{ plural(lg.qcCount) }} in Quebec · {{ lg.fr }} FR · {{ lg.en }} EN · {{ lg.unset }} not set</div>
+      </div>
+      <div class="al-legend">
+        <span class="wrap">The export carries no Language column, so set it here. Only a file marked <b>FR</b> carries the FR Deal weight, and only when whoever holds it does not read French. A file left unset carries nothing.</span>
+      </div>
+      @if (!lg.qcCount) {
+        <div class="al-empty">No Quebec files in this dataset.</div>
+      }
+      <div style="max-height:460px;overflow-y:auto">
+        @for (f of lg.files; track f.idx) {
+          <div class="al-file" style="grid-template-columns:1fr 150px 116px;padding-left:20px">
+            <div>
+              <span class="fn" (click)="openDeal(f.index)">{{ f.name }}</span>
+              <div class="fm">{{ f.meta }}</div>
+            </div>
+            <div class="fm">
+              @if (f.holder) {
+                {{ f.holder }}@if (f.reads) { · reads French } @else if (f.costs) { · <b style="color:var(--gold)">FR weight applies</b> }
+              } @else {
+                <span style="color:var(--text-3)">unassigned</span>
+              }
+            </div>
+            <div>
+              <select class="al-sel" (change)="setDealLang(f.index, $any($event.target).value)">
+                <option value="" [selected]="!f.lang">— not set —</option>
+                <option value="EN" [selected]="f.lang === 'EN'">EN</option>
+                <option value="FR" [selected]="f.lang === 'FR'">FR</option>
+              </select>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+@if (proposals()) {
+  <div class="al-pend">
+    <b>{{ proposals() }} proposed assignment{{ plural(proposals()) }}</b> — held in this browser and carried across uploads. A proposal disappears on its own once the export agrees.
+    <button type="button" (click)="clearProposals()">Clear all</button>
+  </div>
+}
+
+@if (sub() === 'workload') {
+  @if (toAllocate().length; as n) {
+    <div class="al-card">
+      <div class="al-card-hd">
+        <h3>To Allocate</h3>
+        <div class="sub">{{ n }} file{{ plural(n) }} · {{ engine.Mr(toAllocateVol()) }} · nobody recorded as Underwriter</div>
+      </div>
+      <div class="al-legend">
+        <span class="wrap">Each file’s score and its make-up are shown so you can weigh it against the team’s loads yourself. The FR Deal weight is not in these figures — it depends on who ends up holding the file.</span>
+      </div>
+      @for (f of toAllocate(); track f.key) {
+        <div class="al-file" style="grid-template-columns:64px 1fr 1fr 52px 150px;padding-left:20px">
+          <div style="text-align:center">
+            <div class="d-day">{{ f.day }}</div>
+            <div class="d-mon">{{ f.mon }}</div>
+          </div>
+          <div>
+            <span class="fn" (click)="openDeal(f.index)">{{ f.deal.name || '—' }}</span>
+            <div class="fm">
+              {{ f.deal.sponsor || '' }} · {{ engine.M(f.deal.loan || 0) }} ·
+              <span class="al-tag" [style.margin]="0" [style.background]="f.stage.bg" [style.color]="f.stage.fg">{{ f.stage.label }}</span>
+            </div>
+          </div>
+          <div class="al-why" [attr.title]="f.breakdown">{{ f.breakdown }}</div>
+          <div class="al-fs">{{ f.score }}</div>
+          <div>
+            <select class="al-sel" (click)="$event.stopPropagation()" (change)="proposeAssign(f.key, $any($event.target).value)">
+              <option value="">— unassigned —</option>
+              @for (n2 of roster(); track n2) {
+                <option [value]="n2">{{ engine.abbrevName(n2) }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  @let T = totals();
+  <div class="al-card">
+    <div class="al-card-hd">
+      <div class="sub">Median {{ engine.fmtScore(T.median) }} · over capacity {{ engine.fmtScore(T.overLine) }}+ · open COIPs, every CCS, and fundings inside three weeks</div>
+    </div>
+    <div class="al-legend">
+      @for (s of allStages(); track s[0]) {
+        <span><span class="al-sw" [style.background]="s[2]"></span>{{ s[1] }}</span>
+      }
+      <span class="wrap">Score colour runs from lightest load to heaviest, neutral at the team median</span>
+      <span class="wrap" style="margin-left:auto;color:var(--text-3)">“Total” is every file assigned to that person, at any stage — the whole plate, not just this week’s load</span>
+    </div>
+    @if (!rows().length) {
+      <div class="al-empty">No underwriter has live work in this dataset.</div>
+    }
+    @for (r of rows(); track r.name) {
+      <div class="al-row clickable" (click)="togglePerson(r.name)">
+        <div>
+          <div class="al-name">
+            {{ r.label }}
+            @switch (r.tag) {
+              @case ('away') { <span class="al-tag" style="background:var(--surface);color:var(--text-2)">Away</span> }
+              @case ('over') { <span class="al-tag" style="background:#F6E7E5;color:#661910">Over</span> }
+              @case ('under') { <span class="al-tag" style="background:var(--surface);color:#00529B">Under</span> }
+            }
+          </div>
+          <div class="al-meta" [attr.title]="r.metaTitle">{{ r.meta }}</div>
+        </div>
+        <div class="al-barwrap">
+          <div class="al-bar">
+            @for (sg of r.segs; track $index) {
+              @if (sg.proposed) {
+                <div class="al-seg al-seg-proposed" [style.width.%]="sg.width" [style.color]="sg.color" [attr.title]="sg.title"></div>
+              } @else {
+                <div class="al-seg" [style.width.%]="sg.width" [style.background]="sg.color" [attr.title]="sg.title"></div>
+              }
+            }
+          </div>
+          <div class="al-median" [style.left.%]="r.medianLeft" [attr.title]="'Team median ' + engine.fmtScore(T.median)"></div>
+          @if (r.overLeft != null) {
+            <div class="al-over" [style.left.%]="r.overLeft" [attr.title]="'Over capacity above ' + engine.fmtScore(T.overLine)"></div>
+          }
+        </div>
+        <div>
+          <div class="al-score" [style.color]="r.scoreColor">
+            {{ r.score }}@if (r.draft) { <span class="al-score-draft" [style.color]="r.draft.color" title="What this would be under the unsaved weight changes"> {{ r.draft.text }}</span> }
+          </div>
+          <div class="al-later" [attr.title]="r.allTitle">{{ r.allScore }} total</div>
+        </div>
+      </div>
+      @if (r.open) {
+        @if (!r.files.length) {
+          <div class="al-file" style="grid-template-columns:1fr">Nothing live right now.</div>
+        }
+        @for (f of r.files; track f.index) {
+          <div class="al-file" style="grid-template-columns:64px 1fr 1fr 92px 52px">
+            <div><span class="al-tag" [style.margin]="0" [style.background]="f.stage.bg" [style.color]="f.stage.fg">{{ f.stage.label }}</span></div>
+            <div>
+              <span class="fn" (click)="openDeal(f.index, $event)">{{ f.deal.name || '—' }}</span>
+              <div class="fm" [attr.title]="f.breakdown">{{ f.breakdown }}</div>
+            </div>
+            <div class="al-why">
+              @if (f.deal.statusNote) {
+                {{ f.deal.statusNote }}
+              } @else {
+                <span style="color:var(--text-3)">—</span>
+              }
+            </div>
+            <div style="text-align:right">
+              {{ f.deal.fundDate ? engine.fmtDateShort(f.deal.fundDate) : '—' }}
+              <div class="fm">{{ engine.M(f.deal.loan || 0) }}</div>
+            </div>
+            <div class="al-fs" [style.color]="f.proposed ? 'var(--gold)' : null">{{ f.score }}</div>
+          </div>
+        }
+      }
+    }
+  </div>
+}
+
+@if (sub() === 'calendar') {
+  @let cal = calendar();
+  <div class="al-card">
+    <div class="al-calnav">
+      <button type="button" class="nav-btn" (click)="navCal(-1)">&#8249;</button>
+      <h3>{{ cal.title }}</h3>
+      <button type="button" class="nav-btn" (click)="navCal(1)">&#8250;</button>
+      <div class="sub" style="font-size:0.76rem;color:var(--text-3)">{{ cal.summary }}</div>
+    </div>
+    <div class="al-legend">
+      @for (b of cal.legend; track b.label) {
+        <span><span class="al-sw" [style.background]="b.bg"></span>{{ b.label }}</span>
+      }
+      <span class="wrap" style="margin-left:auto;color:var(--text-3)">Today is outlined in gold · days already past are greyed and show how many files funded on them</span>
+    </div>
+    <div class="al-cal">
+      @for (d of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']; track d) {
+        <div class="al-cal-hd">{{ d }}</div>
+      }
+      @for (c of cal.cells; track $index) {
+        @if (c.off) {
+          <div class="al-cal-cell off"></div>
+        } @else {
+          <div class="al-cal-cell" [class.today]="c.today" [class.past]="c.past">
+            <div class="al-cal-day" [class.today]="c.today">{{ c.day }}{{ c.today ? ' · Today' : '' }}</div>
+            @if (c.done; as dn) {
+              <div class="al-cal-done" [attr.title]="dn.n + ' file' + plural(dn.n) + ' funded on this day'">{{ dn.n }} funded<span>{{ engine.M(dn.vol) }}</span></div>
+            }
+            @for (ch of c.chips; track $index) {
+              <div class="al-chip" [style.background]="ch.bg" [style.color]="ch.fg" [attr.title]="ch.title" (click)="openDeal(ch.index)">
+                <span class="cn">{{ ch.name }}</span>{{ engine.M(ch.loan) }} {{ ch.score }}{{ ch.proposed ? ' •' : '' }}
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  </div>
+}

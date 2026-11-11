@@ -1,0 +1,335 @@
+@let x = m();
+@let t = tl();
+@let engine = e();
+
+@if (notice()) {
+  <div class="tl-notice">
+    <div>{{ notice() }}</div>
+    <button type="button" title="Dismiss" (click)="dismissNotice()">&#x2715;</button>
+  </div>
+}
+
+<div class="tl-filter">
+  <div class="tl-fg">
+    <div class="tl-fg-l">Application Purpose</div>
+    <div class="tl-fg-row">
+      <div class="tl-chip" [class.active]="t.purpose === 'All'" (click)="set({ purpose: 'All' })">All</div>
+      @for (c of x.purposeChips; track c.value) {
+        <div
+          class="tl-chip"
+          [class.active]="!c.dim && t.purpose === c.value"
+          [class.dim]="c.dim"
+          [attr.title]="c.title || null"
+          (click)="!c.dim && set({ purpose: c.value })"
+        >
+          {{ c.label }}@if (c.count !== '') {<span class="c">{{ c.count }}</span>}
+        </div>
+      }
+    </div>
+  </div>
+  <div class="tl-fg">
+    <div class="tl-fg-l">Province</div>
+    <div class="tl-fg-row">
+      <div class="tl-chip" [class.active]="t.prov === 'All'" (click)="set({ prov: 'All' })">All</div>
+      @for (c of x.provChips; track c.value) {
+        <div class="tl-chip" [class.active]="t.prov === c.value" (click)="set({ prov: c.value })">
+          {{ c.label }}<span class="c">{{ c.count }}</span>
+        </div>
+      }
+    </div>
+  </div>
+  <div class="tl-fg">
+    <div class="tl-fg-l">Funding year</div>
+    <div class="tl-fg-row">
+      <div class="tl-chip" [class.active]="t.year === 'All'" (click)="set({ year: 'All' })">All</div>
+      @for (c of x.yearChips; track c.value) {
+        <div class="tl-chip" [class.active]="t.year === c.value" (click)="set({ year: c.value })">
+          {{ c.label }}<span class="c">{{ c.count }}</span>
+        </div>
+      }
+    </div>
+  </div>
+  <div class="tl-fg">
+    <div class="tl-fg-l">Historical fundings</div>
+    <div class="tl-fg-row">
+      <div
+        class="tl-chip"
+        [class.active]="t.back === 'incl'"
+        title="Include files that were already funded when the report first saw them"
+        (click)="set({ back: 'incl' })"
+      >
+        Included<span class="c">{{ x.backCount }}</span>
+      </div>
+      <div
+        class="tl-chip"
+        [class.active]="t.back === 'excl'"
+        title="Medians from files the report has tracked from quote through funding"
+        (click)="set({ back: 'excl' })"
+      >
+        Excluded
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tl-hero">
+  <div class="kpi-band">
+    <div class="kpi-band-title">Time to fund — quote accepted to funded</div>
+    <div class="tl-kpi-row">
+      <div class="tl-kpi">
+        <div class="k-val">{{ engine.tlWk(x.fMed) }}</div>
+        <div class="k-label">weeks (median)</div>
+        <div class="k-sub">{{ x.fDaysN }} funded file{{ plural(x.fDaysN) }}</div>
+      </div>
+      <div class="tl-kpi">
+        <div class="k-val">{{ engine.tlWk(x.fMean) }}</div>
+        <div class="k-label">weeks (avg)</div>
+        <div class="k-sub">funded files</div>
+      </div>
+      <div class="tl-kpi">
+        @if (x.sMed == null || x.fSlipN < 3) {
+          <div class="k-val na">Building</div>
+          <div class="k-label">Median slippage</div>
+          <div class="k-sub">{{ x.fSlipN ? 'only ' + x.fSlipN + ' measurable file' + plural(x.fSlipN) : 'needs a second snapshot' }}</div>
+        } @else {
+          <div class="k-val">{{ x.sMed > 0 ? '+' : '' }}{{ engine.tlWk(x.sMed) }}</div>
+          <div class="k-label">Median slippage, wks</div>
+          <div class="k-sub">{{ x.fSlipN }} measurable file{{ plural(x.fSlipN) }}</div>
+        }
+      </div>
+      <div class="tl-kpi">
+        <div class="k-val warn">{{ engine.tlWk(x.aMed) }}</div>
+        <div class="k-label">weeks projected (median)</div>
+        <div class="k-sub">{{ x.aDaysN }} active file{{ plural(x.aDaysN) }}</div>
+      </div>
+      <div class="tl-kpi">
+        <div class="k-val warn">{{ engine.tlWk(x.aMean) }}</div>
+        <div class="k-label">weeks projected (avg)</div>
+        <div class="k-sub">active files</div>
+      </div>
+      <div class="tl-kpi">
+        @if (x.aSlipMed == null || x.aSlipN < 3) {
+          <div class="k-val na">Building</div>
+          <div class="k-label">Projected slippage</div>
+          <div class="k-sub">{{ x.aSlipN ? 'only ' + x.aSlipN + ' measurable file' + plural(x.aSlipN) : 'needs a second snapshot' }}</div>
+        } @else {
+          <div class="k-val warn">{{ x.aSlipMed > 0 ? '+' : '' }}{{ engine.tlWk(x.aSlipMed) }}</div>
+          <div class="k-label">Projected slippage, wks (median)</div>
+          <div class="k-sub">{{ x.aSlipN }} measurable file{{ plural(x.aSlipN) }}</div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="alert-band">
+    <div class="alert-band-title">History log</div>
+    <div class="alert-row" [class.clickable]="x.loanCount > 0" (click)="x.loanCount > 0 && openHistory('tracked', 'Loans tracked since baseline')">
+      <div class="alert-label"><span class="alert-dot" style="background:var(--green)"></span>Loans tracked since baseline</div>
+      <div class="alert-count">{{ x.loanCount }}</div>
+    </div>
+    <div class="alert-row">
+      <div class="alert-label"><span class="alert-dot" style="background:var(--blue)"></span>Snapshots recorded</div>
+      <div class="alert-count">{{ x.snapCount }}</div>
+    </div>
+    <div
+      class="alert-row"
+      [class.clickable]="x.baselineCount > 0"
+      (click)="x.baselineCount > 0 && openHistory('baseline', 'Historical fundings — slippage unmeasurable')"
+    >
+      <div class="alert-label"><span class="alert-dot" style="background:var(--purple)"></span>Historical fundings — slippage unmeasurable</div>
+      <div class="alert-count">{{ x.baselineCount }}</div>
+    </div>
+    <div class="alert-row" [class.clickable]="x.pendingOrig > 0" (click)="x.pendingOrig > 0 && openHistory('pending', 'Original funding date pending')">
+      <div class="alert-label"><span class="alert-dot" style="background:var(--amber)"></span>Original funding date pending</div>
+      <div class="alert-count">{{ x.pendingOrig }}</div>
+    </div>
+    <div class="alert-row" [class.clickable]="x.badDates > 0" (click)="x.badDates > 0 && openHistory('bad', 'Funding date before quote accepted — excluded')">
+      <div class="alert-label"><span class="alert-dot" style="background:var(--red)"></span>Funding date before quote accepted — excluded</div>
+      <div class="alert-count">{{ x.badDates }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="section-label">
+  <div style="display:flex;align-items:baseline;gap:14px">
+    <h2>Leaderboard</h2>
+    <div class="tl-view">
+      <button type="button" [class.active]="t.view === 'fund'" (click)="set({ view: 'fund' })">Time to Fund</button>
+      <button type="button" [class.active]="t.view === 'slip'" (click)="set({ view: 'slip' })">Slippage</button>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="tl-mode">
+      <button type="button" [class.active]="t.mode === 'funded'" (click)="set({ mode: 'funded' })">Funded</button>
+      <button type="button" [class.active]="t.mode === 'flight'" (click)="set({ mode: 'flight' })">Active</button>
+    </div>
+    <button
+      type="button"
+      class="di-export-btn"
+      [disabled]="exporting()"
+      [attr.title]="'Time to Fund and Slippage on separate sheets, for the ' + (t.mode === 'funded' ? 'funded' : 'active') + ' files currently in view'"
+      (click)="exportToExcel()"
+    >
+      @if (exporting()) {
+        Building…
+      } @else {
+        &#8681; Export to Excel
+      }
+    </button>
+  </div>
+</div>
+<div class="sub" style="font-size:0.76rem;color:var(--text-3);margin:-6px 0 14px">{{ x.subText }}</div>
+
+<div class="tl-boards">
+  @for (b of x.boards; track b.role) {
+    <div class="tl-board">
+      <div class="tl-board-head">
+        <div class="bt">{{ b.title }}</div>
+        @if (!b.empty) {
+          <div class="bs">{{ b.summary }}</div>
+        }
+      </div>
+      @if (b.empty) {
+        <div class="tl-empty">No {{ b.summary }} files match these filters yet.</div>
+      } @else {
+        <div class="tl-lb-hdr">
+          <span>Name</span>
+          <span class="r">Files</span>
+          <span class="r">{{ t.view === 'slip' ? 'Median slip' : 'Median wks' }}</span>
+          <span class="r">{{ t.view === 'slip' ? 'Mean slip' : 'Mean wks' }}</span>
+          <span class="r">Pace</span>
+        </div>
+        @for (r of b.rows; track r.who) {
+          <div class="tl-lb-row" title="See the files behind these stats" (click)="openPerson(b.role, r.who, b.title)">
+            <div>
+              <div class="tl-lb-name">
+                {{ r.who }}
+                <button
+                  type="button"
+                  class="tl-lb-x"
+                  [attr.title]="'Hide ' + r.who + ' from the ' + b.title + ' board — the files stay in the data'"
+                  (click)="hide(b.role, r.who, $event)"
+                >&#x2715;</button>
+              </div>
+              <div class="tl-lb-bar"><i [class.slow]="r.slow" [style.width.%]="r.width"></i></div>
+            </div>
+            <div class="tl-lb-n r">{{ r.n }}</div>
+            <div class="tl-lb-d r">{{ r.medText }}@if (r.medText !== '—') {<small>wk</small>}</div>
+            <div class="tl-lb-m r">{{ r.meanText }}</div>
+            <div class="r"><span class="tl-over" [class.zero]="!r.slow">{{ r.slow ? '▲' : '—' }}</span></div>
+          </div>
+        }
+      }
+      @if (b.hidden.length) {
+        <details class="tl-lb-foot" [open]="footOpen()[b.role]" (toggle)="toggleFoot(b.role, $any($event.target).open)">
+          <summary><span class="ch">&#9656;</span>Hidden ({{ b.hidden.length }})</summary>
+          <div class="tl-lb-foot-in">
+            @for (w of b.hidden; track w) {
+              <button type="button" class="tl-lb-back" title="Show on this leaderboard again" (click)="unhide(b.role, w)">{{ w }} &#8634;</button>
+            }
+          </div>
+        </details>
+      }
+    </div>
+  }
+</div>
+
+<ng-template #chartTpl let-c>
+  <div class="tl-chart-card">
+    @if (c.empty) {
+      <div class="tl-empty">No funding dates to chart under these filters.</div>
+    } @else {
+      <div class="tl-legend">
+        <div class="tl-lg"><span class="sw" style="background:var(--gold)"></span>Funded</div>
+        <div class="tl-lg"><span class="sw" style="background:var(--navy)"></span>Projected to fund</div>
+        <div class="tl-lg"><span class="sw line" style="background:var(--amber)"></span>Median weeks to fund</div>
+        @if (c.trimmed) {
+          <div class="tl-lg" style="margin-left:auto;color:var(--text-3)">
+            Trailing 18 months · {{ c.trimmed }} earlier month{{ plural(c.trimmed) }} not charted
+          </div>
+        }
+      </div>
+      <div class="tl-chart-wrap">
+        <div class="tl-bars" [style.grid-template-columns]="c.cols">
+          @for (b of c.bars; track $index) {
+            @if (b.zero) {
+              <div class="tl-bcol"><div class="bv" style="color:var(--text-3);font-weight:600">0</div></div>
+            } @else {
+              <div class="tl-bcol">
+                <div class="bv">{{ b.label }}</div>
+                <div class="stack" [style.height.%]="b.height">
+                  @if (b.projected) {
+                    <div class="seg-a" style="flex:1" [attr.title]="b.projectedTitle"><div class="bv-proj">{{ b.projected }}</div></div>
+                  }
+                  @if (b.funded) {
+                    <div class="seg-f" [style.height.%]="b.fundedHeight" [attr.title]="b.fundedTitle"></div>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+        <div class="tl-medline">
+          @if (c.dots.length > 1) {
+            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="display:block">
+              <polyline
+                [attr.points]="c.points"
+                fill="none"
+                stroke="#D97706"
+                stroke-width="2.5"
+                stroke-linejoin="round"
+                stroke-linecap="round"
+                vector-effect="non-scaling-stroke"
+              />
+            </svg>
+          }
+          @for (d of c.dots; track $index) {
+            <div class="tl-dot" [style.left]="d.left" [style.top]="d.top"></div>
+          }
+        </div>
+      </div>
+      <div class="tl-chart-x" [style.grid-template-columns]="c.cols">
+        @for (l of c.xlabels; track $index) {
+          <div class="tl-xl">
+            <div class="xm">{{ l.month }}</div>
+            <div class="xd">{{ l.weeks }}</div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</ng-template>
+
+@for (s of x.sections; track s.heading) {
+  @if (s.top) {
+    <div class="section-label" style="margin-top:22px">
+      <h2 style="font-size:1rem">{{ s.heading }}</h2>
+      <div class="sub">{{ s.sub }}</div>
+    </div>
+    <ng-container *ngTemplateOutlet="chartTpl; context: { $implicit: s.chart }" />
+  }
+}
+
+@if (x.ytdChart; as ytd) {
+  <div class="section-label" style="margin-top:26px">
+    <h2>{{ x.thisYear }} Fundings</h2>
+    <div class="sub">{{ x.ytdLine }}</div>
+  </div>
+  <ng-container *ngTemplateOutlet="chartTpl; context: { $implicit: ytd }" />
+}
+
+@for (s of x.sections; track s.heading) {
+  @if (!s.top) {
+    <div class="section-label" style="margin-top:22px">
+      <h2 style="font-size:1rem">{{ s.heading }}</h2>
+      <div class="sub">{{ s.sub }}</div>
+    </div>
+    <ng-container *ngTemplateOutlet="chartTpl; context: { $implicit: s.chart }" />
+  }
+}
+
+@if (t.back === 'incl' && x.shownBaseline) {
+  <div class="tl-empty" style="margin-top:14px">
+    {{ x.shownBaseline }} file{{ x.shownBaseline === 1 ? ' was' : 's were' }} already funded the first time the report saw them, so there is no earlier funding date to measure slippage against. They still count toward time to fund.
+  </div>
+}
