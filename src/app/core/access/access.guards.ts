@@ -1,14 +1,11 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, CanMatchFn, Router } from '@angular/router';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { filter, map, take, timeout, catchError, of } from 'rxjs';
+import { filter, map, take } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { AccessControlService } from './access-control.service';
 import { AppSection } from './access.model';
-
-/** Give up waiting for the role lookup after this long and decide with what we have. */
-const ACCESS_READY_TIMEOUT_MS = 15000;
 
 function whenAccessReady<T>(decide: (access: AccessControlService) => T) {
   const access = inject(AccessControlService);
@@ -17,11 +14,11 @@ function whenAccessReady<T>(decide: (access: AccessControlService) => T) {
     return decide(access);
   }
 
+  // Wait until the role lookup finishes. Deciding early used to send Admins to
+  // /no-access before their user record loaded, and they stayed stuck there.
   return toObservable(access.isReady).pipe(
     filter((ready) => ready),
     take(1),
-    timeout(ACCESS_READY_TIMEOUT_MS),
-    catchError(() => of(true)),
     map(() => decide(access)),
   );
 }
