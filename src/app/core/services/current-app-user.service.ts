@@ -31,6 +31,7 @@ export class CurrentAppUserService {
         untracked(() => {
           this.loadedEmail = null;
           this.user.set(null);
+          this.resolvedEmail.set(null);
           this.isLoading.set(false);
         });
         return;
