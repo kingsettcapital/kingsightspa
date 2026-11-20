@@ -167,23 +167,71 @@ export function filtersToQueryParams(
   return params;
 }
 
+/** Fallback funding statuses when filter options are not loaded yet. */
+export const LOAN_DETAIL_FALLBACK_STATUSES = [
+  'Unfunded',
+  'Funded',
+  'Default',
+  'Repaid',
+  'All',
+] as const;
+
+function isRepaidStatus(status: string): boolean {
+  return status.trim().toLowerCase() === 'repaid';
+}
+
+/** True when the only selected funding status is Repaid. */
+export function isRepaidOnlyStatusSelection(
+  statuses: readonly string[] | null | undefined,
+): boolean {
+  const selected = selectedValues(statuses ?? undefined);
+  return selected?.length === 1 && isRepaidStatus(selected[0]);
+}
+
+/**
+ * Loan Detail default funding statuses: every option except Repaid and All.
+ * When the parent loan is Repaid, callers should use ['All'] instead.
+ */
+export function defaultLoanDetailStatuses(
+  availableStatuses?: readonly string[] | null,
+): string[] {
+  const source = (availableStatuses?.length ? availableStatuses : LOAN_DETAIL_FALLBACK_STATUSES)
+    .map((status) => status.trim())
+    .filter(Boolean);
+  const withoutAllAndRepaid = source.filter(
+    (status) => status.toLowerCase() !== 'all' && !isRepaidStatus(status),
+  );
+  return withoutAllAndRepaid.length > 0 ? withoutAllAndRepaid : ['All'];
+}
+
 /**
  * Entry query from Management Summary → Loan Detail.
- * Only As Of (and alias) are shared; other MS filters stay on the summary session.
+ * Carries As Of, alias, and the Loan Detail funding-status default:
+ * all statuses except Repaid, or All when the parent loan is Repaid.
  */
 export function loanDetailEntryQueryParams(
   asOfDate: string,
   alias?: string,
-): Record<string, string> {
-  const params: Record<string, string> = { asOfDate };
+  options?: {
+    parentIsRepaid?: boolean;
+    availableStatuses?: readonly string[] | null;
+  },
+): Record<string, string | string[]> {
+  const params: Record<string, string | string[]> = { asOfDate };
   if (alias?.trim()) {
     params['alias'] = alias.trim();
   }
+  params['statuses'] = options?.parentIsRepaid
+    ? ['All']
+    : defaultLoanDetailStatuses(options?.availableStatuses);
   return params;
 }
 
-/** Loan Detail defaults: everything All except the carried As Of date. */
-export function createLoanDetailDefaultFilters(asOfDate: string): ManagementSummaryFilters {
+/** Loan Detail defaults: As Of carried over; funding status excludes Repaid unless overridden. */
+export function createLoanDetailDefaultFilters(
+  asOfDate: string,
+  availableStatuses?: readonly string[] | null,
+): ManagementSummaryFilters {
   return {
     asOfDate: asOfDate.trim() || '',
     defaultDateFrom: '',
@@ -192,7 +240,7 @@ export function createLoanDetailDefaultFilters(asOfDate: string): ManagementSumm
     maturityDateTo: '',
     sponsors: ['All'],
     riskLevels: ['ALL'],
-    statuses: ['All'],
+    statuses: defaultLoanDetailStatuses(availableStatuses),
     investorAliases: ['All'],
   };
 }
@@ -230,12 +278,19 @@ function overlayFiltersFromQuery(base: ManagementSummaryFilters, query: ParamMap
 
 /**
  * Build Loan Detail filter state from the URL.
- * Starts from All defaults + As Of; only overlays filter params when present
- * (so MS entry with only asOfDate does not inherit MS investor/status/etc.).
+ * Starts from Detail defaults (exclude Repaid) + As Of; overlays filter params when present
+ * (so MS entry does not inherit MS investor/sponsor/etc.).
  */
-export function loanDetailFiltersFromQuery(query: ParamMap, fallbackAsOfDate: string): ManagementSummaryFilters {
+export function loanDetailFiltersFromQuery(
+  query: ParamMap,
+  fallbackAsOfDate: string,
+  availableStatuses?: readonly string[] | null,
+): ManagementSummaryFilters {
   const asOfDate = query.get('asOfDate')?.trim() || fallbackAsOfDate;
-  return overlayFiltersFromQuery(createLoanDetailDefaultFilters(asOfDate), query);
+  return overlayFiltersFromQuery(
+    createLoanDetailDefaultFilters(asOfDate, availableStatuses),
+    query,
+  );
 }
 
 export function mergeFiltersFromQuery(
