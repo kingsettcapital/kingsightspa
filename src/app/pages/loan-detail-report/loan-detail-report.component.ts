@@ -149,7 +149,10 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   readonly filtersOpen = signal(false);
   /** Loan Detail local filters — not written back to Management Summary session. */
   readonly filters = signal<ManagementSummaryFilters>(
-    createLoanDetailDefaultFilters(this.filterState.getFilters().asOfDate),
+    createLoanDetailDefaultFilters(
+      this.filterState.getFilters().asOfDate,
+      this.filterState.getFilterOptions().statuses,
+    ),
   );
   /** Face-of-report active filters (skips All / empty). */
   readonly activeFiltersDisplay = computed(() => formatActiveFiltersDisplay(this.filters()));
@@ -200,9 +203,14 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
         return;
       }
 
-      // Detach from MS filters: only As Of is shared; other filters default to All.
+      // Detach from MS filters: As Of + Detail funding-status default (exclude Repaid
+      // unless parent is Repaid / statuses were passed in the URL).
       const fallbackAsOf = this.filterState.getFilters().asOfDate;
-      const loanFilters = loanDetailFiltersFromQuery(query, fallbackAsOf);
+      const loanFilters = loanDetailFiltersFromQuery(
+        query,
+        fallbackAsOf,
+        this.filterState.getFilterOptions().statuses,
+      );
       this.filters.set(loanFilters);
       this.loanAliasKey = loanAliasKey;
       this.loanAliasName = alias;
@@ -280,7 +288,9 @@ export class LoanDetailReportComponent implements AfterViewInit, OnDestroy {
   }
 
   resetFilters(): void {
-    this.filters.set(createLoanDetailDefaultFilters(this.filters().asOfDate));
+    this.filters.set(
+      createLoanDetailDefaultFilters(this.filters().asOfDate, this.statusOptions()),
+    );
   }
 
   applyFilters(): void {
