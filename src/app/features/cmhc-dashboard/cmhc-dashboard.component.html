@@ -1,24 +1,27 @@
 <div class="cmhc-dash">
-  <header>
-    <div class="hdr-left">
-      <a class="hdr-home" routerLink="/" aria-label="Back to KingSight home">
-        <mat-icon aria-hidden="true">home</mat-icon>
-      </a>
+  <!-- One-row header (NAV-05..07): KingSett logo, then the menu. No title, timestamp or New data button. -->
+  <header class="hdr-single">
+    <a class="hdr-logo" routerLink="/" aria-label="Back to KingSight home">
       <app-kingsett-logo variant="reversed" size="sm" />
-      <div class="hdr-title">Monday Pipeline Review</div>
-    </div>
-    <div class="hdr-right">
-      <div class="view-toggle">
-        @for (tab of tabs(); track tab.path) {
+    </a>
+    @if (access.hasAccess()) {
+      <nav class="view-toggle" aria-label="Dashboard pages">
+        @for (tab of access.tabs(); track tab.path) {
           <button type="button" [routerLink]="tab.path" routerLinkActive="active">{{ tab.label }}</button>
         }
-      </div>
-      <div class="hdr-date">{{ headerDate() }}</div>
-    </div>
+      </nav>
+    }
   </header>
 
   <main>
-    @if (dataService.loading() && !dataService.data()) {
+    @if (!access.access()) {
+      <div class="notes-header"><p>Checking your access…</p></div>
+    } @else if (!access.hasAccess()) {
+      <div class="cmhc-no-access">
+        <h2>No access</h2>
+        <p>You don't have an CMHC sub-role yet. Ask an administrator to assign you one in User Management.</p>
+      </div>
+    } @else if (dataService.loading() && !dataService.data()) {
       <div class="notes-header"><p>Loading the live pipeline…</p></div>
     } @else if (dataService.error()) {
       <div class="scr-err" style="display:block">{{ dataService.error() }}</div>

@@ -40,3 +40,18 @@ export interface CmhcIssueCategory {
   deals: any[];
   key?: string | null;
 }
+
+/** CMHC sub-roles (User Management). Admin is the app-level role. */
+export type CmhcRole = 'Underwriter' | 'Reviewer' | 'Originator';
+
+/** GET api/CmhcDashboard/access/me */
+export interface CmhcMyAccessDto {
+  isAdmin: boolean;
+  roles: CmhcRole[];
+  /** Name as it appears in the loan data (Funder/Underwriter or Originating Originator). */
+  linkedName: string | null;
+  /** Admin or Reviewer: the pipeline is not filtered. */
+  seesAllLoans: boolean;
+  /** False when the user has no CMHC sub-role and is not an Admin. */
+  hasAccess: boolean;
+}

@@ -85,6 +85,42 @@
           </select>
         </div>
 
+        @if (isCmhcRoleSelected()) {
+        <fieldset class="um-field um-cmhc">
+          <legend class="ks-label">CMHC Sub-role <span class="um-cmhc__req">(optional)</span></legend>
+          <div class="um-cmhc__roles">
+            @for (r of cmhcRoleNames; track r) {
+              <label class="um-checkbox">
+                <input
+                  type="checkbox"
+                  [checked]="cmhcRoles().includes(r)"
+                  (change)="toggleCmhcRole(r, $any($event.target).checked)"
+                />
+                <span>{{ r }}</span>
+              </label>
+            }
+          </div>
+          @if (needsLinkedName()) {
+            <label class="ks-label" for="cmhcLinkedName">Name in loan data</label>
+            <input
+              id="cmhcLinkedName"
+              type="text"
+              class="ks-input"
+              [class.ks-input--error]="!cmhcLinkedName().trim()"
+              [ngModel]="cmhcLinkedName()"
+              (ngModelChange)="cmhcLinkedName.set($event)"
+              name="cmhcLinkedName"
+              placeholder="Exactly as it appears in DealPath, e.g. Jane Smith"
+            />
+            <p class="um-cmhc__hint">
+              Underwriters are matched on Funder (or Underwriter when Funder is blank); Originators on Originating Originator.
+            </p>
+          } @else if (cmhcRoles().length === 0) {
+            <p class="um-cmhc__hint">No sub-role = CMHC admin: sees every page and every loan.</p>
+          }
+        </fieldset>
+        }
+
         <div class="um-field um-field--checkbox">
           <label class="um-checkbox">
             <input

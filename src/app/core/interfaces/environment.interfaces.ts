@@ -46,4 +46,6 @@ export interface Environment {
    * to be tied to a user permission later.
    */
   showCmhcCapacityTab?: boolean;
+  /** CMHC dashboard Timelines tab; hidden unless true (NAV-01). */
+  showCmhcTimelinesTab?: boolean;
 }

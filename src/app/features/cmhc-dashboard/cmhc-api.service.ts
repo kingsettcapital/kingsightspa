@@ -2,11 +2,15 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ApiService } from '../../core/services/api.service';
-import { CmhcPipelineDto, CmhcReportStateDto, CmhcStateKey } from './cmhc-dashboard.models';
+import { CmhcMyAccessDto, CmhcPipelineDto, CmhcReportStateDto, CmhcStateKey } from './cmhc-dashboard.models';
 
 @Injectable({ providedIn: 'root' })
 export class CmhcApiService {
   private readonly api = inject(ApiService);
+
+  getMyAccess(): Observable<CmhcMyAccessDto> {
+    return this.api.get<CmhcMyAccessDto>('api/CmhcDashboard/access/me');
+  }
 
   getPipeline(asOf?: string): Observable<CmhcPipelineDto> {
     return this.api.get<CmhcPipelineDto>('api/CmhcDashboard/pipeline', asOf ? { asOf } : undefined);

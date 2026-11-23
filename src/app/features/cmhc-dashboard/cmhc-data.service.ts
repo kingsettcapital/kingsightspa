@@ -97,6 +97,12 @@ export class CmhcDataService {
   private readonly allocStore = new Map<string, string>();
   private readonly allocSaveTimers: Partial<Record<CmhcStateKey, ReturnType<typeof setTimeout>>> = {};
 
+  /**
+   * False for Underwriters / Originators: their pipeline is filtered to their own loans, so their copy
+   * must not overwrite the team's shared history or Capacity settings (the API also refuses with 403).
+   */
+  canWriteShared = false;
+
   async load(asOf?: string): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
@@ -315,6 +321,7 @@ export class CmhcDataService {
 
   /** Capacity settings are shared; a stale version (409) is retried once on the latest version. */
   private async persistAlloc(key: CmhcStateKey): Promise<void> {
+    if (!this.canWriteShared) return;
     const value = this.allocValue(key);
     try {
       this.sharedStates[key] = await firstValueFrom(this.api.putState(key, value, this.sharedStates[key]?.version ?? 0));
@@ -362,6 +369,7 @@ export class CmhcDataService {
 
   /** Hidden people are shared by the team; a stale version (409) is retried once on the latest version. */
   private async saveTlHidden(hidden: unknown): Promise<void> {
+    if (!this.canWriteShared) return;
     try {
       this.tlHiddenState = await firstValueFrom(this.api.putState('tl-hidden', hidden, this.tlHiddenState.version));
     } catch {
@@ -376,6 +384,8 @@ export class CmhcDataService {
 
   /** Funding-history log is shared; a stale version (409) means someone saved first, so keep theirs. */
   private async saveHist(hist: unknown): Promise<void> {
+    // A filtered pipeline (Underwriter / Originator) must never overwrite the team's history.
+    if (!this.canWriteShared) return;
     try {
       this.histState = await firstValueFrom(this.api.putState('hist', hist, this.histState.version));
     } catch {

@@ -1,8 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 
 import {
+  CmhcUserAccessDto,
+  CmhcUserAccessSaveRequest,
   RoleDto,
   UserDto,
   UserManagementApiService,
@@ -25,6 +27,8 @@ export class UserManagementComponent implements OnInit {
 
   readonly users = signal<UserDto[]>([]);
   readonly roles = signal<RoleDto[]>([]);
+  /** CMHC sub-roles by userId. */
+  readonly cmhcAccess = signal<Record<number, CmhcUserAccessDto>>({});
   readonly isLoading = signal(false);
   readonly errorMessage = signal('');
 
@@ -101,6 +105,9 @@ export class UserManagementComponent implements OnInit {
 
     request$.subscribe({
       next: (saved) => {
+        if (event.cmhcAccess) {
+          this.saveCmhcAccess(saved.userId, event.cmhcAccess);
+        }
         if (event.mode === 'create') {
           this.users.update((rows) => this.sortUsers([...rows, saved]));
           this.toastService.success(`User created (ID ${saved.userId}).`);
@@ -226,9 +233,14 @@ export class UserManagementComponent implements OnInit {
     forkJoin({
       users: this.userManagementApi.getUsers(),
       roles: this.userManagementApi.getRoles(),
+      // Non-blocking: before the Fabric table exists the API returns an empty list.
+      cmhcAccess: this.userManagementApi
+        .getCmhcAccess()
+        .pipe(catchError(() => of([] as CmhcUserAccessDto[]))),
     }).subscribe({
-      next: ({ users, roles }) => {
+      next: ({ users, roles, cmhcAccess }) => {
         this.users.set(this.sortUsers(users));
+        this.cmhcAccess.set(Object.fromEntries(cmhcAccess.map((a) => [a.userId, a])));
         this.roles.set(this.sortRoles(roles));
         this.isLoading.set(false);
       },
@@ -236,6 +248,28 @@ export class UserManagementComponent implements OnInit {
         this.isLoading.set(false);
         this.errorMessage.set(this.extractBackendError(error, 'Unable to load user management data.'));
       },
+    });
+  }
+
+  cmhcAccessFor(user: UserDto | null): CmhcUserAccessDto | null {
+    return user ? (this.cmhcAccess()[user.userId] as CmhcUserAccessDto | undefined) ?? null : null;
+  }
+
+  cmhcRolesLabel(user: UserDto): string {
+    const a = this.cmhcAccess()[user.userId];
+    if (!a?.roles?.length) {
+      // CMHC role with no sub-role = CMHC section admin.
+      const role = (user.roleName ?? '').trim().toLowerCase();
+      return role === 'cmhc' || role === 'cmhc user' ? 'CMHC Admin (all loans)' : '';
+    }
+    return a.roles.join(', ') + (a.linkedName ? ` (${a.linkedName})` : '');
+  }
+
+  private saveCmhcAccess(userId: number, body: CmhcUserAccessSaveRequest): void {
+    this.userManagementApi.saveCmhcAccess(userId, body).subscribe({
+      next: (saved) => this.cmhcAccess.update((all) => ({ ...all, [userId]: saved })),
+      error: (error) =>
+        this.toastService.error(this.extractBackendError(error, 'CMHC sub-roles could not be saved.')),
     });
   }
 

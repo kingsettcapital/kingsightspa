@@ -129,3 +129,33 @@
     grid-template-columns: 1fr;
   }
 }
+
+.um-cmhc {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px 12px;
+  margin: 0;
+}
+
+.um-cmhc legend {
+  padding: 0 4px;
+}
+
+.um-cmhc__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.um-cmhc__hint {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.um-cmhc__req {
+  font-weight: 400;
+  text-transform: none;
+  color: #64748b;
+}

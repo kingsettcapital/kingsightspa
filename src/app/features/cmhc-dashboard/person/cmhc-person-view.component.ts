@@ -2,6 +2,7 @@ import { Component, computed, HostListener, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { CmhcData, CmhcDeal } from '../cmhc-dashboard.models';
+import { CmhcAccessService } from '../cmhc-access.service';
 import { CmhcDataService } from '../cmhc-data.service';
 
 export type CmhcPersonType = 'uw' | 'orig' | 'rev' | 'pool';
@@ -56,7 +57,14 @@ export class CmhcPersonViewComponent {
   readonly e = computed(() => this.dataService.engine());
   readonly stages = STAGES;
 
-  readonly people = computed<CmhcData[]>(() => this.data()?.[this.cfg.arr] ?? []);
+  private readonly access = inject(CmhcAccessService);
+
+  /** Underwriters / Originators only see their own card on their page (ACC-02, ACC-07). */
+  readonly people = computed<CmhcData[]>(() => {
+    const all: CmhcData[] = this.data()?.[this.cfg.arr] ?? [];
+    const locked = this.access.lockedPerson(this.type)?.toLowerCase();
+    return locked ? all.filter((p) => (p.name ?? '').trim().toLowerCase() === locked) : all;
+  });
   readonly emptyLabel = this.cfg.label;
 
   readonly current = computed(() =>

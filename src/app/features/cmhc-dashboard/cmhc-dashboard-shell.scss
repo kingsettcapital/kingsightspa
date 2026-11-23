@@ -16,3 +16,62 @@
   color: #fff;
   background: rgba(255, 255, 255, 0.16);
 }
+
+/* One-row header (CMHC navigation requirements NAV-05..NAV-11): logo, then the menu right beside it. */
+.cmhc-dash header.hdr-single {
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 20px;
+  min-height: 56px;
+  padding: 0 24px;
+}
+
+.cmhc-dash .hdr-logo {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 8px 0;
+  text-decoration: none;
+}
+
+/* Never wraps to a second row; scrolls sideways on narrow screens (NAV-11). */
+.cmhc-dash header.hdr-single .view-toggle {
+  flex: 0 1 auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cmhc-dash header.hdr-single .view-toggle::-webkit-scrollbar {
+  display: none;
+}
+
+.cmhc-dash header.hdr-single .view-toggle button {
+  flex-shrink: 0;
+}
+
+@media (max-width: 760px) {
+  .cmhc-dash header.hdr-single {
+    padding: 0 12px;
+    gap: 12px;
+  }
+}
+
+.cmhc-dash .cmhc-no-access {
+  max-width: 560px;
+  margin: 64px auto;
+  text-align: center;
+}
+
+.cmhc-dash .cmhc-no-access h2 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.cmhc-dash .cmhc-no-access p {
+  color: var(--text-3);
+  font-size: 0.9rem;
+}
