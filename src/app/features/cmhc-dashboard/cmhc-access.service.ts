@@ -8,29 +8,42 @@ import { CmhcMyAccessDto } from './cmhc-dashboard.models';
 /** Route path of every dashboard page, in menu order (NAV-09). */
 export type CmhcPage =
   | 'overview'
+  | 'fundings'
   | 'underwriter'
   | 'reviewer'
   | 'originator'
   | 'capacity'
   | 'pools'
   | 'timelines'
+  | 'renewals'
+  | 'ffa'
   | 'data-issues'
   | 'methodology';
 
-export const CMHC_PAGES: readonly { path: CmhcPage; label: string }[] = [
-  { path: 'overview', label: 'Overview' },
-  { path: 'underwriter', label: 'Underwriter' },
-  { path: 'reviewer', label: 'Reviewer' },
-  { path: 'originator', label: 'Originator' },
-  { path: 'capacity', label: 'Capacity' },
-  { path: 'pools', label: 'Pools' },
-  { path: 'timelines', label: 'Timelines' },
-  { path: 'data-issues', label: 'Data Issues' },
-  { path: 'methodology', label: 'Methodology' },
+/** Every page, in menu order, with the MMG dashboard's own view id (its setView name). */
+export const CMHC_PAGES: readonly { path: CmhcPage; label: string; view: string }[] = [
+  { path: 'overview', label: 'Overview', view: 'overview' },
+  { path: 'fundings', label: 'Fundings', view: 'fundings' },
+  { path: 'underwriter', label: 'Underwriter', view: 'underwriters' },
+  { path: 'reviewer', label: 'Reviewer', view: 'reviewers' },
+  { path: 'originator', label: 'Originator', view: 'originators' },
+  { path: 'capacity', label: 'Capacity', view: 'allocations' },
+  { path: 'pools', label: 'Pools', view: 'pools' },
+  { path: 'timelines', label: 'Timelines', view: 'timelines' },
+  { path: 'renewals', label: 'Renewals', view: 'renewals' },
+  { path: 'ffa', label: 'FFA', view: 'ffa' },
+  { path: 'data-issues', label: 'Data Issues', view: 'dataissues' },
+  { path: 'methodology', label: 'Methodology', view: 'notes' },
 ];
 
+/**
+ * Pages hidden for everyone (NAV-01..NAV-03). They are kept, not deleted: take a page off this list (or set
+ * its environment flag) to switch it back on.
+ */
+const HIDDEN_PAGES: readonly CmhcPage[] = ['renewals', 'ffa'];
+
 /** Pages Underwriters and Originators share, limited to their own loans by the API. */
-const SHARED_OWN_PAGES: readonly CmhcPage[] = ['overview', 'capacity', 'pools', 'data-issues', 'methodology'];
+const SHARED_OWN_PAGES: readonly CmhcPage[] = ['overview', 'fundings', 'capacity', 'pools', 'data-issues', 'methodology'];
 
 const NO_ACCESS: CmhcMyAccessDto = {
   isAdmin: false,
@@ -43,10 +56,11 @@ const NO_ACCESS: CmhcMyAccessDto = {
 /**
  * CMHC sub-role-based access (page matrix in the Navigation & Role-Based Access requirements):
  * - Admin → every page, every loan
- * - Underwriter → Overview, Underwriter (own only), Capacity, Pools, Data Issues, Methodology
- * - Originator → Overview, Originator (own only), Capacity, Pools, Data Issues, Methodology
+ * - Underwriter → Overview, Fundings, Underwriter (own only), Capacity, Pools, Data Issues, Methodology
+ * - Originator → Overview, Fundings, Originator (own only), Capacity, Pools, Data Issues, Methodology
  * - Reviewer → Reviewer page only, all underwriters' loans
- * - Several roles → combined pages. Pages switched off by config (Timelines, Capacity) stay hidden for everyone.
+ * - Several roles → combined pages. Pages switched off by config (Timelines, Renewals, FFA; Capacity by
+ *   environment flag) stay hidden for everyone.
  * Loan filtering itself happens in the API (ACC-08); this only decides what is shown.
  */
 @Injectable({ providedIn: 'root' })
@@ -80,6 +94,7 @@ export class CmhcAccessService {
       }
     }
 
+    HIDDEN_PAGES.forEach((p) => allowed.delete(p));
     if (!environment.showCmhcTimelinesTab) allowed.delete('timelines');
     if (environment.showCmhcCapacityTab === false) allowed.delete('capacity');
     return allowed;
@@ -106,6 +121,11 @@ export class CmhcAccessService {
       return a.linkedName?.trim() || '\u0000';
     }
     return null;
+  }
+
+  /** The page for one of the MMG dashboard's own view ids. */
+  pageOfView(view: string): CmhcPage | null {
+    return CMHC_PAGES.find((p) => p.view === view)?.path ?? null;
   }
 
   canOpen(page: CmhcPage): boolean {

@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kingsight-api",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "C:\\Code\\kingsightapi", "--launch-profile", "https"],
+      "port": 7140
+    },
+    {
+      "name": "kingsight-spa",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "port": 4200
+    }
+  ]
+}

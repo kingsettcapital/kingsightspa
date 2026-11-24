@@ -13,27 +13,26 @@
     }
   </header>
 
-  <main>
+  <main class="cmhc-body">
     @if (!access.access()) {
-      <div class="notes-header"><p>Checking your access…</p></div>
+      <p class="cmhc-msg">Checking your access…</p>
     } @else if (!access.hasAccess()) {
       <div class="cmhc-no-access">
         <h2>No access</h2>
-        <p>You don't have an CMHC sub-role yet. Ask an administrator to assign you one in User Management.</p>
+        <p>You don't have a CMHC sub-role yet. Ask an administrator to assign you one in User Management.</p>
       </div>
-    } @else if (dataService.loading() && !dataService.data()) {
-      <div class="notes-header"><p>Loading the live pipeline…</p></div>
     } @else if (dataService.error()) {
-      <div class="scr-err" style="display:block">{{ dataService.error() }}</div>
-      <button type="button" class="scr-btn" (click)="reload()">Try again</button>
-    } @else if (dataService.data()) {
-      <router-outlet />
+      <div class="cmhc-msg">
+        <p class="cmhc-err">{{ dataService.error() }}</p>
+        <button type="button" class="cmhc-retry" (click)="reload()">Try again</button>
+      </div>
+    } @else if (hostReady()) {
+      <!-- The business's MMG dashboard, unchanged, on the live pipeline (see cmhc-host.js). -->
+      <iframe class="cmhc-frame" src="cmhc/mmg-dashboard.html" title="MMG Dashboard"></iframe>
+    } @else {
+      <p class="cmhc-msg">Loading the live pipeline…</p>
     }
+    <!-- Child routes only run the page guards (NAV-10, NAV-12); the page itself is drawn in the frame. -->
+    <router-outlet />
   </main>
-
-  <footer>
-    KingSett Mortgage Corporation &mdash; CMHC Pipeline &middot; <b>Confidential &mdash; internal use only.</b>
-  </footer>
-
-  <app-cmhc-popups />
 </div>

@@ -1,0 +1,35 @@
+/* KingSight host styles for the MMG dashboard (hand-written; see cmhc-host.js). */
+
+/* KingSight's CMHC Dashboard page provides the one-row header and menu (NAV-04..NAV-08): the report's own
+   title bar, menu, "New data" button, refresh timestamp, upload screens and footer are not shown. */
+.topbar,
+body > header,
+#btn-load,
+#hdr-date,
+#screen-upload,
+#screen-mapping,
+#private-ov,
+#confirm-ov,
+#footer {
+  display: none !important;
+}
+
+/* Nothing is drawn until the live pipeline has been built (the report would otherwise flash its empty state). */
+body:not(.cmhc-ready) > *:not(.cmhc-host-msg) {
+  visibility: hidden;
+}
+
+/* Underwriters and Originators see only their own page: no person picker on their tab (ACC-02, ACC-07).
+   The API already limits their pipeline to their own loans, so the picker would only ever show them. */
+.cmhc-lock-uw #view-underwriters .present-nav,
+.cmhc-lock-uw #view-underwriters .wd-pf,
+.cmhc-lock-orig #view-originators .present-nav {
+  display: none !important;
+}
+
+.cmhc-host-msg {
+  padding: 48px 24px;
+  font: 500 15px/1.5 system-ui, sans-serif;
+  color: #334155;
+  text-align: center;
+}
