@@ -107,6 +107,17 @@
       );
       return;
     }
+    /* The API sends dates as plain yyyy-MM-dd. The report's toISO() runs them through new Date(), which reads
+       them as UTC midnight — the previous evening in Toronto — so every date (Funding Date included) came out
+       a day early. Plain dates are kept as they are; anything else still goes through the report's own parser. */
+    var reportToISO = window.toISO;
+    if (typeof reportToISO === 'function') {
+      window.toISO = function (v) {
+        var iso = /^(\d{4}-\d{2}-\d{2})(T00:00(:00(\.0+)?)?)?$/.exec(v == null ? '' : String(v).trim());
+        return iso ? iso[1] : reportToISO(v);
+      };
+    }
+
     if (host.viewer && host.viewer.lockUw) body.classList.add('cmhc-lock-uw');
     if (host.viewer && host.viewer.lockOrig) body.classList.add('cmhc-lock-orig');
 
