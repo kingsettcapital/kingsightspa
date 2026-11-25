@@ -14,13 +14,13 @@ function riskFromLtv(ltv: number | null): LoanAliasSummaryRow['risk'] {
   if (ltv == null) {
     return '—';
   }
-  if (ltv > 100) {
+  if (ltv > 95) {
     return 'HIGH';
   }
-  if (ltv >= 90) {
+  if (ltv >= 80 && ltv <= 94.99) {
     return 'ELEVATED';
   }
-  if (ltv >= 75) {
+  if (ltv >= 65 && ltv <= 79.99) {
     return 'MODERATE';
   }
   return 'LOW';
