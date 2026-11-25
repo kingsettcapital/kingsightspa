@@ -1,36 +1,38 @@
 <div class="cmhc-dash">
-  <header>
-    <div class="hdr-left">
-      <a class="hdr-home" routerLink="/" aria-label="Back to KingSight home">
-        <mat-icon aria-hidden="true">home</mat-icon>
-      </a>
+  <!-- One-row header (NAV-05..07): KingSett logo, then the menu. No title, timestamp or New data button. -->
+  <header class="hdr-single">
+    <a class="hdr-logo" routerLink="/" aria-label="Back to KingSight home">
       <app-kingsett-logo variant="reversed" size="sm" />
-      <div class="hdr-title">Monday Pipeline Review</div>
-    </div>
-    <div class="hdr-right">
-      <div class="view-toggle">
-        @for (tab of tabs(); track tab.path) {
+    </a>
+    @if (access.hasAccess()) {
+      <nav class="view-toggle" aria-label="Dashboard pages">
+        @for (tab of access.tabs(); track tab.path) {
           <button type="button" [routerLink]="tab.path" routerLinkActive="active">{{ tab.label }}</button>
         }
-      </div>
-      <div class="hdr-date">{{ headerDate() }}</div>
-    </div>
+      </nav>
+    }
   </header>
 
-  <main>
-    @if (dataService.loading() && !dataService.data()) {
-      <div class="notes-header"><p>Loading the live pipeline…</p></div>
+  <main class="cmhc-body">
+    @if (!access.access()) {
+      <p class="cmhc-msg">Checking your access…</p>
+    } @else if (!access.hasAccess()) {
+      <div class="cmhc-no-access">
+        <h2>No access</h2>
+        <p>You don't have a CMHC sub-role yet. Ask an administrator to assign you one in User Management.</p>
+      </div>
     } @else if (dataService.error()) {
-      <div class="scr-err" style="display:block">{{ dataService.error() }}</div>
-      <button type="button" class="scr-btn" (click)="reload()">Try again</button>
-    } @else if (dataService.data()) {
-      <router-outlet />
+      <div class="cmhc-msg">
+        <p class="cmhc-err">{{ dataService.error() }}</p>
+        <button type="button" class="cmhc-retry" (click)="reload()">Try again</button>
+      </div>
+    } @else if (hostReady()) {
+      <!-- The business's MMG dashboard, unchanged, on the live pipeline (see cmhc-host.js). -->
+      <iframe class="cmhc-frame" src="cmhc/mmg-dashboard.html" title="MMG Dashboard"></iframe>
+    } @else {
+      <p class="cmhc-msg">Loading the live pipeline…</p>
     }
+    <!-- Child routes only run the page guards (NAV-10, NAV-12); the page itself is drawn in the frame. -->
+    <router-outlet />
   </main>
-
-  <footer>
-    KingSett Mortgage Corporation &mdash; CMHC Pipeline &middot; <b>Confidential &mdash; internal use only.</b>
-  </footer>
-
-  <app-cmhc-popups />
 </div>

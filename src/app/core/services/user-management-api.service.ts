@@ -34,6 +34,24 @@ export type UserSaveRequest = {
   roleId: number;
 };
 
+/** CMHC dashboard sub-roles; Admin comes from the app role. */
+export type CmhcRoleName = 'Underwriter' | 'Reviewer' | 'Originator';
+export const CMHC_ROLE_NAMES: readonly CmhcRoleName[] = ['Underwriter', 'Reviewer', 'Originator'];
+
+export type CmhcUserAccessDto = {
+  userId: number;
+  roles: CmhcRoleName[];
+  /** Name as it appears in the loan data (Funder/Underwriter or Originating Originator). */
+  linkedName: string | null;
+  updatedBy?: string | null;
+  updatedDatetime?: string | null;
+};
+
+export type CmhcUserAccessSaveRequest = {
+  roles: CmhcRoleName[];
+  linkedName: string | null;
+};
+
 export type RoleUpdateRequest = RoleSaveRequest;
 export type UserUpdateRequest = UserSaveRequest;
 
@@ -70,6 +88,14 @@ export class UserManagementApiService {
 
   deleteUser(userId: number) {
     return this.http.delete<void>(`${this.baseUrl}/users/${userId}`);
+  }
+
+  getCmhcAccess() {
+    return this.http.get<CmhcUserAccessDto[]>(`${this.baseUrl}/cmhc-access`);
+  }
+
+  saveCmhcAccess(userId: number, body: CmhcUserAccessSaveRequest) {
+    return this.http.put<CmhcUserAccessDto>(`${this.baseUrl}/users/${userId}/cmhc-access`, body);
   }
 
   getRoles() {
