@@ -51,21 +51,18 @@ function mapChartSlice(slice: {
   };
 }
 
-/**
- * LTV risk bands: Low &lt; 50%, Moderate 50–&lt;75%, Elevated 75–100%, High &gt; 100%.
- */
-export function riskBandFromLtv(ltv: number | null | undefined): 'HIGH' | 'ELEVATED' | 'MODERATE' | 'LOW' {
-  if (ltv == null || Number.isNaN(ltv)) {
-    return 'LOW';
-  }
-  if (ltv > 100) {
-    return 'HIGH';
-  }
-  if (ltv >= 75) {
-    return 'ELEVATED';
-  }
-  if (ltv >= 50) {
-    return 'MODERATE';
+/** Normalize API/warehouse risk_level for the grid and charts. */
+export function resolveLoanRisk(
+  risk: string | null | undefined,
+): 'HIGH' | 'ELEVATED' | 'MODERATE' | 'LOW' {
+  const normalized = risk?.trim().toUpperCase();
+  if (
+    normalized === 'HIGH' ||
+    normalized === 'ELEVATED' ||
+    normalized === 'MODERATE' ||
+    normalized === 'LOW'
+  ) {
+    return normalized;
   }
   return 'LOW';
 }
@@ -77,11 +74,7 @@ function buildLtvRiskBandsFromLoanRows(loanRows: LoanAliasSummaryRow[]): LtvRisk
   const byRisk = new Map<string, { exposure: number; loans: number }>();
 
   for (const row of loanRows) {
-    const band = (row.risk?.trim().toUpperCase() || riskBandFromLtv(row.ltv)) as
-      | 'HIGH'
-      | 'ELEVATED'
-      | 'MODERATE'
-      | 'LOW';
+    const band = resolveLoanRisk(row.risk);
     const current = byRisk.get(band) ?? { exposure: 0, loans: 0 };
     current.exposure += row.totalExposure ?? 0;
     current.loans += 1;
@@ -221,8 +214,7 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
     other: row.other ?? null,
     totalExposure: row.totalExposure ?? null,
     ltv: row.ltv ?? null,
-    // Use warehouse risk_level from the API (not recalculated from LTV).
-    risk: (row.risk?.trim().toUpperCase() || riskBandFromLtv(row.ltv)),
+    risk: resolveLoanRisk(row.risk),
     isLtvConfirmed: Boolean(row.isLtvConfirmed),
     isInReview: Boolean(row.isInReview),
   }));
