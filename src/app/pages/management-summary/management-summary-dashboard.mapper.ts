@@ -77,7 +77,11 @@ function buildLtvRiskBandsFromLoanRows(loanRows: LoanAliasSummaryRow[]): LtvRisk
   const byRisk = new Map<string, { exposure: number; loans: number }>();
 
   for (const row of loanRows) {
-    const band = riskBandFromLtv(row.ltv);
+    const band = (row.risk?.trim().toUpperCase() || riskBandFromLtv(row.ltv)) as
+      | 'HIGH'
+      | 'ELEVATED'
+      | 'MODERATE'
+      | 'LOW';
     const current = byRisk.get(band) ?? { exposure: 0, loans: 0 };
     current.exposure += row.totalExposure ?? 0;
     current.loans += 1;
@@ -217,7 +221,8 @@ export function mapManagementSummaryDashboard(dto: ManagementSummaryDashboardDto
     other: row.other ?? null,
     totalExposure: row.totalExposure ?? null,
     ltv: row.ltv ?? null,
-    risk: riskBandFromLtv(row.ltv),
+    // Use warehouse risk_level from the API (not recalculated from LTV).
+    risk: (row.risk?.trim().toUpperCase() || riskBandFromLtv(row.ltv)),
     isLtvConfirmed: Boolean(row.isLtvConfirmed),
     isInReview: Boolean(row.isInReview),
   }));
