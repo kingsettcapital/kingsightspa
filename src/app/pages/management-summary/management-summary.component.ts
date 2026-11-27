@@ -42,7 +42,7 @@ import { mapManagementSummaryDashboard } from './management-summary-dashboard.ma
 import {
   loanDetailEntryQueryParams,
   formatActiveFiltersDisplay,
-  isRepaidOnlyStatusSelection,
+  shouldUseAllStatusesOnDetail,
   sponsorsFromFilters,
   statusesFromFilters,
   toggleExclusiveSelection,
@@ -387,11 +387,11 @@ export class ManagementSummaryComponent implements OnInit, AfterViewInit {
 
   private navigateToLoanDetail(loanAliasKey: number, loanAlias: string): void {
     // Keep MS filters in session; Detail gets As Of + funding-status default
-    // (all except Repaid, or All when Summary was filtered to Repaid only).
+    // (all except Repaid/Unfunded, or All when Summary was Repaid/Unfunded only).
     this.filterState.saveFilters(this.filters());
     void this.router.navigate(['/mortgage', 'management-summary', loanAliasKey, 'loan-detail'], {
       queryParams: loanDetailEntryQueryParams(this.filters().asOfDate, loanAlias, {
-        parentIsRepaid: isRepaidOnlyStatusSelection(this.filters().statuses),
+        useAllStatuses: shouldUseAllStatusesOnDetail(this.filters().statuses),
         availableStatuses: this.statusOptions(),
       }),
     });

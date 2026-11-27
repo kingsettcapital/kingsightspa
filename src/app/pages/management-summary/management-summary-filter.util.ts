@@ -176,21 +176,32 @@ export const LOAN_DETAIL_FALLBACK_STATUSES = [
   'All',
 ] as const;
 
-function isRepaidStatus(status: string): boolean {
-  return status.trim().toLowerCase() === 'repaid';
-}
-
-/** True when the only selected funding status is Repaid. */
-export function isRepaidOnlyStatusSelection(
-  statuses: readonly string[] | null | undefined,
-): boolean {
-  const selected = selectedValues(statuses ?? undefined);
-  return selected?.length === 1 && isRepaidStatus(selected[0]);
+function isExcludedDetailDefaultStatus(status: string): boolean {
+  const normalized = status.trim().toLowerCase();
+  return normalized === 'repaid' || normalized === 'unfunded';
 }
 
 /**
- * Loan Detail default funding statuses: every option except Repaid and All.
- * When the parent loan is Repaid, callers should use ['All'] instead.
+ * True when Summary was filtered to only Repaid or only Unfunded —
+ * Detail should open with All so those child loans are visible.
+ */
+export function shouldUseAllStatusesOnDetail(
+  statuses: readonly string[] | null | undefined,
+): boolean {
+  const selected = selectedValues(statuses ?? undefined);
+  return selected?.length === 1 && isExcludedDetailDefaultStatus(selected[0]);
+}
+
+/** @deprecated Use shouldUseAllStatusesOnDetail. */
+export function isRepaidOnlyStatusSelection(
+  statuses: readonly string[] | null | undefined,
+): boolean {
+  return shouldUseAllStatusesOnDetail(statuses);
+}
+
+/**
+ * Loan Detail default funding statuses: every option except Repaid, Unfunded, and All.
+ * When the parent loan is Repaid/Unfunded-only, callers should use ['All'] instead.
  */
 export function defaultLoanDetailStatuses(
   availableStatuses?: readonly string[] | null,
@@ -198,21 +209,24 @@ export function defaultLoanDetailStatuses(
   const source = (availableStatuses?.length ? availableStatuses : LOAN_DETAIL_FALLBACK_STATUSES)
     .map((status) => status.trim())
     .filter(Boolean);
-  const withoutAllAndRepaid = source.filter(
-    (status) => status.toLowerCase() !== 'all' && !isRepaidStatus(status),
+  const withoutExcluded = source.filter(
+    (status) =>
+      status.toLowerCase() !== 'all' && !isExcludedDetailDefaultStatus(status),
   );
-  return withoutAllAndRepaid.length > 0 ? withoutAllAndRepaid : ['All'];
+  return withoutExcluded.length > 0 ? withoutExcluded : ['All'];
 }
 
 /**
  * Entry query from Management Summary → Loan Detail.
  * Carries As Of, alias, and the Loan Detail funding-status default:
- * all statuses except Repaid, or All when the parent loan is Repaid.
+ * all statuses except Repaid/Unfunded, or All when parent is Repaid/Unfunded-only.
  */
 export function loanDetailEntryQueryParams(
   asOfDate: string,
   alias?: string,
   options?: {
+    useAllStatuses?: boolean;
+    /** @deprecated Prefer useAllStatuses. */
     parentIsRepaid?: boolean;
     availableStatuses?: readonly string[] | null;
   },
@@ -221,13 +235,14 @@ export function loanDetailEntryQueryParams(
   if (alias?.trim()) {
     params['alias'] = alias.trim();
   }
-  params['statuses'] = options?.parentIsRepaid
+  const useAll = options?.useAllStatuses === true || options?.parentIsRepaid === true;
+  params['statuses'] = useAll
     ? ['All']
     : defaultLoanDetailStatuses(options?.availableStatuses);
   return params;
 }
 
-/** Loan Detail defaults: As Of carried over; funding status excludes Repaid unless overridden. */
+/** Loan Detail defaults: As Of carried over; excludes Repaid and Unfunded unless overridden. */
 export function createLoanDetailDefaultFilters(
   asOfDate: string,
   availableStatuses?: readonly string[] | null,
